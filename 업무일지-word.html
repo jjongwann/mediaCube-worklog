@@ -696,10 +696,13 @@
     if (editingEntry.project) document.getElementById('chip-project').value = editingEntry.project;
     if (editingEntry.type)    document.getElementById('chip-type').value   = editingEntry.type;
     if (editingEntry.progress !== undefined) document.getElementById('chip-progress').value = editingEntry.progress;
-    if (editingEntry.memo) {
-      var tas = document.querySelectorAll('.doc-textarea');
-      if (tas[0]) tas[0].value = editingEntry.memo;
-    }
+    var tas = document.querySelectorAll('.doc-textarea');
+    if (tas[0]) tas[0].value = editingEntry.summary || editingEntry.memo || '';
+    if (tas[1]) tas[1].value = editingEntry.nextPlan || '';
+    if (tas[2]) tas[2].value = editingEntry.note     || '';
+    var issueTas = document.querySelectorAll('.issue-card-body');
+    if (issueTas[0]) issueTas[0].value = editingEntry.issue || '';
+    if (issueTas[1]) issueTas[1].value = editingEntry.risk  || '';
 
     // Update toolbar to indicate edit mode
     document.querySelector('.toolbar-title').textContent = '업무일지 — 편집 중';
@@ -852,9 +855,15 @@
     });
     var status = hasWip ? 'wip' : (hasTodo ? 'todo' : (hasAny ? 'done' : 'wip'));
 
-    // 업무 요약 첫 번째 textarea
+    // 각 섹션 textarea 수집
     var textareas = document.querySelectorAll('.doc-textarea');
-    var memo = textareas[0] ? textareas[0].value.trim() : '';
+    var summary  = textareas[0] ? textareas[0].value.trim() : '';
+    var nextPlan = textareas[1] ? textareas[1].value.trim() : '';
+    var note     = textareas[2] ? textareas[2].value.trim() : '';
+    var issueTas = document.querySelectorAll('.issue-card-body');
+    var issue    = issueTas[0] ? issueTas[0].value.trim() : '';
+    var risk     = issueTas[1] ? issueTas[1].value.trim() : '';
+    var memo = summary; // 대시보드 호환용
 
     // 금일 업무 내역 수집
     var tasks = [];
@@ -889,6 +898,11 @@
         status:   status,
         progress: progress,
         memo:     memo,
+        summary:  summary,
+        issue:    issue,
+        risk:     risk,
+        nextPlan: nextPlan,
+        note:     note,
         tasks:    tasks,
         pinned:   editingEntry.pinned || false
       };
@@ -905,6 +919,11 @@
         status:   status,
         progress: progress,
         memo:     memo,
+        summary:  summary,
+        issue:    issue,
+        risk:     risk,
+        nextPlan: nextPlan,
+        note:     note,
         tasks:    tasks,
         pinned:   false
       };
