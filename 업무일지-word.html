@@ -681,6 +681,14 @@
   var EDIT_KEY = 'editJournal';
   var editingEntry = null;
 
+  /* ── Supabase ── */
+  var SB_URL = 'https://qkvatxowpkespdkxuoom.supabase.co';
+  var SB_KEY = 'sb_publishable_2PIK53xa60wU0ds_L44pgQ_yfsoiot1';
+  var SB_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' };
+  function sbUpsert(j) {
+    return fetch(SB_URL + '/rest/v1/journals', { method: 'POST', headers: SB_HDR, body: JSON.stringify(j) });
+  }
+
   // ── Edit mode: load saved journal data ──
   (function() {
     var raw = sessionStorage.getItem(EDIT_KEY);
@@ -884,56 +892,31 @@
       tasks.push({ text: text, status: taskStatus, done: done });
     });
 
-    var data = [];
-    try { data = JSON.parse(localStorage.getItem(DB_KEY) || '[]'); } catch(e) {}
+    var nowDate = date || (function(){ var d=new Date(),m=d.getMonth()+1,day=d.getDate(); return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day); })();
+    var record = {
+      id:        editingEntry ? editingEntry.id : (Date.now().toString(36) + Math.random().toString(36).slice(2,6)),
+      title:     title,
+      date:      nowDate,
+      author:    author,
+      project:   project,
+      type:      type,
+      status:    status,
+      progress:  progress,
+      memo:      memo,
+      summary:   summary,
+      issue:     issue,
+      risk:      risk,
+      next_plan: nextPlan,
+      note:      note,
+      tasks:     tasks,
+      pinned:    editingEntry ? (editingEntry.pinned || false) : false
+    };
 
-    if (editingEntry) {
-      var idx = data.findIndex(function(x) { return x.id === editingEntry.id; });
-      var updated = {
-        id:       editingEntry.id,
-        title:    title,
-        date:     date || (function(){ var d=new Date(),m=d.getMonth()+1,day=d.getDate(); return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day); })(),
-        author:   author,
-        project:  project,
-        type:     type,
-        status:   status,
-        progress: progress,
-        memo:     memo,
-        summary:  summary,
-        issue:    issue,
-        risk:     risk,
-        nextPlan: nextPlan,
-        note:     note,
-        tasks:    tasks,
-        pinned:   editingEntry.pinned || false
-      };
-      if (idx !== -1) { data[idx] = updated; }
-      else { data.unshift(updated); }
-    } else {
-      var entry = {
-        id:       Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-        title:    title,
-        date:     date || (function(){ var d=new Date(),m=d.getMonth()+1,day=d.getDate(); return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day); })(),
-        author:   author,
-        project:  project,
-        type:     type,
-        status:   status,
-        progress: progress,
-        memo:     memo,
-        summary:  summary,
-        issue:    issue,
-        risk:     risk,
-        nextPlan: nextPlan,
-        note:     note,
-        tasks:    tasks,
-        pinned:   false
-      };
-      data.unshift(entry);
-    }
-
-    localStorage.setItem(DB_KEY, JSON.stringify(data));
-
-    window.location.href = '업무일지-dashboard.html';
+    sbUpsert(record).then(function() {
+      window.location.href = '업무일지-dashboard.html';
+    }).catch(function(e) {
+      alert('저장 중 오류가 발생했습니다: ' + e.message);
+    });
   }
 </script>
 </body>

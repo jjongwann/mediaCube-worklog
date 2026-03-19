@@ -1271,43 +1271,78 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  var DB_KEY = 'mediaCube_journals_v1';
+  var DB_KEY = 'mediaCube_journals_v1'; // 레거시 키 (마이그레이션용)
+
+  /* ── Supabase Config ── */
+  var SB_URL = 'https://qkvatxowpkespdkxuoom.supabase.co';
+  var SB_KEY = 'sb_publishable_2PIK53xa60wU0ds_L44pgQ_yfsoiot1';
+  var SB_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' };
+
+  var journalCache = [];
+
+  function localToDb(j) {
+    return { id: j.id, title: j.title, date: j.date, author: j.author,
+      project: j.project, type: j.type, status: j.status, progress: j.progress || 0,
+      memo: j.memo || '', summary: j.summary || '', issue: j.issue || '',
+      risk: j.risk || '', next_plan: j.nextPlan || '', note: j.note || '',
+      tasks: j.tasks || [], pinned: j.pinned || false };
+  }
+  function dbToLocal(r) {
+    return { id: r.id, title: r.title, date: r.date, author: r.author,
+      project: r.project, type: r.type, status: r.status === 'review' ? 'todo' : r.status, progress: r.progress || 0,
+      memo: r.memo || '', summary: r.summary || '', issue: r.issue || '',
+      risk: r.risk || '', nextPlan: r.next_plan || '', note: r.note || '',
+      tasks: r.tasks || [], pinned: r.pinned || false };
+  }
+  async function sbFetch() {
+    try {
+      var res = await fetch(SB_URL + '/rest/v1/journals?select=*&order=date.desc,created_at.desc', { headers: SB_HDR });
+      var rows = await res.json();
+      journalCache = Array.isArray(rows) ? rows.map(dbToLocal) : [];
+    } catch(e) { console.error('Supabase fetch error', e); journalCache = []; }
+    return journalCache;
+  }
+  function sbUpsert(j) {
+    return fetch(SB_URL + '/rest/v1/journals', { method: 'POST', headers: SB_HDR, body: JSON.stringify(localToDb(j)) }).catch(function(e){ console.error('upsert error', e); });
+  }
+  function sbDeleteIds(ids) {
+    if (!ids.length) return Promise.resolve();
+    return fetch(SB_URL + '/rest/v1/journals?id=in.(' + ids.map(function(id){ return '"'+id+'"'; }).join(',') + ')', { method: 'DELETE', headers: SB_HDR }).catch(function(e){ console.error('delete error', e); });
+  }
   var currentFilter = 'all';
   var currentView = 'table';
   var editingId = null;
   var drFrom = null; // Date object
   var drTo   = null; // Date object
 
-  /* ── Storage ── */
-  function loadJournals() {
+  /* ── Storage (Supabase 기반) ── */
+  function loadJournals() { return journalCache; }
+  function saveJournals(newData) {
+    var oldIds = new Set(journalCache.map(function(j){ return j.id; }));
+    var newIds = new Set(newData.map(function(j){ return j.id; }));
+    var deleted = journalCache.filter(function(j){ return !newIds.has(j.id); });
+    if (deleted.length) sbDeleteIds(deleted.map(function(j){ return j.id; }));
+    newData.forEach(function(j){ if (!oldIds.has(j.id) || JSON.stringify(j) !== JSON.stringify(journalCache.find(function(x){ return x.id===j.id; }))) sbUpsert(j); });
+    journalCache = newData;
+  }
+
+  /* ── Seed / 레거시 마이그레이션 ── */
+  async function seedIfEmpty() {
+    if (journalCache.length > 0) return;
+    // 기존 localStorage 데이터 마이그레이션
     try {
-      var data = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
-      // 구 'review' 상태 → 'todo' 자동 변환
-      data.forEach(function(j){ if (j.status === 'review') j.status = 'todo'; });
-      return data;
-    } catch(e) { return []; }
-  }
-  function saveJournals(data) {
-    localStorage.setItem(DB_KEY, JSON.stringify(data));
-  }
-
-  /* ── Seed data (first load) ── */
-  function seedIfEmpty() {
-    var data = loadJournals();
-    if (data.length > 0) return;
-    var today = new Date();
-    var fmt = localDateStr;
-    var yesterday = new Date(today); yesterday.setDate(today.getDate()-1);
-    var twoDays   = new Date(today); twoDays.setDate(today.getDate()-2);
-    var lastWeek  = new Date(today); lastWeek.setDate(today.getDate()-7);
-
-    var seed = [
-      { id: uid(), title: fmt(today)+' 업무일지', date: fmt(today), author: '담당자', project: '포렌식 제품 페이지', type: '개발', status: 'wip', progress: 75, memo: '사이드바 레이아웃 이슈 수정 중', pinned: true },
-      { id: uid(), title: fmt(yesterday)+' 업무일지', date: fmt(yesterday), author: '담당자', project: '포렌식 제품 페이지', type: '개발', status: 'done', progress: 100, memo: 'product.html 카드 디자인 완료', pinned: false },
-      { id: uid(), title: fmt(twoDays)+' 업무일지', date: fmt(twoDays), author: '담당자', project: '업무일지 템플릿', type: '기획', status: 'done', progress: 100, memo: '워드/엑셀 템플릿 완성', pinned: false },
-      { id: uid(), title: fmt(lastWeek)+' 업무일지', date: fmt(lastWeek), author: '담당자', project: '아임웹 코드 위젯', type: '개발', status: 'todo', progress: 90, memo: '아임웹 연동 검토 요청', pinned: false },
-    ];
-    saveJournals(seed);
+      var legacy = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+      if (legacy.length > 0) {
+        for (var i = 0; i < legacy.length; i++) {
+          if (!legacy[i].id) legacy[i].id = uid();
+          if (legacy[i].status === 'review') legacy[i].status = 'todo';
+          await sbUpsert(legacy[i]);
+        }
+        journalCache = legacy;
+        localStorage.removeItem(DB_KEY);
+        return;
+      }
+    } catch(e) {}
   }
 
   function uid() {
@@ -2003,8 +2038,11 @@
   });
 
   /* ── Init ── */
-  seedIfEmpty();
-  renderList();
+  (async function() {
+    await sbFetch();
+    await seedIfEmpty();
+    renderList();
+  })();
 </script>
 </body>
 </html>
