@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>업무일지 — Excel</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1e2027;
+    font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* App Chrome */
+  .app-bar {
+    background: #1d6f42;
+    padding: 0 16px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .app-bar-icon {
+    width: 24px; height: 24px;
+    background: #fff;
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 14px; color: #1d6f42;
+    letter-spacing: -1px;
+  }
+  .app-bar-title {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .app-bar-spacer { flex: 1; }
+  .app-bar-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: #fff;
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.15s;
+  }
+  .app-bar-btn:hover { background: rgba(255,255,255,0.25); }
+  .app-bar-btn-primary {
+    background: #fff;
+    color: #1d6f42;
+    border-color: #fff;
+  }
+  .app-bar-btn-primary:hover { background: #e8f5e9; }
+
+  .ribbon {
+    background: #f3f2f1;
+    border-bottom: 1px solid #d0d0d0;
+    padding: 4px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .ribbon-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-right: 16px;
+    border-right: 1px solid #d0d0d0;
+  }
+  .ribbon-group:last-child { border-right: none; }
+  .ribbon-btn {
+    background: none;
+    border: none;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-family: inherit;
+    color: #333;
+    cursor: pointer;
+    border-radius: 3px;
+    font-weight: 500;
+    transition: background 0.1s;
+  }
+  .ribbon-btn:hover { background: #e1dfdd; }
+
+  .formula-bar {
+    background: #fff;
+    border-bottom: 1px solid #d0d0d0;
+    padding: 4px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .formula-cell-ref {
+    background: #f3f2f1;
+    border: 1px solid #d0d0d0;
+    border-radius: 3px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    min-width: 60px;
+    text-align: center;
+  }
+  .formula-bar-sep {
+    font-size: 16px;
+    color: #aaa;
+  }
+  .formula-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 12px;
+    font-family: inherit;
+    color: #333;
+    background: transparent;
+    padding: 2px 0;
+  }
+
+  /* Main area */
+  .excel-main {
+    display: flex;
+    flex: 1;
+    overflow: auto;
+  }
+
+  /* Row number column */
+  .row-nums {
+    flex-shrink: 0;
+    background: #f3f2f1;
+    border-right: 2px solid #d0d0d0;
+  }
+  .row-num-header {
+    width: 40px;
+    height: 24px;
+    background: #e8e7e6;
+    border-bottom: 1px solid #d0d0d0;
+    border-right: none;
+  }
+  .row-num {
+    width: 40px;
+    text-align: center;
+    font-size: 11px;
+    color: #888;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  /* Sheet */
+  .sheet-wrap {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+  }
+
+  table.sheet {
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  table.sheet th, table.sheet td {
+    border: 1px solid #d0d0d0;
+    font-size: 12px;
+    font-family: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  /* Column headers */
+  table.sheet thead th {
+    background: #f3f2f1;
+    height: 24px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+    border-bottom: 2px solid #c0c0c0;
+    user-select: none;
+    min-width: 80px;
+  }
+
+  /* Cells */
+  .cell {
+    height: 28px;
+    padding: 0 6px;
+    min-width: 80px;
+    position: relative;
+    background: #fff;
+    vertical-align: middle;
+    cursor: cell;
+  }
+  .cell.selected { outline: 2px solid #1d6f42; outline-offset: -1px; z-index: 1; }
+  .cell input, .cell textarea {
+    width: 100%;
+    height: 100%;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 12px;
+    background: transparent;
+    padding: 0;
+    resize: none;
+    color: #333;
+    cursor: cell;
+  }
+  .cell input:focus, .cell textarea:focus { cursor: text; }
+  .cell.wrap-cell { white-space: normal; overflow: visible; }
+  .cell.wrap-cell textarea { resize: none; white-space: pre-wrap; }
+
+  /* Header rows styling */
+  .cell.hdr-main {
+    background: #1d6f42;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    height: 44px;
+    letter-spacing: 2px;
+  }
+  .cell.hdr-section {
+    background: #2e7d32;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding-left: 10px;
+  }
+  .cell.hdr-col {
+    background: #e8f5e9;
+    color: #1b5e20;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #a5d6a7;
+  }
+  .cell.hdr-meta-label {
+    background: #f1f8e9;
+    color: #33691e;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: right;
+    padding-right: 10px;
+  }
+  .cell.hdr-meta-value input {
+    font-weight: 500;
+    color: #1a1a1a;
+  }
+
+  /* Status cells */
+  .cell.status-cell { text-align: center; }
+  .status-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .sb-done { background: #e8f5e9; color: #2e7d32; }
+  .sb-wip  { background: #fff8e1; color: #f57f17; }
+  .sb-todo { background: #e8eaf6; color: #3949ab; }
+  .sb-hold { background: #fce4ec; color: #c62828; }
+
+  /* Priority */
+  .pri-high { color: #c62828; font-weight: 700; text-align: center; }
+  .pri-mid  { color: #e65100; font-weight: 700; text-align: center; }
+  .pri-low  { color: #1565c0; font-weight: 700; text-align: center; }
+
+  /* Progress bar cell */
+  .progress-cell { position: relative; }
+  .progress-bg {
+    position: absolute;
+    top: 4px; bottom: 4px; left: 4px;
+    background: #e8f5e9;
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+  .progress-label {
+    position: relative;
+    z-index: 1;
+    font-size: 11px;
+    font-weight: 700;
+    color: #1b5e20;
+    text-align: center;
+    display: block;
+    line-height: 28px;
+  }
+
+  /* Summary section */
+  .cell.summary-lbl {
+    background: #f9fbe7;
+    font-size: 11px;
+    font-weight: 700;
+    color: #558b2f;
+    text-align: center;
+    border-right: 2px solid #aed581;
+  }
+  .cell.summary-val { white-space: normal; }
+  .cell.summary-val textarea {
+    font-size: 12px;
+    color: #333;
+    line-height: 1.6;
+    padding: 4px;
+    cursor: text;
+  }
+
+  /* Totals row */
+  .cell.total-row {
+    background: #f1f8e9;
+    font-weight: 700;
+    font-size: 11px;
+    color: #1b5e20;
+    text-align: center;
+  }
+
+  /* Alternating rows */
+  tr.alt-row td { background: #fafffe; }
+
+  /* Merged-ish look */
+  .cell.merged-vis {
+    border-right: none;
+  }
+  .cell.merged-end {
+    border-left: none;
+  }
+
+  /* Sheet tabs */
+  .sheet-tabs {
+    background: #e8e7e6;
+    border-top: 1px solid #c0c0c0;
+    padding: 4px 16px 0;
+    display: flex;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .tab {
+    background: #d0d0d0;
+    border: 1px solid #c0c0c0;
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+    padding: 4px 16px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #555;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .tab.active {
+    background: #fff;
+    color: #1d6f42;
+    font-weight: 700;
+    border-bottom: 1px solid #fff;
+    margin-bottom: -1px;
+  }
+  .tab:hover:not(.active) { background: #c0c0c0; }
+
+  /* Status bar */
+  .status-bar {
+    background: #1d6f42;
+    padding: 3px 16px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-shrink: 0;
+  }
+  .status-bar-item {
+    font-size: 11px;
+    color: rgba(255,255,255,0.85);
+  }
+  .status-bar-item strong { color: #fff; }
+
+  @media print {
+    .app-bar, .ribbon, .formula-bar, .sheet-tabs, .status-bar { display: none !important; }
+    body { background: white; }
+    .excel-main { overflow: visible; }
+    .sheet-wrap { overflow: visible; }
+    table.sheet thead th, .cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<!-- App Bar -->
+<div class="app-bar">
+  <div class="app-bar-icon">XL</div>
+  <span class="app-bar-title">업무일지.xlsx — 저장됨</span>
+  <div class="app-bar-spacer"></div>
+  <button class="app-bar-btn" onclick="addRow()">+ 행 추가</button>
+  <button class="app-bar-btn-primary app-bar-btn" onclick="window.print()">&#128438; 인쇄 / PDF</button>
+</div>
+
+<!-- Ribbon -->
+<div class="ribbon">
+  <div class="ribbon-group">
+    <button class="ribbon-btn" onclick="document.execCommand('bold')"><b>B</b></button>
+    <button class="ribbon-btn" onclick="document.execCommand('italic')"><i>I</i></button>
+    <button class="ribbon-btn">&#9711;</button>
+  </div>
+  <div class="ribbon-group">
+    <button class="ribbon-btn" onclick="addRow()">행 삽입</button>
+    <button class="ribbon-btn" onclick="deleteLastRow()">행 삭제</button>
+  </div>
+  <div class="ribbon-group">
+    <span style="font-size:11px;color:#666">상태 클릭 → 변경</span>
+  </div>
+</div>
+
+<!-- Formula Bar -->
+<div class="formula-bar">
+  <div class="formula-cell-ref" id="cell-ref">A1</div>
+  <span class="formula-bar-sep">fx</span>
+  <input class="formula-input" id="formula-input" readonly placeholder="셀을 선택하면 내용이 표시됩니다">
+</div>
+
+<!-- Main Sheet Area -->
+<div class="excel-main">
+  <div class="sheet-wrap">
+    <table class="sheet" id="main-sheet">
+      <thead>
+        <tr>
+          <th style="width:32px">#</th>
+          <th style="min-width:240px;width:240px">업무 내용</th>
+          <th style="width:80px">담당자</th>
+          <th style="width:72px">우선순위</th>
+          <th style="width:72px">상태</th>
+          <th style="width:90px">진행률</th>
+          <th style="width:80px">시작일</th>
+          <th style="width:80px">완료예정일</th>
+          <th style="width:72px">소요시간</th>
+          <th style="min-width:200px;width:200px">비고</th>
+        </tr>
+      </thead>
+      <tbody id="sheet-body">
+
+        <!-- === HEADER ROW === -->
+        <tr>
+          <td class="cell hdr-main" colspan="10" style="height:44px;font-size:16px;text-align:center;vertical-align:middle;letter-spacing:3px;color:#fff;background:#1d6f42;font-weight:700;border:1px solid #1a5c36">
+            업 무 일 지 &nbsp;|&nbsp; DAILY WORK JOURNAL
+          </td>
+        </tr>
+
+        <!-- === META ROW === -->
+        <tr>
+          <td class="cell hdr-meta-label" colspan="2">작성일</td>
+          <td class="cell hdr-meta-value" colspan="2">
+            <input type="date" id="meta-date" style="font-size:12px;color:#333;border:none;outline:none;width:100%;background:transparent;font-family:inherit;">
+          </td>
+          <td class="cell hdr-meta-label" colspan="2">작성자 / 부서</td>
+          <td class="cell hdr-meta-value" colspan="2">
+            <input type="text" placeholder="홍길동 / 개발팀" style="font-size:12px;color:#333;border:none;outline:none;width:100%;background:transparent;font-family:inherit;">
+          </td>
+          <td class="cell hdr-meta-label">프로젝트</td>
+          <td class="cell hdr-meta-value">
+            <input type="text" placeholder="프로젝트명" style="font-size:12px;color:#333;border:none;outline:none;width:100%;background:transparent;font-family:inherit;">
+          </td>
+        </tr>
+
+        <!-- === SECTION HEADER === -->
+        <tr>
+          <td class="cell hdr-section" colspan="10" style="height:26px;padding-left:12px;">
+            ▶ 금일 업무 내역
+          </td>
+        </tr>
+
+        <!-- === COLUMN HEADERS === -->
+        <tr>
+          <td class="cell hdr-col" style="font-size:11px;text-align:center">No.</td>
+          <td class="cell hdr-col">업무 내용</td>
+          <td class="cell hdr-col">담당자</td>
+          <td class="cell hdr-col">우선순위</td>
+          <td class="cell hdr-col">상태</td>
+          <td class="cell hdr-col">진행률</td>
+          <td class="cell hdr-col">시작일</td>
+          <td class="cell hdr-col">완료예정일</td>
+          <td class="cell hdr-col">소요(h)</td>
+          <td class="cell hdr-col">비고</td>
+        </tr>
+
+        <!-- === DATA ROWS === -->
+        <tr class="data-row">
+          <td class="cell" style="text-align:center;font-size:11px;color:#aaa;font-weight:600">1</td>
+          <td class="cell"><input type="text" value="포렌식 제품 페이지 레이아웃 수정"></td>
+          <td class="cell"><input type="text" value="홍길동"></td>
+          <td class="cell pri-high"><input type="text" value="상" style="text-align:center;font-weight:700;color:#c62828"></td>
+          <td class="cell status-cell"><span class="status-badge sb-done" onclick="cycleStatus(this)">완료</span></td>
+          <td class="cell progress-cell" data-val="100">
+            <div class="progress-bg" style="width:calc(100% - 8px)"></div>
+            <span class="progress-label">100%</span>
+          </td>
+          <td class="cell"><input type="date" style="font-size:11px;border:none;outline:none;width:100%;background:transparent;font-family:inherit;color:#333;cursor:cell"></td>
+          <td class="cell"><input type="date" style="font-size:11px;border:none;outline:none;width:100%;background:transparent;font-family:inherit;color:#333;cursor:cell"></td>
+          <td class="cell"><input type="number" value="3" style="text-align:center;border:none;outline:none;width:100%;background:transparent;font-family:inherit;font-size:12px;color:#333;cursor:cell"></td>
+          <td class="cell"><input type="text" value="float 레이아웃 적용"></td>
+        </tr>
+        <tr class="data-row alt-row">
+          <td class="cell" style="text-align:center;font-size:11px;color:#aaa;font-weight:600">2</td>
+          <td class="cell"><input type="text" value="product.html 카드 디자인 개선"></td>
+          <td class="cell"><input type="text" value="홍길동"></td>
+          <td class="cell"><input type="text" value="중" style="text-align:center;font-weight:700;color:#e65100;border:none;outline:none;width:100%;background:transparent;font-family:inherit;font-size:12px;cursor:cell"></td>
+          <td class="cell status-cell"><span class="status-badge sb-done" onclick="cycleStatus(this)">완료</span></td>
+          <td class="cell progress-cell" data-val="100">
+            <div class="progress-bg" style="width:calc(100% - 8px)"></div>
+            <span class="progress-label">100%</span>
+          </td>
+          <td class="cell"><input type="date" style="font-size:11px;border:none;outline:none;width:100%;background:transparent;font-family:inherit;color:#333;cursor:cell"></td>
+          <td class="cell"><input type="date" style="font-size:11px;border:none;outline:none;width:100%;background:transparent;font-family:inherit;color:#333;cursor:cell"></td>
+          <td class="cell"><input type="number" value="2" style="text-align:center;border:none;outline:none;width:100%;background:transparent;font-family:inherit;font-size:12px;color:#333;cursor:cell"></td>
+          <td class="cell"><input type="text" value="dark bg #181e2c 적용"></td>
+        </tr>
+        <tr class="data-row">
+          <td class="cell" style="text-align:center;font-size:11px;color:#aaa;font-weight:600">3</td>
+          <td class="cell"><input type="text" value="업무일지 템플릿 개발"></td>
+          <td class="cell"><input type="text" value="홍길동"></td>
+          <td class="cell"><input type="text" value="중" style="text-align:center;font-weight:700;color:#e65100;border:none;outline:none;width:100%;background:transparent;font-family:inherit;font-size:12px;cursor:cell"></td>
+          <td class="cell status-cell"><span class="status-badge sb-wip" onclick="cycleStatus(this)">진행</span></td>
+          <td class="cell progress-cell" data-val="80">
+            <div class="progress-bg" style="width:calc((100% - 8px) * 0.80)"></div>
+            <span class="progress-label">80%</span>
+          </td>
+          <td class="cell"><input type="date" style="font-size:11px;border:none;outline:none;width:100%;background:transparent;font-family:inherit;color:#333;cursor:cell"></td>
+          <td class="cell"><input type="date" style="font-size:11px;border:none;outline:none;width:100%;background:transparent;font-family:inherit;color:#333;cursor:cell"></td>
+          <td class="cell"><input type="number" value="2" style="text-align:center;border:none;outline:none;width:100%;background:transparent;font-family:inherit;font-size:12px;color:#333;cursor:cell"></td>
+          <td class="cell"><input type="text" placeholder="비고"></td>
+        </tr>
+        <tr class="data-row alt-row">
+          <td class="cell" style="text-align:center;font-size:11px;color:#aaa;font-weight:600">4</td>
+          <td class="cell"><input type="text" placeholder="업무 내용 입력"></td>
+          <td class="cell"><input type="text" placeholder="담당자"></td>
+          <td class="cell"><input type="text" placeholder="상/중/하" style="text-align:center;border:none;outline:none;width:100%;background:transparent;font-family:inherit;font-size:12px;color:#333;cursor:cell"></td>
+          <td class="cell status-cell"><span class="status-badge sb-todo" onclick="cycleStatus(this)">예정</span></td>
+          <td class="cell progress-cell" data-val="0">
+            <div class="progress-bg" style="width:0"></div>
+            <span class="progress-label">0%</span>
+          </td>
+          <td class="cell"><input type="date" style="font-size:11px;border:none;outline:none;width:100%;background:transparent;font-family:inherit;color:#333;cursor:cell"></td>
+          <td class="cell"><input type="date" style="font-size:11px;border:none;outline:none;width:100%;background:transparent;font-family:inherit;color:#333;cursor:cell"></td>
+          <td class="cell"><input type="number" placeholder="0" style="text-align:center;border:none;outline:none;width:100%;background:transparent;font-family:inherit;font-size:12px;color:#333;cursor:cell"></td>
+          <td class="cell"><input type="text" placeholder="비고"></td>
+        </tr>
+
+        <!-- === TOTALS ROW === -->
+        <tr>
+          <td class="cell total-row" colspan="8" style="text-align:right;padding-right:12px">합 계</td>
+          <td class="cell total-row" id="total-hours" style="text-align:center">7h</td>
+          <td class="cell total-row"></td>
+        </tr>
+
+        <!-- === SPACER === -->
+        <tr><td class="cell" colspan="10" style="height:8px;background:#f3f2f1;border:none"></td></tr>
+
+        <!-- === SECTION: SUMMARY === -->
+        <tr>
+          <td class="cell hdr-section" colspan="10" style="height:26px;padding-left:12px;">
+            ▶ 업무 요약 / 이슈 / 익일 계획
+          </td>
+        </tr>
+        <tr>
+          <td class="cell hdr-col" colspan="2" style="text-align:center">항목</td>
+          <td class="cell hdr-col" colspan="8">내용</td>
+        </tr>
+        <tr style="height:70px">
+          <td class="cell summary-lbl" colspan="2" style="vertical-align:middle;text-align:center;font-size:12px;line-height:1.4">업무<br>요약</td>
+          <td class="cell summary-val" colspan="8" style="padding:4px">
+            <textarea style="width:100%;height:62px;border:none;outline:none;font-family:inherit;font-size:12px;background:transparent;resize:none;line-height:1.7;color:#333;cursor:text" placeholder="오늘 수행한 업무의 핵심 내용을 요약하여 기록하세요."></textarea>
+          </td>
+        </tr>
+        <tr style="height:70px">
+          <td class="cell summary-lbl" colspan="2" style="vertical-align:middle;text-align:center;font-size:12px;line-height:1.4">이슈 /<br>블로커</td>
+          <td class="cell summary-val" colspan="8" style="padding:4px">
+            <textarea style="width:100%;height:62px;border:none;outline:none;font-family:inherit;font-size:12px;background:transparent;resize:none;line-height:1.7;color:#333;cursor:text" placeholder="발생한 이슈, 리스크, 블로킹 요소를 기록하세요."></textarea>
+          </td>
+        </tr>
+        <tr style="height:70px">
+          <td class="cell summary-lbl" colspan="2" style="vertical-align:middle;text-align:center;font-size:12px;line-height:1.4">익일<br>계획</td>
+          <td class="cell summary-val" colspan="8" style="padding:4px">
+            <textarea style="width:100%;height:62px;border:none;outline:none;font-family:inherit;font-size:12px;background:transparent;resize:none;line-height:1.7;color:#333;cursor:text" placeholder="내일 수행 예정인 업무 계획을 작성하세요."></textarea>
+          </td>
+        </tr>
+
+        <!-- === SPACER === -->
+        <tr><td class="cell" colspan="10" style="height:8px;background:#f3f2f1;border:none"></td></tr>
+
+        <!-- === SECTION: SIGN OFF === -->
+        <tr>
+          <td class="cell hdr-section" colspan="10" style="height:26px;padding-left:12px;">
+            ▶ 결 재
+          </td>
+        </tr>
+        <tr>
+          <td class="cell hdr-col" colspan="2" style="text-align:center">구분</td>
+          <td class="cell hdr-col" colspan="2" style="text-align:center">작성자</td>
+          <td class="cell hdr-col" colspan="2" style="text-align:center">팀장</td>
+          <td class="cell hdr-col" colspan="2" style="text-align:center">부서장</td>
+          <td class="cell hdr-col" colspan="2" style="text-align:center">비고</td>
+        </tr>
+        <tr style="height:50px">
+          <td class="cell summary-lbl" colspan="2" style="vertical-align:middle;text-align:center">서명/날인</td>
+          <td class="cell" colspan="2" style="text-align:center;vertical-align:middle">
+            <input type="text" placeholder="" style="text-align:center;border:none;outline:none;width:100%;background:transparent;font-family:inherit;font-size:12px;color:#333;cursor:cell">
+          </td>
+          <td class="cell" colspan="2" style="text-align:center;vertical-align:middle">
+            <input type="text" placeholder="" style="text-align:center;border:none;outline:none;width:100%;background:transparent;font-family:inherit;font-size:12px;color:#333;cursor:cell">
+          </td>
+          <td class="cell" colspan="2" style="text-align:center;vertical-align:middle">
+            <input type="text" placeholder="" style="text-align:center;border:none;outline:none;width:100%;background:transparent;font-family:inherit;font-size:12px;color:#333;cursor:cell">
+          </td>
+          <td class="cell" colspan="2">
+            <input type="text" placeholder="비고" style="border:none;outline:none;width:100%;background:transparent;font-family:inherit;font-size:12px;color:#333;cursor:cell">
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Sheet Tabs -->
+<div class="sheet-tabs">
+  <div class="tab active">일간 업무일지</div>
+  <div class="tab" onclick="alert('Sheet 2 — 주간 업무일지 (준비 중)')">주간 현황</div>
+  <div class="tab" onclick="alert('Sheet 3 — 프로젝트별 현황 (준비 중)')">프로젝트 현황</div>
+</div>
+
+<!-- Status Bar -->
+<div class="status-bar">
+  <span class="status-bar-item">셀 편집 가능</span>
+  <span class="status-bar-item">완료: <strong id="stat-done">2</strong></span>
+  <span class="status-bar-item">진행: <strong id="stat-wip">1</strong></span>
+  <span class="status-bar-item">예정: <strong id="stat-todo">1</strong></span>
+  <span class="status-bar-item" style="margin-left:auto">총 소요 시간: <strong id="stat-hours">7h</strong></span>
+</div>
+
+<script>
+  // Set today's date
+  document.getElementById('meta-date').valueAsDate = new Date();
+
+  // Status cycle
+  function cycleStatus(el) {
+    var statuses = [
+      {cls: 'sb-done', text: '완료'},
+      {cls: 'sb-wip',  text: '진행'},
+      {cls: 'sb-todo', text: '예정'},
+      {cls: 'sb-hold', text: '보류'}
+    ];
+    var cur = statuses.findIndex(function(s) { return el.classList.contains(s.cls); });
+    var next = (cur + 1) % statuses.length;
+    el.className = 'status-badge ' + statuses[next].cls;
+    el.textContent = statuses[next].text;
+    updateStats();
+  }
+
+  // Update status bar stats
+  function updateStats() {
+    var badges = document.querySelectorAll('.data-row .status-badge');
+    var done = 0, wip = 0, todo = 0;
+    badges.forEach(function(b) {
+      if (b.classList.contains('sb-done')) done++;
+      else if (b.classList.contains('sb-wip')) wip++;
+      else todo++;
+    });
+    document.getElementById('stat-done').textContent = done;
+    document.getElementById('stat-wip').textContent = wip;
+    document.getElementById('stat-todo').textContent = todo;
+    updateTotalHours();
+  }
+
+  // Calculate total hours
+  function updateTotalHours() {
+    var inputs = document.querySelectorAll('.data-row input[type="number"]');
+    var total = 0;
+    inputs.forEach(function(inp) { total += parseFloat(inp.value) || 0; });
+    var label = total + 'h';
+    var el = document.getElementById('total-hours');
+    if (el) el.textContent = label;
+    document.getElementById('stat-hours').textContent = label;
+  }
+
+  document.querySelectorAll('.data-row input[type="number"]').forEach(function(inp) {
+    inp.addEventListener('input', updateTotalHours);
+  });
+
+  // Add row
+  var rowCount = 4;
+  function addRow() {
+    rowCount++;
+    var tbody = document.getElementById('sheet-body');
+    var totalRow = document.querySelector('tr .total-row')
+      ? document.querySelector('td.total-row').closest('tr') : null;
+
+    var tr = document.createElement('tr');
+    tr.className = 'data-row' + (rowCount % 2 === 0 ? ' alt-row' : '');
+    tr.innerHTML = '<td class="cell" style="text-align:center;font-size:11px;color:#aaa;font-weight:600">' + rowCount + '</td>'
+      + '<td class="cell"><input type="text" placeholder="업무 내용 입력"></td>'
+      + '<td class="cell"><input type="text" placeholder="담당자"></td>'
+      + '<td class="cell"><input type="text" placeholder="상/중/하" style="text-align:center;border:none;outline:none;width:100%;background:transparent;font-family:inherit;font-size:12px;color:#333;cursor:cell"></td>'
+      + '<td class="cell status-cell"><span class="status-badge sb-todo" onclick="cycleStatus(this)">예정</span></td>'
+      + '<td class="cell progress-cell" data-val="0"><div class="progress-bg" style="width:0"></div><span class="progress-label">0%</span></td>'
+      + '<td class="cell"><input type="date" style="font-size:11px;border:none;outline:none;width:100%;background:transparent;font-family:inherit;color:#333;cursor:cell"></td>'
+      + '<td class="cell"><input type="date" style="font-size:11px;border:none;outline:none;width:100%;background:transparent;font-family:inherit;color:#333;cursor:cell"></td>'
+      + '<td class="cell"><input type="number" placeholder="0" style="text-align:center;border:none;outline:none;width:100%;background:transparent;font-family:inherit;font-size:12px;color:#333;cursor:cell"></td>'
+      + '<td class="cell"><input type="text" placeholder="비고"></td>';
+
+    // Insert before total row
+    if (totalRow) {
+      tbody.insertBefore(tr, totalRow);
+    } else {
+      tbody.appendChild(tr);
+    }
+
+    // Wire up hour input
+    tr.querySelector('input[type="number"]').addEventListener('input', updateTotalHours);
+    tr.querySelector('input[type="text"]').focus();
+    updateStats();
+  }
+
+  function deleteLastRow() {
+    var rows = document.querySelectorAll('.data-row');
+    if (rows.length <= 1) return;
+    rows[rows.length - 1].remove();
+    rowCount--;
+    updateStats();
+  }
+
+  // Formula bar update on cell focus
+  document.querySelectorAll('.cell input, .cell textarea').forEach(function(inp, idx) {
+    inp.addEventListener('focus', function() {
+      document.getElementById('formula-input').value = this.value;
+      document.getElementById('cell-ref').textContent = 'R' + (idx + 1);
+      var cell = this.closest('td');
+      document.querySelectorAll('.cell.selected').forEach(function(c) { c.classList.remove('selected'); });
+      if (cell) cell.classList.add('selected');
+    });
+    inp.addEventListener('input', function() {
+      document.getElementById('formula-input').value = this.value;
+    });
+  });
+</script>
+</body>
+</html>

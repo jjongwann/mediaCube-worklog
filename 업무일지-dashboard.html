@@ -1,0 +1,1939 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>업무일지 — 대시보드</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --sidebar-w: 240px;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --border: #e2e8f0;
+    --bg: #f8fafc;
+    --bg-card: #fff;
+    --green: #16a34a;
+    --orange: #ea580c;
+    --indigo: #4338ca;
+    --red: #dc2626;
+    --yellow: #d97706;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .sidebar-logo {
+    padding: 20px 16px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    cursor: default;
+  }
+  .sidebar-logo-icon {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; color: #fff;
+    flex-shrink: 0;
+    letter-spacing: -1px;
+  }
+  .sidebar-logo-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+  .sidebar-logo-sub {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .sidebar-section {
+    padding: 14px 10px 6px;
+  }
+  .sidebar-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 6px;
+    margin-bottom: 4px;
+  }
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.12s;
+    text-decoration: none;
+    user-select: none;
+  }
+  .sidebar-item:hover { background: #f1f5f9; color: var(--text-primary); }
+  .sidebar-item.active { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+  .sidebar-item-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+  .sidebar-item-count {
+    margin-left: auto;
+    font-size: 11px;
+    background: #e2e8f0;
+    color: var(--text-secondary);
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-weight: 600;
+  }
+  .sidebar-item.active .sidebar-item-count {
+    background: #bfdbfe;
+    color: var(--accent);
+  }
+
+  .sidebar-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px 12px;
+  }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 12px 10px;
+    border-top: 1px solid var(--border);
+  }
+  .sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .sidebar-user:hover { background: #f1f5f9; }
+  .sidebar-avatar {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+  }
+  .sidebar-user-info {}
+  .sidebar-user-name { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+  .sidebar-user-role { font-size: 11px; color: var(--text-muted); }
+
+  /* ── Main ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Top bar */
+  .topbar {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .topbar-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .topbar-breadcrumb {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .topbar-sep { color: var(--border); }
+
+  .search-box {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 5px 12px;
+    gap: 7px;
+    transition: border-color 0.15s;
+  }
+  .search-box:focus-within { border-color: var(--accent); background: #fff; }
+  .search-icon { font-size: 13px; color: var(--text-muted); }
+  .search-input {
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text-primary);
+    background: transparent;
+    width: 180px;
+  }
+  .search-input::placeholder { color: var(--text-muted); }
+
+  .btn {
+    border-radius: 7px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.15s;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover { background: var(--bg); border-color: #cbd5e1; color: var(--text-primary); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
+
+  /* Content */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px;
+  }
+
+  /* Stats Row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .stat-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .stat-label { font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.3px; }
+  .stat-icon { font-size: 16px; }
+  .stat-value { font-size: 26px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+  .stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .stat-delta { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; }
+  .delta-up { color: var(--green); }
+  .delta-dn { color: var(--red); }
+
+  /* Toolbar row */
+  .list-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .list-toolbar-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-right: auto;
+  }
+  .view-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    overflow: hidden;
+  }
+  .view-btn {
+    padding: 5px 10px;
+    font-size: 14px;
+    background: #fff;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.12s;
+  }
+  .view-btn.active { background: var(--accent-light); color: var(--accent); }
+  .view-btn:hover:not(.active) { background: var(--bg); color: var(--text-primary); }
+
+  .filter-select {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 5px 10px;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: #fff;
+    outline: none;
+    cursor: pointer;
+  }
+  .filter-select:focus { border-color: var(--accent); }
+
+  /* ── Table View ── */
+  .journal-table {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .table-header {
+    display: grid;
+    grid-template-columns: 28px 1fr 110px 110px 90px 90px 100px 96px;
+    gap: 0;
+    padding: 10px 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .th {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding: 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .th:hover { color: var(--text-secondary); }
+
+  .table-body {}
+  .table-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 110px 110px 90px 90px 100px 96px;
+    gap: 0;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+    cursor: default;
+    min-height: 48px;
+    align-items: center;
+  }
+  .table-row:last-child { border-bottom: none; }
+  .table-row:hover { background: #f8fafc; }
+  .table-row.pinned { background: #fffbeb; }
+  .table-row.pinned:hover { background: #fef9c3; }
+
+  .td {
+    padding: 0 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .td-checkbox input { cursor: pointer; width: 14px; height: 14px; }
+  .td-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .td-title-pin { font-size: 12px; color: var(--yellow); flex-shrink: 0; }
+  .td-title-text {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .td-title-text:hover { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+  .td-title-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .td-date { font-size: 12.5px; color: var(--text-secondary); }
+  .td-author {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .mini-avatar {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+  }
+  .td-author-name { font-size: 12.5px; color: var(--text-secondary); }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .sb-done   { background: #dcfce7; color: var(--green); }
+  .sb-wip    { background: #ffedd5; color: var(--orange); }
+  .sb-review { background: #ede9fe; color: #6d28d9; }
+  .sb-todo   { background: #e0e7ff; color: var(--indigo); }
+
+  .progress-bar {
+    height: 5px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 3px;
+  }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s; }
+
+  .td-actions {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .action-btn {
+    width: 28px; height: 28px;
+    border: none;
+    background: #f1f5f9;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.12s;
+    border: 1px solid var(--border);
+  }
+  .action-btn:hover { background: #e2e8f0; color: var(--text-primary); border-color: #cbd5e1; }
+  .action-btn.del {
+    background: #fee2e2;
+    color: var(--red);
+    border-color: #fecaca;
+  }
+  .action-btn.del:hover { background: #fecaca; border-color: #f87171; }
+
+  /* ── Card View ── */
+  .journal-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .journal-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .journal-card:hover {
+    border-color: #93c5fd;
+    box-shadow: 0 4px 16px rgba(37,99,235,0.07);
+    transform: translateY(-1px);
+  }
+  .journal-card.pinned { border-color: #fde68a; background: #fffbeb; }
+  .journal-card.pinned:hover { border-color: #fbbf24; }
+
+  .jcard-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .jcard-date { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+  .jcard-pin { font-size: 14px; color: var(--yellow); }
+  .jcard-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; line-height: 1.3; }
+  .jcard-project { font-size: 11.5px; color: var(--accent); font-weight: 600; margin-bottom: 12px; }
+  .jcard-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .jcard-author {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    color: var(--text-secondary);
+  }
+  .jcard-tasks {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 2px 8px;
+  }
+  .jcard-progress {
+    margin-top: 12px;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+  .jcard-progress-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 5px;
+  }
+  .jcard-progress-label { font-size: 10.5px; color: var(--text-muted); font-weight: 600; }
+  .jcard-progress-pct { font-size: 11px; font-weight: 700; color: var(--accent); }
+  .jcard-actions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 3px;
+  }
+
+  /* ── Empty State ── */
+  .empty-state {
+    text-align: center;
+    padding: 64px 32px;
+    color: var(--text-muted);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-title { font-size: 15px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+  .empty-sub { font-size: 13px; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 12px;
+    width: 520px;
+    max-width: 95vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    overflow: hidden;
+    animation: modal-in 0.18s cubic-bezier(.22,.61,.36,1);
+  }
+  @keyframes modal-in {
+    from { opacity: 0; transform: scale(0.97) translateY(6px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+  .modal-close {
+    width: 28px; height: 28px;
+    border: none; background: none; cursor: pointer;
+    font-size: 18px; color: var(--text-muted);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.12s;
+  }
+  .modal-close:hover { background: #f1f5f9; color: var(--text-primary); }
+  .modal-body { padding: 20px 24px; }
+  .form-row { margin-bottom: 16px; }
+  .form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+  }
+  .form-input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s;
+    background: var(--bg);
+  }
+  .form-input:focus { border-color: var(--accent); background: #fff; }
+  .form-input::placeholder { color: var(--text-muted); }
+  .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-footer {
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #0f172a;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    z-index: 200;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ── Date Range Panel ── */
+  .date-range-panel {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px 12px;
+    margin-bottom: 14px;
+    margin-left: auto;
+    max-width: 420px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.09);
+    animation: modal-in 0.15s cubic-bezier(.22,.61,.36,1);
+  }
+  .drp-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .drp-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .drp-close {
+    width: 24px; height: 24px;
+    border: none; background: none; cursor: pointer;
+    font-size: 16px; color: var(--text-muted);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .drp-close:hover { background: #f1f5f9; color: var(--text-primary); }
+  .drp-presets {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .drp-preset-btn {
+    padding: 5px 13px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 12px;
+    font-family: inherit;
+    background: #fff;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.12s;
+    font-weight: 500;
+  }
+  .drp-preset-btn:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+  .drp-preset-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .drp-inputs {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .drp-input-group { flex: 1; }
+  .drp-input-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .drp-date-input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 8px;
+    font-family: inherit;
+    font-size: 12.5px;
+    color: var(--text-primary);
+    outline: none;
+    background: var(--bg);
+    transition: border-color 0.15s;
+  }
+  .drp-date-input:focus { border-color: var(--accent); background: #fff; }
+  .drp-sep {
+    color: var(--text-muted);
+    font-size: 18px;
+    font-weight: 200;
+    flex-shrink: 0;
+    padding-bottom: 8px;
+  }
+  .drp-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .drp-active-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent-light);
+    border: 1px solid #bfdbfe;
+    border-radius: 20px;
+    padding: 3px 6px 3px 10px;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .drp-active-chip button {
+    border: none; background: none; cursor: pointer;
+    color: #93c5fd; font-size: 14px; padding: 0; line-height: 1;
+    width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.1s;
+  }
+  .drp-active-chip button:hover { background: #bfdbfe; color: var(--accent); }
+  .btn-range {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 12px;
+    font-size: 12.5px;
+    font-family: inherit;
+    cursor: pointer;
+    font-weight: 500;
+    background: #fff;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s;
+  }
+  .btn-range:hover { background: var(--bg); border-color: #cbd5e1; }
+  .btn-range.active { background: var(--accent-light); border-color: #93c5fd; color: var(--accent); font-weight: 600; }
+
+  /* ── Bulk Action Bar ── */
+  .bulk-bar {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    animation: modal-in 0.15s cubic-bezier(.22,.61,.36,1);
+    flex-wrap: wrap;
+  }
+  .bulk-bar.show { display: flex; }
+  .bulk-count {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    flex-shrink: 0;
+    margin-right: 4px;
+  }
+  .btn-bulk {
+    border-radius: 7px;
+    padding: 6px 12px;
+    font-size: 12.5px;
+    font-family: inherit;
+    cursor: pointer;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s;
+  }
+  .btn-bulk:hover { background: var(--bg); border-color: #cbd5e1; color: var(--text-primary); }
+  .btn-bulk.del { background: #fee2e2; color: var(--red); border-color: #fecaca; }
+  .btn-bulk.del:hover { background: #fecaca; border-color: #f87171; }
+  .btn-bulk-clear { margin-left: auto; color: var(--text-muted); font-size: 12px; }
+
+  /* ── Detail Modal ── */
+  .detail-modal {
+    background: #fff;
+    border-radius: 14px;
+    width: 560px;
+    max-width: 95vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    overflow: hidden;
+    animation: modal-in 0.18s cubic-bezier(.22,.61,.36,1);
+  }
+  .detail-header {
+    padding: 22px 26px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .detail-title-block {}
+  .detail-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 5px;
+  }
+  .detail-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.3;
+  }
+  .detail-body { padding: 20px 26px; }
+  .detail-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .detail-meta-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+  }
+  .detail-meta-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .detail-meta-val {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .detail-progress-wrap {
+    margin-bottom: 18px;
+  }
+  .detail-progress-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .detail-progress-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; }
+  .detail-progress-pct { font-size: 13px; font-weight: 700; color: var(--accent); }
+  .detail-progress-bar { height: 7px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+  .detail-progress-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.4s; }
+  .detail-section-lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+  .detail-task-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    margin-bottom: 5px;
+    font-size: 13px;
+    color: var(--text-primary);
+  }
+  .detail-task-text { flex: 1; line-height: 1.5; }
+  .detail-task-check {
+    width: 14px; height: 14px; flex-shrink: 0;
+    accent-color: var(--accent);
+  }
+  .detail-tasks-wrap { margin-bottom: 18px; }
+  .detail-memo-section { }
+  .detail-memo-lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+  .detail-memo-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    min-height: 56px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .detail-footer {
+    padding: 14px 26px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .detail-body { overflow-y: auto; max-height: 65vh; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">일지</div>
+    <div>
+      <div class="sidebar-logo-text">업무일지</div>
+      <div class="sidebar-logo-sub">미디어큐브</div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">메인</div>
+    <div class="sidebar-item active" onclick="setFilter('all')">
+      <span class="sidebar-item-icon">📋</span>
+      전체 일지
+      <span class="sidebar-item-count" id="cnt-all">0</span>
+    </div>
+    <div class="sidebar-item" onclick="setFilter('pinned')">
+      <span class="sidebar-item-icon">📌</span>
+      즐겨찾기
+      <span class="sidebar-item-count" id="cnt-pinned">0</span>
+    </div>
+    <div class="sidebar-item" onclick="setFilter('today')">
+      <span class="sidebar-item-icon">📅</span>
+      오늘
+      <span class="sidebar-item-count" id="cnt-today">0</span>
+    </div>
+    <div class="sidebar-item" onclick="setFilter('week')">
+      <span class="sidebar-item-icon">📆</span>
+      이번 주
+      <span class="sidebar-item-count" id="cnt-week">0</span>
+    </div>
+  </div>
+
+  <div class="sidebar-divider"></div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">상태</div>
+    <div class="sidebar-item" onclick="setFilter('done')">
+      <span class="sidebar-item-icon">✅</span>
+      완료
+      <span class="sidebar-item-count" id="cnt-done">0</span>
+    </div>
+    <div class="sidebar-item" onclick="setFilter('wip')">
+      <span class="sidebar-item-icon">🔄</span>
+      진행 중
+      <span class="sidebar-item-count" id="cnt-wip">0</span>
+    </div>
+  </div>
+
+  <div class="sidebar-divider"></div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">바로가기</div>
+    <div class="sidebar-item" onclick="openWordTemplate()">
+      <span class="sidebar-item-icon">📝</span>
+      워드 템플릿 열기
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">미</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name">사운드콘텐츠사업부</div>
+        <div class="sidebar-user-role">미디어큐브</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">업무일지 대시보드</div>
+    </div>
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="search-input" type="text" placeholder="일지 검색..." oninput="renderList()">
+    </div>
+    <button class="btn btn-primary" onclick="window.location.href='업무일지-word.html'">+ 새 일지 작성</button>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Stats -->
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <span class="stat-label">전체 일지</span>
+          <span class="stat-icon">📋</span>
+        </div>
+        <div class="stat-value" id="s-total">0</div>
+        <div class="stat-sub">누적 작성 건수</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <span class="stat-label">이번 주</span>
+          <span class="stat-icon">📆</span>
+        </div>
+        <div class="stat-value" id="s-week">0</div>
+        <div class="stat-sub">주간 작성 건수</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <span class="stat-label">평균 진행률</span>
+          <span class="stat-icon">📊</span>
+        </div>
+        <div class="stat-value" id="s-done-rate">0%</div>
+        <div class="stat-sub">전체 일지 평균 진행률</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-top">
+          <span class="stat-label">진행 중</span>
+          <span class="stat-icon">🔄</span>
+        </div>
+        <div class="stat-value" id="s-wip">0</div>
+        <div class="stat-sub">미완료 일지 수</div>
+      </div>
+    </div>
+
+    <!-- List Toolbar -->
+    <div class="list-toolbar">
+      <span class="list-toolbar-title" id="list-section-title">전체 일지</span>
+      <span class="drp-active-chip" id="drp-active-chip" style="display:none">
+        <span id="drp-active-text">—</span>
+        <button onclick="clearDateRange()" title="기간 필터 해제">×</button>
+      </span>
+      <select class="filter-select" id="status-filter" onchange="renderList()">
+        <option value="">전체</option>
+        <option value="done">완료</option>
+        <option value="wip">진행</option>
+        <option value="issue">이슈</option>
+        <option value="hold">보류</option>
+        <option value="todo">예정</option>
+      </select>
+      <select class="filter-select" id="sort-select" onchange="renderList()">
+        <option value="date-desc">최신순</option>
+        <option value="date-asc">오래된순</option>
+        <option value="progress">진행률순</option>
+      </select>
+      <button class="btn-range" id="btn-range" onclick="toggleDateRangePanel()">📅 기간 조회</button>
+      <div class="view-toggle">
+        <button class="view-btn active" id="btn-table" onclick="setView('table')" title="테이블">☰</button>
+        <button class="view-btn" id="btn-grid" onclick="setView('grid')" title="카드">⊞</button>
+      </div>
+    </div>
+
+    <!-- Bulk Action Bar -->
+    <div class="bulk-bar" id="bulk-bar">
+      <span class="bulk-count" id="bulk-count">0개 선택됨</span>
+      <button class="btn-bulk del" onclick="bulkDelete()">🗑 선택한 항목 삭제</button>
+      <button class="btn-bulk" onclick="bulkPrint()">🖨 선택한 항목 출력</button>
+      <button class="btn-bulk" onclick="bulkExportWord()">📄 워드로 추출</button>
+      <button class="btn-bulk" onclick="bulkExportExcel()">📊 엑셀로 추출</button>
+      <button class="btn-bulk btn-bulk-clear" onclick="clearSelection()">× 선택 해제</button>
+    </div>
+
+    <!-- Table View -->
+    <div id="view-table">
+      <div class="journal-table">
+        <div class="table-header">
+          <div class="th"></div>
+          <div class="th">제목 / 프로젝트</div>
+          <div class="th">작성일</div>
+          <div class="th">작성자</div>
+          <div class="th">상태</div>
+          <div class="th">진행률</div>
+          <div class="th">업무유형</div>
+          <div class="th"></div>
+        </div>
+        <div class="table-body" id="table-body">
+          <!-- rows injected by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Date Range Panel -->
+    <div class="date-range-panel" id="date-range-panel" style="display:none">
+      <div class="drp-top">
+        <span class="drp-label">📅 기간으로 조회</span>
+        <button class="drp-close" onclick="toggleDateRangePanel()">×</button>
+      </div>
+      <div class="drp-presets">
+        <button class="drp-preset-btn" id="preset-today"      onclick="setDatePreset('today')">오늘</button>
+        <button class="drp-preset-btn" id="preset-week"       onclick="setDatePreset('week')">이번 주</button>
+        <button class="drp-preset-btn" id="preset-month"      onclick="setDatePreset('month')">이번 달</button>
+        <button class="drp-preset-btn" id="preset-last-month" onclick="setDatePreset('last-month')">지난 달</button>
+        <button class="drp-preset-btn" id="preset-3months"    onclick="setDatePreset('3months')">최근 3개월</button>
+      </div>
+      <div class="drp-inputs">
+        <div class="drp-input-group">
+          <div class="drp-input-label">시작일</div>
+          <input type="date" class="drp-date-input" id="drp-from" onchange="clearPresetActive()">
+        </div>
+        <div class="drp-sep">—</div>
+        <div class="drp-input-group">
+          <div class="drp-input-label">종료일</div>
+          <input type="date" class="drp-date-input" id="drp-to" onchange="clearPresetActive()">
+        </div>
+      </div>
+      <div class="drp-actions">
+        <button class="btn" onclick="clearDateRange()">초기화</button>
+        <button class="btn btn-primary" onclick="applyDateRange()">조회하기</button>
+      </div>
+    </div>
+
+    <!-- Card View -->
+    <div id="view-grid" style="display:none">
+      <div class="journal-grid" id="card-body">
+        <!-- cards injected by JS -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Detail View Modal -->
+<div class="modal-overlay" id="detail-modal" onclick="handleDetailOverlayClick(event)">
+  <div class="detail-modal">
+    <div class="detail-header">
+      <div class="detail-title-block">
+        <div class="detail-label">업무일지</div>
+        <div class="detail-title" id="d-title">—</div>
+      </div>
+      <button class="modal-close" onclick="closeDetail()">×</button>
+    </div>
+    <div class="detail-body">
+      <div class="detail-meta-grid">
+        <div class="detail-meta-item">
+          <div class="detail-meta-lbl">작성일</div>
+          <div class="detail-meta-val" id="d-date">—</div>
+        </div>
+        <div class="detail-meta-item">
+          <div class="detail-meta-lbl">작성자</div>
+          <div class="detail-meta-val" id="d-author">—</div>
+        </div>
+        <div class="detail-meta-item">
+          <div class="detail-meta-lbl">프로젝트</div>
+          <div class="detail-meta-val" id="d-project">—</div>
+        </div>
+        <div class="detail-meta-item">
+          <div class="detail-meta-lbl">업무유형</div>
+          <div class="detail-meta-val" id="d-type">—</div>
+        </div>
+        <div class="detail-meta-item">
+          <div class="detail-meta-lbl">상태</div>
+          <div class="detail-meta-val" id="d-status">—</div>
+        </div>
+      </div>
+      <div class="detail-progress-wrap">
+        <div class="detail-progress-top">
+          <span class="detail-progress-lbl">진행률</span>
+          <span class="detail-progress-pct" id="d-pct">0%</span>
+        </div>
+        <div class="detail-progress-bar">
+          <div class="detail-progress-fill" id="d-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="detail-tasks-wrap" id="d-tasks-wrap">
+        <div class="detail-section-lbl">금일 업무 내역</div>
+        <div id="d-tasks-list"></div>
+      </div>
+      <div class="detail-memo-section">
+        <div class="detail-memo-lbl">업무 요약 / 메모</div>
+        <div class="detail-memo-box" id="d-memo">—</div>
+      </div>
+    </div>
+    <div class="detail-footer">
+      <button class="btn btn-primary" onclick="closeDetail()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Journal Modal -->
+<div class="modal-overlay" id="modal" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">새 업무일지 작성</span>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label class="form-label">일지 제목</label>
+        <input class="form-input" id="f-title" type="text" placeholder="예) 2025년 3월 19일 업무일지">
+      </div>
+      <div class="form-row-2">
+        <div class="form-row" style="margin-bottom:0">
+          <label class="form-label">작성일</label>
+          <input class="form-input" id="f-date" type="date">
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label class="form-label">작성자</label>
+          <input class="form-input" id="f-author" type="text" placeholder="홍길동" value="담당자">
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">프로젝트</label>
+        <input class="form-input" id="f-project" type="text" placeholder="프로젝트명 입력">
+      </div>
+      <div class="form-row-2">
+        <div class="form-row" style="margin-bottom:0">
+          <label class="form-label">업무 유형</label>
+          <select class="form-input" id="f-type">
+            <option>개발</option>
+            <option>회의</option>
+            <option>분석</option>
+            <option>기획</option>
+            <option>운영</option>
+            <option>기타</option>
+          </select>
+        </div>
+        <div class="form-row" style="margin-bottom:0">
+          <label class="form-label">상태</label>
+          <select class="form-input" id="f-status">
+            <option value="wip">진행 중</option>
+            <option value="done">완료</option>
+            <option value="review">검토 대기</option>
+            <option value="todo">예정</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">진행률 (%)</label>
+        <input class="form-input" id="f-progress" type="number" min="0" max="100" placeholder="0 ~ 100" value="0">
+      </div>
+      <div class="form-row" style="margin-bottom:0">
+        <label class="form-label">메모</label>
+        <input class="form-input" id="f-memo" type="text" placeholder="간단한 메모 (선택)">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveJournal()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  var DB_KEY = 'mediaCube_journals_v1';
+  var currentFilter = 'all';
+  var currentView = 'table';
+  var editingId = null;
+  var drFrom = null; // Date object
+  var drTo   = null; // Date object
+
+  /* ── Storage ── */
+  function loadJournals() {
+    try { return JSON.parse(localStorage.getItem(DB_KEY) || '[]'); }
+    catch(e) { return []; }
+  }
+  function saveJournals(data) {
+    localStorage.setItem(DB_KEY, JSON.stringify(data));
+  }
+
+  /* ── Seed data (first load) ── */
+  function seedIfEmpty() {
+    var data = loadJournals();
+    if (data.length > 0) return;
+    var today = new Date();
+    var fmt = localDateStr;
+    var yesterday = new Date(today); yesterday.setDate(today.getDate()-1);
+    var twoDays   = new Date(today); twoDays.setDate(today.getDate()-2);
+    var lastWeek  = new Date(today); lastWeek.setDate(today.getDate()-7);
+
+    var seed = [
+      { id: uid(), title: fmt(today)+' 업무일지', date: fmt(today), author: '담당자', project: '포렌식 제품 페이지', type: '개발', status: 'wip', progress: 75, memo: '사이드바 레이아웃 이슈 수정 중', pinned: true },
+      { id: uid(), title: fmt(yesterday)+' 업무일지', date: fmt(yesterday), author: '담당자', project: '포렌식 제품 페이지', type: '개발', status: 'done', progress: 100, memo: 'product.html 카드 디자인 완료', pinned: false },
+      { id: uid(), title: fmt(twoDays)+' 업무일지', date: fmt(twoDays), author: '담당자', project: '업무일지 템플릿', type: '기획', status: 'done', progress: 100, memo: '워드/엑셀 템플릿 완성', pinned: false },
+      { id: uid(), title: fmt(lastWeek)+' 업무일지', date: fmt(lastWeek), author: '담당자', project: '아임웹 코드 위젯', type: '개발', status: 'review', progress: 90, memo: '아임웹 연동 검토 요청', pinned: false },
+    ];
+    saveJournals(seed);
+  }
+
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  }
+
+  /* ── Local date helper (avoids UTC offset issue) ── */
+  function localDateStr(d) {
+    var m = d.getMonth() + 1, day = d.getDate();
+    return d.getFullYear() + '-' + (m < 10 ? '0' + m : m) + '-' + (day < 10 ? '0' + day : day);
+  }
+
+  /* ── Filter helpers ── */
+  function getWeekStart() {
+    var d = new Date(); d.setHours(0,0,0,0);
+    var day = d.getDay(); // 0=Sun
+    d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+    return d;
+  }
+
+  function filterData(data) {
+    var today = new Date(); today.setHours(0,0,0,0);
+    var todayStr = localDateStr(today);
+    var weekStart = getWeekStart();
+
+    var result = data.filter(function(j) {
+      if (currentFilter === 'pinned') return j.pinned;
+      if (currentFilter === 'today') return j.date === todayStr;
+      if (currentFilter === 'week') return new Date(j.date + 'T00:00:00') >= weekStart;
+      if (currentFilter === 'done') return j.status === 'done';
+      if (currentFilter === 'wip') return j.status === 'wip';
+      if (currentFilter === 'review') return j.status === 'review';
+      return true;
+    });
+
+    // Apply status filter dropdown
+    var statusFilter = document.getElementById('status-filter').value;
+    if (statusFilter) {
+      result = result.filter(function(j) { return j.status === statusFilter; });
+    }
+
+    // Apply date range filter
+    if (drFrom || drTo) {
+      result = result.filter(function(j) {
+        var jDate = new Date((j.date || '1970-01-01') + 'T00:00:00');
+        if (drFrom && jDate < drFrom) return false;
+        if (drTo) {
+          var toEnd = new Date(drTo); toEnd.setHours(23,59,59,999);
+          if (jDate > toEnd) return false;
+        }
+        return true;
+      });
+    }
+    return result;
+  }
+
+  function searchData(data) {
+    var q = document.getElementById('search-input').value.trim().toLowerCase();
+    if (!q) return data;
+    return data.filter(function(j) {
+      return (j.title||'').toLowerCase().includes(q)
+        || (j.project||'').toLowerCase().includes(q)
+        || (j.author||'').toLowerCase().includes(q)
+        || (j.memo||'').toLowerCase().includes(q);
+    });
+  }
+
+  function sortData(data) {
+    var sort = document.getElementById('sort-select').value;
+    var d = data.slice();
+    if (sort === 'date-asc') d.sort(function(a,b){ return a.date.localeCompare(b.date); });
+    else if (sort === 'status') d.sort(function(a,b){ return a.status.localeCompare(b.status); });
+    else if (sort === 'progress') d.sort(function(a,b){ return b.progress - a.progress; });
+    else d.sort(function(a,b){ return b.date.localeCompare(a.date); });
+    // pinned always on top
+    d.sort(function(a,b){ return (b.pinned?1:0) - (a.pinned?1:0); });
+    return d;
+  }
+
+  /* ── Stats ── */
+  function updateStats() {
+    var all = loadJournals();
+    var today = new Date(); today.setHours(0,0,0,0);
+    var todayStr = localDateStr(today);
+    var weekStart = getWeekStart();
+
+    var total   = all.length;
+    var weekCnt = all.filter(function(j){ return new Date(j.date + 'T00:00:00') >= weekStart; }).length;
+    var doneCnt = all.filter(function(j){ return (j.progress||0) === 100; }).length;
+    var wipCnt  = all.filter(function(j){ return j.status === 'wip'; }).length;
+    var avgProgress = total === 0 ? 0 : Math.round(
+      all.reduce(function(sum, j){ return sum + (j.progress||0); }, 0) / total
+    );
+
+    document.getElementById('s-total').textContent = total;
+    document.getElementById('s-week').textContent = weekCnt;
+    document.getElementById('s-done-rate').textContent = avgProgress + '%';
+    document.getElementById('s-wip').textContent = wipCnt;
+
+    // sidebar counts
+    document.getElementById('cnt-all').textContent = total;
+    document.getElementById('cnt-pinned').textContent = all.filter(function(j){ return j.pinned; }).length;
+    document.getElementById('cnt-today').textContent = all.filter(function(j){ return j.date === todayStr; }).length;
+    document.getElementById('cnt-week').textContent = weekCnt;
+    document.getElementById('cnt-done').textContent = doneCnt;
+    document.getElementById('cnt-wip').textContent = wipCnt;
+    document.getElementById('cnt-review').textContent = all.filter(function(j){ return j.status === 'review'; }).length;
+  }
+
+  /* ── Status helpers ── */
+  var STATUS_MAP = {
+    done:   { cls: 'sb-done',   text: '완료' },
+    wip:    { cls: 'sb-wip',    text: '진행 중' },
+    review: { cls: 'sb-review', text: '검토 대기' },
+    todo:   { cls: 'sb-todo',   text: '예정' }
+  };
+  function statusBadge(s) {
+    var m = STATUS_MAP[s] || STATUS_MAP.todo;
+    return '<span class="status-badge '+m.cls+'">'+m.text+'</span>';
+  }
+
+  /* ── Title date highlight ── */
+  function splitTitleDate(title) {
+    if (!title) return '무제';
+    var m = (title||'').match(/^(\d{4}-\d{2}-\d{2})\s*(.*)/);
+    if (m) {
+      return '<span style="color:var(--text-muted);font-size:11.5px;font-weight:400;margin-right:5px">'
+        + m[1] + '</span>'
+        + (m[2] ? '<span>' + m[2] + '</span>' : '');
+    }
+    return title;
+  }
+
+  /* ── Render ── */
+  function renderList() {
+    var all = loadJournals();
+    var filtered = filterData(all);
+    var searched = searchData(filtered);
+    var sorted   = sortData(searched);
+
+    if (currentView === 'table') renderTable(sorted);
+    else renderGrid(sorted);
+    updateStats();
+  }
+
+  function renderTable(data) {
+    var tbody = document.getElementById('table-body');
+    if (data.length === 0) {
+      tbody.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">일지가 없습니다</div><div class="empty-sub">새 일지를 작성해보세요.</div></div>';
+      return;
+    }
+    tbody.innerHTML = data.map(function(j) {
+      var pct = Math.min(100, Math.max(0, j.progress||0));
+      var isSelected = selectedIds.has(j.id);
+      return '<div class="table-row'+(j.pinned?' pinned':'')+'">'
+        + '<div class="td td-checkbox"><input type="checkbox" '+(isSelected?'checked':'')+' onchange="toggleSelect(\''+j.id+'\',this)"></div>'
+        + '<div class="td td-title">'
+          + (j.pinned ? '<span class="td-title-pin">📌</span>' : '')
+          + '<div><div class="td-title-text" onclick="openDetail(\''+j.id+'\',event)">'+splitTitleDate(j.title)+'</div>'
+          + '<div class="td-title-sub">'+(j.project||'—')+'</div></div></div>'
+        + '<div class="td td-date">'+fmtDate(j.date)+'</div>'
+        + '<div class="td td-author"><div class="mini-avatar">'+(j.author||'?').slice(0,1)+'</div><span class="td-author-name">'+(j.author||'—')+'</span></div>'
+        + '<div class="td">'+statusBadge(j.status)+'</div>'
+        + '<div class="td"><div style="font-size:11px;color:var(--text-muted);margin-bottom:3px">'+pct+'%</div><div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div></div>'
+        + '<div class="td"><span style="font-size:12px;color:var(--text-muted)">'+(j.type||'—')+'</span></div>'
+        + '<div class="td td-actions">'
+          + '<button class="action-btn" onclick="togglePin(\''+j.id+'\')" title="고정">📌</button>'
+          + '<button class="action-btn" onclick="editJournal(\''+j.id+'\')" title="수정">✏️</button>'
+          + '<button class="action-btn del" onclick="deleteJournal(\''+j.id+'\')" title="삭제">🗑</button>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  function renderGrid(data) {
+    var container = document.getElementById('card-body');
+    if (data.length === 0) {
+      container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📭</div><div class="empty-title">일지가 없습니다</div><div class="empty-sub">새 일지를 작성해보세요.</div></div>';
+      return;
+    }
+    container.innerHTML = data.map(function(j) {
+      var pct = Math.min(100, Math.max(0, j.progress||0));
+      return '<div class="journal-card'+(j.pinned?' pinned':'')+'" onclick="openDetail(\''+j.id+'\',event)">'
+        + '<div class="jcard-actions">'
+          + '<button class="action-btn" onclick="event.stopPropagation();togglePin(\''+j.id+'\')" title="고정">📌</button>'
+          + '<button class="action-btn" onclick="event.stopPropagation();editJournal(\''+j.id+'\')" title="수정">✏️</button>'
+          + '<button class="action-btn del" onclick="event.stopPropagation();deleteJournal(\''+j.id+'\')" title="삭제">🗑</button>'
+        + '</div>'
+        + '<div class="jcard-top"><span class="jcard-date">'+fmtDate(j.date)+'</span>'+(j.pinned?'<span class="jcard-pin">📌</span>':'')+'</div>'
+        + '<div class="jcard-title">'+(j.title||'무제')+'</div>'
+        + '<div class="jcard-project">'+(j.project||'프로젝트 없음')+'</div>'
+        + '<div class="jcard-meta">'
+          + statusBadge(j.status)
+          + '<div class="jcard-author"><div class="mini-avatar">'+(j.author||'?').slice(0,1)+'</div><span style="font-size:11.5px;color:var(--text-secondary)">'+(j.author||'—')+'</span></div>'
+          + '<span class="jcard-tasks">'+(j.type||'기타')+'</span>'
+        + '</div>'
+        + (j.memo ? '<div style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+j.memo+'</div>' : '')
+        + '<div class="jcard-progress"><div class="jcard-progress-top"><span class="jcard-progress-label">진행률</span><span class="jcard-progress-pct">'+pct+'%</span></div>'
+        + '<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div></div>'
+        + '</div>';
+    }).join('');
+  }
+
+  /* ── Selection ── */
+  var selectedIds = new Set();
+
+  function toggleSelect(id, cb) {
+    if (cb.checked) selectedIds.add(id);
+    else selectedIds.delete(id);
+    updateBulkBar();
+  }
+
+  function updateBulkBar() {
+    var count = selectedIds.size;
+    var bar = document.getElementById('bulk-bar');
+    document.getElementById('bulk-count').textContent = count + '개 선택됨';
+    bar.classList.toggle('show', count > 0);
+  }
+
+  function clearSelection() {
+    selectedIds.clear();
+    updateBulkBar();
+    renderList();
+  }
+
+  function bulkDelete() {
+    var count = selectedIds.size;
+    if (count === 0) return;
+    if (!confirm(count + '개의 일지를 삭제하시겠습니까?')) return;
+    var data = loadJournals().filter(function(j) { return !selectedIds.has(j.id); });
+    saveJournals(data);
+    selectedIds.clear();
+    updateBulkBar();
+    renderList();
+    showToast('🗑 ' + count + '개의 일지가 삭제되었습니다.');
+  }
+
+  function bulkPrint() {
+    var data = loadJournals().filter(function(j) { return selectedIds.has(j.id); });
+    if (data.length === 0) return;
+    var win = window.open('', '_blank');
+    win.document.write(generateBulkHTML(data, true));
+    win.document.close();
+    win.focus();
+    setTimeout(function(){ win.print(); }, 300);
+  }
+
+  function bulkExportWord() {
+    var data = loadJournals().filter(function(j) { return selectedIds.has(j.id); });
+    if (data.length === 0) return;
+    var html = generateBulkHTML(data, false);
+    var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = '업무일지_' + new Date().toISOString().slice(0,10) + '.doc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('📄 워드 파일로 추출되었습니다.');
+  }
+
+  function bulkExportExcel() {
+    var data = loadJournals().filter(function(j) { return selectedIds.has(j.id); });
+    if (data.length === 0) return;
+    var statusText = { done:'완료', wip:'진행 중', review:'검토 대기', todo:'예정' };
+    var BOM = '\uFEFF';
+    var header = ['제목', '작성일', '작성자', '프로젝트', '업무유형', '상태', '진행률(%)', '메모', '업무내역'].join('\t');
+    var rows = data.map(function(j) {
+      var taskSummary = (j.tasks && j.tasks.length > 0)
+        ? j.tasks.map(function(t){ return (t.done?'[완]':'[ ]') + ' ' + (t.text||''); }).join(' / ')
+        : '';
+      return [
+        (j.title||'무제').replace(/\t/g,' '),
+        j.date||'',
+        (j.author||'').replace(/\t/g,' '),
+        (j.project||'').replace(/\t/g,' '),
+        (j.type||'').replace(/\t/g,' '),
+        statusText[j.status]||'',
+        j.progress||0,
+        (j.memo||'').replace(/\n/g,' ').replace(/\t/g,' '),
+        taskSummary.replace(/\t/g,' ')
+      ].join('\t');
+    });
+    var csv = BOM + header + '\n' + rows.join('\n');
+    var blob = new Blob([csv], { type: 'text/tab-separated-values;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = '업무일지_' + new Date().toISOString().slice(0,10) + '.xls';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('📊 엑셀 파일로 추출되었습니다.');
+  }
+
+  function generateBulkHTML(data, forPrint) {
+    var statusText = { done:'완료', wip:'진행 중', review:'검토 대기', todo:'예정' };
+    var rows = data.map(function(j) {
+      var pct = Math.min(100, Math.max(0, j.progress||0));
+      var taskHtml = '';
+      if (j.tasks && j.tasks.length > 0) {
+        var tItems = j.tasks.map(function(t) {
+          return '<li style="margin:4px 0;color:#475569">'
+            + (t.done ? '☑' : '☐') + ' '
+            + '<span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:10px;background:' + (t.status==='done'?'#dcfce7':t.status==='wip'?'#ffedd5':'#e0e7ff') + ';color:' + (t.status==='done'?'#16a34a':t.status==='wip'?'#ea580c':'#4338ca') + ';margin-right:4px">' + ({done:'완료',wip:'진행',todo:'예정',hold:'보류'}[t.status]||'예정') + '</span>'
+            + (t.text||'') + '</li>';
+        }).join('');
+        taskHtml = '<div style="margin-top:14px"><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#94a3b8;margin-bottom:6px">금일 업무 내역</div><ul style="margin:0;padding-left:6px;list-style:none">' + tItems + '</ul></div>';
+      }
+      return '<div style="page-break-inside:avoid;margin-bottom:32px;border:1px solid #e2e8f0;border-radius:8px;padding:22px 24px">'
+        + '<div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#2563eb;margin-bottom:6px">업무일지</div>'
+        + '<h2 style="font-size:17px;font-weight:700;margin:0 0 16px;color:#0f172a;line-height:1.3">' + (j.title||'무제') + '</h2>'
+        + '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px">'
+          + '<tr>'
+            + '<td style="padding:7px 10px;background:#f8fafc;font-weight:700;border:1px solid #e2e8f0;width:90px;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:0.5px">작성일</td>'
+            + '<td style="padding:7px 10px;border:1px solid #e2e8f0;color:#0f172a">' + (j.date||'—') + '</td>'
+            + '<td style="padding:7px 10px;background:#f8fafc;font-weight:700;border:1px solid #e2e8f0;width:90px;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:0.5px">작성자</td>'
+            + '<td style="padding:7px 10px;border:1px solid #e2e8f0;color:#0f172a">' + (j.author||'—') + '</td>'
+          + '</tr>'
+          + '<tr>'
+            + '<td style="padding:7px 10px;background:#f8fafc;font-weight:700;border:1px solid #e2e8f0;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:0.5px">프로젝트</td>'
+            + '<td style="padding:7px 10px;border:1px solid #e2e8f0;color:#0f172a">' + (j.project||'—') + '</td>'
+            + '<td style="padding:7px 10px;background:#f8fafc;font-weight:700;border:1px solid #e2e8f0;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:0.5px">상태</td>'
+            + '<td style="padding:7px 10px;border:1px solid #e2e8f0;color:#0f172a">' + (statusText[j.status]||'—') + '</td>'
+          + '</tr>'
+          + '<tr>'
+            + '<td style="padding:7px 10px;background:#f8fafc;font-weight:700;border:1px solid #e2e8f0;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:0.5px">업무유형</td>'
+            + '<td style="padding:7px 10px;border:1px solid #e2e8f0;color:#0f172a">' + (j.type||'—') + '</td>'
+            + '<td style="padding:7px 10px;background:#f8fafc;font-weight:700;border:1px solid #e2e8f0;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:0.5px">진행률</td>'
+            + '<td style="padding:7px 10px;border:1px solid #e2e8f0;color:#0f172a">' + pct + '%</td>'
+          + '</tr>'
+        + '</table>'
+        + taskHtml
+        + (j.memo ? '<div style="margin-top:14px"><div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#94a3b8;margin-bottom:6px">업무 요약 / 메모</div><div style="font-size:13.5px;color:#475569;background:#f8fafc;padding:12px 14px;border-radius:6px;border:1px solid #e2e8f0;line-height:1.7;white-space:pre-wrap">' + j.memo + '</div></div>' : '')
+        + '</div>';
+    }).join('');
+
+    return '<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>업무일지</title>'
+      + (forPrint ? '<style>@page{margin:20mm} body{margin:0} @media print{.no-print{display:none}}</style>' : '')
+      + '</head><body style="font-family:\'Malgun Gothic\',\'Noto Sans KR\',sans-serif;max-width:800px;margin:0 auto;padding:30px;color:#0f172a">'
+      + '<div style="border-bottom:3px solid #2563eb;padding-bottom:14px;margin-bottom:28px">'
+        + '<h1 style="font-size:22px;font-weight:700;margin:0 0 4px;color:#0f172a">업무일지</h1>'
+        + '<div style="font-size:12px;color:#94a3b8">미디어큐브 · 출력일: ' + new Date().toLocaleDateString('ko-KR') + ' · 총 ' + data.length + '건</div>'
+      + '</div>'
+      + rows
+      + '</body></html>';
+  }
+
+  /* ── Date Range ── */
+  var drPanelOpen = false;
+
+  function toggleDateRangePanel() {
+    drPanelOpen = !drPanelOpen;
+    document.getElementById('date-range-panel').style.display = drPanelOpen ? '' : 'none';
+    document.getElementById('btn-range').classList.toggle('active', drPanelOpen);
+    if (drPanelOpen) {
+      // Pre-fill inputs if range already active
+      if (drFrom) document.getElementById('drp-from').valueAsDate = drFrom;
+      if (drTo)   document.getElementById('drp-to').valueAsDate   = drTo;
+    }
+  }
+
+  function clearPresetActive() {
+    document.querySelectorAll('.drp-preset-btn').forEach(function(b){ b.classList.remove('active'); });
+  }
+
+  function setDatePreset(preset) {
+    clearPresetActive();
+    document.getElementById('preset-' + preset).classList.add('active');
+    var today = new Date(); today.setHours(0,0,0,0);
+    var from, to;
+    if (preset === 'today') {
+      from = to = new Date(today);
+    } else if (preset === 'week') {
+      var weekStart = getWeekStart();
+      from = weekStart; to = new Date(today);
+    } else if (preset === 'month') {
+      from = new Date(today.getFullYear(), today.getMonth(), 1);
+      to   = new Date(today);
+    } else if (preset === 'last-month') {
+      from = new Date(today.getFullYear(), today.getMonth()-1, 1);
+      to   = new Date(today.getFullYear(), today.getMonth(), 0);
+    } else if (preset === '3months') {
+      from = new Date(today); from.setMonth(from.getMonth()-3);
+      to   = new Date(today);
+    }
+    document.getElementById('drp-from').valueAsDate = from;
+    document.getElementById('drp-to').valueAsDate   = to;
+    drFrom = from; drTo = to;
+    updateDateChip();
+    renderList();
+  }
+
+  function applyDateRange() {
+    clearPresetActive();
+    var fVal = document.getElementById('drp-from').value;
+    var tVal = document.getElementById('drp-to').value;
+    drFrom = fVal ? new Date(fVal + 'T00:00:00') : null;
+    drTo   = tVal ? new Date(tVal + 'T00:00:00') : null;
+    // swap if reversed
+    if (drFrom && drTo && drFrom > drTo) { var tmp=drFrom; drFrom=drTo; drTo=tmp; }
+    // 패널 닫기
+    drPanelOpen = false;
+    document.getElementById('date-range-panel').style.display = 'none';
+    updateDateChip();
+    renderList();
+  }
+
+  function clearDateRange() {
+    drFrom = drTo = null;
+    document.getElementById('drp-from').value = '';
+    document.getElementById('drp-to').value   = '';
+    clearPresetActive();
+    updateDateChip();
+    renderList();
+  }
+
+  function updateDateChip() {
+    var chip = document.getElementById('drp-active-chip');
+    var txt  = document.getElementById('drp-active-text');
+    if (drFrom || drTo) {
+      var f = drFrom ? fmtDateShort(drFrom) : '시작';
+      var t = drTo   ? fmtDateShort(drTo)   : '종료';
+      txt.textContent = f + ' ~ ' + t;
+      chip.style.display = '';
+    } else {
+      chip.style.display = 'none';
+    }
+    document.getElementById('btn-range').classList.toggle('active', !!(drFrom || drTo) || drPanelOpen);
+  }
+
+  function fmtDateShort(d) {
+    var mm = d.getMonth()+1, dd = d.getDate();
+    return d.getFullYear() + '.' + (mm<10?'0'+mm:mm) + '.' + (dd<10?'0'+dd:dd);
+  }
+
+  function fmtDate(str) {
+    if (!str) return '—';
+    var d = new Date(str + 'T00:00:00');
+    var mm = d.getMonth()+1, dd = d.getDate();
+    return d.getFullYear() + '. ' + (mm<10?'0'+mm:mm) + '. ' + (dd<10?'0'+dd:dd);
+  }
+
+  /* ── Actions ── */
+  function setFilter(f) {
+    currentFilter = f;
+    var labels = { all:'전체 일지', pinned:'즐겨찾기', today:'오늘', week:'이번 주', done:'완료', wip:'진행 중', review:'검토 대기' };
+    document.getElementById('list-section-title').textContent = labels[f] || '전체 일지';
+    document.querySelectorAll('.sidebar-item').forEach(function(el){ el.classList.remove('active'); });
+    var map = {all:0,pinned:1,today:2,week:3,done:5,wip:6,review:7};
+    var items = document.querySelectorAll('.sidebar-item');
+    if (map[f] !== undefined) items[map[f]].classList.add('active');
+    renderList();
+  }
+
+  function setView(v) {
+    currentView = v;
+    document.getElementById('view-table').style.display = v === 'table' ? '' : 'none';
+    document.getElementById('view-grid').style.display  = v === 'grid'  ? '' : 'none';
+    document.getElementById('btn-table').classList.toggle('active', v === 'table');
+    document.getElementById('btn-grid').classList.toggle('active',  v === 'grid');
+    renderList();
+  }
+
+  function togglePin(id) {
+    var data = loadJournals();
+    var j = data.find(function(x){ return x.id===id; });
+    if (!j) return;
+    j.pinned = !j.pinned;
+    saveJournals(data);
+    renderList();
+    showToast(j.pinned ? '📌 즐겨찾기에 추가했습니다.' : '즐겨찾기에서 제거했습니다.');
+  }
+
+  function toggleDone(id, cb) {
+    var data = loadJournals();
+    var j = data.find(function(x){ return x.id===id; });
+    if (!j) return;
+    j.status = cb.checked ? 'done' : 'wip';
+    if (cb.checked) j.progress = 100;
+    saveJournals(data);
+    renderList();
+  }
+
+  function deleteJournal(id) {
+    if (!confirm('이 일지를 삭제하시겠습니까?')) return;
+    var data = loadJournals().filter(function(x){ return x.id !== id; });
+    saveJournals(data);
+    renderList();
+    showToast('🗑 일지가 삭제되었습니다.');
+  }
+
+  function editJournal(id) {
+    var data = loadJournals();
+    var j = data.find(function(x){ return x.id===id; });
+    if (!j) return;
+    sessionStorage.setItem('editJournal', JSON.stringify(j));
+    window.location.href = '업무일지-word.html';
+  }
+
+  var detailId = null;
+
+  function openDetail(id, e) {
+    if (e && e.target.closest('.action-btn, input[type="checkbox"]')) return;
+    var data = loadJournals();
+    var j = data.find(function(x){ return x.id===id; });
+    if (!j) return;
+    detailId = id;
+
+    document.getElementById('d-title').textContent = j.title || '무제';
+    document.getElementById('d-date').textContent = fmtDate(j.date);
+    document.getElementById('d-author').textContent = j.author || '—';
+    document.getElementById('d-project').textContent = j.project || '—';
+    document.getElementById('d-type').textContent = j.type || '—';
+    document.getElementById('d-status').innerHTML = statusBadge(j.status);
+    var pct = Math.min(100, Math.max(0, j.progress||0));
+    document.getElementById('d-pct').textContent = pct + '%';
+    document.getElementById('d-bar').style.width = pct + '%';
+    document.getElementById('d-memo').textContent = j.memo || '메모 없음';
+
+    // 태스크 목록 렌더링
+    var tasksWrap = document.getElementById('d-tasks-wrap');
+    var tasksList = document.getElementById('d-tasks-list');
+    if (j.tasks && j.tasks.length > 0) {
+      var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정' };
+      var STATUS_CLS  = { done: 'sb-done', wip: 'sb-wip', issue: 'sb-review', hold: 'sb-review', todo: 'sb-todo' };
+      tasksList.innerHTML = j.tasks.map(function(t) {
+        var scls = STATUS_CLS[t.status] || 'sb-todo';
+        var stxt = STATUS_TEXT[t.status] || '예정';
+        return '<div class="detail-task-item">'
+          + '<input type="checkbox" class="detail-task-check"' + (t.done ? ' checked' : '') + ' disabled>'
+          + '<span class="status-badge ' + scls + '" style="font-size:10px;padding:2px 7px;flex-shrink:0">' + stxt + '</span>'
+          + '<span class="detail-task-text">' + (t.text || '') + '</span>'
+          + '</div>';
+      }).join('');
+      tasksWrap.style.display = '';
+    } else {
+      tasksWrap.style.display = 'none';
+    }
+
+    document.getElementById('detail-modal').classList.add('show');
+  }
+
+  function closeDetail() {
+    document.getElementById('detail-modal').classList.remove('show');
+    detailId = null;
+  }
+
+  function handleDetailOverlayClick(e) {
+    if (e.target === document.getElementById('detail-modal')) closeDetail();
+  }
+
+  /* ── Modal ── */
+  function openModal() {
+    editingId = null;
+    document.getElementById('f-title').value = '';
+    document.getElementById('f-date').valueAsDate = new Date();
+    document.getElementById('f-author').value = '담당자';
+    document.getElementById('f-project').value = '';
+    document.getElementById('f-type').value = '개발';
+    document.getElementById('f-status').value = 'wip';
+    document.getElementById('f-progress').value = 0;
+    document.getElementById('f-memo').value = '';
+    document.querySelector('.modal-title').textContent = '새 업무일지 작성';
+    document.getElementById('modal').classList.add('show');
+    setTimeout(function(){ document.getElementById('f-title').focus(); }, 100);
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('show');
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('modal')) closeModal();
+  }
+
+  function saveJournal() {
+    var title    = document.getElementById('f-title').value.trim();
+    var date     = document.getElementById('f-date').value;
+    var author   = document.getElementById('f-author').value.trim() || '담당자';
+    var project  = document.getElementById('f-project').value.trim();
+    var type     = document.getElementById('f-type').value;
+    var status   = document.getElementById('f-status').value;
+    var progress = Math.min(100, Math.max(0, parseInt(document.getElementById('f-progress').value)||0));
+    var memo     = document.getElementById('f-memo').value.trim();
+
+    if (!title) { document.getElementById('f-title').focus(); return; }
+    if (!date)  { document.getElementById('f-date').focus();  return; }
+
+    var data = loadJournals();
+    if (editingId) {
+      var j = data.find(function(x){ return x.id===editingId; });
+      if (j) { j.title=title; j.date=date; j.author=author; j.project=project; j.type=type; j.status=status; j.progress=progress; j.memo=memo; }
+    } else {
+      data.push({ id:uid(), title:title, date:date, author:author, project:project, type:type, status:status, progress:progress, memo:memo, pinned:false });
+    }
+    saveJournals(data);
+    closeModal();
+    renderList();
+    showToast(editingId ? '✅ 일지가 수정되었습니다.' : '✅ 새 일지가 저장되었습니다.');
+  }
+
+  /* ── Template links ── */
+  function openWordTemplate() { window.open('업무일지-word.html', '_blank'); }
+
+  /* ── Toast ── */
+  var toastTimer;
+  function showToast(msg) {
+    clearTimeout(toastTimer);
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 2400);
+  }
+
+  /* ── Keyboard ── */
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closeModal(); closeDetail(); }
+    if ((e.metaKey||e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      document.getElementById('search-input').focus();
+    }
+  });
+
+  /* ── Init ── */
+  seedIfEmpty();
+  renderList();
+</script>
+</body>
+</html>

@@ -1,0 +1,1394 @@
+<style>
+    /* 왼쪽 필터 체크박스 크기 키우기 */
+    .filter-panel input[type="checkbox"] {
+        transform: scale(1.3);
+        /* 1.2 ~ 1.4 사이 추천 */
+        margin-right: 5px;
+        cursor: pointer;
+    }
+
+    .doz_sys label,
+    .doz_sys label.control-label {
+        font-size: 1.1em !important;
+    }
+
+    .doz_sys main>.doz_row #text_w2026012919d93dc07a491.default_padding {
+        padding-left: 0px !important;
+    }
+
+    /*필터 텍스트 css*/
+    .doz_sys h3 {
+        font-size: 11px;
+        color: #9ca3af;
+        font-weight: 700;
+        letter-spacing: .09em;
+        text-transform: uppercase;
+    }
+
+    .filter-desc {
+        font-size: 13px;
+        color: #9ca3af;
+        padding-bottom: 18px;
+        border-bottom: 1px solid #e5e7eb;
+        line-height: 1.6;
+        margin-top: 8px;
+    }
+
+    .filter-group h4 {
+        font-weight: 600;
+        font-size: 13.5px;
+        color: #374151;
+        padding-top: 12px;
+        margin-bottom: 8px;
+    }
+
+    .filter-group label {
+        display: flex;
+        align-items: center;
+        font-size: 13.5px;
+        color: #4b5563;
+        padding: 5px 0;
+        cursor: pointer;
+        gap: 6px;
+    }
+    .filter-group label:hover {
+        color: #111;
+    }
+
+    .doz_sys h2 {
+        font-size: 1.6em;
+        font-weight: 700;
+        color: #2e3742;
+    }
+
+    .product-page {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 48px;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 12px;
+        font-family: Pretendard, sans-serif;
+    }
+
+    .filter-panel {
+        border-right: 1px solid #e5e5e5;
+        padding-right: 24px;
+    }
+
+    .filter-group {
+        padding-bottom: 10px;
+        border-bottom: 1px solid #cccccc87;
+    }
+
+    /* CATEGORY */
+    .category {
+        margin-bottom: 90px;
+        transition:
+            opacity 0.9s cubic-bezier(.22, .61, .36, 1),
+            transform 0.9s cubic-bezier(.22, .61, .36, 1),
+            max-height 0.9s cubic-bezier(.22, .61, .36, 1),
+            filter 0.9s cubic-bezier(.22, .61, .36, 1);
+        transform: translateY(0);
+        filter: blur(0);
+        /* ⭐ 반드시 명시 */
+    }
+
+    .category.hidden {
+        opacity: 0;
+        transform: translateY(10px);
+        filter: blur(6px);
+        /* ⭐ 추가 */
+        max-height: 0;
+        margin-bottom: 0;
+        pointer-events: none;
+    }
+
+    .category-title {
+        display: block;
+        font-size: 26px;
+        font-weight: 800;
+        color: #0d1421;
+        letter-spacing: -.02em;
+    }
+
+    .category.show {
+        opacity: 1;
+        transform: translateY(0);
+        max-height: 5000px;
+    }
+
+    /* CATEGORY DESCRIPTION + DIVIDER */
+    .category-desc {
+        margin-top: 6px;
+        margin-bottom: 32px;
+        padding-bottom: 18px;
+        font-weight: 400;
+        font-size: 15px;
+        color: #6b7280;
+        line-height: 1.65;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    /* BRAND */
+    .brand {
+        margin-bottom: 60px;
+    }
+
+    .brand-title {
+        font-size: 16px !important;
+        font-weight: 700 !important;
+        color: #374151 !important;
+        letter-spacing: .04em !important;
+        text-transform: uppercase !important;
+        margin-bottom: 16px !important;
+        padding-bottom: 10px !important;
+        border-bottom: 2px solid #e5e7eb !important;
+    }
+
+    /* GRID */
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+    }
+
+    @media (max-width: 1200px) {
+        .product-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 900px) {
+        .product-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 600px) {
+        .product-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* CARD */
+    .product-card {
+        background: #fff;
+        border-radius: 12px;
+        border: 1px solid #e2e5ea;
+        overflow: hidden;
+        padding: 0;
+        transition: transform .22s cubic-bezier(.25,.46,.45,.94),
+                    box-shadow .22s cubic-bezier(.25,.46,.45,.94),
+                    border-color .22s;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .product-card:hover {
+        transform: translateY(-4px) scale(1.01);
+        box-shadow: 0 12px 36px rgba(0, 0, 0, .12);
+        border-color: #c0c8d4;
+    }
+
+    /* 이미지 영역 — 어두운 배경 */
+    .product-card img {
+        width: 100%;
+        height: 160px;
+        object-fit: contain;
+        display: block;
+        background: #181e2c;
+        padding: 20px 24px;
+        box-sizing: border-box;
+        margin-bottom: 0;
+        transition: background .22s;
+    }
+    .product-card:hover img {
+        background: #1f2840;
+    }
+
+    /* 링크 래퍼 */
+    .product-card a {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    /* 텍스트 영역 */
+    .product-card h4 {
+        font-size: 14.5px;
+        font-weight: 600;
+        color: #1a1f2e;
+        letter-spacing: -.01em;
+        margin: 0;
+        padding: 14px 16px 5px;
+        line-height: 1.35;
+    }
+
+    .product-card p {
+        font-size: 12.5px;
+        color: #6b7280;
+        line-height: 1.55;
+        margin: 0;
+        padding: 0 16px 16px;
+        flex: 1;
+    }
+
+    .product-card.discontinued {
+        opacity: .6;
+        filter: grayscale(.5);
+    }
+    .product-card.discontinued img {
+        background: #2a2a2a;
+    }
+
+    /* 상태 필터용 */
+    .product-card.is-hidden {
+        opacity: 0;
+        pointer-events: none;
+        position: absolute;
+    }
+
+    .badge {
+        display: inline-block;
+        font-size: 11px;
+        background: #999;
+        color: #fff;
+        padding: 4px 8px;
+        border-radius: 20px;
+        margin-bottom: 6px;
+    }
+
+    /* SLIDER */
+    .la-slider-wrap {
+        padding-top: 10px;
+        position: relative;
+        margin-bottom: 80px;
+        padding-right: 0;
+        /* 🔥 추가 */
+    }
+
+    .la-slider-viewport {
+        width: 100%;
+        overflow-x: hidden;
+        overflow-y: hidden;
+    }
+
+    .la-slider-track {
+        padding-top: 10px;
+        display: flex;
+        gap: 15px;
+        transition: transform 0.4s ease;
+    }
+
+    .la-slider-track .product-card {
+        flex: 0 0 calc((100% - 45px) / 4);
+    }
+
+    /* ===============================
+   SLIDER GAUGE
+================================ */
+
+    .la-slider-nav {
+        position: absolute;
+        right: 0;
+        bottom: -44px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        z-index: 5;
+    }
+
+    /* 게이지 바 */
+    .la-gauge {
+        width: 60px;
+        height: 2px;
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .la-gauge-fill {
+        display: block;
+        height: 100%;
+        width: 0%;
+        background: #0A84FF;
+        border-radius: 2px;
+        transition: width 0.35s ease;
+    }
+
+    .la-slider-nav button {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 1px solid #d1d5db;
+        background: #fff;
+        color: #6b7280;
+        font-size: 15px;
+        cursor: pointer;
+        transition: background .18s, border-color .18s, color .18s, box-shadow .18s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .la-slider-nav button:hover {
+        background: #0A84FF;
+        border-color: #0A84FF;
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(10,132,255,.3);
+    }
+    .la-slider-nav button:disabled {
+        opacity: .35;
+        cursor: default;
+        pointer-events: none;
+    }
+
+    @media (max-width: 1280px) {
+        .product-page {
+            grid-template-columns: 220px 1fr;
+            gap: 32px;
+        }
+    }
+
+    @media (max-width: 1400px) {
+        .product-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (min-width: 1800px) {
+        .product-page {
+            max-width: 1600px;
+        }
+    }
+
+    @media (max-width: 1366px) {
+        .category {
+            margin-bottom: 60px;
+        }
+
+        .brand {
+            margin-bottom: 40px;
+        }
+    }
+
+
+
+    @media (max-width: 1400px) {
+        .la-slider-track .product-card {
+            flex: 0 0 calc((100% - 30px) / 3);
+        }
+    }
+
+    @media (max-width: 1200px) {
+        .la-slider-track .product-card {
+            flex: 0 0 calc((100% - 30px) / 3);
+        }
+    }
+
+    @media (max-width: 900px) {
+        .la-slider-track .product-card {
+            flex: 0 0 calc((100% - 15px) / 2);
+        }
+    }
+
+    @media (max-width: 600px) {
+        .la-slider-track .product-card {
+            flex: 0 0 100%;
+        }
+    }
+</style>
+
+
+
+
+<div class="product-page">
+
+    <!-- LEFT FILTER -->
+    <aside class="filter-panel">
+        <h3>제품 필터</h3>
+        <p class="filter-desc">
+            필터를 조정하여<br>
+            선호에 맞는 제품을 찾습니다.
+        </p>
+
+        <div class="filter-group">
+            <h4>카테고리</h4>
+            <label><input type="checkbox" value="av-product"> A/V Product</label>
+            <label><input type="checkbox" value="av-archiving"> A/V Archiving</label>
+            <label><input type="checkbox" value="av-forensic"> A/V Forensic</label>
+        </div>
+
+        <div class="filter-group">
+            <h4>상태</h4>
+            <label><input type="checkbox" value="all"> 모든 상품</label>
+            <label><input type="checkbox" value="onsale"> 판매중</label>
+            <label><input type="checkbox" value="discontinued"> 단종</label>
+        </div>
+    </aside>
+
+    <!-- RIGHT CONTENT -->
+    <main class="product-content">
+
+        <!-- ================= A/V PRODUCT ================= -->
+        <section class="category" data-category="av-product">
+            <h2 class="category-title">A/V Product</h2>
+            <p class="category-desc">오디오·비디오 처리 · 음질/영상 품질 관리 · 송출 운용 · 시스템 구성</p>
+
+            <!-- 1. Telos -->
+            <section class="brand">
+                <h3 class="brand-title">Telos</h3>
+
+                <div class="product-grid">
+                    <!-- [1] Infinity -->
+                    <div class="product-card"><a href="/infinity">
+                            <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/eaaf1ecc28ced.png"
+                                alt="Infinity">
+                            <h4>Infinity</h4>
+                            <p>매트릭스가 필요 없는 차세대 AoIP 인터컴</p>
+                        </a>
+                    </div>
+                    <!-- [2] Hx2 / Hx1 -->
+                    <div class="product-card"><a href="/Hx2Hx1">
+                            <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/d31e1ded18e75.png"
+                                alt="Hx2 / Hx1">
+                            <h4>Hx2 / Hx1</h4>
+                            <p>단일 하이브리드 HX1과 듀얼 하이브리드 Hx2</p>
+                        </a>
+                    </div>
+                    <!-- [3] Z/IP ONE -->
+                    <div class="product-card"><a href="/ZIPONE">
+                            <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/d36c3a1defa56.png"
+                                alt="Z/IP ONE">
+                            <h4>Z/IP ONE</h4>
+                            <p>방송·원격 연결을 위한 IP 오디오 전송 장비</p>
+                        </a>
+                    </div>
+                    <!-- [4] Z/IPStream X/2 · 9X/2 -->
+                    <div class="product-card"><a href="/ZIPStreamX29X2">
+                            <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/c28e7daf7575d.png"
+                                alt="Z/IPStream X/2 · 9X/2">
+                            <h4>Z/IPStream X/2 · 9X/2</h4>
+                            <p>멀티채널 IP 스트리밍 엔진</p>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- 2. Linear Acoustic -->
+            <section class="brand">
+                <h3 class="brand-title">Linear Acoustic</h3>
+
+                <div class="la-slider-wrap">
+
+                    <div class="la-slider-viewport">
+                        <div class="la-slider-track">
+
+                            <!-- 판매중 -->
+                            <!-- [1] AERO.8000 -->
+                            <div class="product-card"><a href="/Aero8000">
+                                    <img src="https://cdn.imweb.me/upload/S20240820db3658cf892c1/1d41c2a78f410.png">
+                                    <h4>AERO.8000</h4>
+                                    <p>방송 음량 제어 및 라우드니스 프로세서</p>
+                                </a>
+                            </div>
+                            <!-- [2] AERO.2400 -->
+                            <div class="product-card">
+                                <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=AERO.2400">
+                                <h4>AERO.2400</h4>
+                                <p>멀티채널 오디오 프로세싱 솔루션</p>
+                            </div>
+                            <!-- [3] AERO.20 -->
+                            <div class="product-card">
+                                <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=AERO.200">
+                                <h4>AERO.200</h4>
+                                <p>컴팩트 방송 오디오 프로세서</p>
+                            </div>
+                            <!-- [4] AERO.20 -->
+                            <div class="product-card">
+                                <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=AERO.20">
+                                <h4>AERO.20</h4>
+                                <p>소형 방송 환경용 오디오 솔루션</p>
+                            </div>
+                            <!-- [5] AMS -->
+                            <div class="product-card"><a href="/AMS">
+                                    <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/f7164f94c4ecc.png">
+                                    <h4>AMS</h4>
+                                    <p>자동 메타데이터 관리 시스템</p>
+                                </a>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- 화살표 -->
+                    <div class="la-slider-nav">
+                        <div class="la-gauge">
+                            <span class="la-gauge-fill"></span>
+                        </div>
+                        <button class="la-prev">‹</button>
+                        <button class="la-next">›</button>
+                    </div>
+
+
+                </div>
+            </section>
+
+            <!-- 3. Omnia -->
+            <section class="brand">
+                <h3 class="brand-title">Omnia</h3>
+
+                <div class="la-slider-wrap">
+
+                    <div class="la-slider-viewport">
+                        <div class="la-slider-track">
+
+                            <!-- 판매중 -->
+                            <!-- [1] Omnia 11 -->
+                            <div class="product-card"><a href="/Omnia11">
+                                    <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/4c2e656247660.png">
+                                    <h4>Omnia 11</h4>
+                                    <p>방송 음량 제어 및 라우드니스 프로세서</p>
+                                </a>
+                            </div>
+                            <!-- [2] Omnia VOLT -->
+                            <div class="product-card"><a href="/OmniaVOLT">
+                                    <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/579a08e3e98ea.png">
+                                    <h4>Omnia VOLT</h4>
+                                    <p>멀티채널 오디오 프로세싱 솔루션</p>
+                                </a>
+                            </div>
+                            <!-- [3] Omnia FORZA -->
+                            <div class="product-card"><a href="/OmniaFORZA">
+                                    <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=Omnia FORZA">
+                                    <h4>Omnia FORZA</h4>
+                                    <p>컴팩트 방송 오디오 프로세서</p>
+                                </a>
+                            </div>
+                            <!-- [4] Omnia MPX Node -->
+                            <div class="product-card"><a href="/OmniaMPXNode">
+                                    <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=Omnia MPX Node">
+                                    <h4>Omnia MPX Node</h4>
+                                    <p>소형 방송 환경용 오디오 솔루션</p>
+                                </a>
+                            </div>
+                            <!-- [5] Omnia 9 -->
+                            <div class="product-card"><a href="/Omnia9">
+                                    <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/1ed2df6734e0b.png">
+                                    <h4>Omnia 9</h4>
+                                    <p>자동 메타데이터 관리 시스템</p>
+                                </a>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- 화살표 -->
+                    <div class="la-slider-nav">
+                        <div class="la-gauge">
+                            <span class="la-gauge-fill"></span>
+                        </div>
+                        <button class="la-prev">‹</button>
+                        <button class="la-next">›</button>
+                    </div>
+
+
+                </div>
+            </section>
+
+            <!-- 4. AXIA -->
+            <section class="brand">
+                <h3 class="brand-title">AXIA</h3>
+
+                <div class="product-grid">
+                    <!-- [1] xNode -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/9331035167db4.png">
+                        <h4>xNode</h4>
+                        <p>차세대 AoIP 기반 방송용 오디오 플랫폼</p>
+                    </div>
+                    <!-- [2] Axia Quasar Family -->
+                    <div class="product-card">
+                        <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=Axia Quasar Family">
+                        <h4>Axia Quasar Family</h4>
+                        <p>고효율 IP 오디오 코덱 솔루션</p>
+                    </div>
+                    <!-- [3] Axia iQ Console System -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/2b9c860052ff1.png">
+                        <h4>Axia iQ Console System</h4>
+                        <p>방송·원격 연결을 위한 IP 오디오 전송 장비</p>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- 5. Minnetonka Audio Software -->
+            <section class="brand">
+                <h3 class="brand-title">Minnetonka Audio Software</h3>
+
+                <div class="product-grid">
+                    <!-- [1] Audio Tools FOCUS -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/50e3058b2e253.png">
+                        <h4>Audio Tools FOCUS</h4>
+                        <p>차세대 AoIP 기반 방송용 오디오 플랫폼</p>
+                    </div>
+                    <!-- [2] Audio Tools Server -->
+                    <div class="product-card">
+                        <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=Audio Tools Server">
+                        <h4>Audio Tools Server</h4>
+                        <p>고효율 IP 오디오 코덱 솔루션</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. Cobalt Digital -->
+            <section class="brand">
+                <h3 class="brand-title">Cobalt Digital</h3>
+
+                <div class="product-grid">
+                    <!-- [1] LMNTS -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/34a4964dbb37c.png">
+                        <h4>LMNTS</h4>
+                        <p>차세대 AoIP 기반 방송용 오디오 플랫폼</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 7. Cedar -->
+            <section class="brand">
+                <h3 class="brand-title">Cedar</h3>
+
+                <div class="la-slider-wrap">
+
+                    <div class="la-slider-viewport">
+                        <div class="la-slider-track">
+
+                            <!-- 판매중 -->
+                            <!-- [1] DNS 8S -->
+                            <div class="product-card">
+                                <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=DNS 8S">
+                                <h4>DNS 8S</h4>
+                                <p>방송 음량 제어 및 라우드니스 프로세서</p>
+                            </div>
+                            <!-- [2] DNS 8D -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/808d5b307a91f.png">
+                                <h4>DNS 8D</h4>
+                                <p>멀티채널 오디오 프로세싱 솔루션</p>
+                            </div>
+                            <!-- [3] DNS 4 -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/3890f6e49503e.png">
+                                <h4>DNS 4</h4>
+                                <p>컴팩트 방송 오디오 프로세서</p>
+                            </div>
+                            <!-- [4] DNS 2 -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/41dce6d47da9c.png">
+                                <h4>DNS 2</h4>
+                                <p>소형 방송 환경용 오디오 솔루션</p>
+                            </div>
+                            <!-- [5] CEDAR Plug-ins -->
+                            <div class="product-card">
+                                <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=CEDAR Plug-ins">
+                                <h4>CEDAR Plug-ins</h4>
+                                <p>자동 메타데이터 관리 시스템</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="la-slider-nav">
+                        <div class="la-gauge">
+                            <span class="la-gauge-fill"></span>
+                        </div>
+                        <button class="la-prev">‹</button>
+                        <button class="la-next">›</button>
+                    </div>
+
+
+                </div>
+            </section>
+
+            <!-- 8. Qualis Audio -->
+            <section class="brand">
+                <h3 class="brand-title">Qualis Audio</h3>
+
+                <div class="product-grid">
+                    <!-- [1] Sentinel -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/751cd349cdc6f.png">
+                        <h4>Sentinel</h4>
+                        <p>차세대 AoIP 기반 방송용 오디오 플랫폼</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 9. RTW -->
+            <section class="brand">
+                <h3 class="brand-title">RTW</h3>
+
+                <div class="la-slider-wrap">
+
+                    <div class="la-slider-viewport">
+                        <div class="la-slider-track">
+
+                            <!-- 판매중 -->
+                            <!-- [1] TMxCore -->
+                            <div class="product-card">
+                                <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=TMxCore">
+                                <h4>TMxCore</h4>
+                                <p>방송 음량 제어 및 라우드니스 프로세서</p>
+                            </div>
+                            <!-- [2] TouchControl 5 -->
+                            <div class="product-card">
+                                <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=TouchControl 5">
+                                <h4>TouchControl 5</h4>
+                                <p>멀티채널 오디오 프로세싱 솔루션</p>
+                            </div>
+                            <!-- [3] TouchMonitor 5 -->
+                            <div class="product-card">
+                                <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=TouchMonitor 5">
+                                <h4>TouchMonitor 5</h4>
+                                <p>컴팩트 방송 오디오 프로세서</p>
+                            </div>
+                            <!-- [4] Touch Monitor TM9 -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/1e0cffaec43f0.png">
+                                <h4>Touch Monitor TM9</h4>
+                                <p>소형 방송 환경용 오디오 솔루션</p>
+                            </div>
+                            <!-- [5] Touch Monitor TM7 -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/8165f302f040c.png">
+                                <h4>Touch Monitor TM7</h4>
+                                <p>자동 메타데이터 관리 시스템</p>
+                            </div>
+                            <!-- [6] Touch Monitor TMR7 -->
+                            <div class="product-card">
+                                <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=Touch Monitor TMR7">
+                                <h4>Touch Monitor TMR7</h4>
+                                <p>자동 메타데이터 관리 시스템</p>
+                            </div>
+                            <!-- [7] Touch Monitor TM3 -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/a7d1afd6aac47.png">
+                                <h4>Touch Monitor TM3</h4>
+                                <p>자동 메타데이터 관리 시스템</p>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="la-slider-nav">
+                        <div class="la-gauge">
+                            <span class="la-gauge-fill"></span>
+                        </div>
+                        <button class="la-prev">‹</button>
+                        <button class="la-next">›</button>
+                    </div>
+
+
+                </div>
+            </section>
+
+            <!-- 10. JLCooper -->
+            <section class="brand">
+                <h3 class="brand-title">JLCooper</h3>
+
+                <div class="product-grid">
+                    <!-- [1] JLCooper -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/f23d86fc0a155.png">
+                        <h4>JLCooper</h4>
+                        <p>차세대 AoIP 기반 방송용 오디오 플랫폼</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 11. ARVUS -->
+            <section class="brand">
+                <h3 class="brand-title">ARVUS</h3>
+
+                <div class="product-grid">
+                    <!-- [1] AES-2H -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/01083569f5d46.png">
+                        <h4>AES-2H</h4>
+                        <p>차세대 AoIP 기반 방송용 오디오 플랫폼</p>
+                    </div>
+                    <!-- [2] HDMI-2A -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/ed756e87318c1.png">
+                        <h4>HDMI-2A</h4>
+                        <p>차세대 AoIP 기반 방송용 오디오 플랫폼</p>
+                    </div>
+
+                </div>
+            </section>
+
+
+
+        </section>
+
+        <!-- ================= A/V ARCHIVING ================= -->
+        <section class="category" data-category="av-archiving">
+            <h2 class="category-title">A/V Archiving</h2>
+            <p class="category-desc">미디어 기록 · 장기보존 · 무결성 · 컴플라이언스 · 기록 관리 </p>
+
+            <!-- 1. Cube-Tec -->
+            <section class="brand">
+                <h3 class="brand-title">Cube-Tec</h3>
+
+                <div class="la-slider-wrap">
+
+                    <div class="la-slider-viewport">
+                        <div class="la-slider-track">
+
+                            <!-- 판매중 -->
+                            <!-- [1] AudioCube -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/d5435992606ec.png">
+                                <h4>AudioCube</h4>
+                                <p>방송 음량 제어 및 라우드니스 프로세서</p>
+                            </div>
+                            <!-- [2] Quadriga -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/05f5578efcd8b.jpg">
+                                <h4>Quadriga</h4>
+                                <p>멀티채널 오디오 프로세싱 솔루션</p>
+                            </div>
+                            <!-- [3] Dobbin -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/382966e9fb60e.png">
+                                <h4>Dobbin</h4>
+                                <p>컴팩트 방송 오디오 프로세서</p>
+                            </div>
+                            <!-- [4] CD-Inspector -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/bcaf7f329cb38.png">
+                                <h4>CD-Inspector</h4>
+                                <p>소형 방송 환경용 오디오 솔루션</p>
+                            </div>
+                            <!-- [5] Media-Inspector -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/e3ef9feb12ee7.jpg">
+                                <h4>Media-Inspector</h4>
+                                <p>자동 메타데이터 관리 시스템</p>
+                            </div>
+                            <!-- [6] Callibration-Inspector1 -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/3640ef6764277.png">
+                                <h4>Callibration-Inspector1</h4>
+                                <p>자동 메타데이터 관리 시스템</p>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="la-slider-nav">
+                        <div class="la-gauge">
+                            <span class="la-gauge-fill"></span>
+                        </div>
+                        <button class="la-prev">‹</button>
+                        <button class="la-next">›</button>
+                    </div>
+
+
+                </div>
+            </section>
+
+            <!-- 2. Venera Technologies -->
+            <section class="brand">
+                <h3 class="brand-title">Venera Technologies</h3>
+
+                <div class="product-grid">
+                    <!-- [1] Pulsar Automated QC -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/e6c3ae84640c3.png">
+                        <h4>Pulsar Automated QC</h4>
+                        <p>차세대 AoIP 기반 방송용 오디오 플랫폼</p>
+                    </div>
+                </div>
+            </section>
+
+
+        </section>
+
+        <!-- ================= A/V FORENSIC ================= -->
+        <section class="category" data-category="av-forensic">
+            <h2 class="category-title">A/V Forensic</h2>
+            <p class="category-desc">디지털 미디어 분석 · 위·변조 탐지 · 진위 판별 · 딥페이크 분석 </p>
+            <!-- 1. AMPED SOFTWARE -->
+            <section class="brand">
+                <h3 class="brand-title">AMPED SOFTWARE</h3>
+
+                <div class="product-grid">
+                    <!-- [1] AMPED FIVE -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/04478c63c868f.png">
+                        <h4>AMPED FIVE</h4>
+                        <p>디지털 영상 포렌식 분석 도구</p>
+                    </div>
+                    <!-- [2] AMPED AUTHENTICATE -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/af704d82e1875.png">
+                        <h4>AMPED AUTHENTICATE</h4>
+                        <p>영상 위변조 검증 솔루션</p>
+                    </div>
+                    <!-- [3] AMPED REPLAY -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/b84a8c288ca21.png">
+                        <h4>AMPED REPLAY</h4>
+                        <p>영상 위변조 검증 솔루션</p>
+                    </div>
+                    <!-- [4] AMPED DVRCONV -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/97fa2a6020b03.png">
+                        <h4>AMPED DVRCONV</h4>
+                        <p>영상 위변조 검증 솔루션</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. UNIDAS -->
+            <section class="brand">
+                <h3 class="brand-title">UNIDAS</h3>
+
+                <div class="product-grid">
+                    <!-- [1] ISIS -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/f688b7c4f8612.png">
+                        <h4>ISIS</h4>
+                        <p>차세대 AoIP 기반 방송용 오디오 플랫폼</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Cube-Tec -->
+            <section class="brand">
+                <h3 class="brand-title">Cube-Tec</h3>
+
+                <div class="product-grid">
+                    <!-- [1] AudioCube -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/c943192952d63.jpg">
+                        <h4>AudioCube</h4>
+                        <p>차세대 AoIP 기반 방송용 오디오 플랫폼</p>
+                    </div>
+                    <!-- [2] Foenics -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/ed0a47519c64f.jpg">
+                        <h4>Foenics</h4>
+                        <p>차세대 AoIP 기반 방송용 오디오 플랫폼</p>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- 4. Cedar -->
+            <section class="brand">
+                <h3 class="brand-title">Cedar</h3>
+
+                <div class="la-slider-wrap">
+
+                    <div class="la-slider-viewport">
+                        <div class="la-slider-track">
+
+                            <!-- 판매중 -->
+                            <!-- [1] Forensic Enhance -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/48cef86a8ddbb.png">
+                                <h4>Forensic Enhance</h4>
+                                <p>방송 음량 제어 및 라우드니스 프로세서</p>
+                            </div>
+                            <!-- [2] SE 1 Speech Enhancer -->
+                            <div class="product-card">
+                                <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=SE 1 Speech Enhancer">
+                                <h4>SE 1 Speech Enhancer</h4>
+                                <p>멀티채널 오디오 프로세싱 솔루션</p>
+                            </div>
+                            <!-- [3] Cedar Forensic -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/cd8f1fe9515b8.png">
+                                <h4>Cedar Forensic</h4>
+                                <p>컴팩트 방송 오디오 프로세서</p>
+                            </div>
+                            <!-- [4] CEDAR Cambridge -->
+                            <div class="product-card"> <a href="/147">
+                                    <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/455fafc785da3.png">
+                                    <h4>CEDAR Cambridge</h4>
+                                    <p>소형 방송 환경용 오디오 솔루션</p>
+                                </a>
+                            </div>
+                            <!-- [5] VoicEX -->
+                            <div class="product-card">
+                                <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=VoicEX">
+                                <h4>VoicEX</h4>
+                                <p>자동 메타데이터 관리 시스템</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="la-slider-nav">
+                        <div class="la-gauge">
+                            <span class="la-gauge-fill"></span>
+                        </div>
+                        <button class="la-prev">‹</button>
+                        <button class="la-next">›</button>
+                    </div>
+
+
+                </div>
+            </section>
+
+            <!-- 3. MOBILedit -->
+            <section class="brand">
+                <h3 class="brand-title">MOBILedit</h3>
+
+                <div class="la-slider-wrap">
+
+                    <div class="la-slider-viewport">
+                        <div class="la-slider-track">
+
+                            <!-- 판매중 -->
+                            <!-- [1] MOBILedit Forensic -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/064cfa3a19c3f.png">
+                                <h4>MOBILedit Forensic</h4>
+                                <p>방송 음량 제어 및 라우드니스 프로세서</p>
+                            </div>
+                            <!-- [2] Connection Kit -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/77920dc2653da.png">
+                                <h4>Connection Kit</h4>
+                                <p>멀티채널 오디오 프로세싱 솔루션</p>
+                            </div>
+                            <!-- [3] Smartwatch Kit -->
+                            <div class="product-card">
+                                <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/ae3bf51c9dc11.png">
+                                <h4>Smartwatch Kit</h4>
+                                <p>멀티채널 오디오 프로세싱 솔루션</p>
+                            </div>
+                            <!-- [4] Camera Ballistics -->
+                            <div class="product-card">
+                                <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=Camera Ballistics">
+                                <h4>Camera Ballistics</h4>
+                                <p>컴팩트 방송 오디오 프로세서</p>
+                            </div>
+                            <!-- [5] MOBILedit Cloud Forensic -->
+                            <div class="product-card">
+                                <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=MOBILedit Cloud Forensic">
+                                <h4>MOBILedit Cloud Forensic</h4>
+                                <p>소형 방송 환경용 오디오 솔루션</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 화살표 -->
+                    <div class="la-slider-nav">
+                        <button class="la-prev">‹</button>
+                        <button class="la-next">›</button>
+                    </div>
+
+                </div>
+            </section>
+            <!-- 4. SIM -->
+            <section class="brand">
+                <h3 class="brand-title">SIM</h3>
+
+                <div class="product-grid">
+                    <!-- [1] SIM Product -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/72d3429440068.png">
+                        <h4>SIM Product</h4>
+                        <p>디지털 영상 포렌식 분석 도구</p>
+                    </div>
+                    <!-- [2] SIM Replica PRO -->
+                    <div class="product-card">
+                        <img src="https://dummyimage.com/300x180/f2f2f2/aaa&text=SIM Replica PRO">
+                        <h4>SIM Replica PRO</h4>
+                        <p>영상 위변조 검증 솔루션</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. Sensity.AI -->
+            <section class="brand">
+                <h3 class="brand-title">Sensity</h3>
+
+                <div class="product-grid">
+                    <!-- [1] Sensity.AI -->
+                    <div class="product-card">
+                        <img src="https://cdn.imweb.me/upload/S20241202ae626a0351d14/5a517d50753d3.png">
+                        <h4>Sensity.AI</h4>
+                        <p>디지털 영상 포렌식 분석 도구</p>
+                    </div>
+                </div>
+            </section>
+
+
+        </section>
+
+    </main>
+</div>
+
+
+<!-- 필터 스크립트 -->
+<script>
+    (function () {
+
+        /* ===============================
+           ELEMENTS
+        =============================== */
+        const categoryCheckboxes = document.querySelectorAll(
+            '.filter-group input[type="checkbox"][value^="av-"]'
+        );
+
+        const statusCheckboxes = document.querySelectorAll(
+            '.filter-group input[type="checkbox"][value="all"],' +
+            '.filter-group input[type="checkbox"][value="onsale"],' +
+            '.filter-group input[type="checkbox"][value="discontinued"]'
+        );
+
+        const categories = document.querySelectorAll('.category');
+        const counterEl = document.getElementById('resultCount');
+
+        /* ===============================
+           STATUS : SINGLE SELECT (🔥 핵심)
+        =============================== */
+        statusCheckboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+                if (!cb.checked) return;
+
+                statusCheckboxes.forEach(other => {
+                    if (other !== cb) other.checked = false;
+                });
+
+                applyFilters();
+            });
+        });
+
+        /* ===============================
+           COUNT ANIMATION
+        =============================== */
+        function animateCount(el, from, to, duration = 500) {
+            if (!el || from === to) {
+                if (el) el.textContent = to;
+                return;
+            }
+
+            const start = performance.now();
+
+            function tick(now) {
+                const progress = Math.min((now - start) / duration, 1);
+                const value = Math.round(from + (to - from) * progress);
+                el.textContent = value;
+                if (progress < 1) requestAnimationFrame(tick);
+            }
+
+            requestAnimationFrame(tick);
+        }
+
+        /* ===============================
+           CATEGORY COUNT SPAN INIT
+        =============================== */
+        const categoryCountMap = {};
+
+        categoryCheckboxes.forEach(cb => {
+            const label = cb.closest('label');
+            const span = document.createElement('span');
+
+            span.style.marginLeft = '6px';
+            span.style.color = '#2d99ff';
+            span.style.fontSize = '13px';
+            span.textContent = '(0)';
+
+            label.appendChild(span);
+            categoryCountMap[cb.value] = span;
+        });
+
+        /* ===============================
+           COUNT HELPERS
+        =============================== */
+        function countVisibleProductsInCategory(categoryValue) {
+            const category = document.querySelector(
+                `.category[data-category="${categoryValue}"]`
+            );
+            if (!category) return 0;
+
+            return category.querySelectorAll(
+                '.product-card:not(.is-hidden)'
+            ).length;
+        }
+
+        function countTotalVisibleProducts() {
+            return document.querySelectorAll(
+                '.product-card:not(.is-hidden)'
+            ).length;
+        }
+
+        /* ===============================
+           FILTER CORE
+        =============================== */
+        function applyFilters() {
+            const activeCategories = [...categoryCheckboxes]
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+
+            const activeStatus = [...statusCheckboxes]
+                .find(cb => cb.checked)?.value || 'all';
+
+            categories.forEach(category => {
+                let categoryVisible = false;
+
+                category.querySelectorAll('.brand').forEach(brand => {
+                    const cards = brand.querySelectorAll('.product-card');
+                    let visibleCount = 0;
+
+                    cards.forEach(card => {
+                        const isDiscontinued = card.classList.contains('discontinued');
+                        let visible = true;
+
+                        /* 상태 필터 (🔥 단일 상태) */
+                        if (activeStatus === 'onsale' && isDiscontinued) visible = false;
+                        if (activeStatus === 'discontinued' && !isDiscontinued) visible = false;
+
+                        card.classList.toggle('is-hidden', !visible);
+                        if (visible) visibleCount++;
+                    });
+
+                    /* 브랜드 숨김 */
+                    brand.style.display = visibleCount === 0 ? 'none' : '';
+                    if (visibleCount > 0) categoryVisible = true;
+
+                    /* 슬라이더 리셋 (기존 유지) */
+                    const wrap = brand.querySelector('.la-slider-wrap');
+                    if (wrap && wrap.resetSlider) wrap.resetSlider();
+                });
+
+                /* 카테고리 필터 */
+                const categoryMatch =
+                    activeCategories.length === 0 ||
+                    activeCategories.includes(category.dataset.category);
+
+                category.classList.toggle(
+                    'hidden',
+                    !categoryMatch || !categoryVisible
+                );
+                category.classList.toggle(
+                    'show',
+                    categoryMatch && categoryVisible
+                );
+            });
+
+            /* ===============================
+               UPDATE CATEGORY COUNTS
+            =============================== */
+            categoryCheckboxes.forEach(cb => {
+                const span = categoryCountMap[cb.value];
+                const prev = Number(span.textContent.replace(/\D/g, '')) || 0;
+                const next = countVisibleProductsInCategory(cb.value);
+                animateCount(span, prev, next);
+            });
+
+            /* ===============================
+               UPDATE TOTAL RESULT COUNT (🔥 상단)
+            =============================== */
+            if (counterEl) {
+                const prev = Number(counterEl.textContent) || 0;
+                const next = countTotalVisibleProducts();
+                animateCount(counterEl, prev, next);
+            }
+        }
+
+        /* ===============================
+           CATEGORY EVENTS
+        =============================== */
+        categoryCheckboxes.forEach(cb =>
+            cb.addEventListener('change', applyFilters)
+        );
+
+        /* INITIAL */
+        applyFilters();
+
+    })();
+</script>
+
+
+
+<!-- 슬라이드 스크립트 -->
+<script>
+    document.querySelectorAll('.la-slider-wrap').forEach(wrap => {
+        const track = wrap.querySelector('.la-slider-track');
+        const prev = wrap.querySelector('.la-prev');
+        const next = wrap.querySelector('.la-next');
+        const gaugeFill = wrap.querySelector('.la-gauge-fill');
+
+        if (!track || !prev || !next) return;
+
+        let index = 0;
+        const GAP = 15;
+
+        function getVisibleCards() {
+            return [...track.children].filter(
+                c => !c.classList.contains('is-hidden')
+            );
+        }
+
+        function update() {
+            const cards = getVisibleCards();
+            if (cards.length === 0) return;
+
+            const cardWidth = cards[0].offsetWidth + GAP;
+            const viewportWidth = wrap.querySelector('.la-slider-viewport').offsetWidth;
+            const visibleCount = Math.max(
+                1,
+                Math.floor(viewportWidth / cardWidth)
+            );
+
+            const maxIndex = Math.max(0, cards.length - visibleCount);
+
+            /* 🔥 핵심 수정: index 완전 클램프 */
+            index = Math.max(0, Math.min(index, maxIndex));
+
+            track.style.transform = `translateX(${-index * cardWidth}px)`;
+
+            /* 버튼 비활성화 (UX 보너스) */
+            prev.disabled = index === 0;
+            next.disabled = index === maxIndex;
+
+            /* 게이지 업데이트 */
+            if (gaugeFill) {
+                const progress = maxIndex === 0 ? 0 : (index / maxIndex) * 100;
+                gaugeFill.style.width = `${progress}%`;
+            }
+        }
+
+        prev.addEventListener('click', () => {
+            if (index === 0) return; // 🔒 더 이상 안 감
+            index--;
+            update();
+        });
+
+        next.addEventListener('click', () => {
+            index++;
+            update();
+        });
+
+        /* 필터 변경 시 외부에서 호출 */
+        wrap.resetSlider = () => {
+            index = 0;
+            update();
+        };
+
+        window.addEventListener('resize', update);
+        update();
+    });
+</script>

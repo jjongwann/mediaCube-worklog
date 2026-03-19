@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>업무일지</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --border: #e2e8f0;
+    --bg-subtle: #f8fafc;
+    --green: #16a34a;
+    --orange: #ea580c;
+    --indigo: #4338ca;
+    --red: #dc2626;
+    --yellow: #d97706;
+    --purple: #7c3aed;
+  }
+
+  body {
+    background: #f1f5f9;
+    font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    padding: 36px 20px 60px;
+    min-height: 100vh;
+    color: var(--text-primary);
+  }
+
+  /* ── Toolbar ── */
+  .toolbar {
+    max-width: 760px;
+    margin: 0 auto 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toolbar-title {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-right: auto;
+    letter-spacing: 0.3px;
+  }
+  .btn {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .btn:hover { background: #f8fafc; border-color: #cbd5e1; color: var(--text-primary); }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .btn-primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
+
+  /* ── Page ── */
+  .page {
+    width: 760px;
+    min-height: 1040px;
+    background: #fff;
+    margin: 0 auto;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.07);
+    border-radius: 4px;
+    padding: 52px 60px 48px;
+  }
+
+  /* ── Document Header ── */
+  .doc-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .doc-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0;
+    width: 48px; height: 2px;
+    background: var(--accent);
+    border-radius: 1px;
+  }
+
+  .doc-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .doc-title {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+
+  .doc-meta { text-align: right; padding-top: 2px; }
+  .doc-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-bottom: 5px;
+  }
+  .doc-meta-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.3px;
+  }
+  .meta-input {
+    border: none;
+    border-bottom: 1px solid var(--border);
+    outline: none;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-primary);
+    background: transparent;
+    width: 140px;
+    text-align: right;
+    padding: 1px 2px 2px;
+    transition: border-color 0.15s;
+  }
+  .meta-input:focus { border-bottom-color: var(--accent); }
+
+  /* ── Info Chips ── */
+  .info-strip {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+  .info-chip {
+    flex: 1;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 14px;
+    transition: border-color 0.15s;
+  }
+  .info-chip:focus-within { border-color: var(--accent); background: var(--accent-light); }
+  .info-chip-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .info-chip-input {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    border: none;
+    outline: none;
+    font-family: inherit;
+    background: transparent;
+    width: 100%;
+  }
+  .info-chip-input::placeholder { color: var(--text-muted); font-weight: 400; }
+  .chip-input-row { display: flex; align-items: center; gap: 2px; }
+  .chip-input-row .info-chip-input { flex: 1; min-width: 0; width: auto; }
+  .chip-pct-label { font-size: 15px; font-weight: 600; color: var(--text-secondary); flex-shrink: 0; }
+
+  /* ── Metrics ── */
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+  .metric-card {
+    background: var(--bg-subtle);
+    border-radius: 8px;
+    padding: 14px 12px 12px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .metric-val {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+    border: none;
+    outline: none;
+    font-family: inherit;
+    background: transparent;
+    width: 100%;
+    text-align: center;
+    line-height: 1;
+  }
+  .metric-lbl {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-top: 5px;
+  }
+
+  /* ── Section ── */
+  .section { margin-bottom: 26px; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 11px;
+  }
+  .section-bar {
+    width: 3px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: var(--text-secondary);
+  }
+  .section-rule {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Task List ── */
+  .task-list { display: flex; flex-direction: column; gap: 5px; }
+  .task-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    background: var(--bg-subtle);
+  }
+  .task-del {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #d1d5db;
+    font-size: 15px;
+    line-height: 1;
+    padding: 0;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .task-item:hover .task-del { opacity: 1; }
+  .task-del:hover { color: var(--red); background: #fee2e2; }
+  .task-item:focus-within {
+    border-color: #bfdbfe;
+    background: var(--accent-light);
+  }
+
+  .task-check {
+    width: 15px;
+    height: 15px;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 4px;
+    flex-shrink: 0;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    position: relative;
+    transition: all 0.15s;
+    background: #fff;
+  }
+  .task-check:checked { background: var(--accent); border-color: var(--accent); }
+  .task-check:checked::after {
+    content: '';
+    position: absolute;
+    left: 3px; top: 1px;
+    width: 5px; height: 8px;
+    border: 1.5px solid #fff;
+    border-top: none; border-left: none;
+    transform: rotate(45deg);
+  }
+
+  .task-status {
+    flex-shrink: 0;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    cursor: pointer;
+    user-select: none;
+    letter-spacing: 0.2px;
+    transition: all 0.15s;
+  }
+  .status-done  { background: #dcfce7; color: var(--green); }
+  .status-wip   { background: #ffedd5; color: var(--orange); }
+  .status-todo  { background: #e0e7ff; color: var(--indigo); }
+  .status-hold  { background: #fee2e2; color: var(--red); }
+  .status-issue { background: #fef3c7; color: var(--yellow); }
+
+  .task-text {
+    flex: 1;
+    font-size: 15px;
+    color: var(--text-primary);
+    border: none;
+    outline: none;
+    font-family: inherit;
+    background: transparent;
+    line-height: 1.5;
+    resize: none;
+    overflow: hidden;
+    min-height: 20px;
+  }
+
+  .add-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px dashed #cbd5e1;
+    border-radius: 7px;
+    padding: 7px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+    margin-top: 5px;
+    width: 100%;
+    justify-content: center;
+  }
+  .add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  /* ── Textarea ── */
+  .doc-textarea {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 11px 13px;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--text-primary);
+    line-height: 1.8;
+    resize: vertical;
+    outline: none;
+    min-height: 70px;
+    background: var(--bg-subtle);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .doc-textarea:focus { border-color: var(--accent); background: #fff; }
+  .doc-textarea::placeholder { color: #cbd5e1; }
+
+  /* ── Issue Grid ── */
+  .issue-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .issue-card {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    overflow: hidden;
+  }
+  .issue-card-hdr {
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .ic-issue { background: #fffbeb; color: #92400e; border-bottom: 1px solid #fde68a; }
+  .ic-risk  { background: #fff1f2; color: #9f1239; border-bottom: 1px solid #fecdd3; }
+  .issue-card-body {
+    padding: 11px 14px;
+    font-size: 15px;
+    color: var(--text-secondary);
+    border: none;
+    outline: none;
+    font-family: inherit;
+    background: transparent;
+    width: 100%;
+    resize: vertical;
+    min-height: 54px;
+    line-height: 1.75;
+  }
+  .issue-card-body::placeholder { color: #d1d5db; }
+
+  /* ── Footer ── */
+  .doc-footer {
+    margin-top: 36px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .footer-company {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    background: transparent;
+    width: 200px;
+  }
+  .footer-company::placeholder { color: #d1d5db; }
+  .footer-page { font-size: 13px; color: var(--text-muted); }
+
+  /* ── Submit Bar ── */
+  .submit-bar {
+    max-width: 760px;
+    margin: 20px auto 48px;
+    background: #fff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    box-shadow: 0 2px 12px rgba(37,99,235,0.07);
+  }
+  .submit-bar-info { display: flex; align-items: center; gap: 10px; }
+  .submit-bar-icon { font-size: 20px; }
+  .submit-bar-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+  .submit-bar-text strong { color: var(--text-primary); font-weight: 700; }
+  .submit-bar-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .btn-back {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .btn-back:hover { background: var(--bg-subtle); }
+  .btn-submit {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 8px 22px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+  }
+  .btn-submit:hover { background: #1d4ed8; box-shadow: 0 4px 14px rgba(37,99,235,0.35); }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .toolbar { display: none; }
+    .submit-bar { display: none; }
+    .page { box-shadow: none; margin: 0; width: 100%; border-radius: 0; padding: 40px 48px; }
+    .add-btn { display: none; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <span class="toolbar-title">미디어큐브 - 업무일지</span>
+  <button class="btn" onclick="addTask()">+ 업무 추가</button>
+  <button class="btn-primary btn" onclick="window.print()">인쇄 / PDF</button>
+</div>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="doc-header">
+    <div>
+      <div class="doc-label">Daily Work Journal</div>
+      <div class="doc-title">업무 일지</div>
+    </div>
+    <div class="doc-meta">
+      <div class="doc-meta-row">
+        <span class="doc-meta-label">작성일</span>
+        <input class="meta-input" type="date" id="doc-date">
+      </div>
+      <div class="doc-meta-row">
+        <span class="doc-meta-label">작성자</span>
+        <input class="meta-input" type="text" placeholder="홍길동" id="doc-author">
+      </div>
+      <div class="doc-meta-row">
+        <span class="doc-meta-label">부서</span>
+        <input class="meta-input" type="text" placeholder="개발팀" id="doc-dept">
+      </div>
+    </div>
+  </div>
+
+  <!-- Info Chips -->
+  <div class="info-strip">
+    <div class="info-chip">
+      <div class="info-chip-label">주요 목표</div>
+      <input class="info-chip-input" id="chip-project" type="text" placeholder="금일 핵심 목표 입력">
+    </div>
+    <div class="info-chip">
+      <div class="info-chip-label">업무 유형</div>
+      <input class="info-chip-input" id="chip-type" type="text" placeholder="개발 · 회의 · 기획">
+    </div>
+    <div class="info-chip">
+      <div class="info-chip-label">전체 진행률</div>
+      <div class="chip-input-row">
+        <input class="info-chip-input" id="chip-progress" type="number" min="0" max="100" placeholder="0" readonly style="cursor:default;background:var(--bg-subtle);color:var(--text-secondary)">
+        <span class="chip-pct-label">%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metrics -->
+  <div class="metrics-row">
+    <div class="metric-card">
+      <input class="metric-val" type="text" value="8h">
+      <div class="metric-lbl">작업 시간</div>
+    </div>
+    <div class="metric-card">
+      <input class="metric-val" id="metric-done" type="text" value="0" readonly>
+      <div class="metric-lbl">완료 업무</div>
+    </div>
+    <div class="metric-card">
+      <input class="metric-val" id="metric-wip" type="text" value="0" readonly>
+      <div class="metric-lbl">진행 중</div>
+    </div>
+    <div class="metric-card">
+      <input class="metric-val" id="metric-issue" type="text" value="0" readonly>
+      <div class="metric-lbl">이슈</div>
+    </div>
+    <div class="metric-card">
+      <input class="metric-val" id="metric-hold" type="text" value="0" readonly>
+      <div class="metric-lbl">보류</div>
+    </div>
+  </div>
+
+  <!-- Tasks -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-bar"></div>
+      <span class="section-title">금일 업무 내역</span>
+      <div class="section-rule"></div>
+    </div>
+    <div class="task-list" id="task-list">
+      <div class="task-item">
+        <input type="checkbox" class="task-check">
+        <span class="task-status status-todo">예정</span>
+        <textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea>
+        <button class="task-del" onclick="deleteTask(this)" title="삭제">×</button>
+      </div>
+      <div class="task-item">
+        <input type="checkbox" class="task-check">
+        <span class="task-status status-todo">예정</span>
+        <textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea>
+        <button class="task-del" onclick="deleteTask(this)" title="삭제">×</button>
+      </div>
+      <div class="task-item">
+        <input type="checkbox" class="task-check">
+        <span class="task-status status-todo">예정</span>
+        <textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea>
+        <button class="task-del" onclick="deleteTask(this)" title="삭제">×</button>
+      </div>
+      <div class="task-item">
+        <input type="checkbox" class="task-check">
+        <span class="task-status status-todo">예정</span>
+        <textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea>
+        <button class="task-del" onclick="deleteTask(this)" title="삭제">×</button>
+      </div>
+    </div>
+    <button class="add-btn" onclick="addTask()">+ 업무 항목 추가</button>
+  </div>
+
+  <!-- Summary -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-bar" style="background:var(--green)"></div>
+      <span class="section-title">업무 요약</span>
+      <div class="section-rule"></div>
+    </div>
+    <textarea class="doc-textarea" rows="3" placeholder="금일 수행한 업무의 주요 성과와 진행 내용을 간략히 요약하세요."></textarea>
+  </div>
+
+  <!-- Issues -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-bar" style="background:var(--red)"></div>
+      <span class="section-title">이슈 및 리스크</span>
+      <div class="section-rule"></div>
+    </div>
+    <div class="issue-grid">
+      <div class="issue-card">
+        <div class="issue-card-hdr ic-issue">
+          <span>⚠</span> 발생 이슈
+        </div>
+        <textarea class="issue-card-body" rows="3" placeholder="금일 발생한 이슈 및 처리 현황을 기록하세요."></textarea>
+      </div>
+      <div class="issue-card">
+        <div class="issue-card-hdr ic-risk">
+          <span>◆</span> 리스크 / 블로커
+        </div>
+        <textarea class="issue-card-body" rows="3" placeholder="업무 진행을 저해하는 리스크나 블로커를 기록하세요."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tomorrow -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-bar" style="background:var(--yellow)"></div>
+      <span class="section-title">익일 계획</span>
+      <div class="section-rule"></div>
+    </div>
+    <textarea class="doc-textarea" rows="3" placeholder="익일 수행 예정 업무를 우선순위에 따라 작성하세요."></textarea>
+  </div>
+
+  <!-- Memo -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-bar" style="background:var(--purple)"></div>
+      <span class="section-title">메모 / 특이사항</span>
+      <div class="section-rule"></div>
+    </div>
+    <textarea class="doc-textarea" rows="2" placeholder="전달 사항, 공유 내용, 기타 특이사항을 자유롭게 기록하세요."></textarea>
+  </div>
+
+  <!-- Footer -->
+  <div class="doc-footer">
+    <input class="footer-company" type="text" value="미디어큐브 / 사운드콘텐츠사업부">
+    <span class="footer-page">Page 1 of 1</span>
+  </div>
+
+</div>
+
+<!-- Submit Bar -->
+<div class="submit-bar">
+  <div class="submit-bar-info">
+    <span class="submit-bar-icon">📋</span>
+    <div class="submit-bar-text">
+      <strong>작성 완료 후 제출하세요.</strong><br>
+      제출하면 대시보드 목록에 자동으로 등록됩니다.
+    </div>
+  </div>
+  <div class="submit-bar-actions">
+    <button class="btn-back" onclick="window.location.href='업무일지-dashboard.html'">← 대시보드로</button>
+    <button class="btn-submit" onclick="submitJournal()">✓ 제출하기</button>
+  </div>
+</div>
+
+<script>
+  var EDIT_KEY = 'editJournal';
+  var editingEntry = null;
+
+  // ── Edit mode: load saved journal data ──
+  (function() {
+    var raw = sessionStorage.getItem(EDIT_KEY);
+    if (!raw) {
+      document.getElementById('doc-date').valueAsDate = new Date();
+      return;
+    }
+    try { editingEntry = JSON.parse(raw); } catch(e) { return; }
+    sessionStorage.removeItem(EDIT_KEY);
+
+    // Populate header fields
+    if (editingEntry.date)    document.getElementById('doc-date').value    = editingEntry.date;
+    if (editingEntry.author)  document.getElementById('doc-author').value  = editingEntry.author;
+    if (editingEntry.project) document.getElementById('chip-project').value = editingEntry.project;
+    if (editingEntry.type)    document.getElementById('chip-type').value   = editingEntry.type;
+    if (editingEntry.progress !== undefined) document.getElementById('chip-progress').value = editingEntry.progress;
+    if (editingEntry.memo) {
+      var tas = document.querySelectorAll('.doc-textarea');
+      if (tas[0]) tas[0].value = editingEntry.memo;
+    }
+
+    // Update toolbar to indicate edit mode
+    document.querySelector('.toolbar-title').textContent = '업무일지 — 편집 중';
+    document.querySelector('.btn-submit').textContent = '✓ 수정 완료';
+    document.querySelector('.submit-bar-text').innerHTML =
+      '<strong>수정 완료 후 저장하세요.</strong><br>저장하면 대시보드 목록이 업데이트됩니다.';
+  })();
+
+  document.querySelectorAll('textarea').forEach(function(ta) {
+    ta.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = this.scrollHeight + 'px';
+    });
+    ta.style.height = ta.scrollHeight + 'px';
+  });
+
+  var STATUSES = [
+    {cls: 'status-done',  text: '완료'},
+    {cls: 'status-wip',   text: '진행'},
+    {cls: 'status-issue', text: '이슈'},
+    {cls: 'status-hold',  text: '보류'},
+    {cls: 'status-todo',  text: '예정'}
+  ];
+
+  function calcProgress() {
+    var badges = document.querySelectorAll('#task-list .task-status');
+    var total = badges.length;
+    var cnt = { done: 0, wip: 0, issue: 0, hold: 0 };
+    badges.forEach(function(b) {
+      if (b.classList.contains('status-done'))  cnt.done++;
+      else if (b.classList.contains('status-wip'))   cnt.wip++;
+      else if (b.classList.contains('status-issue')) cnt.issue++;
+      else if (b.classList.contains('status-hold'))  cnt.hold++;
+    });
+    document.getElementById('metric-done').value  = cnt.done;
+    document.getElementById('metric-wip').value   = cnt.wip;
+    document.getElementById('metric-issue').value = cnt.issue;
+    document.getElementById('metric-hold').value  = cnt.hold;
+    document.getElementById('chip-progress').value = total === 0 ? '' : Math.round(cnt.done / total * 100);
+  }
+
+  function wireStatus(badge) {
+    badge.addEventListener('click', function() {
+      var cur = STATUSES.findIndex(function(s) { return badge.classList.contains(s.cls); });
+      var next = STATUSES[(cur + 1) % STATUSES.length];
+      badge.className = 'task-status ' + next.cls;
+      badge.textContent = next.text;
+      calcProgress();
+    });
+  }
+
+  document.querySelectorAll('.task-status').forEach(wireStatus);
+
+  // ── Edit mode: restore task list ──
+  if (editingEntry && editingEntry.tasks && editingEntry.tasks.length > 0) {
+    var taskList = document.getElementById('task-list');
+    taskList.innerHTML = '';
+    var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정' };
+    var STATUS_CLS  = { done: 'status-done', wip: 'status-wip', issue: 'status-issue', hold: 'status-hold', todo: 'status-todo' };
+    editingEntry.tasks.forEach(function(t) {
+      var scls = STATUS_CLS[t.status] || 'status-todo';
+      var stxt = STATUS_TEXT[t.status] || '예정';
+      var item = document.createElement('div');
+      item.className = 'task-item';
+      item.innerHTML =
+        '<input type="checkbox" class="task-check"' + (t.done ? ' checked' : '') + '>'
+        + '<span class="task-status ' + scls + '">' + stxt + '</span>'
+        + '<textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea>'
+        + '<button class="task-del" onclick="deleteTask(this)" title="삭제">×</button>';
+      taskList.appendChild(item);
+      var ta = item.querySelector('textarea');
+      ta.value = t.text;
+      ta.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = this.scrollHeight + 'px';
+      });
+      ta.style.height = ta.scrollHeight + 'px';
+      wireStatus(item.querySelector('.task-status'));
+    });
+  }
+
+  function deleteTask(btn) {
+    var item = btn.closest('.task-item');
+    item.style.transition = 'opacity 0.15s, transform 0.15s';
+    item.style.opacity = '0';
+    item.style.transform = 'translateX(6px)';
+    setTimeout(function() { item.remove(); calcProgress(); }, 150);
+  }
+
+  function addTask() {
+    var list = document.getElementById('task-list');
+    var item = document.createElement('div');
+    item.className = 'task-item';
+    item.innerHTML =
+      '<input type="checkbox" class="task-check">'
+      + '<span class="task-status status-todo">예정</span>'
+      + '<textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea>'
+      + '<button class="task-del" onclick="deleteTask(this)" title="삭제">×</button>';
+    list.appendChild(item);
+
+    var ta = item.querySelector('textarea');
+    ta.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = this.scrollHeight + 'px';
+    });
+    wireStatus(item.querySelector('.task-status'));
+    calcProgress();
+    ta.focus();
+  }
+
+  function submitJournal() {
+    var DB_KEY = 'mediaCube_journals_v1';
+
+    var date    = document.getElementById('doc-date').value;
+    var author  = (document.getElementById('doc-author').value || '').trim();
+    var project = (document.getElementById('chip-project').value || '').trim();
+    var type    = (document.getElementById('chip-type').value || '').trim() || '개발';
+    var progStr = (document.getElementById('chip-progress').value || '').replace('%','').trim();
+    var progress = Math.min(100, Math.max(0, parseInt(progStr) || 0));
+
+    // ── 필수 항목 검증 ──
+    if (!date) {
+      alert('필수 항목 누락: 작성일을 입력해 주세요.');
+      document.getElementById('doc-date').focus();
+      return;
+    }
+    if (!author) {
+      alert('필수 항목 누락: 작성자를 입력해 주세요.');
+      document.getElementById('doc-author').focus();
+      return;
+    }
+    if (!project) {
+      alert('필수 항목 누락: 프로젝트명을 입력해 주세요.');
+      document.getElementById('chip-project').focus();
+      return;
+    }
+
+    author = author || '담당자';
+
+    // 제목: 날짜 + 업무일지
+    var title = date ? date + ' 업무일지' : '업무일지';
+    if (project) title = date + ' ' + project + ' 업무일지';
+
+    // 업무 상태 자동 감지 (태스크 배지 기준)
+    var badges = document.querySelectorAll('.task-status');
+    var hasWip = false, hasTodo = false, hasAny = badges.length > 0;
+    badges.forEach(function(b) {
+      if (b.classList.contains('status-wip'))  hasWip  = true;
+      if (b.classList.contains('status-todo')) hasTodo = true;
+    });
+    var status = hasWip ? 'wip' : (hasTodo ? 'todo' : (hasAny ? 'done' : 'wip'));
+
+    // 업무 요약 첫 번째 textarea
+    var textareas = document.querySelectorAll('.doc-textarea');
+    var memo = textareas[0] ? textareas[0].value.trim() : '';
+
+    // 금일 업무 내역 수집
+    var tasks = [];
+    document.querySelectorAll('.task-item').forEach(function(item) {
+      var ta = item.querySelector('.task-text');
+      var text = ta ? ta.value.trim() : '';
+      if (!text) return;
+      var statusEl = item.querySelector('.task-status');
+      var taskStatus = 'todo';
+      if (statusEl) {
+        if (statusEl.classList.contains('status-done'))       taskStatus = 'done';
+        else if (statusEl.classList.contains('status-wip'))   taskStatus = 'wip';
+        else if (statusEl.classList.contains('status-issue')) taskStatus = 'issue';
+        else if (statusEl.classList.contains('status-hold'))  taskStatus = 'hold';
+      }
+      var done = item.querySelector('.task-check') ? item.querySelector('.task-check').checked : false;
+      tasks.push({ text: text, status: taskStatus, done: done });
+    });
+
+    var data = [];
+    try { data = JSON.parse(localStorage.getItem(DB_KEY) || '[]'); } catch(e) {}
+
+    if (editingEntry) {
+      var idx = data.findIndex(function(x) { return x.id === editingEntry.id; });
+      var updated = {
+        id:       editingEntry.id,
+        title:    title,
+        date:     date || (function(){ var d=new Date(),m=d.getMonth()+1,day=d.getDate(); return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day); })(),
+        author:   author,
+        project:  project,
+        type:     type,
+        status:   status,
+        progress: progress,
+        memo:     memo,
+        tasks:    tasks,
+        pinned:   editingEntry.pinned || false
+      };
+      if (idx !== -1) { data[idx] = updated; }
+      else { data.unshift(updated); }
+    } else {
+      var entry = {
+        id:       Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+        title:    title,
+        date:     date || (function(){ var d=new Date(),m=d.getMonth()+1,day=d.getDate(); return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day); })(),
+        author:   author,
+        project:  project,
+        type:     type,
+        status:   status,
+        progress: progress,
+        memo:     memo,
+        tasks:    tasks,
+        pinned:   false
+      };
+      data.unshift(entry);
+    }
+
+    localStorage.setItem(DB_KEY, JSON.stringify(data));
+
+    window.location.href = '업무일지-dashboard.html';
+  }
+</script>
+</body>
+</html>
