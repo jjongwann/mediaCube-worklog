@@ -1502,7 +1502,7 @@
         + '<div class="td td-title">'
           + (j.pinned ? '<span class="td-title-pin">📌</span>' : '')
           + '<div><div class="td-title-text" onclick="openDetail(\''+j.id+'\',event)">'+splitTitleDate(j.title)+'</div>'
-          + '<div class="td-title-sub">'+(j.project||'—')+'</div></div></div>'
+          + '<div class="td-title-sub">'+(j.type||'—')+'</div></div></div>'
         + '<div class="td td-date">'+fmtDate(j.date)+'</div>'
         + '<div class="td td-author"><div class="mini-avatar">'+(j.author||'?').slice(0,1)+'</div><span class="td-author-name">'+(j.author||'—')+'</span></div>'
         + '<div class="td">'+statusBadge(j.status)+'</div>'
