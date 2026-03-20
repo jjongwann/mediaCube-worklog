@@ -851,9 +851,8 @@
 
     author = author || '담당자';
 
-    // 제목: 날짜 + 업무일지
-    var title = date ? date + ' 업무일지' : '업무일지';
-    if (project) title = date + ' ' + project + ' 업무일지';
+    // 제목: 날짜 + 프로젝트
+    var title = date ? date + (project ? ' ' + project : '') : (project || '무제');
 
     // 업무 상태 자동 감지 (태스크 배지 기준)
     var badges = document.querySelectorAll('.task-status');
