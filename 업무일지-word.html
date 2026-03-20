@@ -358,6 +358,9 @@
     justify-content: center;
   }
   .add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  /* section-header 안의 add-btn은 자동 너비로 */
+  .section-header .add-btn { width: auto; flex-shrink: 0; margin-top: 0; justify-content: flex-start; }
+  .section-title { white-space: nowrap; }
 
   /* ── Textarea ── */
   .doc-textarea {

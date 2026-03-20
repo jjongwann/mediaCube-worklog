@@ -1336,6 +1336,7 @@
   var SB_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' };
 
   var journalCache = [];
+  var journalCacheSnapshot = []; // 마지막으로 Supabase에 저장된 상태의 deep copy (변경 감지용)
 
   function localToDb(j) {
     return { id: j.id, title: j.title, date: j.date, author: j.author,
@@ -1357,6 +1358,8 @@
       var rows = await res.json();
       journalCache = Array.isArray(rows) ? rows.map(dbToLocal) : [];
     } catch(e) { console.error('Supabase fetch error', e); journalCache = []; }
+    // Supabase에서 로드된 상태를 스냅샷으로 저장 (변경 감지 기준점)
+    journalCacheSnapshot = JSON.parse(JSON.stringify(journalCache));
     return journalCache;
   }
   function sbUpsert(j) {
@@ -1375,12 +1378,21 @@
   /* ── Storage (Supabase 기반) ── */
   function loadJournals() { return journalCache; }
   function saveJournals(newData) {
-    var oldIds = new Set(journalCache.map(function(j){ return j.id; }));
+    // journalCacheSnapshot: 마지막으로 Supabase에 반영된 상태 (인메모리 변경 전 기준점)
+    var snapshotMap = {};
+    journalCacheSnapshot.forEach(function(j) { snapshotMap[j.id] = j; });
     var newIds = new Set(newData.map(function(j){ return j.id; }));
-    var deleted = journalCache.filter(function(j){ return !newIds.has(j.id); });
+    // 삭제된 항목
+    var deleted = journalCacheSnapshot.filter(function(j){ return !newIds.has(j.id); });
     if (deleted.length) sbDeleteIds(deleted.map(function(j){ return j.id; }));
-    newData.forEach(function(j){ if (!oldIds.has(j.id) || JSON.stringify(j) !== JSON.stringify(journalCache.find(function(x){ return x.id===j.id; }))) sbUpsert(j); });
+    // 신규 또는 변경된 항목만 upsert
+    newData.forEach(function(j) {
+      var old = snapshotMap[j.id];
+      if (!old || JSON.stringify(j) !== JSON.stringify(old)) sbUpsert(j);
+    });
     journalCache = newData;
+    // 스냅샷을 현재 상태로 갱신
+    journalCacheSnapshot = JSON.parse(JSON.stringify(newData));
   }
 
   /* ── Seed / 레거시 마이그레이션 ── */
