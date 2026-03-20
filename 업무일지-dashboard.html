@@ -1634,7 +1634,7 @@
     var esc = function(v){ return (v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
     var thStyle = 'background:#1e3a5f;color:#fff;padding:8px 10px;text-align:left;font-size:12px;white-space:nowrap;border:1px solid #1e3a5f';
     var tdBase = 'padding:7px 10px;border:1px solid #e2e8f0;vertical-align:top;font-size:12px';
-    var headers = ['작성일','작성자','주요 목표','업무유형','상태','진행률','완료','진행중','이슈','보류','업무 요약','발생 이슈','리스크','익일 계획','특이사항','업무 내역'];
+    var headers = ['작성일','작성자','주요 목표','업무유형','상태','진행률','완료','진행중','이슈','보류','업무 추진 현황','업무 요약','발생 이슈','리스크','익일 계획','특이사항','업무 내역'];
     var headerRow = headers.map(function(h){ return '<th style="'+thStyle+'">'+h+'</th>'; }).join('');
     var rows = data.map(function(j) {
       var tasks = j.tasks||[];
@@ -1644,6 +1644,11 @@
         ? tasks.map(function(t){
             var s=t.status||(t.done?'done':'todo');
             return '<span style="background:'+(SC[s]||'#f1f5f9')+';padding:1px 6px;border-radius:8px;font-size:10px;margin-right:3px">'+(ST[s]||s)+'</span>'+(esc(t.text));
+          }).join('<br>')
+        : '—';
+      var wpHtml = (j.workProgress && j.workProgress.length > 0)
+        ? j.workProgress.map(function(row){
+            return '<span style="font-weight:600">' + esc(row.name) + '</span>: ' + esc(row.summary) + ' <span style="color:#2563eb">(' + (row.pct||0) + '%)</span>';
           }).join('<br>')
         : '—';
       var bg = SC[j.status]||'#fff';
@@ -1659,6 +1664,7 @@
         + td(cnt.wip,'text-align:center')
         + td(cnt.issue,'text-align:center')
         + td(cnt.hold,'text-align:center')
+        + td(wpHtml,'min-width:180px;line-height:1.8')
         + td(esc(j.summary||j.memo),'min-width:120px')
         + td(esc(j.issue),'min-width:100px')
         + td(esc(j.risk),'min-width:100px')
