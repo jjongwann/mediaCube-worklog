@@ -9,7 +9,7 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
-    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+    background: linear-gradient(145deg, #1a3360 0%, #1e4fd8 60%, #2563eb 100%);
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -22,33 +22,35 @@
   }
   .login-box {
     background: #fff;
-    border-radius: 16px;
-    padding: 44px 40px 36px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    border-radius: 20px;
+    padding: 48px 42px 40px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.2), 0 40px 80px rgba(0,0,0,0.15);
   }
   .login-brand {
     text-align: center;
-    margin-bottom: 32px;
+    margin-bottom: 36px;
   }
   .login-logo {
-    width: 52px;
-    height: 52px;
+    width: 56px;
+    height: 56px;
     background: linear-gradient(135deg, #2563eb, #1d4ed8);
-    border-radius: 14px;
+    border-radius: 16px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 22px;
     font-weight: 800;
     color: #fff;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
     letter-spacing: -1px;
+    box-shadow: 0 4px 16px rgba(37,99,235,0.45);
   }
   .login-title {
-    font-size: 22px;
+    font-size: 23px;
     font-weight: 700;
     color: #0f172a;
-    margin-bottom: 4px;
+    margin-bottom: 5px;
+    letter-spacing: -0.3px;
   }
   .login-sub {
     font-size: 13px;
@@ -59,18 +61,18 @@
   }
   .form-label {
     display: block;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11.5px;
+    font-weight: 700;
     color: #475569;
     margin-bottom: 6px;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
     text-transform: uppercase;
   }
   .form-input {
     width: 100%;
-    padding: 11px 14px;
+    padding: 12px 14px;
     border: 1.5px solid #e2e8f0;
-    border-radius: 9px;
+    border-radius: 10px;
     font-family: inherit;
     font-size: 15px;
     color: #0f172a;
@@ -80,13 +82,14 @@
   }
   .form-input:focus {
     border-color: #2563eb;
-    background: #eff6ff;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
   }
   .form-input::placeholder { color: #cbd5e1; }
   .login-btn {
     width: 100%;
-    padding: 13px;
-    background: #2563eb;
+    padding: 14px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
     color: #fff;
     border: none;
     border-radius: 10px;
@@ -95,12 +98,13 @@
     font-weight: 600;
     cursor: pointer;
     margin-top: 8px;
-    transition: background 0.15s, transform 0.1s;
+    transition: all 0.18s;
     letter-spacing: 0.3px;
+    box-shadow: 0 4px 14px rgba(37,99,235,0.35);
   }
-  .login-btn:hover { background: #1d4ed8; }
-  .login-btn:active { transform: scale(0.98); }
-  .login-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+  .login-btn:hover { background: linear-gradient(135deg, #1d4ed8, #1e40af); box-shadow: 0 6px 20px rgba(37,99,235,0.45); transform: translateY(-1px); }
+  .login-btn:active { transform: scale(0.98) translateY(0); box-shadow: 0 2px 8px rgba(37,99,235,0.3); }
+  .login-btn:disabled { background: #93c5fd; cursor: not-allowed; box-shadow: none; transform: none; }
   .login-error {
     margin-top: 12px;
     padding: 10px 14px;
@@ -114,9 +118,9 @@
   }
   .login-footer {
     text-align: center;
-    margin-top: 24px;
+    margin-top: 28px;
     font-size: 12px;
-    color: #94a3b8;
+    color: rgba(255,255,255,0.55);
   }
 </style>
 </head>
