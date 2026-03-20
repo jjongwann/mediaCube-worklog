@@ -1884,6 +1884,11 @@
     document.getElementById('drp-from').value = '';
     document.getElementById('drp-to').value   = '';
     clearPresetActive();
+    // 패널 닫기
+    drPanelOpen = false;
+    document.getElementById('date-range-panel').style.display = 'none';
+    // 상태 필터도 초기화
+    document.getElementById('status-filter').value = '';
     updateDateChip();
     renderList();
   }
