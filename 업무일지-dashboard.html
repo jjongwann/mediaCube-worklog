@@ -1082,7 +1082,7 @@
       <span class="bulk-count" id="bulk-count">0개 선택됨</span>
       <button class="btn-bulk del" onclick="bulkDelete()">🗑 선택한 항목 삭제</button>
       <button class="btn-bulk" onclick="bulkPrint()">🖨 선택한 항목 출력</button>
-      <button class="btn-bulk" onclick="bulkExportWord()">📄 워드로 추출</button>
+
       <button class="btn-bulk" onclick="bulkExportExcel()">📊 엑셀로 추출</button>
       <button class="btn-bulk btn-bulk-clear" onclick="clearSelection()">× 선택 해제</button>
     </div>
@@ -1091,7 +1091,7 @@
     <div id="view-table">
       <div class="journal-table">
         <div class="table-header">
-          <div class="th"></div>
+          <div class="th"><input type="checkbox" id="select-all-cb" title="전체 선택" style="cursor:pointer;width:14px;height:14px" onchange="selectAll(this)"></div>
           <div class="th">제목 / 프로젝트</div>
           <div class="th">작성일</div>
           <div class="th">작성자</div>
@@ -1515,6 +1515,7 @@
         + '</div>'
         + '</div>';
     }).join('');
+    syncSelectAllCb();
   }
 
   function renderGrid(data) {
@@ -1553,6 +1554,23 @@
     if (cb.checked) selectedIds.add(id);
     else selectedIds.delete(id);
     updateBulkBar();
+    syncSelectAllCb();
+  }
+
+  function selectAll(cb) {
+    var data = filterData();
+    if (cb.checked) data.forEach(function(j){ selectedIds.add(j.id); });
+    else selectedIds.clear();
+    updateBulkBar();
+    renderList();
+  }
+
+  function syncSelectAllCb() {
+    var cb = document.getElementById('select-all-cb');
+    if (!cb) return;
+    var data = filterData();
+    cb.checked = data.length > 0 && data.every(function(j){ return selectedIds.has(j.id); });
+    cb.indeterminate = !cb.checked && data.some(function(j){ return selectedIds.has(j.id); });
   }
 
   function updateBulkBar() {
