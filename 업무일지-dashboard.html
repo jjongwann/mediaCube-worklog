@@ -1594,10 +1594,14 @@
     var data = loadJournals().filter(function(j) { return selectedIds.has(j.id); });
     if (data.length === 0) return;
     var html = generateBulkHTML(data, false);
-    var win = window.open('', '_blank');
-    win.document.write(html);
-    win.document.close();
-    showToast('📄 문서가 새 창에서 열렸습니다.');
+    var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = '업무일지_' + new Date().toISOString().slice(0,10) + '.html';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('📄 문서 파일이 다운로드되었습니다.');
   }
 
   function bulkExportExcel() {
