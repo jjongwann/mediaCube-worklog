@@ -175,6 +175,8 @@
     font-family: inherit;
     background: transparent;
     width: 100%;
+    resize: none;
+    line-height: 1.5;
   }
   .info-chip-input::placeholder { color: var(--text-muted); font-weight: 400; }
   .chip-input-row { display: flex; align-items: center; gap: 2px; }
@@ -373,6 +375,34 @@
   .doc-textarea:focus { border-color: var(--accent); background: #fff; }
   .doc-textarea::placeholder { color: #cbd5e1; }
 
+  /* ── Progress Table ── */
+  .progress-table { width: 100%; border-collapse: collapse; }
+  .progress-table th {
+    background: #f1f5f9;
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-align: left;
+    letter-spacing: 0.5px;
+  }
+  .progress-table td { border: 1px solid var(--border); padding: 6px 8px; }
+  .progress-table input[type="text"], .progress-table input[type="number"] {
+    width: 100%; border: none; outline: none; background: transparent;
+    font-family: inherit; font-size: 14px; color: var(--text-primary);
+  }
+  .progress-table input::placeholder { color: var(--text-muted); }
+  .progress-table .col-name  { width: 22%; }
+  .progress-table .col-sum   { width: 62%; }
+  .progress-table .col-pct   { width: 10%; text-align: center; }
+  .progress-table .col-del   { width: 6%;  text-align: center; }
+  .progress-row-del {
+    background: none; border: none; cursor: pointer;
+    color: #d1d5db; font-size: 15px; padding: 0;
+  }
+  .progress-row-del:hover { color: var(--red); }
+
   /* ── Issue Grid ── */
   .issue-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .issue-card {
@@ -525,9 +555,9 @@
 
   <!-- Info Chips -->
   <div class="info-strip">
-    <div class="info-chip">
+    <div class="info-chip" style="flex:2">
       <div class="info-chip-label">주요 목표</div>
-      <input class="info-chip-input" id="chip-project" type="text" placeholder="금일 핵심 목표 입력">
+      <textarea class="info-chip-input" id="chip-project" rows="2" placeholder="금일 핵심 목표 입력"></textarea>
     </div>
     <div class="info-chip">
       <div class="info-chip-label">업무 유형</div>
@@ -600,6 +630,46 @@
       </div>
     </div>
     <button class="add-btn" onclick="addTask()">+ 업무 항목 추가</button>
+  </div>
+
+  <!-- Work Progress -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-bar" style="background:var(--indigo)"></div>
+      <span class="section-title">업무 추진 현황</span>
+      <div class="section-rule"></div>
+      <button type="button" class="add-btn" style="margin:0;padding:4px 10px;font-size:12px" onclick="addProgressRow()">+ 행 추가</button>
+    </div>
+    <table class="progress-table">
+      <thead>
+        <tr>
+          <th class="col-name">업무명</th>
+          <th class="col-sum">진행 내용 요약</th>
+          <th class="col-pct">진행률(%)</th>
+          <th class="col-del"></th>
+        </tr>
+      </thead>
+      <tbody id="progress-tbody">
+        <tr>
+          <td class="col-name"><input type="text" class="p-name" placeholder="업무 A"></td>
+          <td class="col-sum"><input type="text" class="p-summary" placeholder="진행 내용 요약"></td>
+          <td class="col-pct"><input type="number" class="p-pct" min="0" max="100" placeholder="0"></td>
+          <td class="col-del"><button class="progress-row-del" onclick="delProgressRow(this)" title="삭제">×</button></td>
+        </tr>
+        <tr>
+          <td class="col-name"><input type="text" class="p-name" placeholder="업무 B"></td>
+          <td class="col-sum"><input type="text" class="p-summary" placeholder="진행 내용 요약"></td>
+          <td class="col-pct"><input type="number" class="p-pct" min="0" max="100" placeholder="0"></td>
+          <td class="col-del"><button class="progress-row-del" onclick="delProgressRow(this)" title="삭제">×</button></td>
+        </tr>
+        <tr>
+          <td class="col-name"><input type="text" class="p-name" placeholder="업무 C"></td>
+          <td class="col-sum"><input type="text" class="p-summary" placeholder="진행 내용 요약"></td>
+          <td class="col-pct"><input type="number" class="p-pct" min="0" max="100" placeholder="0"></td>
+          <td class="col-del"><button class="progress-row-del" onclick="delProgressRow(this)" title="삭제">×</button></td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
   <!-- Summary -->
@@ -714,6 +784,21 @@
     if (issueTas[0]) issueTas[0].value = editingEntry.issue || '';
     if (issueTas[1]) issueTas[1].value = editingEntry.risk  || '';
 
+    // Restore work progress rows
+    var wp = editingEntry.workProgress || editingEntry.work_progress;
+    if (wp && wp.length > 0) {
+      var tbody = document.getElementById('progress-tbody');
+      tbody.innerHTML = '';
+      wp.forEach(function(row) {
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td class="col-name"><input type="text" class="p-name" value="'+((row.name||'').replace(/"/g,'&quot;'))+'" placeholder="업무명"></td>'
+          + '<td class="col-sum"><input type="text" class="p-summary" value="'+((row.summary||'').replace(/"/g,'&quot;'))+'" placeholder="진행 내용 요약"></td>'
+          + '<td class="col-pct"><input type="number" class="p-pct" min="0" max="100" value="'+(row.pct||0)+'" placeholder="0"></td>'
+          + '<td class="col-del"><button class="progress-row-del" onclick="delProgressRow(this)" title="삭제">×</button></td>';
+        tbody.appendChild(tr);
+      });
+    }
+
     // Update toolbar to indicate edit mode
     document.querySelector('.toolbar-title').textContent = '업무일지 — 편집 중';
     document.querySelector('.btn-submit').textContent = '✓ 수정 완료';
@@ -823,6 +908,23 @@
     ta.focus();
   }
 
+  function addProgressRow() {
+    var tbody = document.getElementById('progress-tbody');
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td class="col-name"><input type="text" class="p-name" placeholder="업무명"></td>'
+      + '<td class="col-sum"><input type="text" class="p-summary" placeholder="진행 내용 요약"></td>'
+      + '<td class="col-pct"><input type="number" class="p-pct" min="0" max="100" placeholder="0"></td>'
+      + '<td class="col-del"><button class="progress-row-del" onclick="delProgressRow(this)" title="삭제">×</button></td>';
+    tbody.appendChild(tr);
+  }
+
+  function delProgressRow(btn) {
+    var tr = btn.closest('tr');
+    var tbody = document.getElementById('progress-tbody');
+    if (tbody.querySelectorAll('tr').length > 1) tr.remove();
+    else { tr.querySelectorAll('input').forEach(function(i){ i.value=''; }); }
+  }
+
   function submitJournal() {
     var DB_KEY = 'mediaCube_journals_v1';
 
@@ -874,6 +976,15 @@
     var risk     = issueTas[1] ? issueTas[1].value.trim() : '';
     var memo = summary; // 대시보드 호환용
 
+    // 업무 추진 현황 수집
+    var workProgress = [];
+    document.querySelectorAll('#progress-tbody tr').forEach(function(tr) {
+      var name    = (tr.querySelector('.p-name')    || {}).value || '';
+      var summary = (tr.querySelector('.p-summary') || {}).value || '';
+      var pct     = parseInt((tr.querySelector('.p-pct') || {}).value || '0') || 0;
+      if (name || summary) workProgress.push({ name: name.trim(), summary: summary.trim(), pct: pct });
+    });
+
     // 금일 업무 내역 수집
     var tasks = [];
     document.querySelectorAll('.task-item').forEach(function(item) {
@@ -908,8 +1019,9 @@
       risk:      risk,
       next_plan: nextPlan,
       note:      note,
-      tasks:     tasks,
-      pinned:    editingEntry ? (editingEntry.pinned || false) : false
+      tasks:         tasks,
+      work_progress: workProgress.length ? workProgress : null,
+      pinned:        editingEntry ? (editingEntry.pinned || false) : false
     };
 
     sbUpsert(record).then(function() {

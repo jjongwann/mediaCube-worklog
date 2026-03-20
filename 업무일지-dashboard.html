@@ -1285,14 +1285,14 @@
       project: j.project, type: j.type, status: j.status, progress: j.progress || 0,
       memo: j.memo || '', summary: j.summary || '', issue: j.issue || '',
       risk: j.risk || '', next_plan: j.nextPlan || '', note: j.note || '',
-      tasks: j.tasks || [], pinned: j.pinned || false };
+      tasks: j.tasks || [], work_progress: j.workProgress || null, pinned: j.pinned || false };
   }
   function dbToLocal(r) {
     return { id: r.id, title: r.title, date: r.date, author: r.author,
       project: r.project, type: r.type, status: r.status === 'review' ? 'todo' : r.status, progress: r.progress || 0,
       memo: r.memo || '', summary: r.summary || '', issue: r.issue || '',
       risk: r.risk || '', nextPlan: r.next_plan || '', note: r.note || '',
-      tasks: r.tasks || [], pinned: r.pinned || false };
+      tasks: r.tasks || [], workProgress: r.work_progress || null, pinned: r.pinned || false };
   }
   async function sbFetch() {
     try {
@@ -1762,6 +1762,22 @@
         return val ? '<div class="doc-textarea-val">' + val + '</div>' : '';
       }
 
+      var wpHtml = '';
+      if (j.workProgress && j.workProgress.length > 0) {
+        var wpRows = j.workProgress.map(function(row) {
+          return '<tr>'
+            + '<td style="padding:7px 12px;border:1px solid #e2e8f0;font-size:13.5px;font-weight:600;color:#0f172a;width:22%">' + (row.name||'—') + '</td>'
+            + '<td style="padding:7px 12px;border:1px solid #e2e8f0;font-size:13.5px;color:#475569">' + (row.summary||'—') + ' <span style="color:#94a3b8;font-size:12px">(진행률 ' + (row.pct||0) + '%)</span></td>'
+            + '</tr>';
+        }).join('');
+        wpHtml = '<div class="section"><div class="section-header"><div class="section-bar" style="background:#4338ca"></div><span class="section-title">업무 추진 현황</span><div class="section-rule"></div></div>'
+          + '<table style="width:100%;border-collapse:collapse">'
+          + '<thead><tr>'
+          + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:8px 12px;font-size:12px;font-weight:700;color:#64748b;text-align:left;width:22%">업무명</th>'
+          + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:8px 12px;font-size:12px;font-weight:700;color:#64748b;text-align:left">진행 내용 요약</th>'
+          + '</tr></thead><tbody>' + wpRows + '</tbody></table></div>';
+      }
+
       return '<div class="page">'
         + '<div class="doc-header">'
           + '<div><div class="doc-label">Daily Work Journal</div><div class="doc-title">업무 일지</div></div>'
@@ -1771,7 +1787,7 @@
           + '</div>'
         + '</div>'
         + '<div class="info-strip">'
-          + '<div class="info-chip"><div class="info-chip-label">주요 목표</div><div class="info-chip-val">' + (j.project||'—') + '</div></div>'
+          + '<div class="info-chip" style="flex:2"><div class="info-chip-label">주요 목표</div><div class="info-chip-val">' + (j.project||'—') + '</div></div>'
           + '<div class="info-chip"><div class="info-chip-label">업무 유형</div><div class="info-chip-val">' + (j.type||'—') + '</div></div>'
           + '<div class="info-chip"><div class="info-chip-label">전체 진행률</div><div class="info-chip-val" style="color:#2563eb">' + pct + ' %</div></div>'
         + '</div>'
@@ -1784,6 +1800,7 @@
         + '</div>'
         + '<div class="section"><div class="section-header"><div class="section-bar"></div><span class="section-title">금일 업무 내역</span><div class="section-rule"></div></div>'
           + '<div class="task-list">' + taskListHtml + '</div></div>'
+        + wpHtml
         + section('#16a34a', '업무 요약', textArea(j.summary || j.memo))
         + (j.issue || j.risk
             ? '<div class="section"><div class="section-header"><div class="section-bar" style="background:#dc2626"></div><span class="section-title">이슈 및 리스크</span><div class="section-rule"></div></div>'
