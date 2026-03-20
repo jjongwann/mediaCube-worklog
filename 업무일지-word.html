@@ -752,6 +752,16 @@
   var EDIT_KEY = 'editJournal';
   var editingEntry = null;
 
+  /* ── Auth Guard ── */
+  (function() {
+    try {
+      var s = JSON.parse(localStorage.getItem('mc_session') || 'null');
+      if (!s || !s.access_token || (s.expires_at && Date.now() >= s.expires_at * 1000)) {
+        window.location.replace('login.html');
+      }
+    } catch(e) { window.location.replace('login.html'); }
+  })();
+
   /* ── Supabase ── */
   var SB_URL = 'https://qkvatxowpkespdkxuoom.supabase.co';
   var SB_KEY = 'sb_publishable_2PIK53xa60wU0ds_L44pgQ_yfsoiot1';

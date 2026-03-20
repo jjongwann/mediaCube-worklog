@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>로그인 — 업무일지</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .login-wrap {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+  }
+  .login-box {
+    background: #fff;
+    border-radius: 16px;
+    padding: 44px 40px 36px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+  }
+  .login-brand {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .login-logo {
+    width: 52px;
+    height: 52px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 14px;
+    letter-spacing: -1px;
+  }
+  .login-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 4px;
+  }
+  .login-sub {
+    font-size: 13px;
+    color: #94a3b8;
+  }
+  .form-group {
+    margin-bottom: 16px;
+  }
+  .form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .form-input {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 15px;
+    color: #0f172a;
+    background: #f8fafc;
+    outline: none;
+    transition: all 0.15s;
+  }
+  .form-input:focus {
+    border-color: #2563eb;
+    background: #eff6ff;
+  }
+  .form-input::placeholder { color: #cbd5e1; }
+  .login-btn {
+    width: 100%;
+    padding: 13px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background 0.15s, transform 0.1s;
+    letter-spacing: 0.3px;
+  }
+  .login-btn:hover { background: #1d4ed8; }
+  .login-btn:active { transform: scale(0.98); }
+  .login-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+  .login-error {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #dc2626;
+    display: none;
+    text-align: center;
+  }
+  .login-footer {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 12px;
+    color: #94a3b8;
+  }
+</style>
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-box">
+    <div class="login-brand">
+      <div class="login-logo">일지</div>
+      <div class="login-title">업무일지</div>
+      <div class="login-sub">미디어큐브 · 사운드콘텐츠사업부</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">아이디</label>
+      <input class="form-input" id="login-id" type="text" placeholder="아이디를 입력하세요" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('login-pw').focus()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">비밀번호</label>
+      <input class="form-input" id="login-pw" type="password" placeholder="비밀번호를 입력하세요" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+
+    <button class="login-btn" id="login-btn" onclick="doLogin()">로그인</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+  <div class="login-footer">© 2026 미디어큐브</div>
+</div>
+
+<script>
+  var SB_URL = 'https://qkvatxowpkespdkxuoom.supabase.co';
+  var SB_KEY = 'sb_publishable_2PIK53xa60wU0ds_L44pgQ_yfsoiot1';
+  var ID_MAP = { 'mediacube': 'mediacube@mediacube.com' };
+  var SESSION_KEY = 'mc_session';
+
+  // 이미 로그인된 경우 바로 이동
+  (function() {
+    var s = getSession();
+    if (s) window.location.replace('업무일지-dashboard.html');
+  })();
+
+  function getSession() {
+    try {
+      var s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+      if (!s || !s.access_token) return null;
+      if (s.expires_at && Date.now() >= s.expires_at * 1000) return null;
+      return s;
+    } catch(e) { return null; }
+  }
+
+  function showError(msg) {
+    var el = document.getElementById('login-error');
+    el.textContent = msg;
+    el.style.display = '';
+  }
+  function hideError() {
+    document.getElementById('login-error').style.display = 'none';
+  }
+
+  function doLogin() {
+    hideError();
+    var id = (document.getElementById('login-id').value || '').trim();
+    var pw = document.getElementById('login-pw').value;
+    if (!id) { showError('아이디를 입력하세요.'); document.getElementById('login-id').focus(); return; }
+    if (!pw) { showError('비밀번호를 입력하세요.'); document.getElementById('login-pw').focus(); return; }
+
+    var email = ID_MAP[id];
+    if (!email) { showError('아이디가 올바르지 않습니다.'); return; }
+
+    var btn = document.getElementById('login-btn');
+    btn.disabled = true;
+    btn.textContent = '로그인 중...';
+
+    fetch(SB_URL + '/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: pw })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.access_token) {
+        localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+        window.location.replace('업무일지-dashboard.html');
+      } else {
+        showError('아이디 또는 비밀번호가 틀렸습니다.');
+        btn.disabled = false;
+        btn.textContent = '로그인';
+      }
+    })
+    .catch(function() {
+      showError('네트워크 오류가 발생했습니다. 다시 시도해 주세요.');
+      btn.disabled = false;
+      btn.textContent = '로그인';
+    });
+  }
+</script>
+</body>
+</html>
