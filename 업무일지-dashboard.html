@@ -1333,7 +1333,13 @@
   /* ── Supabase Config ── */
   var SB_URL = 'https://qkvatxowpkespdkxuoom.supabase.co';
   var SB_KEY = 'sb_publishable_2PIK53xa60wU0ds_L44pgQ_yfsoiot1';
-  var SB_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' };
+  // 로그인한 사용자의 JWT를 Bearer로 사용해야 RLS DELETE 권한이 적용됨
+  var _sbToken = (function() {
+    try { var s = JSON.parse(localStorage.getItem('mc_session') || 'null'); return (s && s.access_token) ? s.access_token : SB_KEY; } catch(e) { return SB_KEY; }
+  })();
+  var SB_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' };
+  // DELETE 요청에는 Prefer: resolution=merge-duplicates 불필요
+  var SB_DEL_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
 
   var journalCache = [];
   var journalCacheSnapshot = []; // 마지막으로 Supabase에 저장된 상태의 deep copy (변경 감지용)
@@ -1367,7 +1373,9 @@
   }
   function sbDeleteIds(ids) {
     if (!ids.length) return Promise.resolve();
-    return fetch(SB_URL + '/rest/v1/journals?id=in.(' + ids.map(function(id){ return '"'+id+'"'; }).join(',') + ')', { method: 'DELETE', headers: SB_HDR }).catch(function(e){ console.error('delete error', e); });
+    return fetch(SB_URL + '/rest/v1/journals?id=in.(' + ids.map(function(id){ return '"'+id+'"'; }).join(',') + ')', { method: 'DELETE', headers: SB_DEL_HDR })
+      .then(function(r) { if (!r.ok) r.text().then(function(t){ console.error('delete failed', r.status, t); }); })
+      .catch(function(e){ console.error('delete error', e); });
   }
   var currentFilter = 'all';
   var currentView = 'table';

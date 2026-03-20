@@ -772,7 +772,10 @@
   /* ── Supabase ── */
   var SB_URL = 'https://qkvatxowpkespdkxuoom.supabase.co';
   var SB_KEY = 'sb_publishable_2PIK53xa60wU0ds_L44pgQ_yfsoiot1';
-  var SB_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' };
+  var _sbToken = (function() {
+    try { var s = JSON.parse(localStorage.getItem('mc_session') || 'null'); return (s && s.access_token) ? s.access_token : SB_KEY; } catch(e) { return SB_KEY; }
+  })();
+  var SB_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' };
   function sbUpsert(j) {
     return fetch(SB_URL + '/rest/v1/journals', { method: 'POST', headers: SB_HDR, body: JSON.stringify(j) });
   }
