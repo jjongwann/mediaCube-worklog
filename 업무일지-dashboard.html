@@ -1558,7 +1558,7 @@
   }
 
   function selectAll(cb) {
-    var data = filterData();
+    var data = filterData(loadJournals());
     if (cb.checked) data.forEach(function(j){ selectedIds.add(j.id); });
     else selectedIds.clear();
     updateBulkBar();
@@ -1568,7 +1568,7 @@
   function syncSelectAllCb() {
     var cb = document.getElementById('select-all-cb');
     if (!cb) return;
-    var data = filterData();
+    var data = filterData(loadJournals());
     cb.checked = data.length > 0 && data.every(function(j){ return selectedIds.has(j.id); });
     cb.indeterminate = !cb.checked && data.some(function(j){ return selectedIds.has(j.id); });
   }
