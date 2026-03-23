@@ -543,8 +543,10 @@
     from { opacity: 0; transform: translateY(-4px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-  .ac-dropdown::-webkit-scrollbar { width: 4px; }
-  .ac-dropdown::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+  .ac-dropdown::-webkit-scrollbar { width: 6px; }
+  .ac-dropdown::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 0 10px 10px 0; }
+  .ac-dropdown::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+  .ac-dropdown::-webkit-scrollbar-thumb:hover { background: #64748b; }
   .ac-header {
     padding: 7px 14px 6px;
     font-size: 10px;
@@ -1206,7 +1208,11 @@
         else if (e.key === 'Enter' && acActiveIdx >= 0) { e.preventDefault(); fillAC(acActiveIdx); }
         else if (e.key === 'Escape') { acMouseInside = false; hideAC(); }
       });
-      window.addEventListener('scroll', function() { acMouseInside = false; hideAC(); }, true);
+      // 드롭다운 내부 스크롤은 무시, 외부 스크롤만 닫기
+      window.addEventListener('scroll', function(e) {
+        if (acDrop.contains(e.target)) return;
+        acMouseInside = false; hideAC();
+      }, true);
       window.addEventListener('resize', function() { acMouseInside = false; hideAC(); });
     } catch(e) { console.warn('autocomplete init failed', e); }
   })();
