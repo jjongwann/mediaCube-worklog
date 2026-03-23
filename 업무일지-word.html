@@ -525,6 +525,42 @@
     .add-btn { display: none; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
+
+  /* ── Autocomplete Dropdown ── */
+  .ac-dropdown {
+    position: fixed;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+    z-index: 9999;
+    max-height: 220px;
+    overflow-y: auto;
+    display: none;
+  }
+  .ac-item {
+    padding: 8px 13px;
+    font-size: 13px;
+    color: var(--text-primary);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background 0.1s;
+    border-bottom: 1px solid #f8fafc;
+  }
+  .ac-item:last-child { border-bottom: none; }
+  .ac-item:hover, .ac-item.ac-active { background: #eff6ff; color: var(--accent); }
+  .ac-header {
+    padding: 5px 13px 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: #f8fafc;
+    border-bottom: 1px solid #f1f5f9;
+  }
 </style>
 </head>
 <body>
@@ -1032,6 +1068,106 @@
       alert('저장 중 오류가 발생했습니다: ' + e.message);
     });
   }
+
+  /* ── 자동완성 (이전 입력 기록 기반) ── */
+  (async function() {
+    try {
+      var res = await fetch(SB_URL + '/rest/v1/journals?select=tasks,work_progress&order=date.desc',
+        { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } });
+      var rows = await res.json();
+      if (!Array.isArray(rows) || rows.length === 0) return;
+
+      // 이전 기록에서 텍스트 수집 (최신 순, 중복 제거)
+      var taskSet = [], pNameSet = [], pSumSet = [];
+      var taskSeen = new Set(), pNameSeen = new Set(), pSumSeen = new Set();
+      rows.forEach(function(r) {
+        if (Array.isArray(r.tasks)) r.tasks.forEach(function(t) {
+          var v = (t.text || '').trim();
+          if (v && !taskSeen.has(v)) { taskSeen.add(v); taskSet.push(v); }
+        });
+        if (Array.isArray(r.work_progress)) r.work_progress.forEach(function(p) {
+          var n = (p.name || '').trim(), s = (p.summary || '').trim();
+          if (n && !pNameSeen.has(n)) { pNameSeen.add(n); pNameSet.push(n); }
+          if (s && !pSumSeen.has(s))  { pSumSeen.add(s);  pSumSet.push(s); }
+        });
+      });
+
+      // 드롭다운 요소 생성
+      var acDrop = document.createElement('div');
+      acDrop.className = 'ac-dropdown';
+      document.body.appendChild(acDrop);
+
+      var acTarget = null, acList = [], acActiveIdx = -1;
+
+      function getSugg(el) {
+        if (el.classList.contains('task-text'))  return { list: taskSet,  label: '이전 업무 내역' };
+        if (el.classList.contains('p-name'))     return { list: pNameSet, label: '이전 업무명' };
+        if (el.classList.contains('p-summary'))  return { list: pSumSet,  label: '이전 진행 요약' };
+        return null;
+      }
+      function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+      function showAC(el, sugg) {
+        var val = el.value.trim().toLowerCase();
+        var filtered = sugg.list.filter(function(s) {
+          return s !== el.value.trim() && (val === '' || s.toLowerCase().includes(val));
+        }).slice(0, 7);
+        if (filtered.length === 0) { hideAC(); return; }
+
+        acTarget = el; acList = filtered; acActiveIdx = -1;
+        var rect = el.getBoundingClientRect();
+        acDrop.innerHTML = '<div class="ac-header">' + sugg.label + '</div>'
+          + filtered.map(function(s, i) {
+              return '<div class="ac-item" data-i="' + i + '">' + esc(s) + '</div>';
+            }).join('');
+        acDrop.style.cssText = 'display:block;left:' + rect.left + 'px;top:' + (rect.bottom + 3) + 'px;min-width:' + Math.max(rect.width, 260) + 'px;max-width:480px';
+        acDrop.querySelectorAll('.ac-item').forEach(function(item) {
+          item.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            fillAC(parseInt(item.dataset.i));
+          });
+        });
+      }
+      function hideAC() { acDrop.style.display = 'none'; acTarget = null; acList = []; acActiveIdx = -1; }
+      function fillAC(idx) {
+        if (!acTarget || idx < 0 || idx >= acList.length) return;
+        var t = acTarget;
+        t.value = acList[idx];
+        t.dispatchEvent(new Event('input', { bubbles: true }));
+        hideAC();
+        t.focus();
+      }
+      function setActive(i) {
+        acActiveIdx = i;
+        acDrop.querySelectorAll('.ac-item').forEach(function(el, j) {
+          el.classList.toggle('ac-active', j === i);
+        });
+      }
+
+      // 이벤트 위임 — 동적으로 추가된 항목도 처리
+      document.addEventListener('input', function(e) {
+        var s = getSugg(e.target);
+        if (s) showAC(e.target, s);
+      });
+      document.addEventListener('focus', function(e) {
+        var s = getSugg(e.target);
+        if (s) showAC(e.target, s);
+      }, true);
+      document.addEventListener('blur', function() {
+        setTimeout(hideAC, 160);
+      }, true);
+      document.addEventListener('keydown', function(e) {
+        if (acDrop.style.display === 'none') return;
+        if (e.key === 'ArrowDown')           { e.preventDefault(); setActive(Math.min(acActiveIdx + 1, acList.length - 1)); }
+        else if (e.key === 'ArrowUp')        { e.preventDefault(); setActive(Math.max(acActiveIdx - 1, -1)); }
+        else if (e.key === 'Enter' && acActiveIdx >= 0) { e.preventDefault(); fillAC(acActiveIdx); }
+        else if (e.key === 'Escape')         { hideAC(); }
+      });
+      window.addEventListener('scroll', hideAC, true);
+      window.addEventListener('resize', hideAC);
+    } catch(e) { console.warn('autocomplete init failed', e); }
+  })();
+
 </script>
 </body>
 </html>
