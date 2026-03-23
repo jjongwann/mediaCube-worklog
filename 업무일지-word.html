@@ -1198,9 +1198,15 @@
         if (s) showAC(e.target, s);
       }, true);
       document.addEventListener('blur', function(e) {
-        // 드롭다운 안에 포커스가 가는 경우는 무시
         if (acMouseInside) return;
-        setTimeout(function() { if (!acMouseInside) hideAC(); }, 120);
+        setTimeout(function() {
+          if (acMouseInside) return;
+          // 새로 포커스된 요소가 자동완성 대상 필드이면 닫지 않음
+          // (다른 입력칸 클릭 시 blur→focus 순서 때문에 드롭다운이 깜빡이는 문제 방지)
+          var active = document.activeElement;
+          if (active && getSugg(active)) return;
+          hideAC();
+        }, 50);
       }, true);
       document.addEventListener('keydown', function(e) {
         if (acDrop.style.display === 'none') return;
