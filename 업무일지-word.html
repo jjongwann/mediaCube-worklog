@@ -531,36 +531,54 @@
     position: fixed;
     background: #fff;
     border: 1px solid #e2e8f0;
-    border-radius: 9px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.13), 0 2px 6px rgba(0,0,0,0.06);
     z-index: 9999;
-    max-height: 220px;
+    max-height: 240px;
     overflow-y: auto;
     display: none;
+    animation: ac-in 0.12s cubic-bezier(.22,.61,.36,1);
   }
-  .ac-item {
-    padding: 8px 13px;
-    font-size: 13px;
-    color: var(--text-primary);
-    cursor: pointer;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: background 0.1s;
-    border-bottom: 1px solid #f8fafc;
+  @keyframes ac-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
-  .ac-item:last-child { border-bottom: none; }
-  .ac-item:hover, .ac-item.ac-active { background: #eff6ff; color: var(--accent); }
+  .ac-dropdown::-webkit-scrollbar { width: 4px; }
+  .ac-dropdown::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
   .ac-header {
-    padding: 5px 13px 4px;
+    padding: 7px 14px 6px;
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.8px;
+    letter-spacing: 1px;
     text-transform: uppercase;
     color: var(--text-muted);
     background: #f8fafc;
     border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 5px;
   }
+  .ac-item {
+    padding: 9px 14px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #f8fafc;
+    transition: background 0.08s;
+    overflow: hidden;
+  }
+  .ac-item:last-child { border-bottom: none; }
+  .ac-item-icon { font-size: 12px; flex-shrink: 0; opacity: 0.45; }
+  .ac-item-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ac-item-text mark { background: none; color: var(--accent); font-weight: 700; }
+  .ac-item:hover, .ac-item.ac-active {
+    background: #eff6ff;
+    color: var(--accent);
+  }
+  .ac-item:hover .ac-item-icon, .ac-item.ac-active .ac-item-icon { opacity: 0.7; }
 </style>
 </head>
 <body>
@@ -1077,7 +1095,6 @@
       var rows = await res.json();
       if (!Array.isArray(rows) || rows.length === 0) return;
 
-      // 이전 기록에서 텍스트 수집 (최신 순, 중복 제거)
       var taskSet = [], pNameSet = [], pSumSet = [];
       var taskSeen = new Set(), pNameSeen = new Set(), pSumSeen = new Set();
       rows.forEach(function(r) {
@@ -1092,25 +1109,38 @@
         });
       });
 
-      // 드롭다운 요소 생성
       var acDrop = document.createElement('div');
       acDrop.className = 'ac-dropdown';
       document.body.appendChild(acDrop);
 
       var acTarget = null, acList = [], acActiveIdx = -1;
+      // blur/click 경쟁 방지 플래그
+      var acMouseInside = false;
+      acDrop.addEventListener('mouseenter', function() { acMouseInside = true; });
+      acDrop.addEventListener('mouseleave', function() { acMouseInside = false; });
+      // mousedown에서 preventDefault → input의 blur 자체를 막음
+      acDrop.addEventListener('mousedown', function(e) { e.preventDefault(); });
 
       function getSugg(el) {
-        if (el.classList.contains('task-text'))  return { list: taskSet,  label: '이전 업무 내역' };
-        if (el.classList.contains('p-name'))     return { list: pNameSet, label: '이전 업무명' };
-        if (el.classList.contains('p-summary'))  return { list: pSumSet,  label: '이전 진행 요약' };
+        if (el.classList.contains('task-text'))  return { list: taskSet,  label: '🕐  이전 업무 내역' };
+        if (el.classList.contains('p-name'))     return { list: pNameSet, label: '🕐  이전 업무명' };
+        if (el.classList.contains('p-summary'))  return { list: pSumSet,  label: '🕐  이전 진행 요약' };
         return null;
       }
       function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+      // 매칭 부분을 <mark>로 하이라이트
+      function highlight(s, q) {
+        if (!q) return esc(s);
+        var idx = s.toLowerCase().indexOf(q.toLowerCase());
+        if (idx < 0) return esc(s);
+        return esc(s.slice(0, idx)) + '<mark>' + esc(s.slice(idx, idx + q.length)) + '</mark>' + esc(s.slice(idx + q.length));
+      }
 
       function showAC(el, sugg) {
-        var val = el.value.trim().toLowerCase();
+        var val = el.value.trim();
+        var valLow = val.toLowerCase();
         var filtered = sugg.list.filter(function(s) {
-          return s !== el.value.trim() && (val === '' || s.toLowerCase().includes(val));
+          return s !== val && (valLow === '' || s.toLowerCase().includes(valLow));
         }).slice(0, 7);
         if (filtered.length === 0) { hideAC(); return; }
 
@@ -1118,53 +1148,66 @@
         var rect = el.getBoundingClientRect();
         acDrop.innerHTML = '<div class="ac-header">' + sugg.label + '</div>'
           + filtered.map(function(s, i) {
-              return '<div class="ac-item" data-i="' + i + '">' + esc(s) + '</div>';
+              return '<div class="ac-item" data-i="' + i + '">'
+                + '<span class="ac-item-icon">↩</span>'
+                + '<span class="ac-item-text">' + highlight(s, val) + '</span>'
+                + '</div>';
             }).join('');
-        acDrop.style.cssText = 'display:block;left:' + rect.left + 'px;top:' + (rect.bottom + 3) + 'px;min-width:' + Math.max(rect.width, 260) + 'px;max-width:480px';
+        var left = rect.left, top = rect.bottom + 5;
+        var w = Math.max(rect.width, 280);
+        // 화면 오른쪽 넘침 방지
+        if (left + w > window.innerWidth - 12) left = window.innerWidth - w - 12;
+        acDrop.style.cssText = 'display:block;left:' + left + 'px;top:' + top + 'px;width:' + w + 'px;max-width:500px';
+
         acDrop.querySelectorAll('.ac-item').forEach(function(item) {
-          item.addEventListener('mousedown', function(e) {
-            e.preventDefault();
-            fillAC(parseInt(item.dataset.i));
-          });
+          item.addEventListener('click', function() { fillAC(parseInt(item.dataset.i)); });
         });
       }
-      function hideAC() { acDrop.style.display = 'none'; acTarget = null; acList = []; acActiveIdx = -1; }
+      function hideAC() {
+        if (acMouseInside) return; // 드롭다운 위에 마우스가 있으면 닫지 않음
+        acDrop.style.display = 'none';
+        acTarget = null; acList = []; acActiveIdx = -1;
+      }
       function fillAC(idx) {
         if (!acTarget || idx < 0 || idx >= acList.length) return;
         var t = acTarget;
+        acMouseInside = false;
+        acDrop.style.display = 'none';
+        acTarget = null; acList = []; acActiveIdx = -1;
         t.value = acList[idx];
         t.dispatchEvent(new Event('input', { bubbles: true }));
-        hideAC();
         t.focus();
       }
       function setActive(i) {
         acActiveIdx = i;
         acDrop.querySelectorAll('.ac-item').forEach(function(el, j) {
           el.classList.toggle('ac-active', j === i);
+          if (j === i) el.scrollIntoView({ block: 'nearest' });
         });
       }
 
-      // 이벤트 위임 — 동적으로 추가된 항목도 처리
       document.addEventListener('input', function(e) {
         var s = getSugg(e.target);
-        if (s) showAC(e.target, s);
+        if (s) showAC(e.target, s); else hideAC();
       });
       document.addEventListener('focus', function(e) {
         var s = getSugg(e.target);
         if (s) showAC(e.target, s);
       }, true);
-      document.addEventListener('blur', function() {
-        setTimeout(hideAC, 160);
+      document.addEventListener('blur', function(e) {
+        // 드롭다운 안에 포커스가 가는 경우는 무시
+        if (acMouseInside) return;
+        setTimeout(function() { if (!acMouseInside) hideAC(); }, 120);
       }, true);
       document.addEventListener('keydown', function(e) {
         if (acDrop.style.display === 'none') return;
-        if (e.key === 'ArrowDown')           { e.preventDefault(); setActive(Math.min(acActiveIdx + 1, acList.length - 1)); }
-        else if (e.key === 'ArrowUp')        { e.preventDefault(); setActive(Math.max(acActiveIdx - 1, -1)); }
+        if (e.key === 'ArrowDown')  { e.preventDefault(); setActive(Math.min(acActiveIdx + 1, acList.length - 1)); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(Math.max(acActiveIdx - 1, -1)); }
         else if (e.key === 'Enter' && acActiveIdx >= 0) { e.preventDefault(); fillAC(acActiveIdx); }
-        else if (e.key === 'Escape')         { hideAC(); }
+        else if (e.key === 'Escape') { acMouseInside = false; hideAC(); }
       });
-      window.addEventListener('scroll', hideAC, true);
-      window.addEventListener('resize', hideAC);
+      window.addEventListener('scroll', function() { acMouseInside = false; hideAC(); }, true);
+      window.addEventListener('resize', function() { acMouseInside = false; hideAC(); });
     } catch(e) { console.warn('autocomplete init failed', e); }
   })();
 
