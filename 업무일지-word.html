@@ -1173,10 +1173,11 @@
       function fillAC(idx) {
         if (!acTarget || idx < 0 || idx >= acList.length) return;
         var t = acTarget;
+        var val = acList[idx]; // 초기화 전에 값 먼저 저장
         acMouseInside = false;
         acDrop.style.display = 'none';
         acTarget = null; acList = []; acActiveIdx = -1;
-        t.value = acList[idx];
+        t.value = val;
         t.dispatchEvent(new Event('input', { bubbles: true }));
         t.focus();
       }
