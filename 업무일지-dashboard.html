@@ -307,8 +307,32 @@
     font-size: 14px;
     font-weight: 700;
     color: var(--text-primary);
-    margin-right: auto;
   }
+  .filter-state-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 20px;
+    padding: 3px 5px 3px 10px;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 600;
+    margin-right: auto;
+    white-space: nowrap;
+  }
+  .filter-state-chip button {
+    border: none; background: none; cursor: pointer;
+    color: #93c5fd; font-size: 14px; padding: 0; line-height: 1;
+    width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.1s;
+  }
+  .filter-state-chip button:hover { background: #bfdbfe; color: var(--accent); }
+  /* 칩 없을 때 타이틀이 margin-right:auto 역할 */
+  .filter-state-chip[style*="none"] ~ * { margin-left: 0; }
+  .list-toolbar-title { margin-right: 0; }
   .view-toggle {
     display: flex;
     border: 1px solid var(--border);
@@ -1090,6 +1114,10 @@
     <!-- List Toolbar -->
     <div class="list-toolbar">
       <span class="list-toolbar-title" id="list-section-title">전체 일지</span>
+      <span class="filter-state-chip" id="filter-state-chip" style="display:none">
+        <span id="filter-state-text"></span>
+        <button onclick="clearActiveFilters()" title="필터 초기화">×</button>
+      </span>
       <span class="drp-active-chip" id="drp-active-chip" style="display:none">
         <span id="drp-active-text">—</span>
         <button onclick="clearDateRange()" title="기간 필터 해제">×</button>
@@ -1540,6 +1568,33 @@
     return '<span class="status-badge '+m.cls+'">'+m.text+'</span>';
   }
 
+  /* ── 활성 필터 칩 갱신 ── */
+  function updateFilterChip() {
+    var chip = document.getElementById('filter-state-chip');
+    var textEl = document.getElementById('filter-state-text');
+    var statusVal = document.getElementById('status-filter').value;
+    var sortVal   = document.getElementById('sort-select').value;
+    var STATUS_LBL = { done:'완료', wip:'진행', issue:'이슈', hold:'보류', todo:'예정' };
+    var SORT_LBL   = { 'date-asc':'오래된순', 'progress':'진행률순' }; // 기본값(최신순) 제외
+    var parts = [];
+    if (statusVal)        parts.push(STATUS_LBL[statusVal] || statusVal);
+    if (SORT_LBL[sortVal]) parts.push(SORT_LBL[sortVal]);
+    if (parts.length > 0) {
+      textEl.textContent = parts.join(' · ');
+      chip.style.display = '';
+    } else {
+      chip.style.display = 'none';
+    }
+    // 칩이 있을 때 타이틀 margin-right 제거, 없을 때 복원
+    document.getElementById('list-section-title').style.marginRight = parts.length > 0 ? '0' : 'auto';
+  }
+
+  function clearActiveFilters() {
+    document.getElementById('status-filter').value = '';
+    document.getElementById('sort-select').value = 'date-desc';
+    setFilter('all');
+  }
+
   /* ── Title date highlight ── */
   function splitTitleDate(title) {
     if (!title) return '무제';
@@ -1563,6 +1618,7 @@
     if (currentView === 'table') renderTable(sorted);
     else renderGrid(sorted);
     updateStats();
+    updateFilterChip();
   }
 
   function renderTable(data) {
