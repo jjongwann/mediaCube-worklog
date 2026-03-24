@@ -1557,13 +1557,13 @@
 
   /* ── Admin: 직원 목록 ── */
   var ALL_USERS = [
-    { id: 'e925711f-25d6-40ee-9708-7524856aadc0', username: 'mediacube',    isAdmin: true },
-    { id: '6155890c-c209-494d-8fe5-244db3166d34', username: 'info' },
-    { id: '11ef0fe1-4e6d-4b1f-af04-5c42aa99acfd', username: 'soundsupport' },
-    { id: '0465c0f5-51bf-4730-ae75-4377c3dc61af', username: 'webmaster20' },
-    { id: '842ae24f-570e-4c75-8902-ed6cf476a0a7', username: 'soundstore' },
-    { id: '90f0bfb3-3c69-4885-8ccc-5928fb29e29b', username: 'soundsales' },
-    { id: 'a943cf0b-468c-49a1-965a-1c846fb15db7', username: 'developer' },
+    { id: 'e925711f-25d6-40ee-9708-7524856aadc0', username: 'mediacube',    fullName: '관리자',    dept: '미디어큐브',           isAdmin: true },
+    { id: '6155890c-c209-494d-8fe5-244db3166d34', username: 'info',         fullName: '김혜진 대리', dept: '회계·경리팀' },
+    { id: '11ef0fe1-4e6d-4b1f-af04-5c42aa99acfd', username: 'soundsupport', fullName: '윤다은 주임', dept: '사운드컨텐츠사업부' },
+    { id: '0465c0f5-51bf-4730-ae75-4377c3dc61af', username: 'webmaster20',  fullName: '최해현 직원', dept: '사운드컨텐츠사업부' },
+    { id: '842ae24f-570e-4c75-8902-ed6cf476a0a7', username: 'soundstore',   fullName: '김태오 과장', dept: '사운드컨텐츠사업부' },
+    { id: '90f0bfb3-3c69-4885-8ccc-5928fb29e29b', username: 'soundsales',   fullName: '신동원 차장', dept: '사운드컨텐츠사업부' },
+    { id: 'a943cf0b-468c-49a1-965a-1c846fb15db7', username: 'developer',    fullName: '임종완 주임', dept: '개발팀' },
   ];
   var adminEmpFilter = ''; // '' = 전체, user_id = 특정 직원만
 
@@ -1780,11 +1780,11 @@
       return '<div class="emp-card' + (isActive ? ' active' : '') + '" data-uid="' + u.id + '" onclick="toggleEmpFilter(\'' + u.id + '\')">'
         + '<div class="emp-card-header">'
           + '<div class="emp-avatar" style="' + (u.isAdmin ? 'background:linear-gradient(135deg,#7c3aed,#5b21b6)' : '') + '">'
-            + u.username.charAt(0).toUpperCase()
+            + u.fullName.charAt(0)
           + '</div>'
           + '<div>'
-            + '<div class="emp-name">' + u.username + (u.isAdmin ? ' <span style="font-size:9px;background:#ede9fe;color:#7c3aed;border-radius:4px;padding:1px 5px;font-weight:700">관리자</span>' : '') + '</div>'
-            + '<div class="emp-since">' + (lastDate ? fmtDate(lastDate) : '작성 없음') + '</div>'
+            + '<div class="emp-name">' + u.fullName + (u.isAdmin ? ' <span style="font-size:9px;background:#ede9fe;color:#7c3aed;border-radius:4px;padding:1px 5px;font-weight:700">관리자</span>' : '') + '</div>'
+            + '<div class="emp-since">' + u.dept + (lastDate ? ' · ' + fmtDate(lastDate) : '') + '</div>'
           + '</div>'
         + '</div>'
         + '<div class="emp-stats">'
@@ -1844,7 +1844,7 @@
 
     ALL_USERS.forEach(function(u) {
       var uJ = all.filter(function(j) { return j.user_id === u.id; });
-      matHtml += '<tr><td class="name-cell">' + u.username + '</td>';
+      matHtml += '<tr><td class="name-cell">' + u.fullName + '</td>';
       var total = 0;
       months.forEach(function(m) {
         var cnt = uJ.filter(function(j) { return (j.date || '').startsWith(m); }).length;
