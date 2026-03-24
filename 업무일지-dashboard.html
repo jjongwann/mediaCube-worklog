@@ -1890,26 +1890,54 @@
     matHtml += '<td>' + grandTotal + '</td></tr>';
     matHtml += '</tbody></table></div></div>';
 
-    // ② 프로젝트별 투입 현황
-    var projMap = {};
-    all.forEach(function(j) { var p = j.project || '미지정'; projMap[p] = (projMap[p] || 0) + 1; });
-    var projList = Object.keys(projMap).map(function(k) { return { name: k, count: projMap[k] }; });
-    projList.sort(function(a, b) { return b.count - a.count; });
-    var maxProj = projList[0] ? projList[0].count : 1;
+    // ② 직원별 업무 추진 현황
+    var wpHtml = '<div class="report-section"><div class="report-section-title">직원별 업무 추진 현황</div>';
 
-    var projHtml = '<div class="report-section"><div class="report-section-title">프로젝트별 투입 현황</div>'
-      + '<table class="report-table"><thead><tr>'
-      + '<th>프로젝트</th><th style="width:60px;text-align:center">건수</th><th style="width:160px">비율</th>'
-      + '</tr></thead><tbody>';
-    projList.slice(0, 10).forEach(function(p) {
-      var pct = Math.round(p.count / maxProj * 100);
-      projHtml += '<tr>'
-        + '<td style="font-weight:600;color:var(--text-primary)">' + p.name + '</td>'
-        + '<td style="text-align:center;font-weight:700;color:var(--accent)">' + p.count + '</td>'
-        + '<td><div class="rbar"><div class="rbar-fill" style="width:' + pct + '%"></div></div></td>'
-        + '</tr>';
+    ALL_USERS.forEach(function(u) {
+      var uJournals = all.filter(function(j) { return j.user_id === u.id && j.workProgress && j.workProgress.length; });
+      if (!uJournals.length) return;
+
+      // work_progress 항목을 업무명 기준으로 집계
+      var taskMap = {};
+      uJournals.forEach(function(j) {
+        j.workProgress.forEach(function(wp) {
+          var name = (wp.name || '').trim();
+          if (!name) return;
+          if (!taskMap[name]) taskMap[name] = { total: 0, count: 0 };
+          taskMap[name].total += (wp.pct || 0);
+          taskMap[name].count += 1;
+        });
+      });
+
+      var taskList = Object.keys(taskMap).map(function(k) {
+        return { name: k, avg: Math.round(taskMap[k].total / taskMap[k].count), count: taskMap[k].count };
+      });
+      taskList.sort(function(a, b) { return b.avg - a.avg; });
+      if (!taskList.length) return;
+
+      wpHtml += '<div style="margin-bottom:20px">'
+        + '<div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:8px;padding:6px 10px;background:#f8fafc;border-radius:6px;border-left:3px solid var(--accent)">'
+          + u.fullName + ' <span style="font-size:11px;font-weight:400;color:var(--text-muted)">(' + u.dept + ')</span>'
+        + '</div>'
+        + '<table class="report-table"><thead><tr>'
+        + '<th>업무명</th>'
+        + '<th style="width:70px;text-align:center">평균 진행률</th>'
+        + '<th style="width:50px;text-align:center">건수</th>'
+        + '<th style="width:140px">진행률</th>'
+        + '</tr></thead><tbody>';
+
+      taskList.forEach(function(t) {
+        wpHtml += '<tr>'
+          + '<td style="font-weight:600;color:var(--text-primary)">' + t.name + '</td>'
+          + '<td style="text-align:center;font-weight:700;color:' + (t.avg >= 80 ? '#16a34a' : t.avg >= 40 ? 'var(--accent)' : '#ea580c') + '">' + t.avg + '%</td>'
+          + '<td style="text-align:center;color:var(--text-muted)">' + t.count + '</td>'
+          + '<td><div class="rbar"><div class="rbar-fill" style="width:' + t.avg + '%"></div></div></td>'
+          + '</tr>';
+      });
+      wpHtml += '</tbody></table></div>';
     });
-    projHtml += '</tbody></table></div>';
+
+    wpHtml += '</div>';
 
     // ③ 상태별 현황
     var statusCount = { done: 0, wip: 0, todo: 0, hold: 0, issue: 0 };
@@ -1933,7 +1961,7 @@
     });
     statusHtml += '</tbody></table></div>';
 
-    body.innerHTML = matHtml + projHtml + statusHtml;
+    body.innerHTML = matHtml + wpHtml + statusHtml;
   }
 
   /* ── Title date highlight ── */
