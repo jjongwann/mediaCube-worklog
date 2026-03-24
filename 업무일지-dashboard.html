@@ -1144,6 +1144,22 @@
     </div>
   </div>
 
+  <!-- 관리자 전용 섹션 -->
+  <div id="admin-sidebar-section" style="display:none">
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">관리자</div>
+      <div class="sidebar-item" id="sidebar-emp-btn" onclick="toggleEmpPanel()">
+        <span class="sidebar-item-icon">👥</span>
+        직원별 현황
+      </div>
+      <div class="sidebar-item" onclick="showMonthlyReport()">
+        <span class="sidebar-item-icon">📊</span>
+        월별 팀 리포트
+      </div>
+    </div>
+  </div>
+
   <div class="sidebar-footer">
     <div class="sidebar-user">
       <div class="sidebar-avatar" id="sb-avatar">?</div>
@@ -1214,7 +1230,6 @@
     <div id="admin-emp-section" style="display:none">
       <div class="admin-section-header">
         <span class="admin-section-title">직원별 현황</span>
-        <button class="btn-report" onclick="showMonthlyReport()">월별 팀 리포트</button>
       </div>
       <div class="admin-emp-row" id="admin-emp-row"></div>
     </div>
@@ -1756,11 +1771,21 @@
     setFilter('all');
   }
 
+  var _empPanelOpen = false;
+
+  function toggleEmpPanel() {
+    _empPanelOpen = !_empPanelOpen;
+    var section = document.getElementById('admin-emp-section');
+    var btn = document.getElementById('sidebar-emp-btn');
+    if (section) section.style.display = _empPanelOpen ? '' : 'none';
+    if (btn) btn.classList.toggle('active', _empPanelOpen);
+    if (_empPanelOpen) renderAdminStats();
+  }
+
   /* ── Admin: 직원별 현황 카드 ── */
   function renderAdminStats() {
     var section = document.getElementById('admin-emp-section');
     if (!section) return;
-    section.style.display = '';
 
     var all = journalCache;
     var now = new Date();
@@ -1935,7 +1960,7 @@
     else renderGrid(sorted);
     updateStats();
     updateFilterChip();
-    if (_isAdmin) renderAdminStats();
+    if (_isAdmin && _empPanelOpen) renderAdminStats();
   }
 
   function renderTable(data) {
@@ -2575,7 +2600,10 @@
     await sbFetch();
     await seedIfEmpty();
     renderList();
-    if (_isAdmin) renderAdminStats();
+    if (_isAdmin) {
+      var adminSb = document.getElementById('admin-sidebar-section');
+      if (adminSb) adminSb.style.display = '';
+    }
   })();
 </script>
 </body>
