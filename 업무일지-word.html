@@ -818,11 +818,30 @@
     return fetch(SB_URL + '/rest/v1/journals', { method: 'POST', headers: SB_HDR, body: JSON.stringify(j) });
   }
 
+  // ── 로그인 계정 기본값 세팅 ──
+  (function() {
+    var d = (_mcSession && _mcSession._display) || null;
+    if (d) {
+      var authorEl = document.getElementById('doc-author');
+      var deptEl   = document.getElementById('doc-dept');
+      if (authorEl && !authorEl.value) authorEl.value = d.fullName || d.name || '';
+      if (deptEl   && !deptEl.value)   deptEl.value   = d.dept     || d.sub  || '';
+    }
+  })();
+
   // ── Edit mode: load saved journal data ──
   (function() {
     var raw = sessionStorage.getItem(EDIT_KEY);
     if (!raw) {
       document.getElementById('doc-date').valueAsDate = new Date();
+      // 신규 작성: 로그인 계정 이름/부서 디폴트
+      var d = (_mcSession && _mcSession._display) || null;
+      if (d) {
+        var aEl = document.getElementById('doc-author');
+        var dep = document.getElementById('doc-dept');
+        if (aEl && !aEl.value) aEl.value = d.fullName || d.name || '';
+        if (dep && !dep.value) dep.value = d.dept     || d.sub  || '';
+      }
       return;
     }
     try { editingEntry = JSON.parse(raw); } catch(e) { return; }

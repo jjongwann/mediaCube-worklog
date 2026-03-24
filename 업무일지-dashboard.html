@@ -1488,14 +1488,15 @@
 
   (function() {
     if (!_currentSession) return;
-    var d = (_currentSession._display) || { name: _currentUsername || '사용자', sub: '미디어큐브' };
-    var avatar = d.name.charAt(0) || '?';
+    var d = (_currentSession._display) || { fullName: _currentUsername || '사용자', sub: '미디어큐브' };
+    var displayName = d.fullName || d.name || _currentUsername || '사용자';
+    var avatar = displayName.charAt(0) || '?';
     var el = document.getElementById('sb-avatar');
     if (el) el.textContent = avatar;
     var nm = document.getElementById('sb-user-name');
-    if (nm) nm.textContent = d.name + (_isAdmin ? ' (관리자)' : '');
+    if (nm) nm.textContent = displayName;
     var rl = document.getElementById('sb-user-role');
-    if (rl) rl.textContent = d.sub;
+    if (rl) rl.textContent = d.dept || d.sub || '미디어큐브';
   })();
 
   var DB_KEY = 'mediaCube_journals_v1'; // 레거시 키 (마이그레이션용)
