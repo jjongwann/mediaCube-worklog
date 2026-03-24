@@ -152,7 +152,20 @@
 <script>
   var SB_URL = 'https://qkvatxowpkespdkxuoom.supabase.co';
   var SB_KEY = 'sb_publishable_2PIK53xa60wU0ds_L44pgQ_yfsoiot1';
-  var ID_MAP = { 'mediacube': 'mediacube@mediacube.com' };
+  var ID_MAP = {
+    'mediacube':    'mediacube@mediacube.com',
+    'info':         'info@mediacube.com',
+    'soundsupport': 'soundsupport@mediacube.com',
+    'webmaster20':  'webmaster20@mediacube.com',
+    'soundstore':   'soundstore@mediacube.com'
+  };
+  var DISPLAY_MAP = {
+    'mediacube':    { name: '관리자', sub: '미디어큐브' },
+    'info':         { name: 'info', sub: '미디어큐브' },
+    'soundsupport': { name: 'soundsupport', sub: '미디어큐브' },
+    'webmaster20':  { name: 'webmaster20', sub: '미디어큐브' },
+    'soundstore':   { name: 'soundstore', sub: '미디어큐브' }
+  };
   var SESSION_KEY = 'mc_session';
 
   // 이미 로그인된 경우 바로 이동
@@ -201,6 +214,9 @@
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (data.access_token) {
+        data._username = id;
+        data._display = DISPLAY_MAP[id] || { name: id, sub: '미디어큐브' };
+        data._is_admin = (id === 'mediacube');
         localStorage.setItem(SESSION_KEY, JSON.stringify(data));
         window.location.replace('업무일지-dashboard.html');
       } else {

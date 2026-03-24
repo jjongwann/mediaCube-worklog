@@ -1047,10 +1047,10 @@
 
   <div class="sidebar-footer">
     <div class="sidebar-user">
-      <div class="sidebar-avatar">미</div>
+      <div class="sidebar-avatar" id="sb-avatar">?</div>
       <div class="sidebar-user-info">
-        <div class="sidebar-user-name">사운드콘텐츠사업부</div>
-        <div class="sidebar-user-role">미디어큐브</div>
+        <div class="sidebar-user-name" id="sb-user-name">-</div>
+        <div class="sidebar-user-role" id="sb-user-role">미디어큐브</div>
       </div>
     </div>
     <button class="sidebar-logout-btn" onclick="logout()">🚪 로그아웃</button>
@@ -1355,6 +1355,26 @@
     localStorage.removeItem(SESSION_KEY);
     window.location.replace('login.html');
   }
+
+  /* ── 로그인 사용자 정보 ── */
+  var _currentSession = (function() {
+    try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) { return null; }
+  })();
+  var _currentUsername = (_currentSession && _currentSession._username) || '';
+  var _isAdmin = (_currentSession && _currentSession._is_admin) || false;
+  var _userId = (_currentSession && _currentSession.user && _currentSession.user.id) || null;
+
+  (function() {
+    if (!_currentSession) return;
+    var d = (_currentSession._display) || { name: _currentUsername || '사용자', sub: '미디어큐브' };
+    var avatar = d.name.charAt(0) || '?';
+    var el = document.getElementById('sb-avatar');
+    if (el) el.textContent = avatar;
+    var nm = document.getElementById('sb-user-name');
+    if (nm) nm.textContent = d.name + (_isAdmin ? ' (관리자)' : '');
+    var rl = document.getElementById('sb-user-role');
+    if (rl) rl.textContent = d.sub;
+  })();
 
   var DB_KEY = 'mediaCube_journals_v1'; // 레거시 키 (마이그레이션용)
 
