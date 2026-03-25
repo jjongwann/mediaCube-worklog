@@ -12,11 +12,11 @@
   :root {
     --accent: #2563eb;
     --accent-light: #eff6ff;
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --text-muted: #94a3b8;
-    --border: #e2e8f0;
-    --bg-subtle: #f8fafc;
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --text-muted: #9ca3af;
+    --border: #e5e7eb;
+    --bg-subtle: #f9fafb;
     --green: #16a34a;
     --orange: #ea580c;
     --indigo: #4338ca;
@@ -26,9 +26,9 @@
   }
 
   body {
-    background: #eef2f7;
+    background: #f3f4f6;
     font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
-    padding: 40px 20px 60px;
+    padding: 28px 20px 60px;
     min-height: 100vh;
     color: var(--text-primary);
   }
@@ -36,7 +36,7 @@
   /* ── Toolbar ── */
   .toolbar {
     max-width: 900px;
-    margin: 0 auto 20px;
+    margin: 0 auto 16px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -46,28 +46,33 @@
     color: var(--text-muted);
     font-weight: 500;
     margin-right: auto;
-    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
+  .toolbar-sep { color: var(--border); }
   .btn {
     background: #fff;
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    padding: 7px 16px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 14px;
     font-size: 13px;
     font-family: inherit;
     cursor: pointer;
     color: var(--text-secondary);
     font-weight: 500;
-    transition: all 0.15s;
+    transition: all 0.12s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
-  .btn:hover { background: #f8fafc; border-color: #cbd5e1; color: var(--text-primary); }
+  .btn:hover { background: var(--bg-subtle); border-color: #d1d5db; color: var(--text-primary); }
   .btn-primary {
-    background: var(--accent);
+    background: #111827;
     color: #fff;
-    border-color: var(--accent);
-    box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+    border-color: #111827;
   }
-  .btn-primary:hover { background: #1d4ed8; border-color: #1d4ed8; box-shadow: 0 4px 14px rgba(37,99,235,0.35); }
+  .btn-primary:hover { background: #1f2937; border-color: #1f2937; }
 
   /* ── Page ── */
   .page {
@@ -75,9 +80,10 @@
     min-height: 1040px;
     background: #fff;
     margin: 0 auto;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07), 0 12px 40px rgba(0,0,0,0.1);
-    border-radius: 6px;
-    padding: 56px 64px 52px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.07);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    padding: 48px 60px 48px;
   }
 
   /* ── Document Header ── */
@@ -85,30 +91,21 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    margin-bottom: 32px;
-    padding-bottom: 24px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
     border-bottom: 1px solid var(--border);
-    position: relative;
-  }
-  .doc-header::after {
-    content: '';
-    position: absolute;
-    bottom: -1px; left: 0;
-    width: 48px; height: 2px;
-    background: var(--accent);
-    border-radius: 1px;
   }
 
   .doc-label {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 2.5px;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 8px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
   }
   .doc-title {
-    font-size: 32px;
+    font-size: 26px;
     font-weight: 700;
     letter-spacing: -0.5px;
     color: var(--text-primary);
@@ -148,7 +145,7 @@
   .info-strip {
     display: flex;
     gap: 8px;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
   }
   .info-chip {
     flex: 1;
@@ -156,13 +153,13 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 11px 14px;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, background 0.15s;
   }
-  .info-chip:focus-within { border-color: var(--accent); background: var(--accent-light); }
+  .info-chip:focus-within { border-color: #d1d5db; background: #fff; }
   .info-chip-label {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 1.2px;
+    letter-spacing: 0.8px;
     text-transform: uppercase;
     color: var(--text-muted);
     margin-bottom: 4px;
@@ -189,21 +186,21 @@
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 8px;
-    margin-bottom: 32px;
+    margin-bottom: 28px;
   }
   .metric-card {
     background: var(--bg-subtle);
-    border-radius: 9px;
-    padding: 15px 12px 13px;
+    border-radius: 8px;
+    padding: 14px 12px 12px;
     text-align: center;
     border: 1px solid var(--border);
     transition: border-color 0.15s;
   }
-  .metric-card:focus-within { border-color: var(--accent); background: var(--accent-light); }
+  .metric-card:focus-within { border-color: #d1d5db; background: #fff; }
   .metric-val {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 700;
-    color: var(--accent);
+    color: var(--text-primary);
     border: none;
     outline: none;
     font-family: inherit;
@@ -213,32 +210,30 @@
     line-height: 1;
   }
   .metric-lbl {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+    font-size: 11px;
+    font-weight: 500;
     color: var(--text-muted);
     margin-top: 5px;
   }
 
   /* ── Section ── */
-  .section { margin-bottom: 28px; }
+  .section { margin-bottom: 24px; }
   .section-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
+    gap: 9px;
+    margin-bottom: 10px;
   }
   .section-bar {
     width: 3px;
-    height: 16px;
+    height: 14px;
     border-radius: 2px;
-    background: var(--accent);
+    background: #111827;
     flex-shrink: 0;
   }
   .section-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
-    letter-spacing: 0.2px;
     color: var(--text-primary);
   }
   .section-rule {
@@ -248,16 +243,16 @@
   }
 
   /* ── Task List ── */
-  .task-list { display: flex; flex-direction: column; gap: 5px; }
+  .task-list { display: flex; flex-direction: column; gap: 4px; }
   .task-item {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 9px 12px;
+    padding: 8px 12px;
     border-radius: 7px;
-    border: 1px solid transparent;
-    transition: all 0.15s;
-    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    transition: all 0.12s;
+    background: #fff;
   }
   .task-del {
     flex-shrink: 0;
@@ -281,8 +276,8 @@
   .task-item:hover .task-del { opacity: 1; }
   .task-del:hover { color: var(--red); background: #fee2e2; }
   .task-item:focus-within {
-    border-color: #bfdbfe;
-    background: var(--accent-light);
+    border-color: #d1d5db;
+    background: #fff;
   }
 
   .task-check {
@@ -311,20 +306,19 @@
 
   .task-status {
     flex-shrink: 0;
-    font-size: 11.5px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 600;
     padding: 2px 8px;
-    border-radius: 20px;
+    border-radius: 4px;
     cursor: pointer;
     user-select: none;
-    letter-spacing: 0.2px;
-    transition: all 0.15s;
+    transition: all 0.12s;
   }
-  .status-done  { background: #dcfce7; color: var(--green); }
-  .status-wip   { background: #ffedd5; color: var(--orange); }
-  .status-todo  { background: #e0e7ff; color: var(--indigo); }
-  .status-hold  { background: #fee2e2; color: var(--red); }
-  .status-issue { background: #fef3c7; color: var(--yellow); }
+  .status-done  { background: #f0fdf4; color: var(--green); }
+  .status-wip   { background: #fff7ed; color: var(--orange); }
+  .status-todo  { background: #f0f9ff; color: #0369a1; }
+  .status-hold  { background: #fef2f2; color: var(--red); }
+  .status-issue { background: #fffbeb; color: var(--yellow); }
 
   .task-text {
     flex: 1;
@@ -345,19 +339,19 @@
     align-items: center;
     gap: 6px;
     background: none;
-    border: 1px dashed #cbd5e1;
+    border: 1px dashed #d1d5db;
     border-radius: 7px;
     padding: 7px 14px;
-    font-size: 13px;
+    font-size: 12.5px;
     color: var(--text-muted);
     cursor: pointer;
     font-family: inherit;
-    transition: all 0.15s;
-    margin-top: 5px;
+    transition: all 0.12s;
+    margin-top: 4px;
     width: 100%;
     justify-content: center;
   }
-  .add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .add-btn:hover { border-color: #9ca3af; color: var(--text-secondary); background: var(--bg-subtle); }
   /* section-header 안의 add-btn은 자동 너비로 */
   .section-header .add-btn { width: auto; flex-shrink: 0; margin-top: 0; justify-content: flex-start; }
   .section-title { white-space: nowrap; }
@@ -367,31 +361,31 @@
     width: 100%;
     border: 1px solid var(--border);
     border-radius: 7px;
-    padding: 11px 13px;
+    padding: 10px 13px;
     font-family: inherit;
-    font-size: 15px;
+    font-size: 14px;
     color: var(--text-primary);
-    line-height: 1.8;
+    line-height: 1.75;
     resize: vertical;
     outline: none;
     min-height: 70px;
-    background: var(--bg-subtle);
-    transition: border-color 0.15s, background 0.15s;
+    background: #fff;
+    transition: border-color 0.12s;
   }
-  .doc-textarea:focus { border-color: var(--accent); background: #fff; }
-  .doc-textarea::placeholder { color: #cbd5e1; }
+  .doc-textarea:focus { border-color: #9ca3af; }
+  .doc-textarea::placeholder { color: #d1d5db; }
 
   /* ── Progress Table ── */
   .progress-table { width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden; }
   .progress-table th {
-    background: #f8fafc;
+    background: #f9fafb;
     border: 1px solid var(--border);
-    padding: 9px 12px;
-    font-size: 11.5px;
+    padding: 8px 12px;
+    font-size: 10.5px;
     font-weight: 700;
     color: var(--text-muted);
     text-align: left;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
   }
   .progress-table td { border: 1px solid var(--border); padding: 7px 10px; }
@@ -418,19 +412,18 @@
     overflow: hidden;
   }
   .issue-card-hdr {
-    padding: 10px 14px;
-    font-size: 13px;
+    padding: 9px 14px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.3px;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
   }
-  .ic-issue { background: #fffbeb; color: #92400e; border-bottom: 1px solid #fde68a; }
-  .ic-risk  { background: #fff1f2; color: #9f1239; border-bottom: 1px solid #fecdd3; }
+  .ic-issue { background: #fffbeb; color: #92400e; border-bottom: 1px solid #fef3c7; }
+  .ic-risk  { background: #fef2f2; color: #991b1b; border-bottom: 1px solid #fecaca; }
   .issue-card-body {
-    padding: 11px 14px;
-    font-size: 15px;
+    padding: 10px 14px;
+    font-size: 14px;
     color: var(--text-secondary);
     border: none;
     outline: none;
@@ -469,52 +462,54 @@
   /* ── Submit Bar ── */
   .submit-bar {
     max-width: 900px;
-    margin: 20px auto 48px;
+    margin: 16px auto 48px;
     background: #fff;
-    border: 1px solid #bfdbfe;
-    border-radius: 12px;
-    padding: 18px 26px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    box-shadow: 0 2px 16px rgba(37,99,235,0.1), 0 4px 24px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   }
   .submit-bar-info { display: flex; align-items: center; gap: 10px; }
-  .submit-bar-icon { font-size: 20px; }
-  .submit-bar-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
-  .submit-bar-text strong { color: var(--text-primary); font-weight: 700; }
+  .submit-bar-icon { color: var(--text-muted); display: flex; }
+  .submit-bar-text { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+  .submit-bar-text strong { color: var(--text-secondary); font-weight: 600; }
   .submit-bar-actions { display: flex; gap: 8px; flex-shrink: 0; }
   .btn-back {
     background: #fff;
     border: 1px solid var(--border);
     border-radius: 7px;
-    padding: 8px 16px;
+    padding: 7px 14px;
     font-size: 13px;
     font-family: inherit;
     cursor: pointer;
     color: var(--text-secondary);
     font-weight: 500;
-    transition: all 0.15s;
+    transition: all 0.12s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
   }
-  .btn-back:hover { background: var(--bg-subtle); }
+  .btn-back:hover { background: var(--bg-subtle); border-color: #d1d5db; }
   .btn-submit {
-    background: var(--accent);
+    background: #111827;
     color: #fff;
     border: none;
     border-radius: 7px;
-    padding: 8px 22px;
+    padding: 7px 20px;
     font-size: 13px;
     font-family: inherit;
     cursor: pointer;
     font-weight: 600;
-    transition: all 0.15s;
+    transition: all 0.12s;
     display: flex;
     align-items: center;
     gap: 6px;
-    box-shadow: 0 2px 8px rgba(37,99,235,0.25);
   }
-  .btn-submit:hover { background: #1d4ed8; box-shadow: 0 4px 14px rgba(37,99,235,0.35); }
+  .btn-submit:hover { background: #1f2937; }
 
   @page { margin: 0; size: A4; }
   @media print {
@@ -586,10 +581,10 @@
 <body>
 
 <div class="toolbar">
-  <button class="btn" onclick="window.location.href='업무일지-dashboard.html'" style="padding:7px 12px;font-size:13px">← 뒤로</button>
-  <span class="toolbar-title">미디어큐브 - 업무일지</span>
+  <button class="btn" onclick="window.location.href='업무일지-dashboard.html'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> 뒤로</button>
+  <span class="toolbar-title">미디어큐브 <span class="toolbar-sep">›</span> 업무일지</span>
   <button class="btn" onclick="addTask()">+ 업무 추가</button>
-  <button class="btn-primary btn" onclick="window.print()">인쇄 / PDF</button>
+  <button class="btn-primary btn" onclick="window.print()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> 인쇄 / PDF</button>
 </div>
 
 <div class="page">
@@ -680,7 +675,7 @@
   <!-- Work Progress -->
   <div class="section">
     <div class="section-header">
-      <div class="section-bar" style="background:var(--indigo)"></div>
+      <div class="section-bar"></div>
       <span class="section-title">업무 추진 현황</span>
       <div class="section-rule"></div>
     </div>
@@ -720,7 +715,7 @@
   <!-- Summary -->
   <div class="section">
     <div class="section-header">
-      <div class="section-bar" style="background:var(--green)"></div>
+      <div class="section-bar"></div>
       <span class="section-title">업무 요약</span>
       <div class="section-rule"></div>
     </div>
@@ -730,20 +725,20 @@
   <!-- Issues -->
   <div class="section">
     <div class="section-header">
-      <div class="section-bar" style="background:var(--red)"></div>
+      <div class="section-bar"></div>
       <span class="section-title">이슈 및 리스크</span>
       <div class="section-rule"></div>
     </div>
     <div class="issue-grid">
       <div class="issue-card">
         <div class="issue-card-hdr ic-issue">
-          <span>⚠</span> 발생 이슈
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> 발생 이슈
         </div>
         <textarea class="issue-card-body" rows="3" placeholder="금일 발생한 이슈 및 처리 현황을 기록하세요."></textarea>
       </div>
       <div class="issue-card">
         <div class="issue-card-hdr ic-risk">
-          <span>◆</span> 리스크 / 블로커
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> 리스크 / 블로커
         </div>
         <textarea class="issue-card-body" rows="3" placeholder="업무 진행을 저해하는 리스크나 블로커를 기록하세요."></textarea>
       </div>
@@ -753,7 +748,7 @@
   <!-- Tomorrow -->
   <div class="section">
     <div class="section-header">
-      <div class="section-bar" style="background:var(--yellow)"></div>
+      <div class="section-bar"></div>
       <span class="section-title">익일 계획</span>
       <div class="section-rule"></div>
     </div>
@@ -763,7 +758,7 @@
   <!-- Memo -->
   <div class="section">
     <div class="section-header">
-      <div class="section-bar" style="background:var(--purple)"></div>
+      <div class="section-bar"></div>
       <span class="section-title">메모 / 특이사항</span>
       <div class="section-rule"></div>
     </div>
@@ -781,15 +776,15 @@
 <!-- Submit Bar -->
 <div class="submit-bar">
   <div class="submit-bar-info">
-    <span class="submit-bar-icon">📋</span>
+    <span class="submit-bar-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
     <div class="submit-bar-text">
       <strong>작성 완료 후 제출하세요.</strong><br>
       제출하면 대시보드 목록에 자동으로 등록됩니다.
     </div>
   </div>
   <div class="submit-bar-actions">
-    <button class="btn-back" onclick="window.location.href='업무일지-dashboard.html'">← 대시보드로</button>
-    <button class="btn-submit" onclick="submitJournal()">✓ 제출하기</button>
+    <button class="btn-back" onclick="window.location.href='업무일지-dashboard.html'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> 대시보드로</button>
+    <button class="btn-submit" onclick="submitJournal()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 제출하기</button>
   </div>
 </div>
 
