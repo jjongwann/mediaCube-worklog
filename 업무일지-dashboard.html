@@ -491,7 +491,7 @@
   .sb-wip    { background: #eff6ff; color: #2563eb; }
   .sb-hold   { background: #fffbeb; color: #d97706; }
   .sb-review { background: #f5f3ff; color: #6d28d9; }
-  .sb-todo   { background: #f9fafb; color: #6b7280; }
+  .sb-todo   { background: #f3f4f6; color: #374151; }
 
   .progress-bar {
     height: 5px;
@@ -1438,7 +1438,7 @@
           <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#16a34a"></span>완료</span>
           <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#2563eb"></span>진행중</span>
           <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#d97706"></span>보류</span>
-          <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#9ca3af"></span>예정</span>
+          <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#9ca3af;"></span>예정</span>
         </div>
       </div>
     </div>
@@ -3169,7 +3169,7 @@
         labels: ['완료', '진행중', '보류', '예정'],
         datasets: [{
           data: [statusCounts.done, statusCounts.wip, statusCounts.hold, statusCounts.todo],
-          backgroundColor: ['#16a34a','#2563eb','#d97706','#e5e7eb'],
+          backgroundColor: ['#16a34a','#2563eb','#d97706','#9ca3af'],
           borderWidth: 0,
           hoverOffset: 4
         }]
