@@ -490,7 +490,8 @@
   .sb-done   { background: #f0fdf4; color: #16a34a; }
   .sb-wip    { background: #eff6ff; color: #2563eb; }
   .sb-hold   { background: #fffbeb; color: #d97706; }
-  .sb-review { background: #f5f3ff; color: #6d28d9; }
+  .sb-issue  { background: #fdf4ff; color: #9333ea; }
+  .sb-review { background: #fdf4ff; color: #9333ea; }
   .sb-todo   { background: #f3f4f6; color: #374151; }
 
   .progress-bar {
@@ -1438,6 +1439,7 @@
           <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#16a34a"></span>완료</span>
           <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#2563eb"></span>진행중</span>
           <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#d97706"></span>보류</span>
+          <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#9333ea"></span>이슈</span>
           <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#9ca3af;"></span>예정</span>
         </div>
       </div>
@@ -2076,7 +2078,7 @@
     wip:   { cls: 'sb-wip',    text: '진행 중' },
     hold:  { cls: 'sb-hold',   text: '보류' },
     todo:  { cls: 'sb-todo',   text: '예정' },
-    issue: { cls: 'sb-review', text: '이슈' }
+    issue: { cls: 'sb-issue',  text: '이슈' }
   };
   function statusBadge(s) {
     var m = STATUS_MAP[s] || STATUS_MAP.todo;
@@ -2892,7 +2894,7 @@
     var tasksList = document.getElementById('d-tasks-list');
     if (j.tasks && j.tasks.length > 0) {
       var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정' };
-      var STATUS_CLS  = { done: 'sb-done', wip: 'sb-wip', issue: 'sb-review', hold: 'sb-hold', todo: 'sb-todo' };
+      var STATUS_CLS  = { done: 'sb-done', wip: 'sb-wip', issue: 'sb-issue', hold: 'sb-hold', todo: 'sb-todo' };
       tasksList.innerHTML = j.tasks.map(function(t) {
         var scls = STATUS_CLS[t.status] || 'sb-todo';
         var stxt = STATUS_TEXT[t.status] || '예정';
@@ -3154,7 +3156,7 @@
     }
     var statusTitle = document.getElementById('chart-status-title');
     if (statusTitle) statusTitle.textContent = _chartMode === 'weekly' ? '이번 주 상태 분포' : '상태별 분포';
-    var statusCounts = { done: 0, wip: 0, hold: 0, todo: 0 };
+    var statusCounts = { done: 0, wip: 0, hold: 0, issue: 0, todo: 0 };
     statusData.forEach(function(j){ if (statusCounts[j.status] !== undefined) statusCounts[j.status]++; else statusCounts.todo++; });
     var total = statusData.length;
     document.getElementById('donut-total').textContent = total;
@@ -3166,10 +3168,10 @@
     _statusChart = new Chart(sCtx, {
       type: 'doughnut',
       data: {
-        labels: ['완료', '진행중', '보류', '예정'],
+        labels: ['완료', '진행중', '보류', '이슈', '예정'],
         datasets: [{
-          data: [statusCounts.done, statusCounts.wip, statusCounts.hold, statusCounts.todo],
-          backgroundColor: ['#16a34a','#2563eb','#d97706','#9ca3af'],
+          data: [statusCounts.done, statusCounts.wip, statusCounts.hold, statusCounts.issue, statusCounts.todo],
+          backgroundColor: ['#16a34a','#2563eb','#d97706','#9333ea','#9ca3af'],
           borderWidth: 0,
           hoverOffset: 4
         }]
