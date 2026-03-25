@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>업무일지 — 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
 
@@ -1084,6 +1085,81 @@
   .matrix-table td.total-col { background: #eff6ff; font-weight: 700; color: var(--accent); }
   .matrix-table tr.total-row td { background: #f0fdf4; font-weight: 700; color: #16a34a; }
 
+  /* ── Charts ── */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .chart-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px 14px;
+  }
+  .chart-card-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .chart-card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .chart-card-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .chart-legend {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  .chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .chart-legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .chart-canvas-wrap {
+    position: relative;
+    height: 190px;
+  }
+  .chart-donut-wrap {
+    height: 210px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .donut-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -60%);
+    text-align: center;
+    pointer-events: none;
+  }
+  .donut-center-num {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+  .donut-center-lbl {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
   /* ── Profile Modal ── */
   .profile-overlay {
     display: none;
@@ -1316,6 +1392,39 @@
         </div>
         <div class="stat-value" id="s-wip">0</div>
         <div class="stat-sub">미완료 일지 수</div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-row" id="charts-row">
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <span class="chart-card-title">월별 작성 추이</span>
+          <div class="chart-legend">
+            <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#2563eb"></span>작성 건수</span>
+            <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#16a34a"></span>평균 진행률(%)</span>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap"><canvas id="chart-monthly"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <span class="chart-card-title">상태별 분포</span>
+          <span class="chart-card-sub" id="chart-status-total"></span>
+        </div>
+        <div class="chart-donut-wrap" style="position:relative">
+          <canvas id="chart-status" style="max-width:180px;max-height:180px"></canvas>
+          <div class="donut-center">
+            <div class="donut-center-num" id="donut-total">0</div>
+            <div class="donut-center-lbl">전체</div>
+          </div>
+        </div>
+        <div class="chart-legend" style="justify-content:center;margin-top:10px;gap:12px">
+          <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#16a34a"></span>완료</span>
+          <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#2563eb"></span>진행중</span>
+          <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#d97706"></span>보류</span>
+          <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#9ca3af"></span>예정</span>
+        </div>
       </div>
     </div>
 
@@ -2877,11 +2986,135 @@
     }
   });
 
+  /* ── Charts ── */
+  var _monthlyChart = null;
+  var _statusChart  = null;
+
+  function renderCharts() {
+    var all = loadJournals();
+
+    // Monthly trend (last 6 months)
+    var now = new Date();
+    var months = [];
+    for (var i = 5; i >= 0; i--) {
+      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ label: (d.getMonth()+1) + '월', year: d.getFullYear(), month: d.getMonth() });
+    }
+    var monthlyCounts = months.map(function(m) {
+      return all.filter(function(j) {
+        var d = new Date(j.date || j.created_at || 0);
+        return d.getFullYear() === m.year && d.getMonth() === m.month;
+      }).length;
+    });
+    var monthlyAvgProgress = months.map(function(m) {
+      var items = all.filter(function(j) {
+        var d = new Date(j.date || j.created_at || 0);
+        return d.getFullYear() === m.year && d.getMonth() === m.month;
+      });
+      if (!items.length) return 0;
+      var sum = items.reduce(function(a,b){ return a + (Number(b.progress)||0); }, 0);
+      return Math.round(sum / items.length);
+    });
+
+    var mCtx = document.getElementById('chart-monthly');
+    if (!mCtx) return;
+    if (_monthlyChart) { _monthlyChart.destroy(); _monthlyChart = null; }
+    _monthlyChart = new Chart(mCtx, {
+      data: {
+        labels: months.map(function(m){ return m.label; }),
+        datasets: [
+          {
+            type: 'bar',
+            label: '작성 건수',
+            data: monthlyCounts,
+            backgroundColor: 'rgba(37,99,235,0.15)',
+            borderColor: '#2563eb',
+            borderWidth: 1.5,
+            borderRadius: 4,
+            yAxisID: 'y'
+          },
+          {
+            type: 'line',
+            label: '평균 진행률',
+            data: monthlyAvgProgress,
+            borderColor: '#16a34a',
+            backgroundColor: 'rgba(22,163,74,0.08)',
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: '#16a34a',
+            tension: 0.35,
+            fill: true,
+            yAxisID: 'y2'
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#9ca3af' } },
+          y: {
+            position: 'left', beginAtZero: true,
+            grid: { color: '#f3f4f6' },
+            ticks: { font: { size: 10 }, color: '#9ca3af', stepSize: 1,
+              callback: function(v){ return Number.isInteger(v) ? v : ''; } }
+          },
+          y2: {
+            position: 'right', beginAtZero: true, max: 100,
+            grid: { display: false },
+            ticks: { font: { size: 10 }, color: '#9ca3af',
+              callback: function(v){ return v + '%'; } }
+          }
+        }
+      }
+    });
+
+    // Status donut
+    var counts = { done: 0, wip: 0, hold: 0, todo: 0 };
+    all.forEach(function(j){ if (counts[j.status] !== undefined) counts[j.status]++; else counts.todo++; });
+    var total = all.length;
+    document.getElementById('donut-total').textContent = total;
+    document.getElementById('chart-status-total').textContent = '총 ' + total + '건';
+
+    var sCtx = document.getElementById('chart-status');
+    if (!sCtx) return;
+    if (_statusChart) { _statusChart.destroy(); _statusChart = null; }
+    _statusChart = new Chart(sCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['완료', '진행중', '보류', '예정'],
+        datasets: [{
+          data: [counts.done, counts.wip, counts.hold, counts.todo],
+          backgroundColor: ['#16a34a','#2563eb','#d97706','#e5e7eb'],
+          borderWidth: 0,
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                var v = ctx.parsed;
+                var pct = total > 0 ? Math.round(v/total*100) : 0;
+                return ' ' + ctx.label + ': ' + v + '건 (' + pct + '%)';
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
   /* ── Init ── */
   (async function() {
     await sbFetch();
     await seedIfEmpty();
     renderList();
+    renderCharts();
     if (_isAdmin) {
       var adminSb = document.getElementById('admin-sidebar-section');
       if (adminSb) adminSb.style.display = '';
