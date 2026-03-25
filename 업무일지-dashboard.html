@@ -12,12 +12,12 @@
   :root {
     --accent: #2563eb;
     --accent-light: #eff6ff;
-    --sidebar-w: 240px;
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --text-muted: #94a3b8;
-    --border: #e2e8f0;
-    --bg: #f8fafc;
+    --sidebar-w: 220px;
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --text-muted: #9ca3af;
+    --border: #e5e7eb;
+    --bg: #f9fafb;
     --bg-card: #fff;
     --green: #16a34a;
     --orange: #ea580c;
@@ -38,9 +38,8 @@
   /* ── Sidebar ── */
   .sidebar {
     width: var(--sidebar-w);
-    background: #fff;
-    border-right: none;
-    box-shadow: 1px 0 0 var(--border), 4px 0 16px rgba(0,0,0,0.04);
+    background: #f9fafb;
+    border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -50,28 +49,28 @@
   }
 
   .sidebar-logo {
-    padding: 22px 16px 16px;
+    padding: 18px 14px 14px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 9px;
     border-bottom: 1px solid var(--border);
     cursor: default;
   }
   .sidebar-logo-icon {
-    width: 30px; height: 30px;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
-    border-radius: 8px;
+    width: 28px; height: 28px;
+    background: #111827;
+    border-radius: 7px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 800; color: #fff;
+    font-size: 11px; font-weight: 800; color: #fff;
     flex-shrink: 0;
-    letter-spacing: -1px;
-    box-shadow: 0 2px 8px rgba(37,99,235,0.35);
+    letter-spacing: -0.5px;
   }
   .sidebar-logo-text {
-    font-size: 13.5px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--text-primary);
     line-height: 1.2;
+    letter-spacing: -0.2px;
   }
   .sidebar-logo-sub {
     font-size: 10px;
@@ -80,35 +79,36 @@
   }
 
   .sidebar-section {
-    padding: 14px 10px 6px;
+    padding: 12px 8px 4px;
   }
   .sidebar-section-label {
     font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1.2px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
     text-transform: uppercase;
     color: var(--text-muted);
-    padding: 0 6px;
-    margin-bottom: 4px;
+    padding: 0 8px;
+    margin-bottom: 2px;
   }
   .sidebar-item {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 7px 8px 7px 10px;
-    border-radius: 7px;
+    padding: 6px 8px;
+    border-radius: 6px;
     font-size: 13px;
     font-weight: 500;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.12s;
+    transition: all 0.1s;
     text-decoration: none;
     user-select: none;
-    border-left: 2px solid transparent;
   }
-  .sidebar-item:hover { background: #f1f5f9; color: var(--text-primary); }
-  .sidebar-item.active { background: var(--accent-light); color: var(--accent); font-weight: 600; border-left-color: var(--accent); }
-  .sidebar-item-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+  .sidebar-item:hover { background: #f0f0f0; color: var(--text-primary); }
+  .sidebar-item.active { background: #e8effe; color: var(--accent); font-weight: 600; }
+  .sidebar-item-icon { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; opacity: 0.55; transition: opacity 0.12s; }
+  .sidebar-item:hover .sidebar-item-icon { opacity: 0.8; }
+  .sidebar-item.active .sidebar-item-icon { opacity: 1; }
   .sidebar-item-count {
     margin-left: auto;
     font-size: 11px;
@@ -131,7 +131,7 @@
 
   .sidebar-footer {
     margin-top: auto;
-    padding: 12px 10px;
+    padding: 10px 8px;
     border-top: 1px solid var(--border);
   }
   .sidebar-user {
@@ -141,17 +141,16 @@
     padding: 7px 8px;
     border-radius: 6px;
     cursor: pointer;
-    transition: background 0.12s;
+    transition: background 0.1s;
   }
-  .sidebar-user:hover { background: #f1f5f9; }
+  .sidebar-user:hover { background: #f0f0f0; }
   .sidebar-avatar {
-    width: 30px; height: 30px;
-    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    width: 28px; height: 28px;
+    background: #374151;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 700; color: #fff;
+    font-size: 11px; font-weight: 700; color: #fff;
     flex-shrink: 0;
-    box-shadow: 0 2px 6px rgba(124,58,237,0.3);
   }
   .sidebar-user-info {}
   .sidebar-user-name { font-size: 12px; font-weight: 600; color: var(--text-primary); }
@@ -187,13 +186,12 @@
   /* Top bar — height matches sidebar logo section (padding 22+16 + 30px icon = 68px + 1px border) */
   .topbar {
     background: #fff;
-    border-bottom: none;
-    box-shadow: 0 1px 0 var(--border), 0 2px 10px rgba(0,0,0,0.04);
-    padding: 0 28px;
-    height: 69px;
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 57px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     flex-shrink: 0;
     z-index: 5;
   }
@@ -237,30 +235,29 @@
   .search-input::placeholder { color: var(--text-muted); }
 
   .btn {
-    border-radius: 8px;
-    padding: 7px 16px;
+    border-radius: 7px;
+    padding: 6px 14px;
     font-size: 13px;
     font-family: inherit;
     cursor: pointer;
     font-weight: 500;
-    transition: all 0.15s;
-    border: 1.5px solid var(--border);
+    transition: all 0.12s;
+    border: 1px solid var(--border);
     background: #fff;
     color: var(--text-secondary);
     display: flex;
     align-items: center;
     gap: 6px;
-    letter-spacing: 0.1px;
   }
-  .btn:hover { background: var(--bg); border-color: #cbd5e1; color: var(--text-primary); }
-  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
-  .btn-primary:hover { background: #1d4ed8; border-color: #1d4ed8; box-shadow: 0 4px 14px rgba(37,99,235,0.35); }
+  .btn:hover { background: var(--bg); border-color: #d1d5db; color: var(--text-primary); }
+  .btn-primary { background: #111827; color: #fff; border-color: #111827; }
+  .btn-primary:hover { background: #1f2937; border-color: #1f2937; }
 
   /* Content */
   .content {
     flex: 1;
     overflow-y: auto;
-    padding: 28px;
+    padding: 24px 28px;
   }
 
   /* Stats Row */
@@ -272,15 +269,13 @@
   }
   .stat-card {
     background: var(--bg-card);
-    border: 1px solid #eaeff5;
-    border-radius: 12px;
-    padding: 18px 20px 16px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 14px rgba(0,0,0,0.05);
-    transition: box-shadow 0.2s, transform 0.2s;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    transition: box-shadow 0.15s;
   }
   .stat-card:hover {
-    box-shadow: 0 2px 6px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.07);
-    transform: translateY(-1px);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
   }
   .stat-card-top {
     display: flex;
@@ -289,9 +284,16 @@
     margin-bottom: 12px;
   }
   .stat-label { font-size: 11.5px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.4px; text-transform: uppercase; }
-  .stat-icon { font-size: 16px; }
-  .stat-value { font-size: 30px; font-weight: 700; color: var(--text-primary); line-height: 1; letter-spacing: -0.5px; }
-  .stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
+  .stat-icon-box {
+    width: 36px; height: 36px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .stat-icon-box.blue   { background: #eff6ff; color: #2563eb; }
+  .stat-icon-box.indigo { background: #eef2ff; color: #4338ca; }
+  .stat-icon-box.green  { background: #f0fdf4; color: #16a34a; }
+  .stat-icon-box.amber  { background: #fffbeb; color: #d97706; }
+  .stat-value { font-size: 26px; font-weight: 700; color: var(--text-primary); line-height: 1; letter-spacing: -0.5px; }
+  .stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
   .stat-delta { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; }
   .delta-up { color: var(--green); }
   .delta-dn { color: var(--red); }
@@ -367,18 +369,17 @@
   /* ── Table View ── */
   .journal-table {
     background: var(--bg-card);
-    border: 1px solid #eaeff5;
-    border-radius: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 14px rgba(0,0,0,0.05);
   }
   .table-header {
     display: grid;
     grid-template-columns: 28px 1fr 110px 110px 90px 90px 100px 96px;
     gap: 0;
-    padding: 10px 18px;
-    background: #f8fafc;
-    border-bottom: 1px solid #eaeff5;
+    padding: 9px 16px;
+    background: #f9fafb;
+    border-bottom: 1px solid var(--border);
   }
   .th {
     font-size: 10.5px;
@@ -400,15 +401,15 @@
     display: grid;
     grid-template-columns: 28px 1fr 110px 110px 90px 90px 100px 96px;
     gap: 0;
-    padding: 10px 18px;
-    border-bottom: 1px solid #f1f5f9;
-    transition: background 0.12s;
+    padding: 10px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.1s;
     cursor: default;
-    min-height: 60px;
+    min-height: 56px;
     align-items: center;
   }
   .table-row:last-child { border-bottom: none; }
-  .table-row:hover { background: #f5f8ff; }
+  .table-row:hover { background: #f8faff; }
   .table-row.pinned { background: #fffbeb; }
   .table-row.pinned:hover { background: #fef9c3; }
 
@@ -452,9 +453,9 @@
     gap: 6px;
   }
   .mini-avatar {
-    width: 20px; height: 20px;
+    width: 22px; height: 22px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    background: #374151;
     display: flex; align-items: center; justify-content: center;
     font-size: 9px; font-weight: 700; color: #fff;
     flex-shrink: 0;
@@ -464,18 +465,16 @@
   .status-badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
     font-size: 11px;
-    font-weight: 700;
-    padding: 3px 10px;
-    border-radius: 20px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
     white-space: nowrap;
-    letter-spacing: 0.2px;
   }
-  .sb-done   { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-  .sb-wip    { background: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
-  .sb-review { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
-  .sb-todo   { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
+  .sb-done   { background: #f0fdf4; color: #15803d; }
+  .sb-wip    { background: #fff7ed; color: #c2410c; }
+  .sb-review { background: #f5f3ff; color: #6d28d9; }
+  .sb-todo   { background: #f0f9ff; color: #0369a1; }
 
   .progress-bar {
     height: 5px;
@@ -1097,22 +1096,22 @@
   <div class="sidebar-section">
     <div class="sidebar-section-label">메인</div>
     <div class="sidebar-item active" onclick="setFilter('all')">
-      <span class="sidebar-item-icon">📋</span>
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
       전체 일지
       <span class="sidebar-item-count" id="cnt-all">0</span>
     </div>
     <div class="sidebar-item" onclick="setFilter('pinned')">
-      <span class="sidebar-item-icon">📌</span>
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
       즐겨찾기
       <span class="sidebar-item-count" id="cnt-pinned">0</span>
     </div>
     <div class="sidebar-item" onclick="setFilter('today')">
-      <span class="sidebar-item-icon">📅</span>
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
       오늘
       <span class="sidebar-item-count" id="cnt-today">0</span>
     </div>
     <div class="sidebar-item" onclick="setFilter('week')">
-      <span class="sidebar-item-icon">📆</span>
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="8" cy="14" r="0.5" fill="currentColor"/><circle cx="12" cy="14" r="0.5" fill="currentColor"/><circle cx="16" cy="14" r="0.5" fill="currentColor"/></svg></span>
       이번 주
       <span class="sidebar-item-count" id="cnt-week">0</span>
     </div>
@@ -1123,12 +1122,12 @@
   <div class="sidebar-section">
     <div class="sidebar-section-label">상태</div>
     <div class="sidebar-item" onclick="setFilter('done')">
-      <span class="sidebar-item-icon">✅</span>
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
       완료
       <span class="sidebar-item-count" id="cnt-done">0</span>
     </div>
     <div class="sidebar-item" onclick="setFilter('wip')">
-      <span class="sidebar-item-icon">🔄</span>
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
       진행 중
       <span class="sidebar-item-count" id="cnt-wip">0</span>
     </div>
@@ -1139,7 +1138,7 @@
   <div class="sidebar-section">
     <div class="sidebar-section-label">바로가기</div>
     <div class="sidebar-item" onclick="openWordTemplate()">
-      <span class="sidebar-item-icon">📝</span>
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
       워드 템플릿 열기
     </div>
   </div>
@@ -1150,11 +1149,11 @@
     <div class="sidebar-section">
       <div class="sidebar-section-label">관리자</div>
       <div class="sidebar-item" id="sidebar-emp-btn" onclick="toggleEmpPanel()">
-        <span class="sidebar-item-icon">👥</span>
+        <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
         직원별 현황
       </div>
       <div class="sidebar-item" onclick="showMonthlyReport()">
-        <span class="sidebar-item-icon">📊</span>
+        <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></span>
         월별 팀 리포트
       </div>
     </div>
@@ -1168,7 +1167,7 @@
         <div class="sidebar-user-role" id="sb-user-role">미디어큐브</div>
       </div>
     </div>
-    <button class="sidebar-logout-btn" onclick="logout()">🚪 로그아웃</button>
+    <button class="sidebar-logout-btn" onclick="logout()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> 로그아웃</button>
   </div>
 </aside>
 
@@ -1181,7 +1180,7 @@
       <div class="topbar-title">업무일지 대시보드</div>
     </div>
     <div class="search-box">
-      <span class="search-icon">🔍</span>
+      <span class="search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
       <input class="search-input" id="search-input" type="text" placeholder="일지 검색..." oninput="renderList()">
     </div>
     <button class="btn btn-primary" onclick="window.location.href='업무일지-word.html'">+ 새 일지 작성</button>
@@ -1195,7 +1194,7 @@
       <div class="stat-card">
         <div class="stat-card-top">
           <span class="stat-label">전체 일지</span>
-          <span class="stat-icon">📋</span>
+          <span class="stat-icon-box blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
         </div>
         <div class="stat-value" id="s-total">0</div>
         <div class="stat-sub">누적 작성 건수</div>
@@ -1203,7 +1202,7 @@
       <div class="stat-card">
         <div class="stat-card-top">
           <span class="stat-label">이번 주</span>
-          <span class="stat-icon">📆</span>
+          <span class="stat-icon-box indigo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
         </div>
         <div class="stat-value" id="s-week">0</div>
         <div class="stat-sub">주간 작성 건수</div>
@@ -1211,7 +1210,7 @@
       <div class="stat-card">
         <div class="stat-card-top">
           <span class="stat-label">평균 진행률</span>
-          <span class="stat-icon">📊</span>
+          <span class="stat-icon-box green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></span>
         </div>
         <div class="stat-value" id="s-done-rate">0%</div>
         <div class="stat-sub">전체 일지 평균 진행률</div>
@@ -1219,7 +1218,7 @@
       <div class="stat-card">
         <div class="stat-card-top">
           <span class="stat-label">진행 중</span>
-          <span class="stat-icon">🔄</span>
+          <span class="stat-icon-box amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
         </div>
         <div class="stat-value" id="s-wip">0</div>
         <div class="stat-sub">미완료 일지 수</div>
@@ -1258,20 +1257,19 @@
         <option value="date-asc">오래된순</option>
         <option value="progress">진행률순</option>
       </select>
-      <button class="btn-range" id="btn-range" onclick="toggleDateRangePanel()">📅 기간 조회</button>
+      <button class="btn-range" id="btn-range" onclick="toggleDateRangePanel()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 기간 조회</button>
       <div class="view-toggle">
-        <button class="view-btn active" id="btn-table" onclick="setView('table')" title="테이블">☰</button>
-        <button class="view-btn" id="btn-grid" onclick="setView('grid')" title="카드">⊞</button>
+        <button class="view-btn active" id="btn-table" onclick="setView('table')" title="테이블"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+        <button class="view-btn" id="btn-grid" onclick="setView('grid')" title="카드"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></button>
       </div>
     </div>
 
     <!-- Bulk Action Bar -->
     <div class="bulk-bar" id="bulk-bar">
       <span class="bulk-count" id="bulk-count">0개 선택됨</span>
-      <button class="btn-bulk del" onclick="bulkDelete()">🗑 선택한 항목 삭제</button>
-      <button class="btn-bulk" onclick="bulkPrint()">🖨 선택한 항목 출력</button>
-
-      <button class="btn-bulk" onclick="bulkExportExcel()">📊 엑셀로 추출</button>
+      <button class="btn-bulk del" onclick="bulkDelete()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> 선택한 항목 삭제</button>
+      <button class="btn-bulk" onclick="bulkPrint()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> 선택한 항목 출력</button>
+      <button class="btn-bulk" onclick="bulkExportExcel()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg> 엑셀로 추출</button>
       <button class="btn-bulk btn-bulk-clear" onclick="clearSelection()">× 선택 해제</button>
     </div>
 
@@ -1297,7 +1295,7 @@
     <!-- Date Range Panel -->
     <div class="date-range-panel" id="date-range-panel" style="display:none">
       <div class="drp-top">
-        <span class="drp-label">📅 기간으로 조회</span>
+        <span class="drp-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 기간으로 조회</span>
         <button class="drp-close" onclick="toggleDateRangePanel()">×</button>
       </div>
       <div class="drp-presets">
@@ -2032,7 +2030,7 @@
   function renderTable(data) {
     var tbody = document.getElementById('table-body');
     if (data.length === 0) {
-      tbody.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">일지가 없습니다</div><div class="empty-sub">새 일지를 작성해보세요.</div></div>';
+      tbody.innerHTML = '<div class="empty-state"><div class="empty-icon" style="color:#cbd5e1"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div><div class="empty-title">일지가 없습니다</div><div class="empty-sub">새 일지를 작성해보세요.</div></div>';
       return;
     }
     tbody.innerHTML = data.map(function(j) {
@@ -2041,7 +2039,7 @@
       return '<div class="table-row'+(j.pinned?' pinned':'')+'">'
         + '<div class="td td-checkbox"><input type="checkbox" '+(isSelected?'checked':'')+' onchange="toggleSelect(\''+j.id+'\',this)"></div>'
         + '<div class="td td-title">'
-          + (j.pinned ? '<span class="td-title-pin">📌</span>' : '')
+          + (j.pinned ? '<span class="td-title-pin"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24ZM12 17v4"/></svg></span>' : '')
           + '<div><div class="td-title-text" onclick="openDetail(\''+j.id+'\',event)">'+splitTitleDate(j.title)+'</div>'
           + '<div class="td-title-sub">'+(j.type||'—')+'</div></div></div>'
         + '<div class="td td-date">'+fmtDate(j.date)+'</div>'
@@ -2050,9 +2048,9 @@
         + '<div class="td"><div style="font-size:11px;color:var(--text-muted);margin-bottom:3px">'+pct+'%</div><div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div></div>'
         + '<div class="td"><span style="font-size:12px;color:var(--text-muted)">'+(j.type||'—')+'</span></div>'
         + '<div class="td td-actions">'
-          + '<button class="action-btn" onclick="togglePin(\''+j.id+'\')" title="고정">📌</button>'
-          + '<button class="action-btn" onclick="editJournal(\''+j.id+'\')" title="수정">✏️</button>'
-          + '<button class="action-btn del" onclick="deleteJournal(\''+j.id+'\')" title="삭제">🗑</button>'
+          + '<button class="action-btn" onclick="togglePin(\''+j.id+'\')" title="고정"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg></button>'
+          + '<button class="action-btn" onclick="editJournal(\''+j.id+'\')" title="수정"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'
+          + '<button class="action-btn del" onclick="deleteJournal(\''+j.id+'\')" title="삭제"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>'
         + '</div>'
         + '</div>';
     }).join('');
@@ -2062,18 +2060,18 @@
   function renderGrid(data) {
     var container = document.getElementById('card-body');
     if (data.length === 0) {
-      container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📭</div><div class="empty-title">일지가 없습니다</div><div class="empty-sub">새 일지를 작성해보세요.</div></div>';
+      container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon" style="color:#cbd5e1"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div><div class="empty-title">일지가 없습니다</div><div class="empty-sub">새 일지를 작성해보세요.</div></div>';
       return;
     }
     container.innerHTML = data.map(function(j) {
       var pct = Math.min(100, Math.max(0, j.progress||0));
       return '<div class="journal-card'+(j.pinned?' pinned':'')+'" onclick="openDetail(\''+j.id+'\',event)">'
         + '<div class="jcard-actions">'
-          + '<button class="action-btn" onclick="event.stopPropagation();togglePin(\''+j.id+'\')" title="고정">📌</button>'
-          + '<button class="action-btn" onclick="event.stopPropagation();editJournal(\''+j.id+'\')" title="수정">✏️</button>'
-          + '<button class="action-btn del" onclick="event.stopPropagation();deleteJournal(\''+j.id+'\')" title="삭제">🗑</button>'
+          + '<button class="action-btn" onclick="event.stopPropagation();togglePin(\''+j.id+'\')" title="고정"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg></button>'
+          + '<button class="action-btn" onclick="event.stopPropagation();editJournal(\''+j.id+'\')" title="수정"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'
+          + '<button class="action-btn del" onclick="event.stopPropagation();deleteJournal(\''+j.id+'\')" title="삭제"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>'
         + '</div>'
-        + '<div class="jcard-top"><span class="jcard-date">'+fmtDate(j.date)+'</span>'+(j.pinned?'<span class="jcard-pin">📌</span>':'')+'</div>'
+        + '<div class="jcard-top"><span class="jcard-date">'+fmtDate(j.date)+'</span>'+(j.pinned?'<span class="jcard-pin" style="color:var(--yellow)"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg></span>':'')+'</div>'
         + '<div class="jcard-title">'+(j.title||'무제')+'</div>'
         + '<div class="jcard-project">'+(j.project||'프로젝트 없음')+'</div>'
         + '<div class="jcard-meta">'
