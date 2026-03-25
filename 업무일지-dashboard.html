@@ -487,10 +487,11 @@
     border-radius: 4px;
     white-space: nowrap;
   }
-  .sb-done   { background: #f0fdf4; color: #15803d; }
-  .sb-wip    { background: #fff7ed; color: #c2410c; }
+  .sb-done   { background: #f0fdf4; color: #16a34a; }
+  .sb-wip    { background: #eff6ff; color: #2563eb; }
+  .sb-hold   { background: #fffbeb; color: #d97706; }
   .sb-review { background: #f5f3ff; color: #6d28d9; }
-  .sb-todo   { background: #f0f9ff; color: #0369a1; }
+  .sb-todo   { background: #f9fafb; color: #6b7280; }
 
   .progress-bar {
     height: 5px;
@@ -2073,8 +2074,8 @@
   var STATUS_MAP = {
     done:  { cls: 'sb-done',   text: '완료' },
     wip:   { cls: 'sb-wip',    text: '진행 중' },
+    hold:  { cls: 'sb-hold',   text: '보류' },
     todo:  { cls: 'sb-todo',   text: '예정' },
-    hold:  { cls: 'sb-review', text: '보류' },
     issue: { cls: 'sb-review', text: '이슈' }
   };
   function statusBadge(s) {
@@ -2888,7 +2889,7 @@
     var tasksList = document.getElementById('d-tasks-list');
     if (j.tasks && j.tasks.length > 0) {
       var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정' };
-      var STATUS_CLS  = { done: 'sb-done', wip: 'sb-wip', issue: 'sb-review', hold: 'sb-review', todo: 'sb-todo' };
+      var STATUS_CLS  = { done: 'sb-done', wip: 'sb-wip', issue: 'sb-review', hold: 'sb-hold', todo: 'sb-todo' };
       tasksList.innerHTML = j.tasks.map(function(t) {
         var scls = STATUS_CLS[t.status] || 'sb-todo';
         var stxt = STATUS_TEXT[t.status] || '예정';
