@@ -1176,6 +1176,82 @@
     margin-top: 2px;
   }
 
+  /* ── Onboarding ── */
+  @keyframes onboard-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)    scale(1); }
+  }
+  @keyframes arrow-bounce {
+    0%, 100% { transform: translateX(0); }
+    50%       { transform: translateX(10px); }
+  }
+  .onboard-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    z-index: 2000;
+    pointer-events: none;
+  }
+  .onboard-overlay.show {
+    display: block;
+    pointer-events: auto;
+  }
+  .onboard-card {
+    position: absolute;
+    top: 60px;
+    right: 20px;
+    width: 310px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 20px 20px 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.07);
+    display: flex;
+    gap: 14px;
+    animation: onboard-in 0.3s cubic-bezier(.22,.61,.36,1) forwards;
+  }
+  .onboard-icon {
+    width: 44px; height: 44px;
+    background: #f0f9ff;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: #2563eb;
+    flex-shrink: 0;
+  }
+  .onboard-body { flex: 1; padding-top: 2px; }
+  .onboard-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 5px;
+    letter-spacing: -0.2px;
+  }
+  .onboard-desc {
+    font-size: 12.5px;
+    color: #6b7280;
+    line-height: 1.6;
+  }
+  .onboard-desc strong { color: #111827; }
+  .onboard-close {
+    position: absolute;
+    top: 12px; right: 12px;
+    width: 24px; height: 24px;
+    border: none; background: none;
+    cursor: pointer;
+    color: #9ca3af;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    transition: background 0.1s, color 0.1s;
+  }
+  .onboard-close:hover { background: #f3f4f6; color: #374151; }
+  .onboard-arrow-wrap {
+    position: absolute;
+    top: -36px;
+    right: 60px;
+    width: 60px; height: 40px;
+    animation: arrow-bounce 1.2s ease-in-out infinite;
+  }
+  .onboard-arrow { width: 100%; height: 100%; }
+
   /* ── Profile Modal ── */
   .profile-overlay {
     display: none;
@@ -1740,6 +1816,28 @@
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+
+<!-- Onboarding -->
+<div class="onboard-overlay" id="onboard-overlay" onclick="closeOnboard()">
+  <div class="onboard-card" onclick="event.stopPropagation()">
+    <div class="onboard-icon">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+    </div>
+    <div class="onboard-body">
+      <div class="onboard-title">첫 업무일지를 작성해보세요!</div>
+      <div class="onboard-desc">오른쪽 상단의 <strong>+ 새 일지 작성</strong> 버튼을 눌러<br>오늘의 업무를 기록해보세요.</div>
+    </div>
+    <button class="onboard-close" onclick="closeOnboard()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="onboard-arrow-wrap">
+      <svg class="onboard-arrow" viewBox="0 0 60 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 20 Q20 4 52 8" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" fill="none" stroke-dasharray="none"/>
+        <polyline points="44,2 54,8 46,16" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </div>
+  </div>
+</div>
 
 <script>
   /* ── Auth Guard ── */
@@ -3206,7 +3304,25 @@
       var adminSb = document.getElementById('admin-sidebar-section');
       if (adminSb) adminSb.style.display = '';
     }
+    // 온보딩: 해당 계정으로 처음 방문 시 표시
+    var onboardKey = 'mc_onboarded_' + (_currentUsername || 'guest');
+    if (!localStorage.getItem(onboardKey) && journalCache.length === 0) {
+      setTimeout(function() {
+        var el = document.getElementById('onboard-overlay');
+        if (el) el.classList.add('show');
+      }, 600);
+    }
   })();
+
+  function closeOnboard() {
+    var el = document.getElementById('onboard-overlay');
+    if (!el) return;
+    el.style.transition = 'opacity 0.2s';
+    el.style.opacity = '0';
+    setTimeout(function() { el.classList.remove('show'); el.style.opacity = ''; el.style.transition = ''; }, 200);
+    var onboardKey = 'mc_onboarded_' + (_currentUsername || 'guest');
+    localStorage.setItem(onboardKey, '1');
+  }
 </script>
 </body>
 </html>
