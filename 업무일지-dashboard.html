@@ -280,6 +280,18 @@
   .stat-card:hover {
     box-shadow: 0 2px 10px rgba(0,0,0,0.06);
   }
+  .stat-card-link {
+    cursor: pointer;
+    transition: box-shadow 0.15s, border-color 0.15s;
+  }
+  .stat-card-link:hover {
+    border-color: #93c5fd;
+    box-shadow: 0 2px 10px rgba(37,99,235,0.10);
+  }
+  .stat-card-link.chart-active {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+  }
   .stat-card-top {
     display: flex;
     align-items: center;
@@ -1363,7 +1375,7 @@
 
     <!-- Stats -->
     <div class="stats-row" id="stats-row">
-      <div class="stat-card">
+      <div class="stat-card stat-card-link" id="sc-total" onclick="setChartMode('monthly')" title="월별 추이 보기">
         <div class="stat-card-top">
           <span class="stat-label">전체 일지</span>
           <span class="stat-icon-box blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
@@ -1371,7 +1383,7 @@
         <div class="stat-value" id="s-total">0</div>
         <div class="stat-sub">누적 작성 건수</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card stat-card-link" id="sc-week" onclick="setChartMode('weekly')" title="이번 주 추이 보기">
         <div class="stat-card-top">
           <span class="stat-label">이번 주</span>
           <span class="stat-icon-box indigo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
@@ -1401,7 +1413,7 @@
     <div class="charts-row" id="charts-row">
       <div class="chart-card">
         <div class="chart-card-header">
-          <span class="chart-card-title">월별 작성 추이</span>
+          <span class="chart-card-title" id="chart-trend-title">월별 작성 추이</span>
           <div class="chart-legend">
             <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#2563eb"></span>작성 건수</span>
             <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#16a34a"></span>평균 진행률(%)</span>
@@ -2997,44 +3009,77 @@
   /* ── Charts ── */
   var _monthlyChart = null;
   var _statusChart  = null;
+  var _chartMode    = 'monthly';
+
+  function setChartMode(mode) {
+    _chartMode = mode;
+    document.getElementById('sc-total').classList.toggle('chart-active', mode === 'monthly');
+    document.getElementById('sc-week').classList.toggle('chart-active',  mode === 'weekly');
+    renderCharts();
+  }
 
   function renderCharts() {
     var all = loadJournals();
+    var labels, counts, avgProgress, titleText;
 
-    // Monthly trend (last 6 months)
-    var now = new Date();
-    var months = [];
-    for (var i = 5; i >= 0; i--) {
-      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push({ label: (d.getMonth()+1) + '월', year: d.getFullYear(), month: d.getMonth() });
-    }
-    var monthlyCounts = months.map(function(m) {
-      return all.filter(function(j) {
-        var d = new Date(j.date || j.created_at || 0);
-        return d.getFullYear() === m.year && d.getMonth() === m.month;
-      }).length;
-    });
-    var monthlyAvgProgress = months.map(function(m) {
-      var items = all.filter(function(j) {
-        var d = new Date(j.date || j.created_at || 0);
-        return d.getFullYear() === m.year && d.getMonth() === m.month;
+    if (_chartMode === 'weekly') {
+      // 이번 주 월~일 7일
+      titleText = '이번 주 작성 추이';
+      var now = new Date();
+      var dow = now.getDay(); // 0=일
+      var monday = new Date(now); monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1)); monday.setHours(0,0,0,0);
+      var dayNames = ['월','화','수','목','금','토','일'];
+      labels = []; counts = []; avgProgress = [];
+      for (var i = 0; i < 7; i++) {
+        var day = new Date(monday); day.setDate(monday.getDate() + i);
+        labels.push(dayNames[i]);
+        var items = all.filter(function(j) {
+          var d = new Date(j.date || j.created_at || 0);
+          return d.getFullYear() === day.getFullYear() && d.getMonth() === day.getMonth() && d.getDate() === day.getDate();
+        });
+        counts.push(items.length);
+        avgProgress.push(items.length ? Math.round(items.reduce(function(a,b){ return a+(Number(b.progress)||0); },0)/items.length) : 0);
+      }
+    } else {
+      // 최근 6개월
+      titleText = '월별 작성 추이';
+      var now = new Date();
+      var months = [];
+      for (var i = 5; i >= 0; i--) {
+        var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        months.push({ label: (d.getMonth()+1) + '월', year: d.getFullYear(), month: d.getMonth() });
+      }
+      labels = months.map(function(m){ return m.label; });
+      counts = months.map(function(m) {
+        return all.filter(function(j) {
+          var d = new Date(j.date || j.created_at || 0);
+          return d.getFullYear() === m.year && d.getMonth() === m.month;
+        }).length;
       });
-      if (!items.length) return 0;
-      var sum = items.reduce(function(a,b){ return a + (Number(b.progress)||0); }, 0);
-      return Math.round(sum / items.length);
-    });
+      avgProgress = months.map(function(m) {
+        var items = all.filter(function(j) {
+          var d = new Date(j.date || j.created_at || 0);
+          return d.getFullYear() === m.year && d.getMonth() === m.month;
+        });
+        if (!items.length) return 0;
+        return Math.round(items.reduce(function(a,b){ return a+(Number(b.progress)||0); },0)/items.length);
+      });
+    }
+
+    var titleEl = document.getElementById('chart-trend-title');
+    if (titleEl) titleEl.textContent = titleText;
 
     var mCtx = document.getElementById('chart-monthly');
     if (!mCtx) return;
     if (_monthlyChart) { _monthlyChart.destroy(); _monthlyChart = null; }
     _monthlyChart = new Chart(mCtx, {
       data: {
-        labels: months.map(function(m){ return m.label; }),
+        labels: labels,
         datasets: [
           {
             type: 'bar',
             label: '작성 건수',
-            data: monthlyCounts,
+            data: counts,
             backgroundColor: 'rgba(37,99,235,0.15)',
             borderColor: '#2563eb',
             borderWidth: 1.5,
@@ -3044,7 +3089,7 @@
           {
             type: 'line',
             label: '평균 진행률',
-            data: monthlyAvgProgress,
+            data: avgProgress,
             borderColor: '#16a34a',
             backgroundColor: 'rgba(22,163,74,0.08)',
             borderWidth: 2,
@@ -3122,6 +3167,7 @@
     await sbFetch();
     await seedIfEmpty();
     renderList();
+    document.getElementById('sc-total').classList.add('chart-active');
     renderCharts();
     if (_isAdmin) {
       var adminSb = document.getElementById('admin-sidebar-section');
