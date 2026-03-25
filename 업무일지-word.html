@@ -1031,12 +1031,13 @@
 
     // 업무 상태 자동 감지 (태스크 배지 기준)
     var badges = document.querySelectorAll('.task-status');
-    var hasWip = false, hasTodo = false, hasAny = badges.length > 0;
+    var hasWip = false, hasTodo = false, hasHold = false, hasAny = badges.length > 0;
     badges.forEach(function(b) {
       if (b.classList.contains('status-wip'))  hasWip  = true;
       if (b.classList.contains('status-todo')) hasTodo = true;
+      if (b.classList.contains('status-hold')) hasHold = true;
     });
-    var status = hasWip ? 'wip' : (hasTodo ? 'todo' : (hasAny ? 'done' : 'wip'));
+    var status = hasWip ? 'wip' : (hasTodo ? 'todo' : (hasHold ? 'hold' : (hasAny ? 'done' : 'wip')));
 
     // 각 섹션 textarea 수집
     var textareas = document.querySelectorAll('.doc-textarea');
