@@ -1083,6 +1083,96 @@
   .matrix-table td.zero { color: #cbd5e1; font-weight: 400; }
   .matrix-table td.total-col { background: #eff6ff; font-weight: 700; color: var(--accent); }
   .matrix-table tr.total-row td { background: #f0fdf4; font-weight: 700; color: #16a34a; }
+
+  /* ── Profile Modal ── */
+  .profile-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,0.35);
+    z-index: 500;
+    align-items: flex-end;
+    justify-content: flex-start;
+    backdrop-filter: blur(2px);
+  }
+  .profile-overlay.show { display: flex; }
+  .profile-modal {
+    background: #fff;
+    border-radius: 16px;
+    width: 260px;
+    margin: 0 0 80px 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08);
+    overflow: hidden;
+    animation: profile-in 0.18s cubic-bezier(.22,.61,.36,1);
+  }
+  @keyframes profile-in {
+    from { opacity: 0; transform: translateY(10px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .profile-cover {
+    height: 64px;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    position: relative;
+  }
+  .profile-avatar-wrap {
+    position: absolute;
+    bottom: -28px; left: 20px;
+  }
+  .profile-avatar-lg {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    background: #374151;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 700; color: #fff;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .profile-avatar-lg img { width: 100%; height: 100%; object-fit: cover; }
+  .profile-close {
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 26px; height: 26px;
+    border: none; background: rgba(255,255,255,0.15);
+    border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; transition: background 0.12s;
+  }
+  .profile-close:hover { background: rgba(255,255,255,0.3); }
+  .profile-body {
+    padding: 38px 20px 20px;
+  }
+  .profile-name {
+    font-size: 16px; font-weight: 700;
+    color: var(--text-primary); margin-bottom: 2px;
+  }
+  .profile-dept {
+    font-size: 12px; color: var(--text-muted); margin-bottom: 16px;
+  }
+  .profile-divider { height: 1px; background: var(--border); margin-bottom: 14px; }
+  .profile-info-row {
+    display: flex; align-items: center;
+    gap: 10px; margin-bottom: 10px;
+  }
+  .profile-info-row:last-child { margin-bottom: 0; }
+  .profile-info-icon {
+    width: 28px; height: 28px;
+    border-radius: 7px; background: var(--bg-subtle, #f9fafb);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); flex-shrink: 0;
+  }
+  .profile-info-lbl { font-size: 10px; color: var(--text-muted); margin-bottom: 1px; }
+  .profile-info-val { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .profile-stats {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; margin-top: 14px;
+  }
+  .profile-stat-box {
+    background: #f9fafb; border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; text-align: center;
+  }
+  .profile-stat-num { font-size: 20px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+  .profile-stat-lbl { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
 </style>
 </head>
 <body>
@@ -1164,7 +1254,7 @@
   </div>
 
   <div class="sidebar-footer">
-    <div class="sidebar-user">
+    <div class="sidebar-user" onclick="openProfileModal()" title="프로필 보기">
       <div class="sidebar-avatar" id="sb-avatar">?</div>
       <div class="sidebar-user-info">
         <div class="sidebar-user-name" id="sb-user-name">-</div>
@@ -1475,6 +1565,53 @@
   </div>
 </div>
 
+<!-- Profile Modal -->
+<div class="profile-overlay" id="profile-overlay" onclick="if(event.target===this)closeProfileModal()">
+  <div class="profile-modal">
+    <div class="profile-cover">
+      <div class="profile-avatar-wrap">
+        <div class="profile-avatar-lg" id="pm-avatar"></div>
+      </div>
+      <button class="profile-close" onclick="closeProfileModal()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="profile-body">
+      <div class="profile-name" id="pm-name">—</div>
+      <div class="profile-dept" id="pm-dept">—</div>
+      <div class="profile-divider"></div>
+      <div class="profile-info-row">
+        <div class="profile-info-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div>
+          <div class="profile-info-lbl">계정 아이디</div>
+          <div class="profile-info-val" id="pm-username">—</div>
+        </div>
+      </div>
+      <div class="profile-info-row">
+        <div class="profile-info-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <div>
+          <div class="profile-info-lbl">소속</div>
+          <div class="profile-info-val" id="pm-org">—</div>
+        </div>
+      </div>
+      <div class="profile-stats">
+        <div class="profile-stat-box">
+          <div class="profile-stat-num" id="pm-total">0</div>
+          <div class="profile-stat-lbl">전체 일지</div>
+        </div>
+        <div class="profile-stat-box">
+          <div class="profile-stat-num" id="pm-month">0</div>
+          <div class="profile-stat-lbl">이번 달</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -1493,6 +1630,53 @@
   function logout() {
     localStorage.removeItem(SESSION_KEY);
     window.location.replace('login.html');
+  }
+
+  /* ── Profile Modal ── */
+  function openProfileModal() {
+    var overlay = document.getElementById('profile-overlay');
+    if (!overlay) return;
+
+    var d = (_currentSession && _currentSession._display) || {};
+    var displayName = d.fullName || d.name || _currentUsername || '사용자';
+    var dept = d.dept || d.sub || '미디어큐브';
+    var imgPath = PROFILE_IMG[_currentUsername];
+
+    // 아바타
+    var avEl = document.getElementById('pm-avatar');
+    if (avEl) {
+      if (imgPath) {
+        avEl.innerHTML = '<img src="' + imgPath + '" style="width:100%;height:100%;object-fit:cover">';
+        avEl.style.background = 'none';
+      } else {
+        avEl.textContent = displayName.charAt(0) || '?';
+        avEl.style.background = '#374151';
+      }
+    }
+
+    document.getElementById('pm-name').textContent     = displayName;
+    document.getElementById('pm-dept').textContent     = dept;
+    document.getElementById('pm-username').textContent = _currentUsername || '—';
+    document.getElementById('pm-org').textContent      = '미디어큐브';
+
+    // 통계: 내 일지 기준
+    var all = journalCache;
+    var monthStr = (function() {
+      var n = new Date();
+      return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0');
+    })();
+    var myJournals = _isAdmin ? all : all.filter(function(j) { return j.user_id === _userId; });
+    document.getElementById('pm-total').textContent = myJournals.length;
+    document.getElementById('pm-month').textContent = myJournals.filter(function(j) {
+      return (j.date || '').startsWith(monthStr);
+    }).length;
+
+    overlay.classList.add('show');
+  }
+
+  function closeProfileModal() {
+    var overlay = document.getElementById('profile-overlay');
+    if (overlay) overlay.classList.remove('show');
   }
 
   /* ── 로그인 사용자 정보 ── */
