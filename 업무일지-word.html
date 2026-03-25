@@ -790,7 +790,9 @@
 
 <script>
   var EDIT_KEY = 'editJournal';
+  var VIEW_KEY = 'viewJournal';
   var editingEntry = null;
+  var _viewOnly = false;
 
   /* ── Auth Guard ── */
   (function() {
@@ -876,6 +878,79 @@
     document.querySelector('.btn-submit').textContent = '✓ 수정 완료';
     document.querySelector('.submit-bar-text').innerHTML =
       '<strong>수정 완료 후 저장하세요.</strong><br>저장하면 대시보드 목록이 업데이트됩니다.';
+  })();
+
+  // ── View-only mode ──
+  (function() {
+    var raw = sessionStorage.getItem(VIEW_KEY);
+    if (!raw) return;
+    _viewOnly = true;
+    var entry;
+    try { entry = JSON.parse(raw); } catch(e) { return; }
+    sessionStorage.removeItem(VIEW_KEY);
+
+    // Populate fields (same as edit mode)
+    if (entry.date)     document.getElementById('doc-date').value    = entry.date;
+    if (entry.author)   document.getElementById('doc-author').value  = entry.author;
+    if (entry.project)  document.getElementById('chip-project').value = entry.project;
+    if (entry.type)     document.getElementById('chip-type').value   = entry.type;
+    if (entry.progress !== undefined) document.getElementById('chip-progress').value = entry.progress;
+    var tas = document.querySelectorAll('.doc-textarea');
+    if (tas[0]) tas[0].value = entry.summary || entry.memo || '';
+    if (tas[1]) tas[1].value = entry.nextPlan || '';
+    if (tas[2]) tas[2].value = entry.note     || '';
+    var issueTas = document.querySelectorAll('.issue-card-body');
+    if (issueTas[0]) issueTas[0].value = entry.issue || '';
+    if (issueTas[1]) issueTas[1].value = entry.risk  || '';
+    var wp = entry.workProgress || entry.work_progress;
+    if (wp && wp.length > 0) {
+      var tbody = document.getElementById('progress-tbody');
+      tbody.innerHTML = '';
+      wp.forEach(function(row) {
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td class="col-name"><input type="text" class="p-name" value="'+((row.name||'').replace(/"/g,'&quot;'))+'" placeholder="업무명" disabled></td>'
+          + '<td class="col-sum"><input type="text" class="p-summary" value="'+((row.summary||'').replace(/"/g,'&quot;'))+'" placeholder="진행 내용 요약" disabled></td>'
+          + '<td class="col-pct"><input type="number" class="p-pct" min="0" max="100" value="'+(row.pct||0)+'" placeholder="0" disabled></td>'
+          + '<td class="col-del"></td>';
+        tbody.appendChild(tr);
+      });
+    }
+    if (entry.tasks && entry.tasks.length > 0) {
+      var taskList = document.getElementById('task-list');
+      taskList.innerHTML = '';
+      var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정' };
+      var STATUS_CLS  = { done: 'status-done', wip: 'status-wip', issue: 'status-issue', hold: 'status-hold', todo: 'status-todo' };
+      entry.tasks.forEach(function(t) {
+        var scls = STATUS_CLS[t.status] || 'status-todo';
+        var stxt = STATUS_TEXT[t.status] || '예정';
+        var li = document.createElement('div');
+        li.className = 'task-item';
+        li.innerHTML = '<input type="checkbox" class="task-check"' + (t.done ? ' checked' : '') + ' disabled>'
+          + '<span class="task-status ' + scls + '">' + stxt + '</span>'
+          + '<input type="text" class="task-text" value="' + (t.text||'').replace(/"/g,'&quot;') + '" readonly>';
+        taskList.appendChild(li);
+      });
+    }
+
+    // Toolbar
+    document.querySelector('.toolbar-title').textContent = '업무일지 — 상세보기';
+    document.querySelector('.btn-submit') && (document.querySelector('.btn-submit').style.display = 'none');
+    document.querySelector('.submit-bar') && (document.querySelector('.submit-bar').style.display = 'none');
+    // 툴바 버튼 숨기기 (업무 추가)
+    var addTaskBtn = document.querySelector('.toolbar button[onclick="addTask()"]');
+    if (addTaskBtn) addTaskBtn.style.display = 'none';
+
+    // 모든 입력 비활성화
+    document.querySelectorAll('input:not(.task-check), select, textarea').forEach(function(el) {
+      el.disabled = true;
+      el.style.cursor = 'default';
+    });
+    document.querySelectorAll('.task-status').forEach(function(el) {
+      el.style.pointerEvents = 'none';
+    });
+    document.querySelectorAll('.add-btn, .progress-row-del, .issue-add-btn').forEach(function(el) {
+      el.style.display = 'none';
+    });
   })();
 
   document.querySelectorAll('textarea').forEach(function(ta) {
@@ -998,6 +1073,7 @@
   }
 
   function submitJournal() {
+    if (_viewOnly) return;
     var DB_KEY = 'mediaCube_journals_v1';
 
     var date    = document.getElementById('doc-date').value;
