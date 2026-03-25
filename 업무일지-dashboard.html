@@ -1423,7 +1423,7 @@
       </div>
       <div class="chart-card">
         <div class="chart-card-header">
-          <span class="chart-card-title">상태별 분포</span>
+          <span class="chart-card-title" id="chart-status-title">상태별 분포</span>
           <span class="chart-card-sub" id="chart-status-total"></span>
         </div>
         <div class="chart-donut-wrap" style="position:relative">
@@ -3129,10 +3129,25 @@
       }
     });
 
-    // Status donut
-    var counts = { done: 0, wip: 0, hold: 0, todo: 0 };
-    all.forEach(function(j){ if (counts[j.status] !== undefined) counts[j.status]++; else counts.todo++; });
-    var total = all.length;
+    // Status donut — weekly 모드면 이번 주 데이터만
+    var statusData;
+    if (_chartMode === 'weekly') {
+      var now2 = new Date();
+      var dow2 = now2.getDay();
+      var monday2 = new Date(now2); monday2.setDate(now2.getDate() - (dow2 === 0 ? 6 : dow2 - 1)); monday2.setHours(0,0,0,0);
+      var sunday2 = new Date(monday2); sunday2.setDate(monday2.getDate() + 6); sunday2.setHours(23,59,59,999);
+      statusData = all.filter(function(j) {
+        var d = new Date(j.date || j.created_at || 0);
+        return d >= monday2 && d <= sunday2;
+      });
+    } else {
+      statusData = all;
+    }
+    var statusTitle = document.getElementById('chart-status-title');
+    if (statusTitle) statusTitle.textContent = _chartMode === 'weekly' ? '이번 주 상태 분포' : '상태별 분포';
+    var statusCounts = { done: 0, wip: 0, hold: 0, todo: 0 };
+    statusData.forEach(function(j){ if (statusCounts[j.status] !== undefined) statusCounts[j.status]++; else statusCounts.todo++; });
+    var total = statusData.length;
     document.getElementById('donut-total').textContent = total;
     document.getElementById('chart-status-total').textContent = '총 ' + total + '건';
 
@@ -3144,7 +3159,7 @@
       data: {
         labels: ['완료', '진행중', '보류', '예정'],
         datasets: [{
-          data: [counts.done, counts.wip, counts.hold, counts.todo],
+          data: [statusCounts.done, statusCounts.wip, statusCounts.hold, statusCounts.todo],
           backgroundColor: ['#16a34a','#2563eb','#d97706','#e5e7eb'],
           borderWidth: 0,
           hoverOffset: 4
