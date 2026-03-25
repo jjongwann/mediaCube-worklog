@@ -1500,13 +1500,30 @@
   var _isAdmin = (_currentSession && _currentSession._is_admin) || false;
   var _userId = (_currentSession && _currentSession.user && _currentSession.user.id) || null;
 
+  /* ── 계정별 프로필 이미지 ── */
+  var PROFILE_IMG = {
+    'info':         'profile_image/info.jpg',
+    'soundsupport': 'profile_image/soundsupport.jpg',
+    'webmaster20':  'profile_image/webmaster20.jpg',
+    'soundstore':   'profile_image/soundstore.jpg',
+    'soundsales':   'profile_image/soundsales.jpg',
+    'developer':    'profile_image/developer.jpg',
+  };
+
   (function() {
     if (!_currentSession) return;
     var d = (_currentSession._display) || { fullName: _currentUsername || '사용자', sub: '미디어큐브' };
     var displayName = d.fullName || d.name || _currentUsername || '사용자';
-    var avatar = displayName.charAt(0) || '?';
     var el = document.getElementById('sb-avatar');
-    if (el) el.textContent = avatar;
+    if (el) {
+      var imgPath = PROFILE_IMG[_currentUsername];
+      if (imgPath) {
+        el.innerHTML = '<img src="' + imgPath + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+        el.style.background = 'none';
+      } else {
+        el.textContent = displayName.charAt(0) || '?';
+      }
+    }
     var nm = document.getElementById('sb-user-name');
     if (nm) nm.textContent = displayName;
     var rl = document.getElementById('sb-user-role');
@@ -1572,12 +1589,12 @@
   /* ── Admin: 직원 목록 ── */
   var ALL_USERS = [
     { id: 'e925711f-25d6-40ee-9708-7524856aadc0', username: 'mediacube',    fullName: '관리자',    dept: '미디어큐브',           isAdmin: true },
-    { id: '6155890c-c209-494d-8fe5-244db3166d34', username: 'info',         fullName: '김혜진 대리', dept: '회계·경리팀' },
-    { id: '11ef0fe1-4e6d-4b1f-af04-5c42aa99acfd', username: 'soundsupport', fullName: '윤다은 주임', dept: '사운드컨텐츠사업부' },
-    { id: '0465c0f5-51bf-4730-ae75-4377c3dc61af', username: 'webmaster20',  fullName: '최해현 직원', dept: '사운드컨텐츠사업부' },
-    { id: '842ae24f-570e-4c75-8902-ed6cf476a0a7', username: 'soundstore',   fullName: '김태오 과장', dept: '사운드컨텐츠사업부' },
-    { id: '90f0bfb3-3c69-4885-8ccc-5928fb29e29b', username: 'soundsales',   fullName: '신동원 차장', dept: '사운드컨텐츠사업부' },
-    { id: 'a943cf0b-468c-49a1-965a-1c846fb15db7', username: 'developer',    fullName: '임종완 주임', dept: '개발팀' },
+    { id: '6155890c-c209-494d-8fe5-244db3166d34', username: 'info',         fullName: '김혜진 대리', dept: '회계·경리팀',         img: 'profile_image/info.jpg' },
+    { id: '11ef0fe1-4e6d-4b1f-af04-5c42aa99acfd', username: 'soundsupport', fullName: '윤다은 주임', dept: '사운드컨텐츠사업부', img: 'profile_image/soundsupport.jpg' },
+    { id: '0465c0f5-51bf-4730-ae75-4377c3dc61af', username: 'webmaster20',  fullName: '최해현 직원', dept: '사운드컨텐츠사업부', img: 'profile_image/webmaster20.jpg' },
+    { id: '842ae24f-570e-4c75-8902-ed6cf476a0a7', username: 'soundstore',   fullName: '김태오 과장', dept: '사운드컨텐츠사업부', img: 'profile_image/soundstore.jpg' },
+    { id: '90f0bfb3-3c69-4885-8ccc-5928fb29e29b', username: 'soundsales',   fullName: '신동원 차장', dept: '사운드컨텐츠사업부', img: 'profile_image/soundsales.jpg' },
+    { id: 'a943cf0b-468c-49a1-965a-1c846fb15db7', username: 'developer',    fullName: '임종완 주임', dept: '개발팀',             img: 'profile_image/developer.jpg' },
   ];
   var adminEmpFilter = ''; // '' = 전체, user_id = 특정 직원만
 
@@ -1730,6 +1747,18 @@
     document.getElementById('cnt-wip').textContent = wipCnt;
   }
 
+  /* ── Profile image helper ── */
+  var _userIdImgMap = {};
+  ALL_USERS.forEach(function(u) { if (u.img) _userIdImgMap[u.id] = u.img; });
+
+  function miniAvatar(authorName, userId) {
+    var img = userId ? _userIdImgMap[userId] : null;
+    if (img) {
+      return '<div class="mini-avatar" style="background:none;padding:0;overflow:hidden"><img src="' + img + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>';
+    }
+    return '<div class="mini-avatar">' + (authorName || '?').slice(0,1) + '</div>';
+  }
+
   /* ── Status helpers ── */
   var STATUS_MAP = {
     done:  { cls: 'sb-done',   text: '완료' },
@@ -1803,9 +1832,10 @@
 
       return '<div class="emp-card' + (isActive ? ' active' : '') + '" data-uid="' + u.id + '" onclick="toggleEmpFilter(\'' + u.id + '\')">'
         + '<div class="emp-card-header">'
-          + '<div class="emp-avatar" style="' + (u.isAdmin ? 'background:linear-gradient(135deg,#7c3aed,#5b21b6)' : '') + '">'
-            + u.fullName.charAt(0)
-          + '</div>'
+          + (u.img
+            ? '<div class="emp-avatar" style="background:none;padding:0;overflow:hidden"><img src="' + u.img + '" style="width:100%;height:100%;object-fit:cover;border-radius:9px"></div>'
+            : '<div class="emp-avatar" style="' + (u.isAdmin ? 'background:linear-gradient(135deg,#7c3aed,#5b21b6)' : '') + '">' + u.fullName.charAt(0) + '</div>'
+          )
           + '<div>'
             + '<div class="emp-name">' + u.fullName + (u.isAdmin ? ' <span style="font-size:9px;background:#ede9fe;color:#7c3aed;border-radius:4px;padding:1px 5px;font-weight:700">관리자</span>' : '') + '</div>'
             + '<div class="emp-since">' + u.dept + (lastDate ? ' · ' + fmtDate(lastDate) : '') + '</div>'
@@ -2044,7 +2074,7 @@
           + '<div><div class="td-title-text" onclick="openDetail(\''+j.id+'\',event)">'+splitTitleDate(j.title)+'</div>'
           + '<div class="td-title-sub">'+(j.type||'—')+'</div></div></div>'
         + '<div class="td td-date">'+fmtDate(j.date)+'</div>'
-        + '<div class="td td-author"><div class="mini-avatar">'+(j.author||'?').slice(0,1)+'</div><span class="td-author-name">'+(j.author||'—')+'</span></div>'
+        + '<div class="td td-author">'+miniAvatar(j.author, j.user_id)+'<span class="td-author-name">'+(j.author||'—')+'</span></div>'
         + '<div class="td">'+statusBadge(j.status)+'</div>'
         + '<div class="td"><div style="font-size:11px;color:var(--text-muted);margin-bottom:3px">'+pct+'%</div><div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div></div>'
         + '<div class="td"><span style="font-size:12px;color:var(--text-muted)">'+(j.type||'—')+'</span></div>'
@@ -2077,7 +2107,7 @@
         + '<div class="jcard-project">'+(j.project||'프로젝트 없음')+'</div>'
         + '<div class="jcard-meta">'
           + statusBadge(j.status)
-          + '<div class="jcard-author"><div class="mini-avatar">'+(j.author||'?').slice(0,1)+'</div><span style="font-size:11.5px;color:var(--text-secondary)">'+(j.author||'—')+'</span></div>'
+          + '<div class="jcard-author">'+miniAvatar(j.author, j.user_id)+'<span style="font-size:11.5px;color:var(--text-secondary)">'+(j.author||'—')+'</span></div>'
           + '<span class="jcard-tasks">'+(j.type||'기타')+'</span>'
         + '</div>'
         + (j.memo ? '<div style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-top:2px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+j.memo+'</div>' : '')
