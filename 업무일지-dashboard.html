@@ -705,7 +705,7 @@
     animation: modal-in 0.15s cubic-bezier(.22,.61,.36,1);
     position: fixed;
     z-index: 1200;
-    right: 24px;
+    right: 16px;
     top: 220px;
   }
   .drp-top {
@@ -2696,7 +2696,7 @@
       // Position panel below the button
       var rect = btn.getBoundingClientRect();
       panel.style.top  = (rect.bottom + 6) + 'px';
-      panel.style.right = (window.innerWidth - rect.right) + 'px';
+      panel.style.right = '16px';
       // Pre-fill inputs if range already active
       if (drFrom) document.getElementById('drp-from').valueAsDate = drFrom;
       if (drTo)   document.getElementById('drp-to').valueAsDate   = drTo;
