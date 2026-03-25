@@ -700,11 +700,13 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 14px 16px 12px;
-    margin-bottom: 14px;
-    margin-left: auto;
-    max-width: 420px;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.09);
+    width: 340px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.13);
     animation: modal-in 0.15s cubic-bezier(.22,.61,.36,1);
+    position: fixed;
+    z-index: 1200;
+    right: 24px;
+    top: 220px;
   }
   .drp-top {
     display: flex;
@@ -2686,9 +2688,15 @@
 
   function toggleDateRangePanel() {
     drPanelOpen = !drPanelOpen;
-    document.getElementById('date-range-panel').style.display = drPanelOpen ? '' : 'none';
-    document.getElementById('btn-range').classList.toggle('active', drPanelOpen);
+    var panel = document.getElementById('date-range-panel');
+    var btn   = document.getElementById('btn-range');
+    panel.style.display = drPanelOpen ? '' : 'none';
+    btn.classList.toggle('active', drPanelOpen);
     if (drPanelOpen) {
+      // Position panel below the button
+      var rect = btn.getBoundingClientRect();
+      panel.style.top  = (rect.bottom + 6) + 'px';
+      panel.style.right = (window.innerWidth - rect.right) + 'px';
       // Pre-fill inputs if range already active
       if (drFrom) document.getElementById('drp-from').valueAsDate = drFrom;
       if (drTo)   document.getElementById('drp-to').valueAsDate   = drTo;
