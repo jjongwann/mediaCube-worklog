@@ -3316,9 +3316,8 @@
       var adminSb = document.getElementById('admin-sidebar-section');
       if (adminSb) adminSb.style.display = '';
     }
-    // 온보딩: 해당 계정으로 처음 방문 시 표시
-    var onboardKey = 'mc_onboarded_' + (_currentUsername || 'guest');
-    if (!localStorage.getItem(onboardKey) && journalCache.length === 0) {
+    // 온보딩: 일지가 0건이면 항상 표시
+    if (journalCache.length === 0) {
       setTimeout(function() {
         var el = document.getElementById('onboard-overlay');
         if (el) el.classList.add('show');
@@ -3332,8 +3331,6 @@
     el.style.transition = 'opacity 0.2s';
     el.style.opacity = '0';
     setTimeout(function() { el.classList.remove('show'); el.style.opacity = ''; el.style.transition = ''; }, 200);
-    var onboardKey = 'mc_onboarded_' + (_currentUsername || 'guest');
-    localStorage.setItem(onboardKey, '1');
   }
 </script>
 </body>
