@@ -452,6 +452,9 @@
   .progress-table .col-name  { width: 36%; }
   .progress-table .col-sum   { width: 50%; }
   .progress-table .col-pct   { width: 8%;  text-align: center; }
+  .pct-wrap { display: inline-flex; align-items: center; gap: 2px; justify-content: center; width: 100%; }
+  .pct-wrap .p-pct { text-align: right; }
+  .pct-suffix { font-size: 13px; color: var(--text-muted); flex-shrink: 0; pointer-events: none; }
   .progress-table .col-del   { width: 6%;  text-align: center; }
   .progress-row-del {
     background: none; border: none; cursor: pointer;
@@ -739,7 +742,7 @@
         <tr>
           <th class="col-name">업무명</th>
           <th class="col-sum">진행 내용 요약</th>
-          <th class="col-pct">진행률(%)</th>
+          <th class="col-pct">진행률</th>
           <th class="col-del"></th>
         </tr>
       </thead>
@@ -747,19 +750,19 @@
         <tr>
           <td class="col-name"><input type="text" class="p-name" placeholder="업무 A"></td>
           <td class="col-sum"><input type="text" class="p-summary" placeholder="진행 내용 요약"></td>
-          <td class="col-pct"><input type="number" class="p-pct" min="0" max="100" placeholder="0"></td>
+          <td class="col-pct"><div class="pct-wrap"><input type="number" class="p-pct" min="0" max="100" placeholder="0"><span class="pct-suffix">%</span></div></td>
           <td class="col-del"><button class="progress-row-del" onclick="delProgressRow(this)" title="삭제">×</button></td>
         </tr>
         <tr>
           <td class="col-name"><input type="text" class="p-name" placeholder="업무 B"></td>
           <td class="col-sum"><input type="text" class="p-summary" placeholder="진행 내용 요약"></td>
-          <td class="col-pct"><input type="number" class="p-pct" min="0" max="100" placeholder="0"></td>
+          <td class="col-pct"><div class="pct-wrap"><input type="number" class="p-pct" min="0" max="100" placeholder="0"><span class="pct-suffix">%</span></div></td>
           <td class="col-del"><button class="progress-row-del" onclick="delProgressRow(this)" title="삭제">×</button></td>
         </tr>
         <tr>
           <td class="col-name"><input type="text" class="p-name" placeholder="업무 C"></td>
           <td class="col-sum"><input type="text" class="p-summary" placeholder="진행 내용 요약"></td>
-          <td class="col-pct"><input type="number" class="p-pct" min="0" max="100" placeholder="0"></td>
+          <td class="col-pct"><div class="pct-wrap"><input type="number" class="p-pct" min="0" max="100" placeholder="0"><span class="pct-suffix">%</span></div></td>
           <td class="col-del"><button class="progress-row-del" onclick="delProgressRow(this)" title="삭제">×</button></td>
         </tr>
       </tbody>
@@ -922,7 +925,7 @@
         var tr = document.createElement('tr');
         tr.innerHTML = '<td class="col-name"><input type="text" class="p-name" value="'+((row.name||'').replace(/"/g,'&quot;'))+'" placeholder="업무명"></td>'
           + '<td class="col-sum"><input type="text" class="p-summary" value="'+((row.summary||'').replace(/"/g,'&quot;'))+'" placeholder="진행 내용 요약"></td>'
-          + '<td class="col-pct"><input type="number" class="p-pct" min="0" max="100" value="'+(row.pct||0)+'" placeholder="0"></td>'
+          + '<td class="col-pct"><div class="pct-wrap"><input type="number" class="p-pct" min="0" max="100" value="'+(row.pct||0)+'" placeholder="0"><span class="pct-suffix">%</span></div></td>'
           + '<td class="col-del"><button class="progress-row-del" onclick="delProgressRow(this)" title="삭제">×</button></td>';
         tbody.appendChild(tr);
       });
@@ -965,7 +968,7 @@
         var tr = document.createElement('tr');
         tr.innerHTML = '<td class="col-name"><input type="text" class="p-name" value="'+((row.name||'').replace(/"/g,'&quot;'))+'" placeholder="업무명" disabled></td>'
           + '<td class="col-sum"><input type="text" class="p-summary" value="'+((row.summary||'').replace(/"/g,'&quot;'))+'" placeholder="진행 내용 요약" disabled></td>'
-          + '<td class="col-pct"><input type="number" class="p-pct" min="0" max="100" value="'+(row.pct||0)+'" placeholder="0" disabled></td>'
+          + '<td class="col-pct"><div class="pct-wrap"><input type="number" class="p-pct" min="0" max="100" value="'+(row.pct||0)+'" placeholder="0" disabled><span class="pct-suffix">%</span></div></td>'
           + '<td class="col-del"></td>';
         tbody.appendChild(tr);
       });
@@ -1166,7 +1169,7 @@
     var tr = document.createElement('tr');
     tr.innerHTML = '<td class="col-name"><input type="text" class="p-name" placeholder="업무명"></td>'
       + '<td class="col-sum"><input type="text" class="p-summary" placeholder="진행 내용 요약"></td>'
-      + '<td class="col-pct"><input type="number" class="p-pct" min="0" max="100" placeholder="0"></td>'
+      + '<td class="col-pct"><div class="pct-wrap"><input type="number" class="p-pct" min="0" max="100" placeholder="0"><span class="pct-suffix">%</span></div></td>'
       + '<td class="col-del"><button class="progress-row-del" onclick="delProgressRow(this)" title="삭제">×</button></td>';
     tbody.appendChild(tr);
   }
