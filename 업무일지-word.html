@@ -308,17 +308,72 @@
     flex-shrink: 0;
     font-size: 11px;
     font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 4px;
+    padding: 3px 7px 3px 8px;
+    border-radius: 5px;
     cursor: pointer;
     user-select: none;
-    transition: all 0.12s;
+    transition: filter 0.12s, box-shadow 0.12s;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    position: relative;
   }
+  .task-status::after {
+    content: '';
+    display: inline-block;
+    width: 0; height: 0;
+    border-left: 3.5px solid transparent;
+    border-right: 3.5px solid transparent;
+    border-top: 4px solid currentColor;
+    opacity: 0.55;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+  .task-status:hover { filter: brightness(0.94); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
   .status-done  { background: #f0fdf4; color: #16a34a; }
   .status-wip   { background: #eff6ff; color: #2563eb; }
   .status-todo  { background: #f3f4f6; color: #374151; }
   .status-hold  { background: #fffbeb; color: #d97706; }
   .status-issue { background: #fdf4ff; color: #9333ea; }
+
+  /* Status Dropdown */
+  .status-dropdown {
+    position: fixed;
+    z-index: 3000;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.07);
+    padding: 5px;
+    min-width: 130px;
+    animation: modal-in 0.12s cubic-bezier(.22,.61,.36,1);
+  }
+  .status-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: background 0.1s;
+    color: var(--text-primary);
+  }
+  .status-dropdown-item:hover { background: #f3f4f6; }
+  .status-dropdown-item.active { background: #f3f4f6; }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-dropdown-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    padding: 4px 10px 2px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+  }
 
   .task-text {
     flex: 1;
@@ -986,13 +1041,64 @@
     document.getElementById('chip-progress').value = total === 0 ? '' : Math.round(cnt.done / total * 100);
   }
 
+  var _activeDropdown = null;
+
+  function closeStatusDropdown() {
+    if (_activeDropdown) {
+      _activeDropdown.remove();
+      _activeDropdown = null;
+    }
+  }
+
+  document.addEventListener('click', function(e) {
+    if (_activeDropdown && !_activeDropdown.contains(e.target)) closeStatusDropdown();
+  });
+
   function wireStatus(badge) {
-    badge.addEventListener('click', function() {
-      var cur = STATUSES.findIndex(function(s) { return badge.classList.contains(s.cls); });
-      var next = STATUSES[(cur + 1) % STATUSES.length];
-      badge.className = 'task-status ' + next.cls;
-      badge.textContent = next.text;
-      calcProgress();
+    badge.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (_activeDropdown) { closeStatusDropdown(); return; }
+
+      var dropdown = document.createElement('div');
+      dropdown.className = 'status-dropdown';
+
+      var labelEl = document.createElement('div');
+      labelEl.className = 'status-dropdown-label';
+      labelEl.textContent = '상태 선택';
+      dropdown.appendChild(labelEl);
+
+      var options = [
+        { cls: 'status-issue', text: '이슈',   dot: '#9333ea' },
+        { cls: 'status-wip',   text: '진행 중', dot: '#2563eb' },
+        { cls: 'status-hold',  text: '보류',   dot: '#d97706' },
+        { cls: 'status-todo',  text: '예정',   dot: '#9ca3af' },
+        { cls: 'status-done',  text: '완료',   dot: '#16a34a' }
+      ];
+
+      options.forEach(function(opt) {
+        var item = document.createElement('div');
+        item.className = 'status-dropdown-item' + (badge.classList.contains(opt.cls) ? ' active' : '');
+        item.innerHTML = '<span class="status-dot" style="background:' + opt.dot + '"></span>' + opt.text;
+        item.addEventListener('click', function(e) {
+          e.stopPropagation();
+          badge.className = 'task-status ' + opt.cls;
+          badge.textContent = opt.text;
+          closeStatusDropdown();
+          calcProgress();
+        });
+        dropdown.appendChild(item);
+      });
+
+      document.body.appendChild(dropdown);
+      _activeDropdown = dropdown;
+
+      // 위치 설정 — 배지 아래 정렬
+      var rect = badge.getBoundingClientRect();
+      var top = rect.bottom + 4;
+      var left = rect.left;
+      if (left + 140 > window.innerWidth) left = window.innerWidth - 150;
+      dropdown.style.top  = top  + 'px';
+      dropdown.style.left = left + 'px';
     });
   }
 
