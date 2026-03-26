@@ -653,6 +653,24 @@
     color: var(--accent);
   }
   .ac-item:hover .ac-item-icon, .ac-item.ac-active .ac-item-icon { opacity: 0.7; }
+  .ac-item-del {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 18px; height: 18px;
+    border-radius: 4px;
+    border: none;
+    background: none;
+    color: #94a3b8;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+    transition: background 0.1s, color 0.1s;
+  }
+  .ac-item:hover .ac-item-del, .ac-item.ac-active .ac-item-del { display: flex; }
+  .ac-item-del:hover { background: #fee2e2; color: #dc2626; }
 </style>
 </head>
 <body>
@@ -1313,6 +1331,11 @@
   /* ── 자동완성 (이전 입력 기록 기반) ── */
   (async function() {
     try {
+      // 블랙리스트 로드 (사용자별)
+      var _blKey = 'mc_ac_bl_' + (_currentUsername || 'guest');
+      var _blacklist = new Set(JSON.parse(localStorage.getItem(_blKey) || '[]'));
+      function saveBlacklist() { localStorage.setItem(_blKey, JSON.stringify([..._blacklist])); }
+
       var res = await fetch(SB_URL + '/rest/v1/journals?select=tasks,work_progress&order=date.desc',
         { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } });
       var rows = await res.json();
@@ -1323,12 +1346,12 @@
       rows.forEach(function(r) {
         if (Array.isArray(r.tasks)) r.tasks.forEach(function(t) {
           var v = (t.text || '').trim();
-          if (v && !taskSeen.has(v)) { taskSeen.add(v); taskSet.push(v); }
+          if (v && !taskSeen.has(v) && !_blacklist.has(v)) { taskSeen.add(v); taskSet.push(v); }
         });
         if (Array.isArray(r.work_progress)) r.work_progress.forEach(function(p) {
           var n = (p.name || '').trim(), s = (p.summary || '').trim();
-          if (n && !pNameSeen.has(n)) { pNameSeen.add(n); pNameSet.push(n); }
-          if (s && !pSumSeen.has(s))  { pSumSeen.add(s);  pSumSet.push(s); }
+          if (n && !pNameSeen.has(n) && !_blacklist.has(n)) { pNameSeen.add(n); pNameSet.push(n); }
+          if (s && !pSumSeen.has(s) && !_blacklist.has(s))  { pSumSeen.add(s);  pSumSet.push(s); }
         });
       });
 
@@ -1374,6 +1397,7 @@
               return '<div class="ac-item" data-i="' + i + '">'
                 + '<span class="ac-item-icon">↩</span>'
                 + '<span class="ac-item-text">' + highlight(s, val) + '</span>'
+                + '<button class="ac-item-del" data-del="' + i + '" title="이 항목 삭제">✕</button>'
                 + '</div>';
             }).join('');
         var left = rect.left, top = rect.bottom + 5;
@@ -1383,7 +1407,29 @@
         acDrop.style.cssText = 'display:block;left:' + left + 'px;top:' + top + 'px;width:' + w + 'px;max-width:500px';
 
         acDrop.querySelectorAll('.ac-item').forEach(function(item) {
-          item.addEventListener('click', function() { fillAC(parseInt(item.dataset.i)); });
+          item.addEventListener('click', function(e) {
+            if (e.target.closest('.ac-item-del')) return; // X 버튼 클릭은 무시
+            fillAC(parseInt(item.dataset.i));
+          });
+        });
+        acDrop.querySelectorAll('.ac-item-del').forEach(function(btn) {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var idx = parseInt(btn.dataset.del);
+            var val = acList[idx];
+            if (!val) return;
+            // 블랙리스트에 추가 & 세트에서 제거
+            _blacklist.add(val);
+            saveBlacklist();
+            taskSet  = taskSet.filter(function(s) { return s !== val; });
+            pNameSet = pNameSet.filter(function(s) { return s !== val; });
+            pSumSet  = pSumSet.filter(function(s) { return s !== val; });
+            // 드롭다운 다시 렌더링
+            if (acTarget) {
+              var s = getSugg(acTarget);
+              if (s) showAC(acTarget, s); else hideAC();
+            }
+          });
         });
       }
       function hideAC() {
