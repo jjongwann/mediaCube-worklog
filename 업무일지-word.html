@@ -35,7 +35,7 @@
 
   /* ── Toolbar ── */
   .toolbar {
-    max-width: 900px;
+    max-width: 1060px;
     margin: 0 auto 16px;
     display: flex;
     align-items: center;
@@ -76,7 +76,7 @@
 
   /* ── Page ── */
   .page {
-    width: 900px;
+    width: 1060px;
     min-height: 1040px;
     background: #fff;
     margin: 0 auto;
@@ -375,6 +375,18 @@
     letter-spacing: 0.3px;
   }
 
+  /* 상세보기(readonly) 에서 가로 스크롤 허용 */
+  .task-text[readonly] {
+    overflow-x: auto;
+    cursor: text;
+    white-space: nowrap;
+  }
+  .progress-table input[readonly] {
+    overflow-x: auto;
+    cursor: text;
+    white-space: nowrap;
+  }
+
   .task-text {
     flex: 1;
     font-size: 15px;
@@ -526,7 +538,7 @@
 
   /* ── Submit Bar ── */
   .submit-bar {
-    max-width: 900px;
+    max-width: 1060px;
     margin: 16px auto 48px;
     background: #fff;
     border: 1px solid var(--border);
