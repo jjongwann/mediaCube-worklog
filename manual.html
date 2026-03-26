@@ -44,9 +44,14 @@
   }
   .back-btn:hover { background: var(--blue-lt); border-color: #bfdbfe; color: var(--blue); }
   .top-nav-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     font-size: 13px;
     font-weight: 600;
     color: var(--muted);
+    white-space: nowrap;
+    pointer-events: none;
   }
   .close-btn {
     width: 32px; height: 32px;
@@ -130,7 +135,7 @@
   .hero p {
     font-size: 16px;
     color: rgba(255,255,255,0.75);
-    max-width: 520px;
+    white-space: nowrap;
     margin: 0 auto 32px;
   }
   .hero-chips { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
