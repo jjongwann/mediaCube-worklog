@@ -1658,7 +1658,7 @@
 <script>
   (function() {
     // 신규 작성 시에만 표시 (수정/뷰어 모드 제외)
-    if (sessionStorage.getItem('editJournal') || sessionStorage.getItem('viewJournal')) return;
+    if (editingEntry || _viewOnly) return;
     setTimeout(function() {
       var overlay = document.getElementById('word-ob-overlay');
       var card    = document.getElementById('word-ob-card');
