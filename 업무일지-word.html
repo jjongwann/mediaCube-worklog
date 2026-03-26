@@ -1332,7 +1332,7 @@
   (async function() {
     try {
       // 블랙리스트 로드 (사용자별)
-      var _blKey = 'mc_ac_bl_' + (_currentUsername || 'guest');
+      var _blKey = 'mc_ac_bl_' + (_userId || 'guest');
       var _blacklist = new Set(JSON.parse(localStorage.getItem(_blKey) || '[]'));
       function saveBlacklist() { localStorage.setItem(_blKey, JSON.stringify([..._blacklist])); }
 
