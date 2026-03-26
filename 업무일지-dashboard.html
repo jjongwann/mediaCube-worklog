@@ -1864,6 +1864,10 @@
   })();
 
   function logout() {
+    // 온보딩 키 초기화 (재로그인 시 다시 표시되도록)
+    Object.keys(sessionStorage).forEach(function(k) {
+      if (k.startsWith('mc_onboard_')) sessionStorage.removeItem(k);
+    });
     localStorage.removeItem(SESSION_KEY);
     window.location.replace('login.html');
   }

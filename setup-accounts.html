@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>계정 설정 — 미디어큐브 관리자</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: #0f172a; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .wrap { width: 100%; max-width: 560px; }
+  .box { background: #1e293b; border-radius: 16px; padding: 36px; border: 1px solid #334155; }
+  h1 { font-size: 18px; font-weight: 700; color: #f1f5f9; margin-bottom: 6px; }
+  .sub { font-size: 12px; color: #64748b; margin-bottom: 28px; }
+  .warn { background: #7c1d1d; border: 1px solid #ef4444; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #fca5a5; margin-bottom: 24px; }
+  label { display: block; font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 6px; }
+  input[type=text], input[type=password] { width: 100%; padding: 10px 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #f1f5f9; font-family: inherit; font-size: 14px; outline: none; margin-bottom: 20px; }
+  input:focus { border-color: #3b82f6; }
+  .btn { width: 100%; padding: 12px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn:hover { background: #1d4ed8; }
+  .btn:disabled { background: #1e3a5f; color: #475569; cursor: not-allowed; }
+  .log { margin-top: 24px; background: #0f172a; border-radius: 8px; padding: 14px; font-size: 12px; font-family: monospace; color: #94a3b8; max-height: 280px; overflow-y: auto; white-space: pre-wrap; display: none; }
+  .log.show { display: block; }
+  .ok  { color: #4ade80; }
+  .err { color: #f87171; }
+  .info{ color: #60a5fa; }
+  .sep { border-top: 1px solid #1e293b; margin: 20px 0; }
+  .sql-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 14px; font-size: 11.5px; font-family: monospace; color: #94a3b8; white-space: pre; overflow-x: auto; margin-top: 8px; }
+  .step-title { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 8px; }
+  .section-box { background: #1e293b; border-radius: 16px; padding: 36px; border: 1px solid #334155; margin-top: 20px; }
+  .danger-warn { background: #451a1a; border: 1px solid #dc2626; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #fca5a5; margin-bottom: 20px; }
+  .btn-danger { width: 100%; padding: 12px; background: #dc2626; color: #fff; border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-danger:hover { background: #b91c1c; }
+  .btn-danger:disabled { background: #4b1c1c; color: #9ca3af; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="box">
+    <h1>미디어큐브 계정 초기 설정</h1>
+    <div class="sub">이 페이지는 최초 1회만 실행하세요. 완료 후 삭제하거나 접근을 차단하세요.</div>
+
+    <div class="warn">⚠ service_role 키는 모든 권한을 가집니다. 이 페이지를 공개 서버에 올리지 마세요.</div>
+
+    <label>Supabase Service Role Key</label>
+    <input type="password" id="svc-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+
+    <button class="btn" id="run-btn" onclick="runSetup()">계정 생성 시작</button>
+
+    <div class="log" id="log"></div>
+
+    <div class="sep"></div>
+
+    <div class="step-title">Step 2: Supabase SQL 에디터에서 실행</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:8px;">위 계정 생성 완료 후, Supabase 대시보드 → SQL Editor에서 아래 SQL을 실행하세요.</div>
+    <div class="sql-box" id="sql-display">-- 계정 생성 완료 후 여기에 SQL이 표시됩니다 --</div>
+  </div>
+</div>
+
+<!-- 데이터 정리 섹션 -->
+<div class="wrap" style="margin-top:0;">
+  <div class="section-box">
+    <h1>테스트 데이터 정리</h1>
+    <div class="sub">developer(임종완 주임) 계정을 제외한 모든 일지를 삭제합니다.</div>
+
+    <div class="danger-warn">⚠ 이 작업은 되돌릴 수 없습니다. developer 계정(임종완 주임)의 일지는 보존됩니다.</div>
+
+    <label>Supabase Service Role Key</label>
+    <input type="password" id="clean-svc-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+
+    <button class="btn-danger" id="clean-btn" onclick="runCleanup()">developer 제외 전체 일지 삭제</button>
+
+    <div class="log" id="clean-log"></div>
+  </div>
+</div>
+
+<script>
+  var SB_URL = 'https://qkvatxowpkespdkxuoom.supabase.co';
+
+  var ACCOUNTS = [
+    { username: 'info',         email: 'info@mediacube.com',         password: 'media6134', display: 'info' },
+    { username: 'soundsupport', email: 'soundsupport@mediacube.com', password: 'media9912', display: 'soundsupport' },
+    { username: 'webmaster20',  email: 'webmaster20@mediacube.com',  password: 'media2953', display: 'webmaster20' },
+    { username: 'soundstore',   email: 'soundstore@mediacube.com',   password: 'media3042', display: 'soundstore' },
+  ];
+
+  function log(msg, cls) {
+    var el = document.getElementById('log');
+    el.classList.add('show');
+    el.innerHTML += '<span class="' + (cls||'') + '">' + msg + '</span>\n';
+    el.scrollTop = el.scrollHeight;
+  }
+
+  async function createUser(svcKey, account) {
+    var res = await fetch(SB_URL + '/auth/v1/admin/users', {
+      method: 'POST',
+      headers: {
+        'apikey': svcKey,
+        'Authorization': 'Bearer ' + svcKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: account.email,
+        password: account.password,
+        email_confirm: true,
+        user_metadata: { username: account.username, display_name: account.display }
+      })
+    });
+    var data = await res.json();
+    return data;
+  }
+
+  async function getAdminUserId(svcKey) {
+    var res = await fetch(SB_URL + '/auth/v1/admin/users?email=mediacube%40mediacube.com', {
+      headers: { 'apikey': svcKey, 'Authorization': 'Bearer ' + svcKey }
+    });
+    var data = await res.json();
+    if (data.users && data.users.length > 0) return data.users[0].id;
+    return null;
+  }
+
+  async function runSetup() {
+    var svcKey = document.getElementById('svc-key').value.trim();
+    if (!svcKey) { alert('Service Role Key를 입력하세요.'); return; }
+
+    var btn = document.getElementById('run-btn');
+    btn.disabled = true;
+    btn.textContent = '실행 중...';
+    document.getElementById('log').innerHTML = '';
+
+    log('[INFO] 계정 생성 시작...', 'info');
+
+    var created = [];
+    for (var i = 0; i < ACCOUNTS.length; i++) {
+      var acc = ACCOUNTS[i];
+      log('[...] ' + acc.username + ' (' + acc.email + ') 생성 중...');
+      try {
+        var result = await createUser(svcKey, acc);
+        if (result.id) {
+          log('[OK]  ' + acc.username + ' 생성 완료 (id: ' + result.id + ')', 'ok');
+          created.push({ ...acc, id: result.id });
+        } else if (result.msg && result.msg.includes('already been registered')) {
+          log('[--]  ' + acc.username + ' 이미 존재하는 계정', 'info');
+        } else {
+          log('[ERR] ' + acc.username + ' 실패: ' + JSON.stringify(result.msg || result), 'err');
+        }
+      } catch(e) {
+        log('[ERR] ' + acc.username + ' 오류: ' + e.message, 'err');
+      }
+    }
+
+    log('\n[INFO] 관리자(mediacube) UUID 조회 중...', 'info');
+    var adminId = null;
+    try {
+      adminId = await getAdminUserId(svcKey);
+      if (adminId) {
+        log('[OK]  mediacube UUID: ' + adminId, 'ok');
+      } else {
+        log('[WARN] mediacube 계정을 찾을 수 없음. 먼저 로그인하거나 직접 UUID를 확인하세요.', 'err');
+      }
+    } catch(e) {
+      log('[ERR] UUID 조회 실패: ' + e.message, 'err');
+    }
+
+    log('\n[완료] 아래 SQL을 Supabase SQL Editor에서 실행하세요.', 'info');
+    showSQL(adminId);
+
+    btn.disabled = false;
+    btn.textContent = '다시 실행';
+  }
+
+  function showSQL(adminId) {
+    var migrationLine = adminId
+      ? "UPDATE journals SET user_id = '" + adminId + "' WHERE user_id IS NULL;"
+      : "-- mediacube UUID를 직접 입력하세요:\n-- UPDATE journals SET user_id = '<mediacube-uuid>' WHERE user_id IS NULL;";
+
+    var sql =
+"-- ① user_id 컬럼 추가\n" +
+"ALTER TABLE journals ADD COLUMN IF NOT EXISTS user_id UUID;\n\n" +
+"-- ② RLS 활성화\n" +
+"ALTER TABLE journals ENABLE ROW LEVEL SECURITY;\n\n" +
+"-- ③ 기존 정책 초기화\n" +
+"DROP POLICY IF EXISTS \"own_journals\" ON journals;\n" +
+"DROP POLICY IF EXISTS \"admin_all\" ON journals;\n\n" +
+"-- ④ 각자 본인 일지만 조회·수정\n" +
+"CREATE POLICY \"own_journals\" ON journals FOR ALL\n" +
+"  USING (auth.uid() = user_id)\n" +
+"  WITH CHECK (auth.uid() = user_id);\n\n" +
+"-- ⑤ 관리자(mediacube)는 전체 조회·수정\n" +
+"CREATE POLICY \"admin_all\" ON journals FOR ALL\n" +
+"  USING (auth.email() = 'mediacube@mediacube.com')\n" +
+"  WITH CHECK (auth.email() = 'mediacube@mediacube.com');\n\n" +
+"-- ⑥ 기존 일지를 mediacube 계정으로 귀속\n" +
+migrationLine;
+
+    document.getElementById('sql-display').textContent = sql;
+  }
+
+  /* ── 데이터 정리 ── */
+  function clog(msg, cls) {
+    var el = document.getElementById('clean-log');
+    el.classList.add('show');
+    el.innerHTML += '<span class="' + (cls||'') + '">' + msg + '</span>\n';
+    el.scrollTop = el.scrollHeight;
+  }
+
+  async function runCleanup() {
+    var svcKey = document.getElementById('clean-svc-key').value.trim();
+    if (!svcKey) { alert('Service Role Key를 입력하세요.'); return; }
+
+    if (!confirm('developer(임종완 주임) 계정을 제외한 모든 일지를 영구 삭제합니다.\n계속하시겠습니까?')) return;
+
+    var btn = document.getElementById('clean-btn');
+    btn.disabled = true;
+    btn.textContent = '처리 중...';
+    document.getElementById('clean-log').innerHTML = '';
+
+    // 1. developer 계정 UUID 조회
+    clog('[INFO] developer@mediacube.com UUID 조회 중...', 'info');
+    var devId = null;
+    try {
+      var res = await fetch(SB_URL + '/auth/v1/admin/users?email=developer%40mediacube.com', {
+        headers: { 'apikey': svcKey, 'Authorization': 'Bearer ' + svcKey }
+      });
+      var data = await res.json();
+      if (data.users && data.users.length > 0) {
+        devId = data.users[0].id;
+        clog('[OK]  developer UUID: ' + devId, 'ok');
+      } else {
+        clog('[ERR] developer 계정을 찾을 수 없습니다.', 'err');
+        btn.disabled = false; btn.textContent = 'developer 제외 전체 일지 삭제';
+        return;
+      }
+    } catch(e) {
+      clog('[ERR] UUID 조회 실패: ' + e.message, 'err');
+      btn.disabled = false; btn.textContent = 'developer 제외 전체 일지 삭제';
+      return;
+    }
+
+    // 2. developer 제외 일지 수 확인
+    clog('[INFO] 삭제 대상 일지 조회 중...', 'info');
+    try {
+      var cntRes = await fetch(SB_URL + '/rest/v1/journals?user_id=neq.' + devId + '&select=id', {
+        headers: {
+          'apikey': svcKey,
+          'Authorization': 'Bearer ' + svcKey,
+          'Prefer': 'count=exact'
+        }
+      });
+      var countHeader = cntRes.headers.get('content-range');
+      var rows = await cntRes.json();
+      var cnt = Array.isArray(rows) ? rows.length : 0;
+      clog('[INFO] 삭제 대상: ' + cnt + '건', 'info');
+      if (cnt === 0) {
+        clog('[OK]  삭제할 일지가 없습니다.', 'ok');
+        btn.disabled = false; btn.textContent = 'developer 제외 전체 일지 삭제';
+        return;
+      }
+    } catch(e) {
+      clog('[WARN] 대상 조회 실패, 삭제 계속 진행: ' + e.message, 'err');
+    }
+
+    // 3. 삭제 실행
+    clog('[INFO] 삭제 실행 중...', 'info');
+    try {
+      var delRes = await fetch(SB_URL + '/rest/v1/journals?user_id=neq.' + devId, {
+        method: 'DELETE',
+        headers: {
+          'apikey': svcKey,
+          'Authorization': 'Bearer ' + svcKey,
+          'Prefer': 'return=minimal'
+        }
+      });
+      if (delRes.ok || delRes.status === 204) {
+        clog('[OK]  삭제 완료! developer(임종완 주임) 계정 일지만 보존되었습니다.', 'ok');
+      } else {
+        var errBody = await delRes.text();
+        clog('[ERR] 삭제 실패 (HTTP ' + delRes.status + '): ' + errBody, 'err');
+      }
+    } catch(e) {
+      clog('[ERR] 삭제 중 오류: ' + e.message, 'err');
+    }
+
+    btn.disabled = false;
+    btn.textContent = '다시 실행';
+  }
+</script>
+</body>
+</html>
