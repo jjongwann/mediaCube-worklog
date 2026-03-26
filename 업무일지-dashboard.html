@@ -3316,15 +3316,19 @@
       var adminSb = document.getElementById('admin-sidebar-section');
       if (adminSb) adminSb.style.display = '';
     }
-    // 온보딩: 항상 표시 (일지 유무에 따라 문구 변경)
-    setTimeout(function() {
-      var el = document.getElementById('onboard-overlay');
-      if (!el) return;
-      if (journalCache.length > 0) {
-        document.getElementById('onboard-title').textContent = '업무일지를 작성해보세요!';
-      }
-      el.classList.add('show');
-    }, 600);
+    // 온보딩: 로그인 후 첫 방문 시 1회만 표시
+    var onboardShownKey = 'mc_onboard_shown_' + (_currentUsername || 'guest');
+    if (!sessionStorage.getItem(onboardShownKey)) {
+      sessionStorage.setItem(onboardShownKey, '1');
+      setTimeout(function() {
+        var el = document.getElementById('onboard-overlay');
+        if (!el) return;
+        if (journalCache.length > 0) {
+          document.getElementById('onboard-title').textContent = '업무일지를 작성해보세요!';
+        }
+        el.classList.add('show');
+      }, 600);
+    }
   })();
 
   function closeOnboard() {
