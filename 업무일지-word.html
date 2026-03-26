@@ -1336,7 +1336,7 @@
       var _blacklist = new Set(JSON.parse(localStorage.getItem(_blKey) || '[]'));
       function saveBlacklist() { localStorage.setItem(_blKey, JSON.stringify([..._blacklist])); }
 
-      var res = await fetch(SB_URL + '/rest/v1/journals?select=tasks,work_progress&order=date.desc',
+      var res = await fetch(SB_URL + '/rest/v1/journals?select=tasks,work_progress&user_id=eq.' + _userId + '&order=date.desc',
         { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } });
       var rows = await res.json();
       if (!Array.isArray(rows) || rows.length === 0) return;
