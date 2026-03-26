@@ -7,6 +7,61 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap');
 
+  /* ── Nav Bar ── */
+  .top-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 52px;
+  }
+  .top-nav-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .back-btn:hover { background: var(--blue-lt); border-color: #bfdbfe; color: var(--blue); }
+  .top-nav-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .close-btn {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--muted);
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+  .close-btn:hover { background: #fef2f2; border-color: #fecaca; color: var(--red); }
+
   :root {
     --blue:    #2563eb;
     --blue-lt: #eff6ff;
@@ -372,6 +427,18 @@
 </style>
 </head>
 <body>
+
+<!-- Top Nav -->
+<nav class="top-nav">
+  <div class="top-nav-left">
+    <a href="업무일지-dashboard.html" class="back-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      대시보드로 돌아가기
+    </a>
+  </div>
+  <div class="top-nav-title">업무일지 사용설명서</div>
+  <a href="업무일지-dashboard.html" class="close-btn" title="닫기">✕</a>
+</nav>
 
 <!-- Hero -->
 <div class="hero">
