@@ -2963,13 +2963,21 @@
   }
 
   function togglePin(id) {
-    var data = loadJournals();
-    var j = data.find(function(x){ return x.id===id; });
+    var j = journalCache.find(function(x){ return x.id===id; });
     if (!j) return;
     j.pinned = !j.pinned;
-    saveJournals(data);
+    var newPinned = j.pinned;
+    // pinned 필드만 직접 PATCH
+    fetch(SB_URL + '/rest/v1/journals?id=eq.' + id, {
+      method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ pinned: newPinned })
+    }).catch(function(e){ console.error('togglePin error', e); });
+    // 스냅샷도 동기화
+    var snap = journalCacheSnapshot.find(function(x){ return x.id===id; });
+    if (snap) snap.pinned = newPinned;
     renderList();
-    showToast(j.pinned ? '📌 즐겨찾기에 추가했습니다.' : '즐겨찾기에서 제거했습니다.');
+    showToast(newPinned ? '📌 즐겨찾기에 추가했습니다.' : '즐겨찾기에서 제거했습니다.');
   }
 
   function toggleDone(id, cb) {
