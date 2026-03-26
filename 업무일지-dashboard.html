@@ -1996,6 +1996,13 @@
   var journalCache = [];
   var journalCacheSnapshot = []; // 마지막으로 Supabase에 저장된 상태의 deep copy (변경 감지용)
 
+  /* ── 즐겨찾기: 사용자별 localStorage 관리 ── */
+  function _pinKey() { return 'mc_pins_' + (_currentUsername || 'guest'); }
+  function _loadPins() { try { return new Set(JSON.parse(localStorage.getItem(_pinKey()) || '[]')); } catch(e) { return new Set(); } }
+  function _savePins(set) { localStorage.setItem(_pinKey(), JSON.stringify([...set])); }
+  function isPinned(id) { return _loadPins().has(id); }
+  function setPinned(id, val) { var s = _loadPins(); val ? s.add(id) : s.delete(id); _savePins(s); }
+
   function localToDb(j) {
     return { id: j.id, title: j.title, date: j.date, author: j.author,
       project: j.project, type: j.type, status: j.status, progress: j.progress || 0,
@@ -2116,7 +2123,7 @@
     }
 
     var result = data.filter(function(j) {
-      if (currentFilter === 'pinned') return j.pinned;
+      if (currentFilter === 'pinned') return isPinned(j.id);
       if (currentFilter === 'today') return j.date === todayStr;
       if (currentFilter === 'week') return new Date(j.date + 'T00:00:00') >= weekStart;
       if (currentFilter === 'done') return j.status === 'done';
@@ -2164,7 +2171,7 @@
     else if (sort === 'progress') d.sort(function(a,b){ return b.progress - a.progress; });
     else d.sort(function(a,b){ return b.date.localeCompare(a.date); });
     // pinned always on top
-    d.sort(function(a,b){ return (b.pinned?1:0) - (a.pinned?1:0); });
+    d.sort(function(a,b){ return (isPinned(b.id)?1:0) - (isPinned(a.id)?1:0); });
     return d;
   }
 
@@ -2190,7 +2197,7 @@
 
     // sidebar counts
     document.getElementById('cnt-all').textContent = total;
-    document.getElementById('cnt-pinned').textContent = all.filter(function(j){ return j.pinned; }).length;
+    document.getElementById('cnt-pinned').textContent = all.filter(function(j){ return isPinned(j.id); }).length;
     document.getElementById('cnt-today').textContent = all.filter(function(j){ return j.date === todayStr; }).length;
     document.getElementById('cnt-week').textContent = weekCnt;
     document.getElementById('cnt-done').textContent = doneCnt;
@@ -2517,10 +2524,11 @@
     tbody.innerHTML = data.map(function(j) {
       var pct = Math.min(100, Math.max(0, j.progress||0));
       var isSelected = selectedIds.has(j.id);
-      return '<div class="table-row'+(j.pinned?' pinned':'')+'">'
+      var _pinned = isPinned(j.id);
+      return '<div class="table-row'+(_pinned?' pinned':'')+'">'
         + '<div class="td td-checkbox"><input type="checkbox" '+(isSelected?'checked':'')+' onchange="toggleSelect(\''+j.id+'\',this)"></div>'
         + '<div class="td td-title">'
-          + (j.pinned ? '<span class="td-title-pin"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24ZM12 17v4"/></svg></span>' : '')
+          + (_pinned ? '<span class="td-title-pin"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24ZM12 17v4"/></svg></span>' : '')
           + '<div><div class="td-title-text" onclick="openDetail(\''+j.id+'\',event)">'+splitTitleDate(j.title)+'</div>'
           + '<div class="td-title-sub">'+(j.type||'—')+'</div></div></div>'
         + '<div class="td td-date">'+fmtDate(j.date)+'</div>'
@@ -2546,13 +2554,14 @@
     }
     container.innerHTML = data.map(function(j) {
       var pct = Math.min(100, Math.max(0, j.progress||0));
-      return '<div class="journal-card'+(j.pinned?' pinned':'')+'" onclick="openDetail(\''+j.id+'\',event)">'
+      var _pinned = isPinned(j.id);
+      return '<div class="journal-card'+(_pinned?' pinned':'')+'" onclick="openDetail(\''+j.id+'\',event)">'
         + '<div class="jcard-actions">'
           + '<button class="action-btn" onclick="event.stopPropagation();togglePin(\''+j.id+'\')" title="고정"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg></button>'
           + (_isAdmin && j.user_id !== _userId ? '<button class="action-btn" onclick="event.stopPropagation();viewJournal(\''+j.id+'\')" title="상세보기"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>' : '<button class="action-btn" onclick="event.stopPropagation();editJournal(\''+j.id+'\')" title="수정"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>')
           + '<button class="action-btn del" onclick="event.stopPropagation();deleteJournal(\''+j.id+'\')" title="삭제"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>'
         + '</div>'
-        + '<div class="jcard-top"><span class="jcard-date">'+fmtDate(j.date)+'</span>'+(j.pinned?'<span class="jcard-pin" style="color:var(--yellow)"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg></span>':'')+'</div>'
+        + '<div class="jcard-top"><span class="jcard-date">'+fmtDate(j.date)+'</span>'+(_pinned?'<span class="jcard-pin" style="color:var(--yellow)"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg></span>':'')+'</div>'
         + '<div class="jcard-title">'+(j.title||'무제')+'</div>'
         + '<div class="jcard-project">'+(j.project||'프로젝트 없음')+'</div>'
         + '<div class="jcard-meta">'
@@ -2963,19 +2972,8 @@
   }
 
   function togglePin(id) {
-    var j = journalCache.find(function(x){ return x.id===id; });
-    if (!j) return;
-    j.pinned = !j.pinned;
-    var newPinned = j.pinned;
-    // pinned 필드만 직접 PATCH
-    fetch(SB_URL + '/rest/v1/journals?id=eq.' + id, {
-      method: 'PATCH',
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ pinned: newPinned })
-    }).catch(function(e){ console.error('togglePin error', e); });
-    // 스냅샷도 동기화
-    var snap = journalCacheSnapshot.find(function(x){ return x.id===id; });
-    if (snap) snap.pinned = newPinned;
+    var newPinned = !isPinned(id);
+    setPinned(id, newPinned);
     renderList();
     showToast(newPinned ? '📌 즐겨찾기에 추가했습니다.' : '즐겨찾기에서 제거했습니다.');
   }
