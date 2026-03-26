@@ -671,6 +671,124 @@
   }
   .ac-item:hover .ac-item-del, .ac-item.ac-active .ac-item-del { display: flex; }
   .ac-item-del:hover { background: #fee2e2; color: #dc2626; }
+
+  /* ── Word Onboarding ── */
+  @keyframes word-ob-in {
+    from { opacity: 0; transform: translateY(10px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes word-arrow-bounce {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(6px); }
+  }
+  @keyframes word-ob-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .word-ob-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    z-index: 900;
+    pointer-events: none;
+  }
+  .word-ob-overlay.show { display: block; pointer-events: auto; }
+  .word-ob-card {
+    position: absolute;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    box-shadow: 0 8px 40px rgba(37,99,235,0.13), 0 2px 12px rgba(0,0,0,0.07);
+    padding: 28px 32px 24px;
+    width: 340px;
+    animation: word-ob-in 0.38s cubic-bezier(.22,.61,.36,1) forwards;
+    overflow: visible;
+  }
+  .word-ob-card::before {
+    content: '';
+    position: absolute; inset: -3px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(37,99,235,0.18), rgba(147,51,234,0.12), transparent 60%);
+    z-index: -1;
+    pointer-events: none;
+  }
+  .word-ob-arrow {
+    position: absolute;
+    bottom: -44px; left: 40px;
+    animation: word-arrow-bounce 1.1s ease-in-out infinite;
+  }
+  .word-ob-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #eff6ff;
+    color: #2563eb;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    margin-bottom: 14px;
+  }
+  .word-ob-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: -0.4px;
+    line-height: 1.35;
+    margin-bottom: 12px;
+  }
+  .word-ob-title span { color: #2563eb; }
+  .word-ob-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .word-ob-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.55;
+  }
+  .word-ob-step-num {
+    width: 20px; height: 20px;
+    background: #2563eb;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .word-ob-btn {
+    width: 100%;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 11px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+  .word-ob-btn:hover { background: #1d4ed8; }
+  .word-ob-close {
+    position: absolute;
+    top: 12px; right: 12px;
+    background: none; border: none;
+    cursor: pointer;
+    color: #9ca3af;
+    padding: 4px;
+    border-radius: 6px;
+    line-height: 1;
+    transition: background 0.1s, color 0.1s;
+  }
+  .word-ob-close:hover { background: #f3f4f6; color: #374151; }
 </style>
 </head>
 <body>
@@ -1499,6 +1617,78 @@
     } catch(e) { console.warn('autocomplete init failed', e); }
   })();
 
+</script>
+
+<!-- Word Onboarding -->
+<div class="word-ob-overlay" id="word-ob-overlay" onclick="closeWordOb()">
+  <div class="word-ob-card" id="word-ob-card" onclick="event.stopPropagation()">
+    <button class="word-ob-close" onclick="closeWordOb()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="word-ob-tag">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      시작하기 전에
+    </div>
+    <div class="word-ob-title">업무 시작 전,<br><span>방향부터 설정해보세요.</span></div>
+    <div class="word-ob-steps">
+      <div class="word-ob-step">
+        <div class="word-ob-step-num">1</div>
+        <span><strong>주요 목표</strong>와 <strong>업무 유형</strong>을 먼저 정리해보세요.</span>
+      </div>
+      <div class="word-ob-step">
+        <div class="word-ob-step-num">2</div>
+        <span><strong>금일 업무 내역</strong>에 오늘 할 일을 추가하세요.</span>
+      </div>
+      <div class="word-ob-step">
+        <div class="word-ob-step-num">3</div>
+        <span>업무가 끝날 때마다 <strong>진행 상황을 체크</strong>하며 기록하세요.</span>
+      </div>
+    </div>
+    <button class="word-ob-btn" onclick="closeWordOb()">시작하기</button>
+    <div class="word-ob-arrow">
+      <svg width="32" height="36" viewBox="0 0 32 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 2 Q6 10 10 28" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <polyline points="4,24 10,30 16,24" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // 신규 작성 시에만 표시 (수정/뷰어 모드 제외)
+    if (sessionStorage.getItem('editJournal') || sessionStorage.getItem('viewJournal')) return;
+    setTimeout(function() {
+      var overlay = document.getElementById('word-ob-overlay');
+      var card    = document.getElementById('word-ob-card');
+      if (!overlay || !card) return;
+      // 주요 목표 필드 위치 기준으로 카드 위치 설정
+      var target = document.getElementById('chip-project');
+      if (target) {
+        var rect = target.getBoundingClientRect();
+        var top  = Math.max(rect.top - 220, 70);
+        var left = Math.min(rect.left + 12, window.innerWidth - 360);
+        card.style.top  = top  + 'px';
+        card.style.left = left + 'px';
+      } else {
+        card.style.top  = '120px';
+        card.style.left = '50%';
+        card.style.transform = 'translateX(-50%)';
+      }
+      overlay.classList.add('show');
+    }, 500);
+  })();
+
+  function closeWordOb() {
+    var el = document.getElementById('word-ob-overlay');
+    if (!el) return;
+    el.style.transition = 'opacity 0.2s';
+    el.style.opacity = '0';
+    setTimeout(function() { el.classList.remove('show'); el.style.opacity = ''; el.style.transition = ''; }, 200);
+    // 주요 목표 필드에 포커스
+    var t = document.getElementById('chip-project');
+    if (t) setTimeout(function() { t.focus(); }, 250);
+  }
 </script>
 </body>
 </html>
