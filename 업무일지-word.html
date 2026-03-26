@@ -1114,7 +1114,7 @@
       if (b.classList.contains('status-hold'))  hasHold  = true;
       if (b.classList.contains('status-issue')) hasIssue = true;
     });
-    var status = hasWip ? 'wip' : (hasIssue ? 'issue' : (hasTodo ? 'todo' : (hasHold ? 'hold' : (hasAny ? 'done' : 'wip'))));
+    var status = hasIssue ? 'issue' : (hasWip ? 'wip' : (hasHold ? 'hold' : (hasTodo ? 'todo' : (hasAny ? 'done' : 'wip'))));
 
     // 각 섹션 textarea 수집
     var textareas = document.querySelectorAll('.doc-textarea');

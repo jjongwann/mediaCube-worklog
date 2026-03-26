@@ -1524,11 +1524,11 @@
           </div>
         </div>
         <div class="chart-legend" style="justify-content:center;margin-top:10px;gap:12px">
-          <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#16a34a"></span>완료</span>
+          <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#9333ea"></span>이슈</span>
           <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#2563eb"></span>진행중</span>
           <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#d97706"></span>보류</span>
-          <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#9333ea"></span>이슈</span>
-          <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#9ca3af;"></span>예정</span>
+          <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#9ca3af"></span>예정</span>
+          <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#16a34a"></span>완료</span>
         </div>
       </div>
     </div>
@@ -3278,10 +3278,10 @@
     _statusChart = new Chart(sCtx, {
       type: 'doughnut',
       data: {
-        labels: ['완료', '진행중', '보류', '이슈', '예정'],
+        labels: ['이슈', '진행중', '보류', '예정', '완료'],
         datasets: [{
-          data: [statusCounts.done, statusCounts.wip, statusCounts.hold, statusCounts.issue, statusCounts.todo],
-          backgroundColor: ['#16a34a','#2563eb','#d97706','#9333ea','#9ca3af'],
+          data: [statusCounts.issue, statusCounts.wip, statusCounts.hold, statusCounts.todo, statusCounts.done],
+          backgroundColor: ['#9333ea','#2563eb','#d97706','#9ca3af','#16a34a'],
           borderWidth: 0,
           hoverOffset: 4
         }]
