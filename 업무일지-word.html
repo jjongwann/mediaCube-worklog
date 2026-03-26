@@ -1336,16 +1336,18 @@
       var _blacklist = new Set(JSON.parse(localStorage.getItem(_blKey) || '[]'));
       function saveBlacklist() { localStorage.setItem(_blKey, JSON.stringify([..._blacklist])); }
 
-      var res = await fetch(SB_URL + '/rest/v1/journals?select=project,tasks,work_progress&user_id=eq.' + _userId + '&order=date.desc',
+      var res = await fetch(SB_URL + '/rest/v1/journals?select=project,type,tasks,work_progress&user_id=eq.' + _userId + '&order=date.desc',
         { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } });
       var rows = await res.json();
       if (!Array.isArray(rows) || rows.length === 0) return;
 
-      var taskSet = [], pNameSet = [], pSumSet = [], goalSet = [];
-      var taskSeen = new Set(), pNameSeen = new Set(), pSumSeen = new Set(), goalSeen = new Set();
+      var taskSet = [], pNameSet = [], pSumSet = [], goalSet = [], typeSet = [];
+      var taskSeen = new Set(), pNameSeen = new Set(), pSumSeen = new Set(), goalSeen = new Set(), typeSeen = new Set();
       rows.forEach(function(r) {
         var g = (r.project || '').trim();
         if (g && !goalSeen.has(g) && !_blacklist.has(g)) { goalSeen.add(g); goalSet.push(g); }
+        var tp = (r.type || '').trim();
+        if (tp && !typeSeen.has(tp) && !_blacklist.has(tp)) { typeSeen.add(tp); typeSet.push(tp); }
         if (Array.isArray(r.tasks)) r.tasks.forEach(function(t) {
           var v = (t.text || '').trim();
           if (v && !taskSeen.has(v) && !_blacklist.has(v)) { taskSeen.add(v); taskSet.push(v); }
@@ -1371,6 +1373,7 @@
 
       function getSugg(el) {
         if (el.id === 'chip-project')            return { list: goalSet,  label: '🕐  이전 주요 목표' };
+        if (el.id === 'chip-type')               return { list: typeSet,  label: '🕐  이전 업무 유형' };
         if (el.classList.contains('task-text'))  return { list: taskSet,  label: '🕐  이전 업무 내역' };
         if (el.classList.contains('p-name'))     return { list: pNameSet, label: '🕐  이전 업무명' };
         if (el.classList.contains('p-summary'))  return { list: pSumSet,  label: '🕐  이전 진행 요약' };
@@ -1425,6 +1428,7 @@
             _blacklist.add(val);
             saveBlacklist();
             goalSet  = goalSet.filter(function(s)  { return s !== val; });
+            typeSet  = typeSet.filter(function(s)  { return s !== val; });
             taskSet  = taskSet.filter(function(s)  { return s !== val; });
             pNameSet = pNameSet.filter(function(s) { return s !== val; });
             pSumSet  = pSumSet.filter(function(s)  { return s !== val; });
