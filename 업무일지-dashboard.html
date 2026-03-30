@@ -2880,7 +2880,7 @@
       from = weekStart; to = new Date(today);
     } else if (preset === 'month') {
       from = new Date(today.getFullYear(), today.getMonth(), 1);
-      to   = new Date(today);
+      to   = new Date(today.getFullYear(), today.getMonth() + 1, 0);
     } else if (preset === 'last-month') {
       from = new Date(today.getFullYear(), today.getMonth()-1, 1);
       to   = new Date(today.getFullYear(), today.getMonth(), 0);
