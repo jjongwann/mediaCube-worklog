@@ -2509,6 +2509,11 @@
     updateStats();
     updateFilterChip();
     if (_isAdmin && _empPanelOpen) renderAdminStats();
+
+    // 섹션 타이틀에 건수 표시
+    var labels = { all:'전체 일지', pinned:'즐겨찾기', today:'오늘', week:'이번 주', done:'완료', wip:'진행 중' };
+    var label = labels[currentFilter] || '전체 일지';
+    document.getElementById('list-section-title').textContent = label + ' (' + sorted.length + ')';
   }
 
   function renderTable(data) {
@@ -2948,8 +2953,6 @@
   /* ── Actions ── */
   function setFilter(f) {
     currentFilter = f;
-    var labels = { all:'전체 일지', pinned:'즐겨찾기', today:'오늘', week:'이번 주', done:'완료', wip:'진행 중' };
-    document.getElementById('list-section-title').textContent = labels[f] || '전체 일지';
     document.querySelectorAll('.sidebar-item').forEach(function(el){ el.classList.remove('active'); });
     var map = {all:0,pinned:1,today:2,week:3,done:5,wip:6};
     var items = document.querySelectorAll('.sidebar-item');
