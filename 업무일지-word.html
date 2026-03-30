@@ -1118,6 +1118,7 @@
           + '<input type="text" class="task-text" value="' + (t.text||'').replace(/"/g,'&quot;') + '" readonly>';
         taskList.appendChild(li);
       });
+      calcProgress();
     }
 
     // Toolbar
@@ -1262,6 +1263,7 @@
       ta.style.height = ta.scrollHeight + 'px';
       wireStatus(item.querySelector('.task-status'));
     });
+    calcProgress();
   }
 
   function deleteTask(btn) {
