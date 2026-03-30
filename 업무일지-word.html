@@ -280,30 +280,6 @@
     background: #fff;
   }
 
-  .task-check {
-    width: 15px;
-    height: 15px;
-    border: 1.5px solid #cbd5e1;
-    border-radius: 4px;
-    flex-shrink: 0;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    position: relative;
-    transition: all 0.15s;
-    background: #fff;
-  }
-  .task-check:checked { background: var(--accent); border-color: var(--accent); }
-  .task-check:checked::after {
-    content: '';
-    position: absolute;
-    left: 3px; top: 1px;
-    width: 5px; height: 8px;
-    border: 1.5px solid #fff;
-    border-top: none; border-left: none;
-    transform: rotate(45deg);
-  }
-
   .task-status {
     flex-shrink: 0;
     font-size: 11px;
@@ -877,7 +853,6 @@
     </div>
     <div class="task-list" id="task-list">
       <div class="task-item">
-        <input type="checkbox" class="task-check">
         <span class="task-status status-todo">예정</span>
         <textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea>
         <button class="task-del" onclick="deleteTask(this)" title="삭제">×</button>
@@ -1139,8 +1114,7 @@
         var stxt = STATUS_TEXT[t.status] || '예정';
         var li = document.createElement('div');
         li.className = 'task-item';
-        li.innerHTML = '<input type="checkbox" class="task-check"' + (t.done ? ' checked' : '') + ' disabled>'
-          + '<span class="task-status ' + scls + '">' + stxt + '</span>'
+        li.innerHTML = '<span class="task-status ' + scls + '">' + stxt + '</span>'
           + '<input type="text" class="task-text" value="' + (t.text||'').replace(/"/g,'&quot;') + '" readonly>';
         taskList.appendChild(li);
       });
@@ -1155,7 +1129,7 @@
     if (addTaskBtn) addTaskBtn.style.display = 'none';
 
     // 모든 입력 비활성화
-    document.querySelectorAll('input:not(.task-check), select, textarea').forEach(function(el) {
+    document.querySelectorAll('input, select, textarea').forEach(function(el) {
       el.disabled = true;
       el.style.cursor = 'default';
     });
@@ -1275,8 +1249,7 @@
       var item = document.createElement('div');
       item.className = 'task-item';
       item.innerHTML =
-        '<input type="checkbox" class="task-check"' + (t.done ? ' checked' : '') + '>'
-        + '<span class="task-status ' + scls + '">' + stxt + '</span>'
+        '<span class="task-status ' + scls + '">' + stxt + '</span>'
         + '<textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea>'
         + '<button class="task-del" onclick="deleteTask(this)" title="삭제">×</button>';
       taskList.appendChild(item);
@@ -1304,8 +1277,7 @@
     var item = document.createElement('div');
     item.className = 'task-item';
     item.innerHTML =
-      '<input type="checkbox" class="task-check">'
-      + '<span class="task-status status-todo">예정</span>'
+      '<span class="task-status status-todo">예정</span>'
       + '<textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea>'
       + '<button class="task-del" onclick="deleteTask(this)" title="삭제">×</button>';
     list.appendChild(item);
@@ -1414,8 +1386,7 @@
         else if (statusEl.classList.contains('status-issue')) taskStatus = 'issue';
         else if (statusEl.classList.contains('status-hold'))  taskStatus = 'hold';
       }
-      var done = item.querySelector('.task-check') ? item.querySelector('.task-check').checked : false;
-      tasks.push({ text: text, status: taskStatus, done: done });
+      tasks.push({ text: text, status: taskStatus, done: false });
     });
 
     var nowDate = date || (function(){ var d=new Date(),m=d.getMonth()+1,day=d.getDate(); return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day); })();
