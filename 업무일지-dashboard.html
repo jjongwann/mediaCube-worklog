@@ -988,10 +988,6 @@
     color: var(--text-primary);
   }
   .detail-task-text { flex: 1; line-height: 1.5; }
-  .detail-task-check {
-    width: 14px; height: 14px; flex-shrink: 0;
-    accent-color: var(--accent);
-  }
   .detail-tasks-wrap { margin-bottom: 18px; }
   .detail-memo-section { }
   .detail-memo-lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
@@ -2734,7 +2730,7 @@
       + '.section-rule{flex:1;height:1px;background:#e2e8f0}'
       + '.task-list{display:flex;flex-direction:column;gap:5px}'
       + '.task-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;background:#f8fafc;border:1px solid #e2e8f0}'
-      + '.task-check{width:15px;height:15px;flex-shrink:0;accent-color:#2563eb}'
+      + '.task-check{display:none}'
       + '.task-status{flex-shrink:0;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:20px}'
       + '.task-text-val{flex:1;font-size:15px;color:#0f172a;line-height:1.5}'
       + '.status-done{background:#dcfce7;color:#16a34a}'
@@ -2769,7 +2765,6 @@
       var taskListHtml = tasks.length > 0
         ? tasks.map(function(t) {
             return '<div class="task-item">'
-              + '<input type="checkbox" class="task-check"' + (t.done ? ' checked' : '') + ' disabled>'
               + '<span class="task-status ' + (STAT_CLS[t.status]||'status-todo') + '">' + (STAT_TXT[t.status]||'예정') + '</span>'
               + '<span class="task-text-val">' + (t.text||'') + '</span>'
               + '</div>';
@@ -3042,7 +3037,6 @@
         var scls = STATUS_CLS[t.status] || 'sb-todo';
         var stxt = STATUS_TEXT[t.status] || '예정';
         return '<div class="detail-task-item">'
-          + '<input type="checkbox" class="detail-task-check"' + (t.done ? ' checked' : '') + ' disabled>'
           + '<span class="status-badge ' + scls + '" style="font-size:10px;padding:2px 7px;flex-shrink:0">' + stxt + '</span>'
           + '<span class="detail-task-text">' + (t.text || '') + '</span>'
           + '</div>';
