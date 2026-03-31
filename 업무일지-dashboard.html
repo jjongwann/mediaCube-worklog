@@ -1474,7 +1474,7 @@
     </div>
     <div class="search-box">
       <span class="search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-      <input class="search-input" id="search-input" type="text" placeholder="일지 검색..." oninput="renderList()">
+      <input class="search-input" id="search-input" type="text" placeholder="일지 검색..." oninput="_visibleCount=_pageSize;renderList()">
     </div>
     <button class="btn btn-primary" onclick="window.location.href='업무일지-word.html'">+ 새 일지 작성</button>
   </div>
@@ -2498,6 +2498,9 @@
   }
 
   /* ── Render ── */
+  var _pageSize = 10;
+  var _visibleCount = _pageSize;
+
   function renderList() {
     var all = loadJournals();
     var filtered = filterData(all);
@@ -2516,13 +2519,41 @@
     document.getElementById('list-section-title').textContent = label + ' (' + sorted.length + ')';
   }
 
+  function _getVisibleData(sorted) {
+    return sorted.slice(0, _visibleCount);
+  }
+
+  function _renderLoadMore(sorted) {
+    var existing = document.getElementById('load-more-wrap');
+    if (existing) existing.remove();
+    if (sorted.length <= _visibleCount) return;
+    var remaining = sorted.length - _visibleCount;
+    var wrap = document.createElement('div');
+    wrap.id = 'load-more-wrap';
+    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 0 8px;';
+    wrap.innerHTML = '<button onclick="_loadMore()" style="display:inline-flex;align-items:center;gap:7px;padding:10px 28px;background:#fff;border:1.5px solid #e5e7eb;border-radius:10px;font-size:13px;font-weight:600;color:#374151;cursor:pointer;transition:all 0.15s;box-shadow:0 1px 4px rgba(0,0,0,0.06)" onmouseover="this.style.borderColor=\'#2563eb\';this.style.color=\'#2563eb\';this.style.background=\'#eff6ff\'" onmouseout="this.style.borderColor=\'#e5e7eb\';this.style.color=\'#374151\';this.style.background=\'#fff\'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9" transform="rotate(180,12,12)"/><polyline points="6 15 12 21 18 15"/></svg>더 보기 <span style="color:#9ca3af;font-weight:400">('+remaining+'개 남음)</span></button>'
+      + '<div style="font-size:11px;color:#d1d5db">'+_visibleCount+' / '+sorted.length+'</div>';
+    var parent = document.getElementById('view-table') || document.getElementById('card-view');
+    if (parent) parent.appendChild(wrap);
+  }
+
+  function _loadMore() {
+    _visibleCount += _pageSize;
+    var all = loadJournals();
+    var sorted = sortData(searchData(filterData(all)));
+    if (currentView === 'table') renderTable(sorted);
+    else renderGrid(sorted);
+  }
+
   function renderTable(data) {
     var tbody = document.getElementById('table-body');
     if (data.length === 0) {
       tbody.innerHTML = '<div class="empty-state"><div class="empty-icon" style="color:#cbd5e1"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div><div class="empty-title">일지가 없습니다</div><div class="empty-sub">새 일지를 작성해보세요.</div></div>';
+      _renderLoadMore(data);
       return;
     }
-    tbody.innerHTML = data.map(function(j) {
+    var visible = _getVisibleData(data);
+    tbody.innerHTML = visible.map(function(j) {
       var pct = Math.min(100, Math.max(0, j.progress||0));
       var isSelected = selectedIds.has(j.id);
       var _pinned = isPinned(j.id);
@@ -2545,15 +2576,18 @@
         + '</div>';
     }).join('');
     syncSelectAllCb();
+    _renderLoadMore(data);
   }
 
   function renderGrid(data) {
     var container = document.getElementById('card-body');
     if (data.length === 0) {
       container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon" style="color:#cbd5e1"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div><div class="empty-title">일지가 없습니다</div><div class="empty-sub">새 일지를 작성해보세요.</div></div>';
+      _renderLoadMore(data);
       return;
     }
-    container.innerHTML = data.map(function(j) {
+    var visible = _getVisibleData(data);
+    container.innerHTML = visible.map(function(j) {
       var pct = Math.min(100, Math.max(0, j.progress||0));
       var _pinned = isPinned(j.id);
       return '<div class="journal-card'+(_pinned?' pinned':'')+'" onclick="openDetail(\''+j.id+'\',event)">'
@@ -2575,6 +2609,7 @@
         + '<div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div></div>'
         + '</div>';
     }).join('');
+    _renderLoadMore(data);
   }
 
   /* ── Selection ── */
@@ -2953,6 +2988,7 @@
   /* ── Actions ── */
   function setFilter(f) {
     currentFilter = f;
+    _visibleCount = _pageSize;
     document.querySelectorAll('.sidebar-item').forEach(function(el){ el.classList.remove('active'); });
     var map = {all:0,pinned:1,today:2,week:3,done:5,wip:6};
     var items = document.querySelectorAll('.sidebar-item');
