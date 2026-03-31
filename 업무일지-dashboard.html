@@ -2789,11 +2789,14 @@
       + '.section-bar{width:3px;height:14px;border-radius:2px;background:#2563eb;flex-shrink:0}'
       + '.section-title{font-size:15px;font-weight:700;color:#475569}'
       + '.section-rule{flex:1;height:1px;background:#e2e8f0}'
-      + '.task-list{display:flex;flex-direction:column;gap:5px}'
-      + '.task-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;background:#f8fafc;border:1px solid #e2e8f0}'
-      + '.task-check{display:none}'
-      + '.task-status{flex-shrink:0;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:20px}'
-      + '.task-text-val{flex:1;font-size:15px;color:#0f172a;line-height:1.5}'
+      + '.task-table{width:100%;border-collapse:collapse}'
+      + '.task-table th{background:#f9fafb;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:left;white-space:nowrap}'
+      + '.task-table td{border:1px solid #e2e8f0;padding:7px 10px;vertical-align:middle}'
+      + '.task-status{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}'
+      + '.task-text-val{font-size:14px;color:#0f172a;line-height:1.5}'
+      + '.task-pct-val{font-size:13px;font-weight:700;color:#2563eb;text-align:center}'
+      + '.task-time-val{font-size:12px;color:#374151;text-align:center;white-space:nowrap}'
+      + '.task-hrs-badge{display:inline-block;font-size:11px;font-weight:700;color:#d97706;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:1px 7px;margin-left:4px}'
       + '.status-done{background:#dcfce7;color:#16a34a}'
       + '.status-wip{background:#ffedd5;color:#ea580c}'
       + '.status-todo{background:#e0e7ff;color:#4338ca}'
@@ -2823,13 +2826,29 @@
       var cntIss  = tasks.filter(function(t){ return t.status==='issue'; }).length;
       var cntHold = tasks.filter(function(t){ return t.status==='hold'; }).length;
 
+      var totalTaskHrs = 0;
+      tasks.forEach(function(t){ totalTaskHrs += parseFloat(t.hrs||0); });
+      totalTaskHrs = Math.round(totalTaskHrs * 10) / 10;
+
       var taskListHtml = tasks.length > 0
-        ? tasks.map(function(t) {
-            return '<div class="task-item">'
-              + '<span class="task-status ' + (STAT_CLS[t.status]||'status-todo') + '">' + (STAT_TXT[t.status]||'예정') + '</span>'
-              + '<span class="task-text-val">' + (t.text||'') + '</span>'
-              + '</div>';
-          }).join('')
+        ? '<table class="task-table"><thead><tr>'
+            + '<th style="width:66px;text-align:center">상태</th>'
+            + '<th>업무명</th>'
+            + '<th style="width:72px;text-align:center">진행률</th>'
+            + '<th style="width:160px;text-align:center">시간 (시작 ~ 종료)</th>'
+          + '</tr></thead><tbody>'
+          + tasks.map(function(t) {
+              var timeStr = (t.startTime && t.endTime)
+                ? t.startTime + ' — ' + t.endTime + (t.hrs ? '<span class="task-hrs-badge">' + t.hrs + 'h</span>' : '')
+                : '—';
+              return '<tr>'
+                + '<td style="text-align:center"><span class="task-status ' + (STAT_CLS[t.status]||'status-todo') + '">' + (STAT_TXT[t.status]||'예정') + '</span></td>'
+                + '<td class="task-text-val">' + (t.text||'') + '</td>'
+                + '<td class="task-pct-val">' + (t.pct||0) + '%</td>'
+                + '<td class="task-time-val">' + timeStr + '</td>'
+                + '</tr>';
+            }).join('')
+          + '</tbody></table>'
         : '<div style="color:#94a3b8;font-size:13.5px;padding:8px 0">등록된 업무 항목이 없습니다.</div>';
 
       function section(barColor, title, content) {
@@ -2847,17 +2866,17 @@
       if (j.workProgress && j.workProgress.length > 0) {
         var wpRows = j.workProgress.map(function(row) {
           return '<tr>'
-            + '<td style="padding:7px 12px;border:1px solid #e2e8f0;font-size:13.5px;font-weight:600;color:#0f172a;width:22%">' + (row.name||'—') + '</td>'
-            + '<td style="padding:7px 12px;border:1px solid #e2e8f0;font-size:13.5px;color:#475569">' + (row.summary||'—') + ' <span style="color:#94a3b8;font-size:12px">(진행률 ' + (row.pct||0) + '%)</span></td>'
-            + '<td style="padding:7px 12px;border:1px solid #e2e8f0;font-size:13.5px;color:#d97706;font-weight:600;text-align:center;width:10%">' + (row.hrs||0) + 'h</td>'
+            + '<td style="padding:7px 12px;border:1px solid #e2e8f0;font-size:13.5px;font-weight:600;color:#0f172a;width:28%">' + (row.name||'—') + '</td>'
+            + '<td style="padding:7px 12px;border:1px solid #e2e8f0;font-size:13.5px;color:#475569">' + (row.summary||'—') + '</td>'
+            + '<td style="padding:7px 12px;border:1px solid #e2e8f0;font-size:13.5px;color:#2563eb;font-weight:700;text-align:center;width:10%">' + (row.pct||0) + '%</td>'
             + '</tr>';
         }).join('');
         wpHtml = '<div class="section"><div class="section-header"><div class="section-bar" style="background:#4338ca"></div><span class="section-title">업무 추진 현황</span><div class="section-rule"></div></div>'
           + '<table style="width:100%;border-collapse:collapse">'
           + '<thead><tr>'
-          + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:8px 12px;font-size:12px;font-weight:700;color:#64748b;text-align:left;width:22%">업무명</th>'
+          + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:8px 12px;font-size:12px;font-weight:700;color:#64748b;text-align:left;width:28%">업무명</th>'
           + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:8px 12px;font-size:12px;font-weight:700;color:#64748b;text-align:left">진행 내용 요약</th>'
-          + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:8px 12px;font-size:12px;font-weight:700;color:#64748b;text-align:center;width:10%">시간</th>'
+          + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:8px 12px;font-size:12px;font-weight:700;color:#64748b;text-align:center;width:10%">진행률</th>'
           + '</tr></thead><tbody>' + wpRows + '</tbody></table></div>';
       }
 
@@ -2875,7 +2894,7 @@
           + '<div class="info-chip"><div class="info-chip-label">전체 진행률</div><div class="info-chip-val" style="color:#2563eb">' + pct + ' %</div></div>'
         + '</div>'
         + '<div class="metrics-row">'
-          + '<div class="metric-card"><div class="metric-val">8h</div><div class="metric-lbl">작업 시간</div></div>'
+          + '<div class="metric-card"><div class="metric-val">' + (totalTaskHrs > 0 ? totalTaskHrs + 'h' : '—') + '</div><div class="metric-lbl">작업 시간</div></div>'
           + '<div class="metric-card"><div class="metric-val">' + cntDone + '</div><div class="metric-lbl">완료 업무</div></div>'
           + '<div class="metric-card"><div class="metric-val">' + cntWip  + '</div><div class="metric-lbl">진행 중</div></div>'
           + '<div class="metric-card"><div class="metric-val">' + cntIss  + '</div><div class="metric-lbl">이슈</div></div>'
