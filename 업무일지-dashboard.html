@@ -2400,14 +2400,15 @@
           j.workProgress.forEach(function(wp) {
             var name = (wp.name || '').trim();
             if (!name) return;
-            if (!taskMap[name]) taskMap[name] = { total: 0, count: 0 };
+            if (!taskMap[name]) taskMap[name] = { total: 0, count: 0, totalHrs: 0 };
             taskMap[name].total += (wp.pct || 0);
             taskMap[name].count += 1;
+            taskMap[name].totalHrs += (wp.hrs || 0);
           });
         });
 
         var taskList = Object.keys(taskMap).map(function(k) {
-          return { name: k, avg: Math.round(taskMap[k].total / taskMap[k].count), count: taskMap[k].count };
+          return { name: k, avg: Math.round(taskMap[k].total / taskMap[k].count), count: taskMap[k].count, totalHrs: taskMap[k].totalHrs };
         });
         taskList.sort(function(a, b) { return b.avg - a.avg; });
         if (taskList.length) monthBlocks.push({ month: m, tasks: taskList });
@@ -2435,7 +2436,8 @@
           + '<th>업무명</th>'
           + '<th style="width:80px;text-align:center">평균 진행률</th>'
           + '<th style="width:50px;text-align:center">건수</th>'
-          + '<th style="width:130px">진행률</th>'
+          + '<th style="width:70px;text-align:center">총 시간</th>'
+          + '<th style="width:110px">진행률</th>'
           + '</tr></thead><tbody>';
 
         mb.tasks.forEach(function(t) {
@@ -2444,6 +2446,7 @@
             + '<td style="font-weight:600;color:var(--text-primary)">' + t.name + '</td>'
             + '<td style="text-align:center;font-weight:700;color:' + color + '">' + t.avg + '%</td>'
             + '<td style="text-align:center;color:var(--text-muted)">' + t.count + '</td>'
+            + '<td style="text-align:center;font-weight:700;color:#d97706">' + (t.totalHrs > 0 ? t.totalHrs + 'h' : '—') + '</td>'
             + '<td><div class="rbar"><div class="rbar-fill" style="width:' + t.avg + '%"></div></div></td>'
             + '</tr>';
         });
@@ -2828,6 +2831,7 @@
           return '<tr>'
             + '<td style="padding:7px 12px;border:1px solid #e2e8f0;font-size:13.5px;font-weight:600;color:#0f172a;width:22%">' + (row.name||'—') + '</td>'
             + '<td style="padding:7px 12px;border:1px solid #e2e8f0;font-size:13.5px;color:#475569">' + (row.summary||'—') + ' <span style="color:#94a3b8;font-size:12px">(진행률 ' + (row.pct||0) + '%)</span></td>'
+            + '<td style="padding:7px 12px;border:1px solid #e2e8f0;font-size:13.5px;color:#d97706;font-weight:600;text-align:center;width:10%">' + (row.hrs||0) + 'h</td>'
             + '</tr>';
         }).join('');
         wpHtml = '<div class="section"><div class="section-header"><div class="section-bar" style="background:#4338ca"></div><span class="section-title">업무 추진 현황</span><div class="section-rule"></div></div>'
@@ -2835,6 +2839,7 @@
           + '<thead><tr>'
           + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:8px 12px;font-size:12px;font-weight:700;color:#64748b;text-align:left;width:22%">업무명</th>'
           + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:8px 12px;font-size:12px;font-weight:700;color:#64748b;text-align:left">진행 내용 요약</th>'
+          + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:8px 12px;font-size:12px;font-weight:700;color:#64748b;text-align:center;width:10%">시간</th>'
           + '</tr></thead><tbody>' + wpRows + '</tbody></table></div>';
       }
 
@@ -3092,15 +3097,17 @@
     if (wp && wp.length > 0) {
       wpList.innerHTML = '<table style="width:100%;border-collapse:collapse;margin-top:6px">'
         + '<thead><tr>'
-        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:left;width:25%">업무명</th>'
+        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:left;width:24%">업무명</th>'
         + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:left">진행 내용 요약</th>'
-        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:12%">진행률</th>'
+        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:10%">진행률</th>'
+        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:9%">시간</th>'
         + '</tr></thead><tbody>'
         + wp.map(function(row) {
           return '<tr>'
             + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;font-weight:600;color:#0f172a">' + (row.name||'—') + '</td>'
             + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;color:#475569">' + (row.summary||'—') + '</td>'
             + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;color:#2563eb;font-weight:600;text-align:center">' + (row.pct||0) + '%</td>'
+            + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;color:#d97706;font-weight:600;text-align:center">' + (row.hrs||0) + 'h</td>'
             + '</tr>';
         }).join('')
         + '</tbody></table>';
