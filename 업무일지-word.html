@@ -443,28 +443,70 @@
     min-height: 20px;
   }
 
-  /* ── 시간 선택 드롭다운 ── */
-  .t-time-sel {
-    width: 76px;
+  /* ── 커스텀 시간 피커 ── */
+  .t-time-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
     border: 1.5px solid #e5e7eb;
     border-radius: 8px;
-    padding: 5px 22px 5px 9px;
+    background: #f9fafb;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    min-width: 74px;
+    justify-content: space-between;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    user-select: none;
+  }
+  .t-time-btn:hover { border-color: #93c5fd; background: #fff; }
+  .t-time-btn.active { border-color: #3b82f6; background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+  .t-time-btn.has-val { color: #2563eb; border-color: #bfdbfe; background: #eff6ff; }
+  .t-time-btn.has-val:hover { border-color: #3b82f6; background: #dbeafe; }
+  .t-time-btn svg { flex-shrink: 0; opacity: 0.5; }
+  .t-time-btn.active svg { opacity: 0.8; }
+  .t-time-hidden { display: none; }
+
+  /* 팝오버 */
+  .time-picker-pop {
+    position: fixed;
+    z-index: 4000;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.07);
+    padding: 8px 6px;
+    width: 120px;
+    max-height: 280px;
+    overflow-y: auto;
+    animation: modal-in 0.12s cubic-bezier(.22,.61,.36,1);
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db #f9fafb;
+  }
+  .time-picker-pop::-webkit-scrollbar { width: 4px; }
+  .time-picker-pop::-webkit-scrollbar-track { background: #f9fafb; border-radius: 4px; }
+  .time-picker-pop::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+  .time-picker-opt {
+    display: block;
+    width: 100%;
+    padding: 7px 12px;
+    border: none;
+    background: none;
+    border-radius: 7px;
     font-size: 13px;
     font-weight: 500;
     color: #374151;
-    background-color: #f9fafb;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239ca3af' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 7px center;
-    -webkit-appearance: none;
-    appearance: none;
-    outline: none;
+    text-align: left;
     cursor: pointer;
     font-family: inherit;
-    transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+    transition: background 0.1s, color 0.1s;
   }
-  .t-time-sel:hover { border-color: #93c5fd; }
-  .t-time-sel:focus { border-color: #3b82f6; background-color: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+  .time-picker-opt:hover { background: #eff6ff; color: #2563eb; }
+  .time-picker-opt.selected { background: #2563eb; color: #fff; font-weight: 700; }
 
   .add-btn {
     display: flex;
@@ -956,7 +998,7 @@
         <tr class="task-item">
           <td class="col-task-status"><span class="task-status status-todo">예정</span></td>
           <td class="col-task-name"><textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea></td>
-          <td class="col-task-hrs"><div class="time-range-wrap"><select class="t-start t-time-sel"><option value="">--</option></select><span class="time-sep">—</span><select class="t-end t-time-sel"><option value="">--</option></select><span class="time-duration"></span></div></td>
+          <td class="col-task-hrs"><div class="time-range-wrap"><button type="button" class="t-time-btn t-start" data-val=""><span class="t-time-label">--</span><svg width="9" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="time-sep">—</span><button type="button" class="t-time-btn t-end" data-val=""><span class="t-time-label">--</span><svg width="9" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="time-duration"></span></div></td>
           <td class="col-task-del"><button class="task-del" onclick="deleteTask(this)" title="삭제">×</button></td>
         </tr>
       </tbody>
@@ -1277,11 +1319,13 @@
     var total = 0;
     var hasAny = false;
     document.querySelectorAll('#task-list tr').forEach(function(tr) {
-      var startEl = tr.querySelector('.t-start');
-      var endEl   = tr.querySelector('.t-end');
-      var durEl   = tr.querySelector('.time-duration');
-      if (!startEl || !endEl) return;
-      var hrs = calcTaskHrs(startEl.value, endEl.value);
+      var startBtn = tr.querySelector('.t-start');
+      var endBtn   = tr.querySelector('.t-end');
+      var durEl    = tr.querySelector('.time-duration');
+      if (!startBtn || !endBtn) return;
+      var startVal = startBtn.dataset ? startBtn.dataset.val : '';
+      var endVal   = endBtn.dataset   ? endBtn.dataset.val   : '';
+      var hrs = calcTaskHrs(startVal, endVal);
       if (durEl) {
         if (hrs !== null) {
           durEl.textContent = hrs + 'h';
@@ -1298,13 +1342,7 @@
     if (metricTime) metricTime.value = hasAny ? (Math.round(total * 10) / 10) + 'h' : '—';
   }
 
-  function wireTimeRange(tr) {
-    var startEl = tr.querySelector('.t-start');
-    var endEl   = tr.querySelector('.t-end');
-    if (!startEl || !endEl) return;
-    startEl.addEventListener('change', calcTotalTaskHrs);
-    endEl.addEventListener('change', calcTotalTaskHrs);
-  }
+  function wireTimeRange(tr) { /* 커스텀 피커는 wireTimePicker로 처리 */ }
 
   function calcProgress() {
     var badges = document.querySelectorAll('#task-list .task-status');
@@ -1386,13 +1424,7 @@
   }
 
   document.querySelectorAll('.task-status').forEach(wireStatus);
-  // 기본 행 select 옵션 채우기
-  document.querySelectorAll('#task-list tr').forEach(function(tr) {
-    tr.querySelectorAll('.t-time-sel').forEach(function(sel) {
-      if (sel.options.length <= 1) sel.innerHTML = _timeOptions('');
-    });
-    wireTimeRange(tr);
-  });
+  document.querySelectorAll('#task-list tr').forEach(wireTimePicker);
 
   // ── Edit mode: restore task list ──
   if (editingEntry && editingEntry.tasks && editingEntry.tasks.length > 0) {
@@ -1415,7 +1447,7 @@
       });
       ta.style.height = ta.scrollHeight + 'px';
       wireStatus(tr.querySelector('.task-status'));
-      wireTimeRange(tr);
+      wireTimePicker(tr);
     });
     calcProgress();
   }
@@ -1428,18 +1460,83 @@
     setTimeout(function() { item.remove(); calcProgress(); }, 150);
   }
 
-  function _timeOptions(selected) {
-    var html = '<option value="">--</option>';
+  var TIME_SLOTS = (function() {
+    var slots = [];
     for (var h = 9; h <= 22; h++) {
       var steps = (h < 22) ? [0, 30] : [0];
       steps.forEach(function(m) {
         var hh = h < 10 ? '0' + h : '' + h;
         var mm = m === 0 ? '00' : '30';
-        var v = hh + ':' + mm;
-        html += '<option value="' + v + '"' + (selected === v ? ' selected' : '') + '>' + v + '</option>';
+        slots.push(hh + ':' + mm);
       });
     }
-    return html;
+    return slots;
+  })();
+
+  var _activeTimePop = null;
+
+  function closeTimePop() {
+    if (_activeTimePop) {
+      _activeTimePop.remove();
+      _activeTimePop = null;
+    }
+    document.querySelectorAll('.t-time-btn.active').forEach(function(b) { b.classList.remove('active'); });
+  }
+
+  document.addEventListener('click', function(e) {
+    if (_activeTimePop && !_activeTimePop.contains(e.target) && !e.target.closest('.t-time-btn')) {
+      closeTimePop();
+    }
+  });
+
+  function openTimePop(btn) {
+    closeTimePop();
+    btn.classList.add('active');
+
+    var pop = document.createElement('div');
+    pop.className = 'time-picker-pop';
+    var currentVal = btn.dataset.val || '';
+
+    TIME_SLOTS.forEach(function(slot) {
+      var opt = document.createElement('button');
+      opt.type = 'button';
+      opt.className = 'time-picker-opt' + (slot === currentVal ? ' selected' : '');
+      opt.textContent = slot;
+      opt.addEventListener('click', function(e) {
+        e.stopPropagation();
+        btn.dataset.val = slot;
+        btn.querySelector('.t-time-label').textContent = slot;
+        btn.classList.add('has-val');
+        btn.classList.remove('active');
+        closeTimePop();
+        calcTotalTaskHrs();
+      });
+      pop.appendChild(opt);
+    });
+
+    document.body.appendChild(pop);
+    _activeTimePop = pop;
+
+    var rect = btn.getBoundingClientRect();
+    var top = rect.bottom + 4;
+    var left = rect.left;
+    if (left + 130 > window.innerWidth) left = window.innerWidth - 136;
+    pop.style.top = top + 'px';
+    pop.style.left = left + 'px';
+
+    // 선택된 항목으로 스크롤
+    var sel = pop.querySelector('.selected');
+    if (sel) setTimeout(function() { sel.scrollIntoView({ block: 'center' }); }, 10);
+  }
+
+  function wireTimePicker(tr) {
+    tr.querySelectorAll('.t-time-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (_activeTimePop && btn.classList.contains('active')) { closeTimePop(); return; }
+        openTimePop(btn);
+      });
+    });
   }
 
   function _taskRowHtml(scls, stxt, text, pct, startTime, endTime, readonly) {
@@ -1451,9 +1548,17 @@
           : '<textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea>')
       + '</td>'
       + '<td class="col-task-hrs"><div class="time-range-wrap">'
-        + '<select class="t-start t-time-sel"' + dis + '>' + _timeOptions(startTime||'') + '</select>'
-        + '<span class="time-sep">—</span>'
-        + '<select class="t-end t-time-sel"' + dis + '>' + _timeOptions(endTime||'') + '</select>'
+        + (readonly
+            ? '<span style="font-size:13px;color:#374151;font-weight:500">' + (startTime && endTime ? startTime + ' — ' + endTime : '—') + '</span>'
+            : '<button type="button" class="t-time-btn t-start' + (startTime ? ' has-val' : '') + '" data-val="' + (startTime||'') + '">'
+              + '<span class="t-time-label">' + (startTime || '--') + '</span>'
+              + '<svg width="9" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+              + '</button>'
+              + '<span class="time-sep">—</span>'
+              + '<button type="button" class="t-time-btn t-end' + (endTime ? ' has-val' : '') + '" data-val="' + (endTime||'') + '">'
+              + '<span class="t-time-label">' + (endTime || '--') + '</span>'
+              + '<svg width="9" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+              + '</button>')
         + '<span class="time-duration"></span>'
       + '</div></td>'
       + '<td class="col-task-del">' + (readonly ? '' : '<button class="task-del" onclick="deleteTask(this)" title="삭제">×</button>') + '</td>';
@@ -1472,7 +1577,7 @@
       this.style.height = this.scrollHeight + 'px';
     });
     wireStatus(tr.querySelector('.task-status'));
-    wireTimeRange(tr);
+    wireTimePicker(tr);
     calcProgress();
     ta.focus();
   }
@@ -1572,8 +1677,10 @@
         else if (statusEl.classList.contains('status-hold'))  taskStatus = 'hold';
       }
       var pct       = parseInt((tr.querySelector('.t-pct')   || {}).value || '0') || 0;
-      var startTime = (tr.querySelector('.t-start') || {}).value || '';
-      var endTime   = (tr.querySelector('.t-end')   || {}).value || '';
+      var startBtn  = tr.querySelector('.t-start');
+      var endBtn    = tr.querySelector('.t-end');
+      var startTime = (startBtn && startBtn.dataset) ? (startBtn.dataset.val || '') : '';
+      var endTime   = (endBtn   && endBtn.dataset)   ? (endBtn.dataset.val   || '') : '';
       var hrs       = calcTaskHrs(startTime, endTime) || 0;
       tasks.push({ text: text, status: taskStatus, done: false, pct: pct, startTime: startTime, endTime: endTime, hrs: hrs });
     });
