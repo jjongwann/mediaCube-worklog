@@ -2834,7 +2834,6 @@
         ? '<table class="task-table"><thead><tr>'
             + '<th style="width:66px;text-align:center">상태</th>'
             + '<th>업무명</th>'
-            + '<th style="width:72px;text-align:center">진행률</th>'
             + '<th style="width:160px;text-align:center">시간 (시작 ~ 종료)</th>'
           + '</tr></thead><tbody>'
           + tasks.map(function(t) {
@@ -2844,7 +2843,6 @@
               return '<tr>'
                 + '<td style="text-align:center"><span class="task-status ' + (STAT_CLS[t.status]||'status-todo') + '">' + (STAT_TXT[t.status]||'예정') + '</span></td>'
                 + '<td class="task-text-val">' + (t.text||'') + '</td>'
-                + '<td class="task-pct-val">' + (t.pct||0) + '%</td>'
                 + '<td class="task-time-val">' + timeStr + '</td>'
                 + '</tr>';
             }).join('')
@@ -3118,8 +3116,7 @@
         + '<thead><tr>'
         + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:66px">상태</th>'
         + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:left">업무명</th>'
-        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:70px">진행률</th>'
-        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:130px">시간 (시작 ~ 종료)</th>'
+        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:150px">시간 (시작 ~ 종료)</th>'
         + '</tr></thead><tbody>'
         + j.tasks.map(function(t) {
           var scls = STATUS_CLS[t.status] || 'sb-todo';
@@ -3130,7 +3127,6 @@
           return '<tr>'
             + '<td style="border:1px solid #e2e8f0;padding:6px 8px;text-align:center"><span class="status-badge ' + scls + '" style="font-size:10px;padding:2px 7px">' + stxt + '</span></td>'
             + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;color:#0f172a">' + (t.text || '—') + '</td>'
-            + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;color:#2563eb;font-weight:600;text-align:center">' + (t.pct || 0) + '%</td>'
             + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:12px;color:#374151;text-align:center">' + timeStr + '</td>'
             + '</tr>';
         }).join('')
