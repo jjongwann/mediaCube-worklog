@@ -2723,13 +2723,13 @@
       var cnt = {done:0,wip:0,issue:0,hold:0};
       tasks.forEach(function(t){ var s=t.status||(t.done?'done':'todo'); if(cnt[s]!==undefined) cnt[s]++; });
       var taskText = tasks.length > 0
-        ? tasks.map(function(t){ var s=t.status||(t.done?'done':'todo'); return '[' + (ST[s]||s) + '] ' + (t.text||''); }).join('\n')
+        ? tasks.map(function(t){ var s=t.status||(t.done?'done':'todo'); return '[' + (ST[s]||s) + '] ' + (t.text||'') + (t.pct ? ' (' + t.pct + '%)' : '') + (t.hrs ? ' ' + t.hrs + 'h' : ''); }).join('\n')
         : '';
+      var totalHrs = tasks.reduce(function(sum, t){ return sum + (parseFloat(t.hrs)||0); }, 0);
       var wpList = j.workProgress && j.workProgress.length > 0 ? j.workProgress : [];
       var wpText = wpList.length > 0
-        ? wpList.map(function(row){ return (row.name||'') + ': ' + (row.summary||'') + ' (' + (row.pct||0) + '%' + (row.hrs ? ', ' + row.hrs + 'h' : '') + ')'; }).join('\n')
+        ? wpList.map(function(row){ return (row.name||'') + ': ' + (row.summary||'') + ' (' + (row.pct||0) + '%)'; }).join('\n')
         : '';
-      var totalHrs = wpList.reduce(function(sum, row){ return sum + (parseFloat(row.hrs)||0); }, 0);
       return '<Row>'
         + cell(j.date) + cell(j.author) + cell(j.project) + cell(j.type)
         + cell(ST[j.status]||'') + num(j.progress||0)
@@ -3095,14 +3095,24 @@
     if (j.tasks && j.tasks.length > 0) {
       var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정' };
       var STATUS_CLS  = { done: 'sb-done', wip: 'sb-wip', issue: 'sb-issue', hold: 'sb-hold', todo: 'sb-todo' };
-      tasksList.innerHTML = j.tasks.map(function(t) {
-        var scls = STATUS_CLS[t.status] || 'sb-todo';
-        var stxt = STATUS_TEXT[t.status] || '예정';
-        return '<div class="detail-task-item">'
-          + '<span class="status-badge ' + scls + '" style="font-size:10px;padding:2px 7px;flex-shrink:0">' + stxt + '</span>'
-          + '<span class="detail-task-text">' + (t.text || '') + '</span>'
-          + '</div>';
-      }).join('');
+      tasksList.innerHTML = '<table style="width:100%;border-collapse:collapse;margin-top:6px">'
+        + '<thead><tr>'
+        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:72px">상태</th>'
+        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:left">업무명</th>'
+        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:80px">진행률</th>'
+        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:70px">시간</th>'
+        + '</tr></thead><tbody>'
+        + j.tasks.map(function(t) {
+          var scls = STATUS_CLS[t.status] || 'sb-todo';
+          var stxt = STATUS_TEXT[t.status] || '예정';
+          return '<tr>'
+            + '<td style="border:1px solid #e2e8f0;padding:6px 8px;text-align:center"><span class="status-badge ' + scls + '" style="font-size:10px;padding:2px 7px">' + stxt + '</span></td>'
+            + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;color:#0f172a">' + (t.text || '—') + '</td>'
+            + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;color:#2563eb;font-weight:600;text-align:center">' + (t.pct || 0) + '%</td>'
+            + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;color:#d97706;font-weight:600;text-align:center">' + (t.hrs ? t.hrs + 'h' : '—') + '</td>'
+            + '</tr>';
+        }).join('')
+        + '</tbody></table>';
       tasksWrap.style.display = '';
     } else {
       tasksWrap.style.display = 'none';
@@ -3115,17 +3125,15 @@
     if (wp && wp.length > 0) {
       wpList.innerHTML = '<table style="width:100%;border-collapse:collapse;margin-top:6px">'
         + '<thead><tr>'
-        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:left;width:24%">업무명</th>'
+        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:left;width:28%">업무명</th>'
         + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:left">진행 내용 요약</th>'
         + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:10%">진행률</th>'
-        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:9%">시간</th>'
         + '</tr></thead><tbody>'
         + wp.map(function(row) {
           return '<tr>'
             + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;font-weight:600;color:#0f172a">' + (row.name||'—') + '</td>'
             + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;color:#475569">' + (row.summary||'—') + '</td>'
             + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;color:#2563eb;font-weight:600;text-align:center">' + (row.pct||0) + '%</td>'
-            + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;color:#d97706;font-weight:600;text-align:center">' + (row.hrs||0) + 'h</td>'
             + '</tr>';
         }).join('')
         + '</tbody></table>';
