@@ -1262,17 +1262,19 @@
         tr.innerHTML = _taskRowHtml(scls, stxt, t.text, t.pct, t.startTime, t.endTime, true);
         taskList.appendChild(tr);
       });
-      // readonly 모드: entry.tasks에서 직접 총 시간 계산
+      // readonly 모드: entry.tasks에서 직접 총 시간 계산 (startTime/endTime 우선)
       var totalHrs = 0;
       entry.tasks.forEach(function(t) {
-        var h = parseFloat(t.hrs || 0);
-        if (!h && t.startTime && t.endTime) {
+        var h = 0;
+        if (t.startTime && t.endTime) {
           var sp = t.startTime.split(':'), ep = t.endTime.split(':');
-          if (sp.length === 2 && ep.length === 2) {
-            var diff = (parseInt(ep[0])*60 + parseInt(ep[1])) - (parseInt(sp[0])*60 + parseInt(sp[1]));
-            if (diff > 0) h = diff / 60;
+          if (sp.length >= 2 && ep.length >= 2) {
+            var diff = (parseInt(sp[0])*60 + parseInt(sp[1]));
+            var diff2 = (parseInt(ep[0])*60 + parseInt(ep[1]));
+            if (diff2 > diff) h = Math.round((diff2 - diff) / 6) / 10;
           }
         }
+        if (!h) h = parseFloat(t.hrs || 0);
         totalHrs += h;
       });
       totalHrs = Math.round(totalHrs * 10) / 10;
@@ -1574,6 +1576,14 @@
       + '<td class="col-task-hrs"><div class="time-range-wrap">'
         + (readonly
             ? '<span style="font-size:13px;color:#374151;font-weight:500">' + (startTime && endTime ? startTime + ' — ' + endTime : '—') + '</span>'
+              + (function() {
+                  if (!startTime || !endTime) return '';
+                  var sp = startTime.split(':'), ep = endTime.split(':');
+                  if (sp.length < 2 || ep.length < 2) return '';
+                  var diff = (parseInt(ep[0])*60+parseInt(ep[1])) - (parseInt(sp[0])*60+parseInt(sp[1]));
+                  if (diff <= 0) return '';
+                  return '<span class="time-duration visible">' + (Math.round(diff/6)/10) + 'h</span>';
+                })()
             : '<button type="button" class="t-time-btn t-start' + (startTime ? ' has-val' : '') + '" data-val="' + (startTime||'') + '">'
               + '<span class="t-time-label">' + (startTime || '--') + '</span>'
               + '<svg width="9" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'
