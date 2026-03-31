@@ -3073,7 +3073,17 @@
       var cntHold = tasks.filter(function(t){ return t.status==='hold'; }).length;
 
       var totalTaskHrs = 0;
-      tasks.forEach(function(t){ totalTaskHrs += parseFloat(t.hrs||0); });
+      tasks.forEach(function(t) {
+        var h = parseFloat(t.hrs || 0);
+        if (!h && t.startTime && t.endTime) {
+          var sp = t.startTime.split(':'), ep = t.endTime.split(':');
+          if (sp.length === 2 && ep.length === 2) {
+            var diff = (parseInt(ep[0])*60 + parseInt(ep[1])) - (parseInt(sp[0])*60 + parseInt(sp[1]));
+            if (diff > 0) h = diff / 60;
+          }
+        }
+        totalTaskHrs += h;
+      });
       totalTaskHrs = Math.round(totalTaskHrs * 10) / 10;
 
       var taskListHtml = tasks.length > 0
