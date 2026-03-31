@@ -3517,62 +3517,120 @@
 
   function renderTaskTimeChart() {
     var all = loadJournals();
-    // 관리자면 본인 일지만, 일반 유저면 본인 일지만
-    var myJournals = _isAdmin
-      ? all  // 관리자는 전체 보여줌 (아래에서 userId 기준 필터)
-      : all.filter(function(j){ return j.user_id === _userId; });
-
-    // 업무명별 hrs 집계
-    var taskMap = {};
-    var statusMap = {};
-    myJournals.forEach(function(j) {
-      (j.tasks || []).forEach(function(t) {
-        var name = (t.text || '').trim();
-        if (!name || !t.hrs) return;
-        if (!taskMap[name]) { taskMap[name] = 0; statusMap[name] = t.status || 'todo'; }
-        taskMap[name] += parseFloat(t.hrs || 0);
-        // 가장 최근 status 반영
-        statusMap[name] = t.status || statusMap[name];
-      });
-    });
-
-    var taskList = Object.keys(taskMap).map(function(k) {
-      return { name: k, hrs: Math.round(taskMap[k] * 10) / 10, status: statusMap[k] };
-    }).filter(function(t){ return t.hrs > 0; });
-    taskList.sort(function(a, b){ return b.hrs - a.hrs; });
-
     var section = document.getElementById('task-time-section');
     var list    = document.getElementById('tts-bar-list');
     var sub     = document.getElementById('tts-sub-text');
-
     section.style.display = '';
 
-    if (!taskList.length) {
-      list.innerHTML = '<div class="tts-empty">시간이 기록된 업무가 없습니다.</div>';
-      sub.textContent = '';
-      return;
-    }
-
-    var totalHrs = Math.round(taskList.reduce(function(s,t){ return s + t.hrs; }, 0) * 10) / 10;
-    sub.textContent = '총 ' + taskList.length + '개 업무 · 누적 ' + totalHrs + 'h';
-
-    var maxHrs = taskList[0].hrs;
     var STATUS_B = { done: '#dcfce7', wip: '#eff6ff', issue: '#fdf4ff', hold: '#fffbeb', todo: '#f3f4f6' };
     var STATUS_C = { done: '#16a34a', wip: '#2563eb', issue: '#9333ea', hold: '#d97706', todo: '#6b7280' };
     var STATUS_N = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정' };
     var BAR_COLORS = ['#3b82f6','#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899'];
 
-    list.innerHTML = taskList.slice(0, 20).map(function(t, i) {
-      var pct = Math.round(t.hrs / maxHrs * 100);
-      var color = BAR_COLORS[i % BAR_COLORS.length];
-      var sc = t.status || 'todo';
-      return '<div class="tts-bar-row">'
-        + '<span class="tts-bar-status" style="background:' + STATUS_B[sc] + ';color:' + STATUS_C[sc] + '">' + STATUS_N[sc] + '</span>'
-        + '<span class="tts-bar-name" title="' + t.name + '">' + t.name + '</span>'
-        + '<div class="tts-bar-track"><div class="tts-bar-fill" style="width:0%;background:' + color + '" data-pct="' + pct + '"></div></div>'
-        + '<span class="tts-bar-hrs">' + t.hrs + 'h</span>'
-        + '</div>';
-    }).join('');
+    if (_isAdmin) {
+      // 관리자: 직원별로 묶어서 표시
+      var hasAny = false;
+      var html = '';
+      var grandTotal = 0;
+
+      ALL_USERS.forEach(function(u) {
+        var uJournals = all.filter(function(j){ return j.user_id === u.id; });
+        if (!uJournals.length) return;
+
+        var taskMap = {}, statusMap = {};
+        uJournals.forEach(function(j) {
+          (j.tasks || []).forEach(function(t) {
+            var name = (t.text || '').trim();
+            if (!name || !t.hrs) return;
+            if (!taskMap[name]) { taskMap[name] = 0; statusMap[name] = t.status || 'todo'; }
+            taskMap[name] += parseFloat(t.hrs || 0);
+            statusMap[name] = t.status || statusMap[name];
+          });
+        });
+
+        var taskList = Object.keys(taskMap).map(function(k) {
+          return { name: k, hrs: Math.round(taskMap[k] * 10) / 10, status: statusMap[k] };
+        }).filter(function(t){ return t.hrs > 0; });
+        taskList.sort(function(a, b){ return b.hrs - a.hrs; });
+        if (!taskList.length) return;
+
+        hasAny = true;
+        var maxHrs = taskList[0].hrs;
+        var totalHrs = Math.round(taskList.reduce(function(s,t){ return s+t.hrs; }, 0) * 10) / 10;
+        grandTotal += totalHrs;
+
+        html += '<div style="margin-bottom:18px">'
+          + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:5px 10px;background:#f8fafc;border-radius:6px;border-left:3px solid var(--accent)">'
+            + '<span style="font-size:12px;font-weight:700;color:var(--text-primary)">' + u.fullName + '</span>'
+            + '<span style="font-size:11px;color:var(--text-muted)">(' + u.dept + ')</span>'
+            + '<span style="font-size:11px;font-weight:700;color:#d97706;margin-left:auto">총 ' + totalHrs + 'h</span>'
+          + '</div>';
+
+        taskList.slice(0, 15).forEach(function(t, i) {
+          var pct = Math.round(t.hrs / maxHrs * 100);
+          var color = BAR_COLORS[i % BAR_COLORS.length];
+          var sc = t.status || 'todo';
+          html += '<div class="tts-bar-row">'
+            + '<span class="tts-bar-status" style="background:' + STATUS_B[sc] + ';color:' + STATUS_C[sc] + '">' + STATUS_N[sc] + '</span>'
+            + '<span class="tts-bar-name" title="' + t.name + '">' + t.name + '</span>'
+            + '<div class="tts-bar-track"><div class="tts-bar-fill" style="width:0%;background:' + color + '" data-pct="' + pct + '"></div></div>'
+            + '<span class="tts-bar-hrs">' + t.hrs + 'h</span>'
+            + '</div>';
+        });
+
+        html += '</div>';
+      });
+
+      if (!hasAny) {
+        list.innerHTML = '<div class="tts-empty">시간이 기록된 업무가 없습니다.</div>';
+        sub.textContent = '';
+        return;
+      }
+
+      sub.textContent = '전체 누적 ' + (Math.round(grandTotal * 10) / 10) + 'h';
+      list.innerHTML = html;
+
+    } else {
+      // 일반 유저: 본인 업무만
+      var myJournals = all.filter(function(j){ return j.user_id === _userId; });
+      var taskMap = {}, statusMap = {};
+      myJournals.forEach(function(j) {
+        (j.tasks || []).forEach(function(t) {
+          var name = (t.text || '').trim();
+          if (!name || !t.hrs) return;
+          if (!taskMap[name]) { taskMap[name] = 0; statusMap[name] = t.status || 'todo'; }
+          taskMap[name] += parseFloat(t.hrs || 0);
+          statusMap[name] = t.status || statusMap[name];
+        });
+      });
+
+      var taskList = Object.keys(taskMap).map(function(k) {
+        return { name: k, hrs: Math.round(taskMap[k] * 10) / 10, status: statusMap[k] };
+      }).filter(function(t){ return t.hrs > 0; });
+      taskList.sort(function(a, b){ return b.hrs - a.hrs; });
+
+      if (!taskList.length) {
+        list.innerHTML = '<div class="tts-empty">시간이 기록된 업무가 없습니다.</div>';
+        sub.textContent = '';
+        return;
+      }
+
+      var totalHrs = Math.round(taskList.reduce(function(s,t){ return s + t.hrs; }, 0) * 10) / 10;
+      sub.textContent = '총 ' + taskList.length + '개 업무 · 누적 ' + totalHrs + 'h';
+      var maxHrs = taskList[0].hrs;
+
+      list.innerHTML = taskList.slice(0, 20).map(function(t, i) {
+        var pct = Math.round(t.hrs / maxHrs * 100);
+        var color = BAR_COLORS[i % BAR_COLORS.length];
+        var sc = t.status || 'todo';
+        return '<div class="tts-bar-row">'
+          + '<span class="tts-bar-status" style="background:' + STATUS_B[sc] + ';color:' + STATUS_C[sc] + '">' + STATUS_N[sc] + '</span>'
+          + '<span class="tts-bar-name" title="' + t.name + '">' + t.name + '</span>'
+          + '<div class="tts-bar-track"><div class="tts-bar-fill" style="width:0%;background:' + color + '" data-pct="' + pct + '"></div></div>'
+          + '<span class="tts-bar-hrs">' + t.hrs + 'h</span>'
+          + '</div>';
+      }).join('');
+    }
 
     // 애니메이션
     setTimeout(function() {
