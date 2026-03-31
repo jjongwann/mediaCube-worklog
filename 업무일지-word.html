@@ -1488,7 +1488,12 @@
       closeTimePop();
     }
   });
-  window.addEventListener('scroll', closeTimePop, true);
+  // 팝오버 외부 스크롤 시 닫힘, 팝오버 내부 스크롤은 허용
+  window.addEventListener('scroll', function(e) {
+    if (_activeTimePop && !_activeTimePop.contains(e.target)) {
+      closeTimePop();
+    }
+  }, true);
 
   function openTimePop(btn) {
     closeTimePop();
@@ -1514,6 +1519,9 @@
       });
       pop.appendChild(opt);
     });
+
+    // 팝오버 내 휠 이벤트가 페이지로 전파되지 않게 차단
+    pop.addEventListener('wheel', function(e) { e.stopPropagation(); }, { passive: true });
 
     document.body.appendChild(pop);
     _activeTimePop = pop;
