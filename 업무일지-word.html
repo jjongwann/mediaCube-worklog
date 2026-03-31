@@ -273,7 +273,7 @@
   .col-task-status { width: 76px; text-align: center; }
   .col-task-name   { min-width: 200px; }
   .col-task-pct    { width: 96px; text-align: center; white-space: nowrap; }
-  .col-task-hrs    { width: 248px; text-align: center; white-space: nowrap; }
+  .col-task-hrs    { width: 260px; text-align: center; white-space: nowrap; }
   .col-task-del    { width: 30px; text-align: center; }
 
   /* ── Task 진행률 입력 ── */
@@ -305,20 +305,6 @@
     justify-content: center;
     flex-wrap: nowrap;
   }
-  .t-time {
-    width: 78px;
-    border: 1.5px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 4px 6px;
-    font-size: 12.5px;
-    color: #374151;
-    text-align: center;
-    outline: none;
-    background: #f9fafb;
-    font-family: inherit;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .t-time:focus { border-color: #3b82f6; background: #fff; }
   .time-sep { font-size: 13px; color: #9ca3af; flex-shrink: 0; font-weight: 500; }
   .time-duration {
     font-size: 11.5px;
@@ -443,6 +429,9 @@
 
   .task-text {
     flex: 1;
+    width: 100%;
+    display: block;
+    box-sizing: border-box;
     font-size: 15px;
     color: var(--text-primary);
     border: none;
@@ -454,6 +443,29 @@
     overflow: hidden;
     min-height: 20px;
   }
+
+  /* ── 시간 선택 드롭다운 ── */
+  .t-time-sel {
+    width: 86px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 5px 22px 5px 9px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+    background-color: #f9fafb;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239ca3af' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 7px center;
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+  }
+  .t-time-sel:hover { border-color: #93c5fd; }
+  .t-time-sel:focus { border-color: #3b82f6; background-color: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
 
   .add-btn {
     display: flex;
@@ -947,7 +959,7 @@
           <td class="col-task-status"><span class="task-status status-todo">예정</span></td>
           <td class="col-task-name"><textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea></td>
           <td class="col-task-pct"><div class="task-pct-wrap"><input type="number" class="t-pct" min="0" max="100" placeholder="0"><span class="t-pct-suffix">%</span></div></td>
-          <td class="col-task-hrs"><div class="time-range-wrap"><input type="time" class="t-start" placeholder="09:00"><span class="time-sep">—</span><input type="time" class="t-end" placeholder="18:00"><span class="time-duration"></span></div></td>
+          <td class="col-task-hrs"><div class="time-range-wrap"><select class="t-start t-time-sel"><option value="">--</option></select><span class="time-sep">—</span><select class="t-end t-time-sel"><option value="">--</option></select><span class="time-duration"></span></div></td>
           <td class="col-task-del"><button class="task-del" onclick="deleteTask(this)" title="삭제">×</button></td>
         </tr>
       </tbody>
@@ -1377,7 +1389,13 @@
   }
 
   document.querySelectorAll('.task-status').forEach(wireStatus);
-  document.querySelectorAll('#task-list tr').forEach(wireTimeRange);
+  // 기본 행 select 옵션 채우기
+  document.querySelectorAll('#task-list tr').forEach(function(tr) {
+    tr.querySelectorAll('.t-time-sel').forEach(function(sel) {
+      if (sel.options.length <= 1) sel.innerHTML = _timeOptions('');
+    });
+    wireTimeRange(tr);
+  });
 
   // ── Edit mode: restore task list ──
   if (editingEntry && editingEntry.tasks && editingEntry.tasks.length > 0) {
@@ -1413,6 +1431,20 @@
     setTimeout(function() { item.remove(); calcProgress(); }, 150);
   }
 
+  function _timeOptions(selected) {
+    var html = '<option value="">--</option>';
+    for (var h = 9; h <= 22; h++) {
+      var steps = (h < 22) ? [0, 30] : [0];
+      steps.forEach(function(m) {
+        var hh = h < 10 ? '0' + h : '' + h;
+        var mm = m === 0 ? '00' : '30';
+        var v = hh + ':' + mm;
+        html += '<option value="' + v + '"' + (selected === v ? ' selected' : '') + '>' + v + '</option>';
+      });
+    }
+    return html;
+  }
+
   function _taskRowHtml(scls, stxt, text, pct, startTime, endTime, readonly) {
     var dis = readonly ? ' disabled' : '';
     var ro  = readonly ? ' readonly' : '';
@@ -1423,9 +1455,9 @@
       + '</td>'
       + '<td class="col-task-pct"><div class="task-pct-wrap"><input type="number" class="t-pct" min="0" max="100" placeholder="0" value="' + (pct||0) + '"' + dis + '><span class="t-pct-suffix">%</span></div></td>'
       + '<td class="col-task-hrs"><div class="time-range-wrap">'
-        + '<input type="time" class="t-start" value="' + (startTime||'') + '"' + dis + '>'
+        + '<select class="t-start t-time-sel"' + dis + '>' + _timeOptions(startTime||'') + '</select>'
         + '<span class="time-sep">—</span>'
-        + '<input type="time" class="t-end" value="' + (endTime||'') + '"' + dis + '>'
+        + '<select class="t-end t-time-sel"' + dis + '>' + _timeOptions(endTime||'') + '</select>'
         + '<span class="time-duration"></span>'
       + '</div></td>'
       + '<td class="col-task-del">' + (readonly ? '' : '<button class="task-del" onclick="deleteTask(this)" title="삭제">×</button>') + '</td>';
