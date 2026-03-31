@@ -2699,7 +2699,7 @@
     var cell = function(v){ return '<Cell><Data ss:Type="String">'+x(v)+'</Data></Cell>'; };
     var num  = function(v){ return '<Cell><Data ss:Type="Number">'+Number(v||0)+'</Data></Cell>'; };
 
-    var headers = ['작성일','작성자','주요 목표','업무유형','상태','진행률(%)','완료','진행중','이슈','보류','업무 추진 현황','업무 요약','발생 이슈','리스크','익일 계획','특이사항','업무 내역'];
+    var headers = ['작성일','작성자','주요 목표','업무유형','상태','진행률(%)','완료','진행중','이슈','보류','업무 추진 현황','총 시간(h)','업무 요약','발생 이슈','리스크','익일 계획','특이사항','업무 내역'];
     var headerRow = '<Row ss:StyleID="header">' + headers.map(function(h){ return cell(h); }).join('') + '</Row>';
 
     var rows = data.map(function(j) {
@@ -2709,14 +2709,16 @@
       var taskText = tasks.length > 0
         ? tasks.map(function(t){ var s=t.status||(t.done?'done':'todo'); return '[' + (ST[s]||s) + '] ' + (t.text||''); }).join('\n')
         : '';
-      var wpText = (j.workProgress && j.workProgress.length > 0)
-        ? j.workProgress.map(function(row){ return (row.name||'') + ': ' + (row.summary||'') + ' (' + (row.pct||0) + '%)'; }).join('\n')
+      var wpList = j.workProgress && j.workProgress.length > 0 ? j.workProgress : [];
+      var wpText = wpList.length > 0
+        ? wpList.map(function(row){ return (row.name||'') + ': ' + (row.summary||'') + ' (' + (row.pct||0) + '%' + (row.hrs ? ', ' + row.hrs + 'h' : '') + ')'; }).join('\n')
         : '';
+      var totalHrs = wpList.reduce(function(sum, row){ return sum + (parseFloat(row.hrs)||0); }, 0);
       return '<Row>'
         + cell(j.date) + cell(j.author) + cell(j.project) + cell(j.type)
         + cell(ST[j.status]||'') + num(j.progress||0)
         + num(cnt.done) + num(cnt.wip) + num(cnt.issue) + num(cnt.hold)
-        + cell(wpText) + cell(j.summary||j.memo) + cell(j.issue)
+        + cell(wpText) + num(totalHrs) + cell(j.summary||j.memo) + cell(j.issue)
         + cell(j.risk) + cell(j.nextPlan) + cell(j.note) + cell(taskText)
         + '</Row>';
     });
