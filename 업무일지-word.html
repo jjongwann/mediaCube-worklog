@@ -1261,8 +1261,23 @@
         tr.className = 'task-item';
         tr.innerHTML = _taskRowHtml(scls, stxt, t.text, t.pct, t.startTime, t.endTime, true);
         taskList.appendChild(tr);
-        calcTotalTaskHrs();
       });
+      // readonly 모드: entry.tasks에서 직접 총 시간 계산
+      var totalHrs = 0;
+      entry.tasks.forEach(function(t) {
+        var h = parseFloat(t.hrs || 0);
+        if (!h && t.startTime && t.endTime) {
+          var sp = t.startTime.split(':'), ep = t.endTime.split(':');
+          if (sp.length === 2 && ep.length === 2) {
+            var diff = (parseInt(ep[0])*60 + parseInt(ep[1])) - (parseInt(sp[0])*60 + parseInt(sp[1]));
+            if (diff > 0) h = diff / 60;
+          }
+        }
+        totalHrs += h;
+      });
+      totalHrs = Math.round(totalHrs * 10) / 10;
+      var metricTime = document.getElementById('metric-time');
+      if (metricTime) metricTime.value = totalHrs > 0 ? totalHrs + 'h' : '—';
       calcProgress();
     }
 
