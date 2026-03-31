@@ -3097,19 +3097,22 @@
       var STATUS_CLS  = { done: 'sb-done', wip: 'sb-wip', issue: 'sb-issue', hold: 'sb-hold', todo: 'sb-todo' };
       tasksList.innerHTML = '<table style="width:100%;border-collapse:collapse;margin-top:6px">'
         + '<thead><tr>'
-        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:72px">상태</th>'
+        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:66px">상태</th>'
         + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:left">업무명</th>'
-        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:80px">진행률</th>'
-        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:70px">시간</th>'
+        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:70px">진행률</th>'
+        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:160px">시간 (시작 ~ 종료)</th>'
         + '</tr></thead><tbody>'
         + j.tasks.map(function(t) {
           var scls = STATUS_CLS[t.status] || 'sb-todo';
           var stxt = STATUS_TEXT[t.status] || '예정';
+          var timeStr = (t.startTime && t.endTime)
+            ? t.startTime + ' — ' + t.endTime + (t.hrs ? ' <span style="color:#d97706;font-weight:700">(' + t.hrs + 'h)</span>' : '')
+            : '—';
           return '<tr>'
             + '<td style="border:1px solid #e2e8f0;padding:6px 8px;text-align:center"><span class="status-badge ' + scls + '" style="font-size:10px;padding:2px 7px">' + stxt + '</span></td>'
             + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;color:#0f172a">' + (t.text || '—') + '</td>'
             + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;color:#2563eb;font-weight:600;text-align:center">' + (t.pct || 0) + '%</td>'
-            + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;color:#d97706;font-weight:600;text-align:center">' + (t.hrs ? t.hrs + 'h' : '—') + '</td>'
+            + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:12px;color:#374151;text-align:center">' + timeStr + '</td>'
             + '</tr>';
         }).join('')
         + '</tbody></table>';

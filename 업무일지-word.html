@@ -35,7 +35,7 @@
 
   /* ── Toolbar ── */
   .toolbar {
-    max-width: 1060px;
+    max-width: 1280px;
     margin: 0 auto 16px;
     display: flex;
     align-items: center;
@@ -76,7 +76,7 @@
 
   /* ── Page ── */
   .page {
-    width: 1060px;
+    width: 1280px;
     min-height: 1040px;
     background: #fff;
     margin: 0 auto;
@@ -270,11 +270,70 @@
   }
   .task-table tbody tr:last-child td:first-child { border-radius: 0 0 0 6px; }
   .task-table tbody tr:last-child td:last-child  { border-radius: 0 0 6px 0; }
-  .col-task-status { width: 72px; text-align: center; }
-  .col-task-name   { min-width: 150px; }
-  .col-task-pct    { width: 90px; text-align: center; white-space: nowrap; }
-  .col-task-hrs    { width: 80px; text-align: center; white-space: nowrap; }
+  .col-task-status { width: 76px; text-align: center; }
+  .col-task-name   { min-width: 200px; }
+  .col-task-pct    { width: 96px; text-align: center; white-space: nowrap; }
+  .col-task-hrs    { width: 248px; text-align: center; white-space: nowrap; }
   .col-task-del    { width: 30px; text-align: center; }
+
+  /* ── Task 진행률 입력 ── */
+  .task-pct-wrap { display: inline-flex; align-items: center; gap: 4px; justify-content: center; }
+  .t-pct {
+    width: 46px;
+    border: 1.5px solid #bfdbfe;
+    border-radius: 20px;
+    padding: 4px 8px;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    color: #2563eb;
+    background: #eff6ff;
+    outline: none;
+    -moz-appearance: textfield;
+    appearance: textfield;
+    font-family: inherit;
+  }
+  .t-pct:focus { border-color: #3b82f6; background: #dbeafe; }
+  .t-pct::-webkit-inner-spin-button, .t-pct::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; }
+  .t-pct-suffix { font-size: 12px; color: #6b7280; font-weight: 600; }
+
+  /* ── Task 시간 범위 입력 ── */
+  .time-range-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    justify-content: center;
+    flex-wrap: nowrap;
+  }
+  .t-time {
+    width: 78px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 4px 6px;
+    font-size: 12.5px;
+    color: #374151;
+    text-align: center;
+    outline: none;
+    background: #f9fafb;
+    font-family: inherit;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .t-time:focus { border-color: #3b82f6; background: #fff; }
+  .time-sep { font-size: 13px; color: #9ca3af; flex-shrink: 0; font-weight: 500; }
+  .time-duration {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #d97706;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 12px;
+    padding: 2px 8px;
+    min-width: 38px;
+    text-align: center;
+    flex-shrink: 0;
+    display: none;
+  }
+  .time-duration.visible { display: inline-block; }
   .task-item td { transition: background 0.1s; }
   .task-item:hover td { background: #fafafa; }
   .task-del {
@@ -536,7 +595,7 @@
 
   /* ── Submit Bar ── */
   .submit-bar {
-    max-width: 1060px;
+    max-width: 1280px;
     margin: 16px auto 48px;
     background: #fff;
     border: 1px solid var(--border);
@@ -845,7 +904,7 @@
   <!-- Metrics -->
   <div class="metrics-row">
     <div class="metric-card">
-      <input class="metric-val" type="text" value="8h">
+      <input class="metric-val" id="metric-time" type="text" value="—" readonly>
       <div class="metric-lbl">작업 시간</div>
     </div>
     <div class="metric-card">
@@ -879,7 +938,7 @@
           <th class="col-task-status">상태</th>
           <th class="col-task-name">업무명</th>
           <th class="col-task-pct">진행률</th>
-          <th class="col-task-hrs">시간</th>
+          <th class="col-task-hrs">시간 <span style="font-size:10px;font-weight:400;color:#9ca3af">(시작 ~ 종료)</span></th>
           <th class="col-task-del"></th>
         </tr>
       </thead>
@@ -887,8 +946,8 @@
         <tr class="task-item">
           <td class="col-task-status"><span class="task-status status-todo">예정</span></td>
           <td class="col-task-name"><textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea></td>
-          <td class="col-task-pct"><div class="pct-wrap"><input type="number" class="t-pct" min="0" max="100" placeholder="0"><span class="pct-suffix">%</span></div></td>
-          <td class="col-task-hrs"><div class="hrs-wrap"><input type="number" class="t-hrs" min="0" max="24" step="0.5" placeholder="0"><span class="hrs-suffix">h</span></div></td>
+          <td class="col-task-pct"><div class="task-pct-wrap"><input type="number" class="t-pct" min="0" max="100" placeholder="0"><span class="t-pct-suffix">%</span></div></td>
+          <td class="col-task-hrs"><div class="time-range-wrap"><input type="time" class="t-start" placeholder="09:00"><span class="time-sep">—</span><input type="time" class="t-end" placeholder="18:00"><span class="time-duration"></span></div></td>
           <td class="col-task-del"><button class="task-del" onclick="deleteTask(this)" title="삭제">×</button></td>
         </tr>
       </tbody>
@@ -1149,12 +1208,9 @@
         var stxt = STATUS_TEXT[t.status] || '예정';
         var tr = document.createElement('tr');
         tr.className = 'task-item';
-        tr.innerHTML = '<td class="col-task-status"><span class="task-status ' + scls + '">' + stxt + '</span></td>'
-          + '<td class="col-task-name"><input type="text" class="task-text" value="' + (t.text||'').replace(/"/g,'&quot;') + '" readonly></td>'
-          + '<td class="col-task-pct"><div class="pct-wrap"><input type="number" class="t-pct" min="0" max="100" value="' + (t.pct||0) + '" placeholder="0" disabled><span class="pct-suffix">%</span></div></td>'
-          + '<td class="col-task-hrs"><div class="hrs-wrap"><input type="number" class="t-hrs" min="0" max="24" step="0.5" value="' + (t.hrs||0) + '" placeholder="0" disabled><span class="hrs-suffix">h</span></div></td>'
-          + '<td class="col-task-del"></td>';
+        tr.innerHTML = _taskRowHtml(scls, stxt, t.text, t.pct, t.startTime, t.endTime, true);
         taskList.appendChild(tr);
+        calcTotalTaskHrs();
       });
       calcProgress();
     }
@@ -1196,6 +1252,51 @@
     {cls: 'status-todo',  text: '예정'}
   ];
 
+  function calcTaskHrs(startVal, endVal) {
+    if (!startVal || !endVal) return null;
+    var sp = startVal.split(':');
+    var ep = endVal.split(':');
+    if (sp.length < 2 || ep.length < 2) return null;
+    var startMins = parseInt(sp[0]) * 60 + parseInt(sp[1]);
+    var endMins   = parseInt(ep[0]) * 60 + parseInt(ep[1]);
+    var diff = endMins - startMins;
+    if (diff <= 0) return null;
+    return Math.round(diff / 6) / 10;
+  }
+
+  function calcTotalTaskHrs() {
+    var total = 0;
+    var hasAny = false;
+    document.querySelectorAll('#task-list tr').forEach(function(tr) {
+      var startEl = tr.querySelector('.t-start');
+      var endEl   = tr.querySelector('.t-end');
+      var durEl   = tr.querySelector('.time-duration');
+      if (!startEl || !endEl) return;
+      var hrs = calcTaskHrs(startEl.value, endEl.value);
+      if (durEl) {
+        if (hrs !== null) {
+          durEl.textContent = hrs + 'h';
+          durEl.classList.add('visible');
+          total += hrs;
+          hasAny = true;
+        } else {
+          durEl.textContent = '';
+          durEl.classList.remove('visible');
+        }
+      }
+    });
+    var metricTime = document.getElementById('metric-time');
+    if (metricTime) metricTime.value = hasAny ? (Math.round(total * 10) / 10) + 'h' : '—';
+  }
+
+  function wireTimeRange(tr) {
+    var startEl = tr.querySelector('.t-start');
+    var endEl   = tr.querySelector('.t-end');
+    if (!startEl || !endEl) return;
+    startEl.addEventListener('change', calcTotalTaskHrs);
+    endEl.addEventListener('change', calcTotalTaskHrs);
+  }
+
   function calcProgress() {
     var badges = document.querySelectorAll('#task-list .task-status');
     var total = badges.length;
@@ -1211,6 +1312,7 @@
     document.getElementById('metric-issue').value = cnt.issue;
     document.getElementById('metric-hold').value  = cnt.hold;
     document.getElementById('chip-progress').value = total === 0 ? '' : Math.round(cnt.done / total * 100);
+    calcTotalTaskHrs();
   }
 
   var _activeDropdown = null;
@@ -1275,6 +1377,7 @@
   }
 
   document.querySelectorAll('.task-status').forEach(wireStatus);
+  document.querySelectorAll('#task-list tr').forEach(wireTimeRange);
 
   // ── Edit mode: restore task list ──
   if (editingEntry && editingEntry.tasks && editingEntry.tasks.length > 0) {
@@ -1287,21 +1390,17 @@
       var stxt = STATUS_TEXT[t.status] || '예정';
       var tr = document.createElement('tr');
       tr.className = 'task-item';
-      tr.innerHTML =
-        '<td class="col-task-status"><span class="task-status ' + scls + '">' + stxt + '</span></td>'
-        + '<td class="col-task-name"><textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea></td>'
-        + '<td class="col-task-pct"><div class="pct-wrap"><input type="number" class="t-pct" min="0" max="100" value="' + (t.pct||0) + '" placeholder="0"><span class="pct-suffix">%</span></div></td>'
-        + '<td class="col-task-hrs"><div class="hrs-wrap"><input type="number" class="t-hrs" min="0" max="24" step="0.5" value="' + (t.hrs||0) + '" placeholder="0"><span class="hrs-suffix">h</span></div></td>'
-        + '<td class="col-task-del"><button class="task-del" onclick="deleteTask(this)" title="삭제">×</button></td>';
+      tr.innerHTML = _taskRowHtml(scls, stxt, t.text, t.pct, t.startTime, t.endTime, false);
       taskList.appendChild(tr);
       var ta = tr.querySelector('textarea');
-      ta.value = t.text;
+      ta.value = t.text || '';
       ta.addEventListener('input', function() {
         this.style.height = 'auto';
         this.style.height = this.scrollHeight + 'px';
       });
       ta.style.height = ta.scrollHeight + 'px';
       wireStatus(tr.querySelector('.task-status'));
+      wireTimeRange(tr);
     });
     calcProgress();
   }
@@ -1314,16 +1413,29 @@
     setTimeout(function() { item.remove(); calcProgress(); }, 150);
   }
 
+  function _taskRowHtml(scls, stxt, text, pct, startTime, endTime, readonly) {
+    var dis = readonly ? ' disabled' : '';
+    var ro  = readonly ? ' readonly' : '';
+    return '<td class="col-task-status"><span class="task-status ' + scls + '">' + stxt + '</span></td>'
+      + '<td class="col-task-name">' + (readonly
+          ? '<input type="text" class="task-text" value="' + (text||'').replace(/"/g,'&quot;') + '"' + ro + '>'
+          : '<textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea>')
+      + '</td>'
+      + '<td class="col-task-pct"><div class="task-pct-wrap"><input type="number" class="t-pct" min="0" max="100" placeholder="0" value="' + (pct||0) + '"' + dis + '><span class="t-pct-suffix">%</span></div></td>'
+      + '<td class="col-task-hrs"><div class="time-range-wrap">'
+        + '<input type="time" class="t-start" value="' + (startTime||'') + '"' + dis + '>'
+        + '<span class="time-sep">—</span>'
+        + '<input type="time" class="t-end" value="' + (endTime||'') + '"' + dis + '>'
+        + '<span class="time-duration"></span>'
+      + '</div></td>'
+      + '<td class="col-task-del">' + (readonly ? '' : '<button class="task-del" onclick="deleteTask(this)" title="삭제">×</button>') + '</td>';
+  }
+
   function addTask() {
     var tbody = document.getElementById('task-list');
     var tr = document.createElement('tr');
     tr.className = 'task-item';
-    tr.innerHTML =
-      '<td class="col-task-status"><span class="task-status status-todo">예정</span></td>'
-      + '<td class="col-task-name"><textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea></td>'
-      + '<td class="col-task-pct"><div class="pct-wrap"><input type="number" class="t-pct" min="0" max="100" placeholder="0"><span class="pct-suffix">%</span></div></td>'
-      + '<td class="col-task-hrs"><div class="hrs-wrap"><input type="number" class="t-hrs" min="0" max="24" step="0.5" placeholder="0"><span class="hrs-suffix">h</span></div></td>'
-      + '<td class="col-task-del"><button class="task-del" onclick="deleteTask(this)" title="삭제">×</button></td>';
+    tr.innerHTML = _taskRowHtml('status-todo', '예정', '', 0, '', '', false);
     tbody.appendChild(tr);
 
     var ta = tr.querySelector('textarea');
@@ -1332,6 +1444,7 @@
       this.style.height = this.scrollHeight + 'px';
     });
     wireStatus(tr.querySelector('.task-status'));
+    wireTimeRange(tr);
     calcProgress();
     ta.focus();
   }
@@ -1430,9 +1543,11 @@
         else if (statusEl.classList.contains('status-issue')) taskStatus = 'issue';
         else if (statusEl.classList.contains('status-hold'))  taskStatus = 'hold';
       }
-      var pct = parseInt((tr.querySelector('.t-pct') || {}).value || '0') || 0;
-      var hrs = parseFloat((tr.querySelector('.t-hrs') || {}).value || '0') || 0;
-      tasks.push({ text: text, status: taskStatus, done: false, pct: pct, hrs: hrs });
+      var pct       = parseInt((tr.querySelector('.t-pct')   || {}).value || '0') || 0;
+      var startTime = (tr.querySelector('.t-start') || {}).value || '';
+      var endTime   = (tr.querySelector('.t-end')   || {}).value || '';
+      var hrs       = calcTaskHrs(startTime, endTime) || 0;
+      tasks.push({ text: text, status: taskStatus, done: false, pct: pct, startTime: startTime, endTime: endTime, hrs: hrs });
     });
 
     var nowDate = date || (function(){ var d=new Date(),m=d.getMonth()+1,day=d.getDate(); return d.getFullYear()+'-'+(m<10?'0'+m:m)+'-'+(day<10?'0'+day:day); })();
