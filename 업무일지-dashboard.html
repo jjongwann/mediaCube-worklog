@@ -3496,6 +3496,11 @@
   var _chartMode    = 'monthly';
 
   function setChartMode(mode) {
+    // 이미 tasktime 모드면 토글(닫기)
+    if (mode === 'tasktime' && _chartMode === 'tasktime') {
+      closeTaskTimeSection();
+      return;
+    }
     _chartMode = mode;
     document.getElementById('sc-total').classList.toggle('chart-active', mode === 'monthly');
     document.getElementById('sc-week').classList.toggle('chart-active',  mode === 'weekly');
