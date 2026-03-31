@@ -1608,6 +1608,19 @@
       </div>
     </div>
 
+    <!-- Admin: Employee Comparison (관리자 전용) - stats 바로 아래 -->
+    <div id="admin-emp-section" style="display:none; margin-bottom:20px;">
+      <div class="admin-section-header">
+        <span class="admin-section-title">직원별 현황</span>
+      </div>
+      <div class="admin-emp-row" id="admin-emp-row"></div>
+    </div>
+
+    <!-- 직원별 업무 시간 차트 (관리자 전용) -->
+    <div id="emp-task-time-section" style="display:none; margin-bottom:20px; background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px 24px;">
+      <div id="emp-tts-content"></div>
+    </div>
+
     <!-- 업무별 누적 시간 차트 섹션 -->
     <div id="task-time-section" style="display:none">
       <div class="tts-header">
@@ -1652,14 +1665,6 @@
           <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#16a34a"></span>완료</span>
         </div>
       </div>
-    </div>
-
-    <!-- Admin: Employee Comparison (관리자 전용) -->
-    <div id="admin-emp-section" style="display:none">
-      <div class="admin-section-header">
-        <span class="admin-section-title">직원별 현황</span>
-      </div>
-      <div class="admin-emp-row" id="admin-emp-row"></div>
     </div>
 
     <!-- List Toolbar -->
@@ -2362,7 +2367,13 @@
     var btn = document.getElementById('sidebar-emp-btn');
     if (section) section.style.display = _empPanelOpen ? '' : 'none';
     if (btn) btn.classList.toggle('active', _empPanelOpen);
-    if (_empPanelOpen) renderAdminStats();
+    if (_empPanelOpen) {
+      renderAdminStats();
+    } else {
+      adminEmpFilter = '';
+      document.getElementById('emp-task-time-section').style.display = 'none';
+      renderList();
+    }
   }
 
   /* ── Admin: 직원별 현황 카드 ── */
@@ -2411,8 +2422,79 @@
   }
 
   function toggleEmpFilter(uid) {
-    adminEmpFilter = (adminEmpFilter === uid) ? '' : uid;
+    if (adminEmpFilter === uid) {
+      adminEmpFilter = '';
+      document.getElementById('emp-task-time-section').style.display = 'none';
+    } else {
+      adminEmpFilter = uid;
+      renderEmpTaskTimeChart(uid);
+    }
+    renderAdminStats();
     renderList();
+  }
+
+  function renderEmpTaskTimeChart(uid) {
+    var u = ALL_USERS.find(function(x){ return x.id === uid; });
+    if (!u) return;
+    var all = journalCache;
+    var uJournals = all.filter(function(j){ return j.user_id === uid; });
+
+    var taskHrsMap = {};
+    uJournals.forEach(function(j) {
+      (j.tasks || []).forEach(function(t) {
+        var name = (t.text || '').trim();
+        var hrs = parseFloat(t.hrs || 0);
+        if (!name || !hrs) return;
+        taskHrsMap[name] = (taskHrsMap[name] || 0) + hrs;
+      });
+    });
+
+    var taskList = Object.keys(taskHrsMap).map(function(k) {
+      return { name: k, hrs: Math.round(taskHrsMap[k] * 10) / 10 };
+    }).filter(function(t){ return t.hrs > 0; });
+    taskList.sort(function(a,b){ return b.hrs - a.hrs; });
+
+    var section = document.getElementById('emp-task-time-section');
+    var content = document.getElementById('emp-tts-content');
+
+    if (!taskList.length) {
+      content.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px">시간이 기록된 업무 내역이 없습니다.</div>';
+      section.style.display = '';
+      return;
+    }
+
+    var maxHrs = taskList[0].hrs;
+    var totalHrs = Math.round(taskList.reduce(function(s,t){ return s+t.hrs; }, 0) * 10) / 10;
+    var BAR_COLS = ['#3b82f6','#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899'];
+
+    var html = '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">'
+      + '<span style="font-size:15px;font-weight:700;color:var(--text-primary)">' + u.fullName + '</span>'
+      + '<span style="font-size:12px;color:var(--text-muted)">(' + u.dept + ')</span>'
+      + '<span style="font-size:13px;font-weight:700;color:#d97706;margin-left:auto">총 ' + totalHrs + 'h</span>'
+      + '</div>'
+      + '<div style="display:flex;flex-direction:column;gap:10px">';
+
+    taskList.slice(0, 20).forEach(function(t, i) {
+      var pct = Math.round(t.hrs / maxHrs * 100);
+      var color = BAR_COLS[i % BAR_COLS.length];
+      html += '<div style="display:flex;align-items:center;gap:12px">'
+        + '<span style="font-size:13px;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + t.name + '">' + t.name + '</span>'
+        + '<div style="flex:0 0 200px;background:#f1f5f9;border-radius:20px;height:10px;overflow:hidden">'
+          + '<div class="emp-tts-bar" style="width:0%;height:100%;border-radius:20px;background:' + color + ';transition:width 0.5s cubic-bezier(.22,.61,.36,1)" data-pct="' + pct + '"></div>'
+        + '</div>'
+        + '<span style="font-size:13px;font-weight:700;color:#d97706;min-width:40px;text-align:right">' + t.hrs + 'h</span>'
+        + '</div>';
+    });
+
+    html += '</div>';
+    content.innerHTML = html;
+    section.style.display = '';
+
+    setTimeout(function() {
+      section.querySelectorAll('.emp-tts-bar').forEach(function(el) {
+        el.style.width = el.dataset.pct + '%';
+      });
+    }, 30);
   }
 
   /* ── Admin: 월별 리포트 ── */
