@@ -2406,9 +2406,10 @@
             var text = (t.text || '').trim();
             var status = t.status || 'todo';
             if (!text) return;
-            if (!taskMap[text]) taskMap[text] = { done: 0, wip: 0, issue: 0, hold: 0, todo: 0, total: 0 };
+            if (!taskMap[text]) taskMap[text] = { done: 0, wip: 0, issue: 0, hold: 0, todo: 0, total: 0, totalHrs: 0 };
             taskMap[text][status] = (taskMap[text][status] || 0) + 1;
             taskMap[text].total += 1;
+            taskMap[text].totalHrs += parseFloat(t.hrs || 0);
             statusCount[status] = (statusCount[status] || 0) + 1;
           });
         });
@@ -2419,7 +2420,8 @@
           STATUS_ORDER_R.forEach(function(s) {
             if ((taskMap[k][s] || 0) > maxCount) { maxCount = taskMap[k][s]; dominantStatus = s; }
           });
-          return { text: k, status: dominantStatus, total: taskMap[k].total };
+          var totalHrs = Math.round(taskMap[k].totalHrs * 10) / 10;
+          return { text: k, status: dominantStatus, total: taskMap[k].total, totalHrs: totalHrs };
         });
         taskList.sort(function(a, b) { return STATUS_ORDER_R.indexOf(a.status) - STATUS_ORDER_R.indexOf(b.status); });
         if (taskList.length) monthBlocks.push({ month: m, tasks: taskList, statusCount: statusCount });
@@ -2457,6 +2459,7 @@
           + '<th style="width:70px;text-align:center">상태</th>'
           + '<th>업무 내용</th>'
           + '<th style="width:50px;text-align:center">건수</th>'
+          + '<th style="width:70px;text-align:center">총 시간</th>'
           + '</tr></thead><tbody>';
 
         mb.tasks.forEach(function(t) {
@@ -2464,6 +2467,7 @@
             + '<td style="text-align:center"><span style="display:inline-block;padding:2px 8px;border-radius:5px;background:' + STATUS_BG_R[t.status] + ';color:' + STATUS_COLORS_R[t.status] + ';font-size:11px;font-weight:700">' + STATUS_NAMES_R[t.status] + '</span></td>'
             + '<td style="color:var(--text-primary)">' + t.text + '</td>'
             + '<td style="text-align:center;color:var(--text-muted)">' + t.total + '</td>'
+            + '<td style="text-align:center;font-weight:700;color:#d97706">' + (t.totalHrs > 0 ? t.totalHrs + 'h' : '—') + '</td>'
             + '</tr>';
         });
         wpHtml += '</tbody></table></div>';
