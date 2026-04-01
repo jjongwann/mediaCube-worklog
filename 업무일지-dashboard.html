@@ -2455,7 +2455,7 @@
     });
 
     var taskList = Object.keys(taskHrsMap).map(function(k) {
-      return { name: k, hrs: Math.round(taskHrsMap[k] * 10) / 10 };
+      return { name: k, hrs: taskHrsMap[k] };
     }).filter(function(t){ return t.hrs > 0; });
     taskList.sort(function(a,b){ return b.hrs - a.hrs; });
 
@@ -2692,7 +2692,7 @@
       });
 
       var taskHrsList = Object.keys(taskHrsMap).map(function(k) {
-        return { name: k, hrs: Math.round(taskHrsMap[k] * 10) / 10 };
+        return { name: k, hrs: taskHrsMap[k] };
       }).filter(function(t){ return t.hrs > 0; });
       taskHrsList.sort(function(a, b){ return b.hrs - a.hrs; });
       if (!taskHrsList.length) return;
@@ -3580,7 +3580,7 @@
         });
 
         var taskList = Object.keys(taskMap).map(function(k) {
-          return { name: k, hrs: Math.round(taskMap[k] * 10) / 10, status: statusMap[k] };
+          return { name: k, hrs: taskMap[k], status: statusMap[k] };
         }).filter(function(t){ return t.hrs > 0; });
         taskList.sort(function(a, b){ return b.hrs - a.hrs; });
         if (!taskList.length) return;
@@ -3637,7 +3637,7 @@
       });
 
       var taskList = Object.keys(taskMap).map(function(k) {
-        return { name: k, hrs: Math.round(taskMap[k] * 10) / 10, status: statusMap[k] };
+        return { name: k, hrs: taskMap[k], status: statusMap[k] };
       }).filter(function(t){ return t.hrs > 0; });
       taskList.sort(function(a, b){ return b.hrs - a.hrs; });
 
