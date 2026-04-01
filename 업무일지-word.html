@@ -781,6 +781,7 @@
   }
   .ac-item:hover .ac-item-del, .ac-item.ac-active .ac-item-del { display: flex; }
   .ac-item-del:hover { background: #fee2e2; color: #dc2626; }
+  .ac-time-hint { font-size: 10.5px; color: #d97706; font-weight: 600; background: #fef3c7; border-radius: 4px; padding: 1px 6px; white-space: nowrap; flex-shrink: 0; margin-right: 4px; }
 
   /* ── Word Onboarding ── */
   @keyframes word-ob-in {
@@ -1769,6 +1770,7 @@
       var rows = await res.json();
       if (!Array.isArray(rows) || rows.length === 0) return;
 
+      // taskSet: {text, startTime, endTime} — 가장 최근 기록 우선
       var taskSet = [], pNameSet = [], pSumSet = [], goalSet = [], typeSet = [];
       var taskSeen = new Set(), pNameSeen = new Set(), pSumSeen = new Set(), goalSeen = new Set(), typeSeen = new Set();
       rows.forEach(function(r) {
@@ -1778,7 +1780,10 @@
         if (tp && !typeSeen.has(tp) && !_blacklist.has(tp)) { typeSeen.add(tp); typeSet.push(tp); }
         if (Array.isArray(r.tasks)) r.tasks.forEach(function(t) {
           var v = (t.text || '').trim();
-          if (v && !taskSeen.has(v) && !_blacklist.has(v)) { taskSeen.add(v); taskSet.push(v); }
+          if (v && !taskSeen.has(v) && !_blacklist.has(v)) {
+            taskSeen.add(v);
+            taskSet.push({ text: v, startTime: t.start_time || t.startTime || '', endTime: t.end_time || t.endTime || '' });
+          }
         });
         if (Array.isArray(r.work_progress)) r.work_progress.forEach(function(p) {
           var n = (p.name || '').trim(), s = (p.summary || '').trim();
@@ -1800,13 +1805,15 @@
       acDrop.addEventListener('mousedown', function(e) { e.preventDefault(); });
 
       function getSugg(el) {
-        if (el.id === 'chip-project')            return { list: goalSet,  label: '🕐  이전 주요 목표' };
-        if (el.id === 'chip-type')               return { list: typeSet,  label: '🕐  이전 업무 유형' };
-        if (el.classList.contains('task-text'))  return { list: taskSet,  label: '🕐  이전 업무 내역' };
-        if (el.classList.contains('p-name'))     return { list: pNameSet, label: '🕐  이전 업무명' };
-        if (el.classList.contains('p-summary'))  return { list: pSumSet,  label: '🕐  이전 진행 요약' };
+        if (el.id === 'chip-project')            return { list: goalSet,  label: '🕐  이전 주요 목표', isTask: false };
+        if (el.id === 'chip-type')               return { list: typeSet,  label: '🕐  이전 업무 유형', isTask: false };
+        if (el.classList.contains('task-text'))  return { list: taskSet,  label: '🕐  이전 업무 내역', isTask: true };
+        if (el.classList.contains('p-name'))     return { list: pNameSet, label: '🕐  이전 업무명', isTask: false };
+        if (el.classList.contains('p-summary'))  return { list: pSumSet,  label: '🕐  이전 진행 요약', isTask: false };
         return null;
       }
+      // taskSet에서 텍스트만 추출
+      function taskText(item) { return typeof item === 'object' ? item.text : item; }
       function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
       // 매칭 부분을 <mark>로 하이라이트
       function highlight(s, q) {
@@ -1820,7 +1827,8 @@
         var val = el.value.trim();
         var valLow = val.toLowerCase();
         var filtered = sugg.list.filter(function(s) {
-          return s !== val && (valLow === '' || s.toLowerCase().includes(valLow));
+          var txt = taskText(s);
+          return txt !== val && (valLow === '' || txt.toLowerCase().includes(valLow));
         }).slice(0, 7);
         if (filtered.length === 0) { hideAC(); return; }
 
@@ -1828,9 +1836,14 @@
         var rect = el.getBoundingClientRect();
         acDrop.innerHTML = '<div class="ac-header">' + sugg.label + '</div>'
           + filtered.map(function(s, i) {
+              var txt = taskText(s);
+              var timeHint = (sugg.isTask && typeof s === 'object' && s.startTime && s.endTime)
+                ? '<span class="ac-time-hint">' + s.startTime + '–' + s.endTime + '</span>'
+                : '';
               return '<div class="ac-item" data-i="' + i + '">'
                 + '<span class="ac-item-icon">↩</span>'
-                + '<span class="ac-item-text">' + highlight(s, val) + '</span>'
+                + '<span class="ac-item-text">' + highlight(txt, val) + '</span>'
+                + timeHint
                 + '<button class="ac-item-del" data-del="' + i + '" title="이 항목 삭제">✕</button>'
                 + '</div>';
             }).join('');
@@ -1857,7 +1870,7 @@
             saveBlacklist();
             goalSet  = goalSet.filter(function(s)  { return s !== val; });
             typeSet  = typeSet.filter(function(s)  { return s !== val; });
-            taskSet  = taskSet.filter(function(s)  { return s !== val; });
+            taskSet  = taskSet.filter(function(s)  { return taskText(s) !== val; });
             pNameSet = pNameSet.filter(function(s) { return s !== val; });
             pSumSet  = pSumSet.filter(function(s)  { return s !== val; });
             // 드롭다운 다시 렌더링
@@ -1876,12 +1889,32 @@
       function fillAC(idx) {
         if (!acTarget || idx < 0 || idx >= acList.length) return;
         var t = acTarget;
-        var val = acList[idx]; // 초기화 전에 값 먼저 저장
+        var item = acList[idx];
+        var val = taskText(item);
         acMouseInside = false;
         acDrop.style.display = 'none';
         acTarget = null; acList = []; acActiveIdx = -1;
         t.value = val;
         t.dispatchEvent(new Event('input', { bubbles: true }));
+        // 업무명인 경우: 시간도 함께 채우기
+        if (typeof item === 'object' && item.startTime && item.endTime) {
+          var row = t.closest('tr');
+          if (row) {
+            var startBtn = row.querySelector('.t-start');
+            var endBtn   = row.querySelector('.t-end');
+            if (startBtn) {
+              startBtn.dataset.val = item.startTime;
+              startBtn.querySelector('.t-time-label').textContent = item.startTime;
+              startBtn.classList.add('has-val');
+            }
+            if (endBtn) {
+              endBtn.dataset.val = item.endTime;
+              endBtn.querySelector('.t-time-label').textContent = item.endTime;
+              endBtn.classList.add('has-val');
+            }
+            calcTotalTaskHrs();
+          }
+        }
         t.focus();
       }
       function setActive(i) {
