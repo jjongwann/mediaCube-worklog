@@ -1283,7 +1283,7 @@
           if (sp.length >= 2 && ep.length >= 2) {
             var diff = (parseInt(sp[0])*60 + parseInt(sp[1]));
             var diff2 = (parseInt(ep[0])*60 + parseInt(ep[1]));
-            if (diff2 > diff) h = Math.round((diff2 - diff) / 6) / 10;
+            if (diff2 > diff) h = Math.floor((diff2 - diff) / 6) / 10;
           }
         }
         if (!h) h = parseFloat(t.hrs || 0);
@@ -1341,7 +1341,7 @@
     var endMins   = parseInt(ep[0]) * 60 + parseInt(ep[1]);
     var diff = endMins - startMins;
     if (diff <= 0) return null;
-    return Math.round(diff / 6) / 10;
+    return Math.floor(diff / 6) / 10;
   }
 
   function calcTotalTaskHrs() {
@@ -1594,7 +1594,7 @@
                   if (sp.length < 2 || ep.length < 2) return '';
                   var diff = (parseInt(ep[0])*60+parseInt(ep[1])) - (parseInt(sp[0])*60+parseInt(sp[1]));
                   if (diff <= 0) return '';
-                  return '<span class="time-duration visible">' + (Math.round(diff/6)/10) + 'h</span>';
+                  return '<span class="time-duration visible">' + (Math.floor(diff/6)/10) + 'h</span>';
                 })()
             : '<button type="button" class="t-time-btn t-start' + (startTime ? ' has-val' : '') + '" data-val="' + (startTime||'') + '">'
               + '<span class="t-time-label">' + (startTime || '--') + '</span>'
