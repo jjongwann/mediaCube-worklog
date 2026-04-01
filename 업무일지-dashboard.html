@@ -4360,11 +4360,6 @@
         body.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;font-size:13px">' + (tab === 'inbox' ? '받은 메시지가 없습니다.' : '보낸 메시지가 없습니다.') + '</div>';
         return;
       }
-      // 읽지 않은 수신 메시지 읽음 처리
-      if (tab === 'inbox') {
-        var unreadIds = msgs.filter(function(m) { return !m.is_read; }).map(function(m) { return m.id; });
-        if (unreadIds.length) markMsgsRead(unreadIds);
-      }
       window._msgCache = msgs;
       window._msgCacheTab = tab;
       // 전체선택 체크박스 초기화
@@ -4396,8 +4391,7 @@
           + '</div>'
           + '</div>';
       }).join('');
-      // 읽음 처리 후 뱃지 갱신
-      if (tab === 'inbox') setTimeout(updateMsgBadge, 600);
+      if (tab === 'inbox') updateMsgBadge();
     }).catch(function() {
       body.innerHTML = '<div style="text-align:center;padding:30px;color:#ef4444;font-size:13px">불러오기 실패</div>';
     });
@@ -4542,6 +4536,22 @@
       attWrap.style.display = '';
     } else {
       attWrap.style.display = 'none';
+    }
+
+    // 읽지 않은 받은 메시지 → 이 메시지만 읽음 처리
+    if (isInbox && !m.is_read) {
+      m.is_read = true;
+      markMsgsRead([m.id]);
+      // 목록에서 해당 항목 빨간 점 제거 + 볼드 해제
+      var listRow = document.querySelector('#msg-list-body .msg-cb[data-id="' + m.id + '"]');
+      if (listRow) {
+        var rowEl = listRow.parentElement;
+        var nameEl = rowEl.querySelector('span[style*="font-weight"]');
+        if (nameEl) { nameEl.style.fontWeight = '600'; nameEl.style.color = '#374151'; }
+        var dot = rowEl.querySelector('span[style*="border-radius:50%"][style*="ef4444"]');
+        if (dot) dot.remove();
+      }
+      updateMsgBadge();
     }
 
     // 답장 영역: 받은 메시지일 때만 표시
