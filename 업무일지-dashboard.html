@@ -1625,9 +1625,10 @@
     <!-- 업무별 누적 시간 차트 섹션 -->
     <div id="task-time-section" style="display:none">
       <div class="tts-header">
-        <div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;min-width:0">
           <span class="tts-title">업무별 누적 시간</span>
-          <span class="tts-sub" id="tts-sub-text" style="margin-left:8px"></span>
+          <span class="tts-sub" id="tts-sub-text"></span>
+          <div id="tts-status-filter" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center"></div>
         </div>
         <button class="tts-close" onclick="closeTaskTimeSection()" title="닫기">×</button>
       </div>
@@ -3558,16 +3559,43 @@
     var STATUS_N = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정' };
     var BAR_COLORS = ['#3b82f6','#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899'];
 
+    var STATUS_LABELS = [
+      { key: 'all',   label: '전체',  bg: '#f0f4ff', col: '#3b82f6' },
+      { key: 'done',  label: '완료',  bg: '#dcfce7', col: '#16a34a' },
+      { key: 'wip',   label: '진행',  bg: '#eff6ff', col: '#2563eb' },
+      { key: 'issue', label: '이슈',  bg: '#fdf4ff', col: '#9333ea' },
+      { key: 'hold',  label: '보류',  bg: '#fffbeb', col: '#d97706' },
+      { key: 'todo',  label: '예정',  bg: '#f3f4f6', col: '#6b7280' },
+    ];
+
+    function calcSMins(tl) {
+      var sm = { all: 0, done: 0, wip: 0, issue: 0, hold: 0, todo: 0 };
+      tl.forEach(function(t) {
+        var sc = t.status || 'todo';
+        sm.all += t.mins;
+        if (sm[sc] !== undefined) sm[sc] += t.mins;
+      });
+      return sm;
+    }
+
+    function sfBtn(key, label, bg, col, mins, active, onclick) {
+      return '<button onclick="' + onclick + '" style="font-size:10.5px;font-weight:' + (active?'700':'500')
+        + ';padding:3px 10px;border-radius:12px;border:1px solid ' + (active ? col : '#e2e8f0')
+        + ';background:' + (active ? bg : '#f8fafc')
+        + ';color:' + (active ? col : '#94a3b8')
+        + ';cursor:pointer;white-space:nowrap;transition:all 0.15s">'
+        + label + ' <span style="font-size:9.5px">' + fmtDuration(mins) + '</span></button>';
+    }
+
     if (_isAdmin) {
-      // 관리자: 직원별로 묶어서 표시
+      // 관리자: 직원별 + 상태 필터
       var hasAny = false;
-      var html = '';
       var grandTotal = 0;
+      var adminRaw = {};
 
       ALL_USERS.forEach(function(u) {
         var uJournals = all.filter(function(j){ return j.user_id === u.id; });
         if (!uJournals.length) return;
-
         var taskMap = {}, statusMap = {};
         uJournals.forEach(function(j) {
           (j.tasks || []).forEach(function(t) {
@@ -3579,51 +3607,89 @@
             statusMap[name] = t.status || statusMap[name];
           });
         });
-
-        var taskList = Object.keys(taskMap).map(function(k) {
+        var tl = Object.keys(taskMap).map(function(k) {
           return { name: k, mins: taskMap[k], status: statusMap[k] };
         }).filter(function(t){ return t.mins > 0; });
-        taskList.sort(function(a, b){ return b.mins - a.mins; });
-        if (!taskList.length) return;
-
+        tl.sort(function(a, b){ return b.mins - a.mins; });
+        if (!tl.length) return;
+        adminRaw[u.id] = { u: u, taskList: tl };
+        grandTotal += tl.reduce(function(s,t){ return s+t.mins; }, 0);
         hasAny = true;
-        var maxMins = taskList[0].mins;
-        var totalMinsAdmin = taskList.reduce(function(s,t){ return s+t.mins; }, 0);
-        grandTotal += totalMinsAdmin;
-
-        html += '<div style="margin-bottom:18px">'
-          + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:5px 10px;background:#f8fafc;border-radius:6px;border-left:3px solid var(--accent)">'
-            + '<span style="font-size:12px;font-weight:700;color:var(--text-primary)">' + u.fullName + '</span>'
-            + '<span style="font-size:11px;color:var(--text-muted)">(' + u.dept + ')</span>'
-            + '<span style="font-size:11px;font-weight:700;color:#d97706;margin-left:auto">총 ' + fmtDuration(totalMinsAdmin) + '</span>'
-          + '</div>';
-
-        taskList.slice(0, 15).forEach(function(t, i) {
-          var pct = Math.round(t.mins / maxMins * 100);
-          var color = BAR_COLORS[i % BAR_COLORS.length];
-          var sc = t.status || 'todo';
-          html += '<div class="tts-bar-row">'
-            + '<span class="tts-bar-status" style="background:' + STATUS_B[sc] + ';color:' + STATUS_C[sc] + '">' + STATUS_N[sc] + '</span>'
-            + '<span class="tts-bar-name" title="' + t.name + '">' + t.name + '</span>'
-            + '<div class="tts-bar-track"><div class="tts-bar-fill" style="width:0%;background:' + color + '" data-pct="' + pct + '"></div></div>'
-            + '<span class="tts-bar-hrs">' + fmtDuration(t.mins) + '</span>'
-            + '</div>';
-        });
-
-        html += '</div>';
       });
 
       if (!hasAny) {
         list.innerHTML = '<div class="tts-empty">시간이 기록된 업무가 없습니다.</div>';
         sub.textContent = '';
+        document.getElementById('tts-status-filter').innerHTML = '';
         return;
       }
 
+      window._ttsAdminRaw = adminRaw;
+      window._ttsAdminFilters = {};
+
+      function renderAdminHtml() {
+        var html = '';
+        Object.keys(adminRaw).forEach(function(uid) {
+          var entry = adminRaw[uid];
+          var u = entry.u;
+          var full = entry.taskList;
+          var filter = window._ttsAdminFilters[uid] || 'all';
+          var sm = calcSMins(full);
+          var filtered = filter === 'all' ? full : full.filter(function(t){ return (t.status||'todo') === filter; });
+          var filtTotal = filtered.reduce(function(s,t){ return s+t.mins; }, 0);
+
+          var fbtns = STATUS_LABELS.filter(function(s){ return sm[s.key] > 0; }).map(function(s) {
+            return sfBtn(s.key, s.label, s.bg, s.col, sm[s.key], filter === s.key,
+              'ttsAdminFilter(\'' + uid + '\',\'' + s.key + '\')');
+          }).join('');
+
+          html += '<div style="margin-bottom:18px">'
+            + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:5px 10px;background:#f8fafc;border-radius:6px;border-left:3px solid var(--accent)">'
+              + '<span style="font-size:12px;font-weight:700;color:var(--text-primary)">' + u.fullName + '</span>'
+              + '<span style="font-size:11px;color:var(--text-muted)">(' + u.dept + ')</span>'
+              + '<span style="font-size:11px;font-weight:700;color:#d97706;margin-left:auto">총 ' + fmtDuration(sm.all)
+                + (filter !== 'all' ? ' &nbsp;<span style="color:var(--accent);font-weight:700">' + fmtDuration(filtTotal) + '</span>' : '')
+              + '</span>'
+            + '</div>'
+            + '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">' + fbtns + '</div>';
+
+          if (!filtered.length) {
+            html += '<div style="font-size:12px;color:var(--text-muted);padding:4px 10px">해당 상태의 업무가 없습니다.</div>';
+          } else {
+            var maxM = filtered[0].mins;
+            filtered.slice(0, 15).forEach(function(t, i) {
+              var pct = Math.round(t.mins / maxM * 100);
+              var color = BAR_COLORS[i % BAR_COLORS.length];
+              var sc = t.status || 'todo';
+              html += '<div class="tts-bar-row">'
+                + '<span class="tts-bar-status" style="background:' + STATUS_B[sc] + ';color:' + STATUS_C[sc] + '">' + STATUS_N[sc] + '</span>'
+                + '<span class="tts-bar-name" title="' + t.name + '">' + t.name + '</span>'
+                + '<div class="tts-bar-track"><div class="tts-bar-fill" style="width:0%;background:' + color + '" data-pct="' + pct + '"></div></div>'
+                + '<span class="tts-bar-hrs">' + fmtDuration(t.mins) + '</span>'
+                + '</div>';
+            });
+          }
+          html += '</div>';
+        });
+        return html;
+      }
+
+      window.ttsAdminFilter = function(uid, filter) {
+        window._ttsAdminFilters[uid] = filter;
+        list.innerHTML = renderAdminHtml();
+        setTimeout(function() {
+          list.querySelectorAll('.tts-bar-fill').forEach(function(el) {
+            el.style.width = el.dataset.pct + '%';
+          });
+        }, 30);
+      };
+
+      document.getElementById('tts-status-filter').innerHTML = '';
       sub.textContent = '전체 누적 ' + fmtDuration(grandTotal);
-      list.innerHTML = html;
+      list.innerHTML = renderAdminHtml();
 
     } else {
-      // 일반 유저: 본인 업무만
+      // 일반 유저: 본인 업무 + 상태 필터
       var myJournals = all.filter(function(j){ return j.user_id === _userId; });
       var taskMap = {}, statusMap = {};
       myJournals.forEach(function(j) {
@@ -3637,25 +3703,47 @@
         });
       });
 
-      var taskList = Object.keys(taskMap).map(function(k) {
+      var allTaskList = Object.keys(taskMap).map(function(k) {
         return { name: k, mins: taskMap[k], status: statusMap[k] };
       }).filter(function(t){ return t.mins > 0; });
-      taskList.sort(function(a, b){ return b.mins - a.mins; });
+      allTaskList.sort(function(a, b){ return b.mins - a.mins; });
 
-      if (!taskList.length) {
+      if (!allTaskList.length) {
         list.innerHTML = '<div class="tts-empty">시간이 기록된 업무가 없습니다.</div>';
         sub.textContent = '';
+        document.getElementById('tts-status-filter').innerHTML = '';
         return;
       }
 
-      var totalMins = taskList.reduce(function(s,t){ return s + t.mins; }, 0);
-      sub.textContent = '총 ' + taskList.length + '개 업무 · 누적 ' + fmtDuration(totalMins);
-      var maxMins = taskList[0].mins;
+      var sMins = calcSMins(allTaskList);
+      window._ttsFilter = 'all';
       var SHOW_LIMIT = 10;
 
+      function getFiltered() {
+        if (window._ttsFilter === 'all') return allTaskList;
+        return allTaskList.filter(function(t){ return (t.status||'todo') === window._ttsFilter; });
+      }
+
+      function renderFilterBtns() {
+        var sf = document.getElementById('tts-status-filter');
+        sf.innerHTML = STATUS_LABELS.filter(function(s){ return sMins[s.key] > 0; }).map(function(s) {
+          return sfBtn(s.key, s.label, s.bg, s.col, sMins[s.key], window._ttsFilter === s.key,
+            'ttsSetFilter(\'' + s.key + '\')');
+        }).join('');
+      }
+
       function renderRows(limit) {
-        var rows = taskList.slice(0, limit).map(function(t, i) {
-          var pct = Math.round(t.mins / maxMins * 100);
+        var tl = getFiltered();
+        if (!tl.length) {
+          list.innerHTML = '<div class="tts-empty">해당 상태의 업무가 없습니다.</div>';
+          sub.textContent = '해당 상태의 업무가 없습니다.';
+          return;
+        }
+        var maxM = tl[0].mins;
+        var filtTotal = tl.reduce(function(s,t){ return s+t.mins; }, 0);
+        sub.textContent = '총 ' + tl.length + '개 업무 · 누적 ' + fmtDuration(filtTotal);
+        var rows = tl.slice(0, limit).map(function(t, i) {
+          var pct = Math.round(t.mins / maxM * 100);
           var color = BAR_COLORS[i % BAR_COLORS.length];
           var sc = t.status || 'todo';
           return '<div class="tts-bar-row">'
@@ -3665,26 +3753,25 @@
             + '<span class="tts-bar-hrs">' + fmtDuration(t.mins) + '</span>'
             + '</div>';
         }).join('');
-        var moreBtn = (taskList.length > limit)
-          ? '<div style="text-align:center;margin-top:10px">'
-            + '<button onclick="ttsShowMore()" style="font-size:12px;color:var(--accent);background:none;border:1px solid #bfdbfe;border-radius:6px;padding:5px 18px;cursor:pointer;font-weight:600">'
-            + '더 보기 (' + (taskList.length - limit) + '개 더) ▾</button></div>'
-          : (taskList.length > SHOW_LIMIT
-            ? '<div style="text-align:center;margin-top:10px">'
-              + '<button onclick="ttsShowLess()" style="font-size:12px;color:#64748b;background:none;border:1px solid #e2e8f0;border-radius:6px;padding:5px 18px;cursor:pointer">접기 ▴</button></div>'
-            : '');
+        var moreBtn = (tl.length > limit)
+          ? '<div style="text-align:center;margin-top:10px"><button onclick="ttsShowMore()" style="font-size:12px;color:var(--accent);background:none;border:1px solid #bfdbfe;border-radius:6px;padding:5px 18px;cursor:pointer;font-weight:600">더 보기 (' + (tl.length - limit) + '개 더) ▾</button></div>'
+          : (tl.length > 10 ? '<div style="text-align:center;margin-top:10px"><button onclick="ttsShowLess()" style="font-size:12px;color:#64748b;background:none;border:1px solid #e2e8f0;border-radius:6px;padding:5px 18px;cursor:pointer">접기 ▴</button></div>' : '');
         list.innerHTML = rows + moreBtn;
       }
 
-      window._ttsTaskList = taskList;
-      window._ttsMaxMins = maxMins;
-      window._ttsBarColors = BAR_COLORS;
-      window._ttsStatusB = STATUS_B;
-      window._ttsStatusC = STATUS_C;
-      window._ttsStatusN = STATUS_N;
-
+      window.ttsSetFilter = function(status) {
+        window._ttsFilter = status;
+        SHOW_LIMIT = 10;
+        renderFilterBtns();
+        renderRows(SHOW_LIMIT);
+        setTimeout(function() {
+          list.querySelectorAll('.tts-bar-fill').forEach(function(el) {
+            el.style.width = el.dataset.pct + '%';
+          });
+        }, 30);
+      };
       window.ttsShowMore = function() {
-        SHOW_LIMIT = taskList.length;
+        SHOW_LIMIT = getFiltered().length;
         renderRows(SHOW_LIMIT);
         setTimeout(function() {
           list.querySelectorAll('.tts-bar-fill').forEach(function(el) {
@@ -3702,6 +3789,7 @@
         }, 30);
       };
 
+      renderFilterBtns();
       renderRows(SHOW_LIMIT);
     }
 
