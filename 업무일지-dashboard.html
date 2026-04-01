@@ -2018,6 +2018,44 @@
 <!-- ═══ 수신 메시지 팝업 (우하단) ═══ -->
 <div id="msg-incoming-wrap" style="position:fixed;bottom:20px;right:20px;z-index:9997;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none"></div>
 
+<!-- ═══ 메시지 상세보기 + 답장 모달 ═══ -->
+<div id="msg-detail-overlay" onclick="if(event.target===this)closeMsgDetail()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:10000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:18px;width:460px;max-width:96vw;box-shadow:0 12px 48px rgba(0,0,0,0.22);overflow:hidden;font-family:inherit;display:flex;flex-direction:column">
+    <!-- 헤더 -->
+    <div style="display:flex;align-items:center;padding:16px 20px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px;flex-shrink:0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span style="font-size:14px;font-weight:700;flex:1" id="md-title">메시지</span>
+      <button onclick="closeMsgDetail()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:20px;line-height:1;padding:0 2px;opacity:0.8" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">×</button>
+    </div>
+    <!-- 메타 -->
+    <div style="display:flex;gap:6px;align-items:center;padding:12px 20px 0;flex-wrap:wrap">
+      <div id="md-from-wrap" style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:#94a3b8;font-weight:600">보낸 사람</span>
+        <span id="md-from" style="font-size:12px;font-weight:700;color:#374151;background:#f1f5f9;padding:3px 10px;border-radius:20px"></span>
+      </div>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:#94a3b8;font-weight:600">받는 사람</span>
+        <span id="md-to" style="font-size:12px;font-weight:700;color:#374151;background:#f1f5f9;padding:3px 10px;border-radius:20px"></span>
+      </div>
+      <span id="md-dt" style="margin-left:auto;font-size:10.5px;color:#94a3b8"></span>
+    </div>
+    <!-- 본문 -->
+    <div id="md-body" style="padding:16px 20px;font-size:13.5px;color:#374151;line-height:1.7;white-space:pre-wrap;min-height:80px;max-height:240px;overflow-y:auto;border-bottom:1px solid #f1f5f9;margin:10px 0 0"></div>
+    <!-- 답장 영역 (받은 메시지에만 표시) -->
+    <div id="md-reply-wrap" style="padding:14px 20px 16px">
+      <div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+        답장
+      </div>
+      <textarea id="md-reply-text" rows="3" placeholder="답장 내용을 입력하세요... (Ctrl+Enter 전송)" style="width:100%;padding:9px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#374151;background:#f8fafc;outline:none;resize:none;font-family:inherit;box-sizing:border-box" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter')sendReply()"></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <button onclick="sendReply()" id="md-reply-btn" style="padding:9px 22px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">답장 보내기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Onboarding -->
 <div class="onboard-overlay" id="onboard-overlay" onclick="closeOnboard()">
   <div class="onboard-card" onclick="event.stopPropagation()">
@@ -4194,18 +4232,22 @@
         var unreadIds = msgs.filter(function(m) { return !m.is_read; }).map(function(m) { return m.id; });
         if (unreadIds.length) markMsgsRead(unreadIds);
       }
-      body.innerHTML = msgs.map(function(m) {
+      window._msgCache = msgs;
+      window._msgCacheTab = tab;
+      body.innerHTML = msgs.map(function(m, idx) {
         var isInbox = tab === 'inbox';
         var who = isInbox ? (m.sender_name || '알 수 없음') : (getUserName(m.receiver_id) || m.receiver_id);
         var dt = m.created_at ? new Date(m.created_at) : null;
         var dtStr = dt ? (dt.getFullYear() + '.' + p2(dt.getMonth()+1) + '.' + p2(dt.getDate()) + ' ' + p2(dt.getHours()) + ':' + p2(dt.getMinutes())) : '';
-        var unreadDot = (!isInbox || m.is_read) ? '' : '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;margin-left:6px;vertical-align:middle"></span>';
-        return '<div style="padding:12px;border-bottom:1px solid #f1f5f9;cursor:default">'
-          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'
-            + '<span style="font-size:12px;font-weight:700;color:#374151">' + escHtml(who) + unreadDot + '</span>'
-            + '<span style="font-size:10.5px;color:#94a3b8">' + dtStr + '</span>'
+        var unreadDot = (!isInbox || m.is_read) ? '' : '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;margin-left:6px;vertical-align:middle;flex-shrink:0"></span>';
+        var preview = (m.body || '').replace(/\n/g, ' ').slice(0, 55) + ((m.body||'').length > 55 ? '...' : '');
+        return '<div onclick="openMsgDetail(' + idx + ')" style="padding:12px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background 0.1s" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'\'">  '
+          + '<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">'
+            + '<span style="font-size:12px;font-weight:' + (!isInbox || m.is_read ? '600' : '800') + ';color:' + (!isInbox || m.is_read ? '#374151' : '#111827') + '">' + escHtml(who) + '</span>'
+            + unreadDot
+            + '<span style="font-size:10.5px;color:#94a3b8;margin-left:auto;flex-shrink:0">' + dtStr + '</span>'
           + '</div>'
-          + '<div style="font-size:13px;color:#475569;line-height:1.55;white-space:pre-wrap">' + escHtml(m.body || '') + '</div>'
+          + '<div style="font-size:12px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(preview) + '</div>'
           + '</div>';
       }).join('');
       // 읽음 처리 후 뱃지 갱신
@@ -4230,6 +4272,76 @@
 
   function p2(n) { return n < 10 ? '0' + n : '' + n; }
   function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // ── 메시지 상세보기
+  var _msgDetailCurrent = null;
+
+  function openMsgDetail(idx) {
+    var msgs = window._msgCache;
+    var tab  = window._msgCacheTab;
+    if (!msgs || !msgs[idx]) return;
+    var m = msgs[idx];
+    _msgDetailCurrent = m;
+    _msgDetailCurrent._tab = tab;
+
+    var isInbox = tab === 'inbox';
+    var senderName = m.sender_name || '알 수 없음';
+    var receiverName = getUserName(m.receiver_id) || m.receiver_id;
+    var dt = m.created_at ? new Date(m.created_at) : null;
+    var dtStr = dt ? (dt.getFullYear() + '.' + p2(dt.getMonth()+1) + '.' + p2(dt.getDate()) + ' ' + p2(dt.getHours()) + ':' + p2(dt.getMinutes())) : '';
+
+    document.getElementById('md-title').textContent = isInbox ? '받은 메시지' : '보낸 메시지';
+    document.getElementById('md-from').textContent = senderName;
+    document.getElementById('md-to').textContent = receiverName;
+    document.getElementById('md-dt').textContent = dtStr;
+    document.getElementById('md-body').textContent = m.body || '';
+
+    // 답장 영역: 받은 메시지일 때만 표시
+    var replyWrap = document.getElementById('md-reply-wrap');
+    replyWrap.style.display = isInbox ? '' : 'none';
+    document.getElementById('md-reply-text').value = '';
+
+    var overlay = document.getElementById('msg-detail-overlay');
+    overlay.style.display = 'flex';
+  }
+
+  function closeMsgDetail() {
+    document.getElementById('msg-detail-overlay').style.display = 'none';
+    _msgDetailCurrent = null;
+  }
+
+  // ── 답장 보내기
+  function sendReply() {
+    var m = _msgDetailCurrent;
+    if (!m) return;
+    var body = document.getElementById('md-reply-text').value.trim();
+    if (!body) { alert('내용을 입력해주세요.'); return; }
+    var toId = m.sender_id;
+    var senderName = ((_currentSession && _currentSession._display && _currentSession._display.fullName) || _currentUsername || '알 수 없음');
+    var btn = document.getElementById('md-reply-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '전송 중...'; }
+    msgFetch('messages', {
+      method: 'POST',
+      headers: Object.assign({}, SB_HDR, { 'Prefer': 'return=minimal' }),
+      body: JSON.stringify({ sender_id: _userId, receiver_id: toId, sender_name: senderName, body: body, is_read: false })
+    }).then(function(r) {
+      if (btn) { btn.disabled = false; btn.textContent = '답장 보내기'; }
+      if (r.ok || r.status === 201) {
+        document.getElementById('md-reply-text').value = '';
+        closeMsgDetail();
+        showToast('답장을 보냈습니다.');
+        // 보낸 메시지 탭으로 목록 갱신
+        if (document.getElementById('msg-list-panel').style.display !== 'none') {
+          switchMsgTab('sent');
+        }
+      } else {
+        r.text().then(function(t) { alert('전송 실패: ' + t); });
+      }
+    }).catch(function(e) {
+      if (btn) { btn.disabled = false; btn.textContent = '답장 보내기'; }
+      alert('전송 오류: ' + e.message);
+    });
+  }
 
   // ── 수신 메시지 팝업 (우하단)
   function showIncomingMsg(msg) {
