@@ -4353,8 +4353,8 @@
     var body = document.getElementById('msg-list-body');
     body.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;font-size:13px">불러오는 중...</div>';
     var filter = tab === 'inbox'
-      ? 'receiver_id=eq.' + _userId + '&order=created_at.desc'
-      : 'sender_id=eq.' + _userId + '&order=created_at.desc';
+      ? 'receiver_id=eq.' + _userId + '&deleted_by_receiver=eq.false&order=created_at.desc'
+      : 'sender_id=eq.' + _userId + '&deleted_by_sender=eq.false&order=created_at.desc';
     msgFetch('messages?' + filter + '&limit=50').then(function(r) { return r.json(); }).then(function(msgs) {
       if (!Array.isArray(msgs) || !msgs.length) {
         body.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;font-size:13px">' + (tab === 'inbox' ? '받은 메시지가 없습니다.' : '보낸 메시지가 없습니다.') + '</div>';
@@ -4441,11 +4441,15 @@
   }
 
   function msgDoDelete(ids, successMsg) {
-    // UUID 배열을 PostgREST in.() 포맷으로 — 따옴표 없이
+    // 소프트 삭제: 현재 탭에 따라 sender/receiver 플래그를 true로 설정
+    var field = _msgTab === 'sent' ? 'deleted_by_sender' : 'deleted_by_receiver';
+    var patch = {};
+    patch[field] = true;
     var filter = 'messages?id=in.(' + ids.join(',') + ')';
     fetch(SB_URL + '/rest/v1/' + filter, {
-      method: 'DELETE',
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken, 'Prefer': 'return=minimal' }
+      method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify(patch)
     }).then(function(r) {
       if (r.status === 204 || r.ok) {
         showToast(successMsg);
@@ -4649,7 +4653,7 @@
 
   // ── 뱃지 업데이트 (읽지 않은 수신 메시지 수)
   function updateMsgBadge() {
-    msgFetch('messages?receiver_id=eq.' + _userId + '&is_read=eq.false&select=id').then(function(r) { return r.json(); }).then(function(rows) {
+    msgFetch('messages?receiver_id=eq.' + _userId + '&is_read=eq.false&deleted_by_receiver=eq.false&select=id').then(function(r) { return r.json(); }).then(function(rows) {
       var cnt = Array.isArray(rows) ? rows.length : 0;
       var b1 = document.getElementById('msg-badge');
       var b2 = document.getElementById('msg-badge2');
@@ -4661,7 +4665,7 @@
   // ── 폴링: 새 메시지 확인 (15초마다)
   var _lastMsgCheck = new Date().toISOString();
   function pollNewMessages() {
-    msgFetch('messages?receiver_id=eq.' + _userId + '&created_at=gt.' + encodeURIComponent(_lastMsgCheck) + '&order=created_at.asc').then(function(r) { return r.json(); }).then(function(msgs) {
+    msgFetch('messages?receiver_id=eq.' + _userId + '&deleted_by_receiver=eq.false&created_at=gt.' + encodeURIComponent(_lastMsgCheck) + '&order=created_at.asc').then(function(r) { return r.json(); }).then(function(msgs) {
       if (!Array.isArray(msgs)) return;
       _lastMsgCheck = new Date().toISOString();
       msgs.forEach(function(m) { showIncomingMsg(m); });
