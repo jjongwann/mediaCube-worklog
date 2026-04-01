@@ -4664,7 +4664,7 @@
         + '<div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + initial + '</div>'
         + '<div style="flex:1;min-width:0">'
           + '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:3px">' + senderName + '</div>'
-          + '<div style="font-size:12px;color:#475569;line-height:1.5;word-break:break-all">' + (preview || (hasAtt ? '📎 파일 ' + msg.attachments.length + '개' : '(내용 없음)')) + '</div>'
+          + '<div style="font-size:12px;color:#475569;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (preview || (hasAtt ? '📎 파일 ' + msg.attachments.length + '개' : '(내용 없음)')) + '</div>'
         + '</div>'
       + '</div>'
       + '<div style="padding:0 14px 12px;display:flex;gap:8px;justify-content:flex-end">'
