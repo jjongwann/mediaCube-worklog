@@ -4390,6 +4390,27 @@
   function p2(n) { return n < 10 ? '0' + n : '' + n; }
   function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+  // ── 첨부파일 Blob 다운로드 (크로스 오리진 download 속성 우회)
+  function downloadAttachment(idx) {
+    var a = (window._attData || [])[idx];
+    if (!a) return;
+    var btn = document.querySelectorAll('#md-attachment-list button')[idx];
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+    fetch(a.url)
+      .then(function(r) { return r.blob(); })
+      .then(function(blob) {
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = a.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(function() { URL.revokeObjectURL(link.href); }, 1000);
+      })
+      .catch(function() { alert('다운로드 실패. 잠시 후 다시 시도해주세요.'); })
+      .finally(function() { if (btn) { btn.disabled = false; btn.style.opacity = '1'; } });
+  }
+
   // ── 메시지 상세보기
   var _msgDetailCurrent = null;
 
@@ -4417,18 +4438,22 @@
     var attWrap = document.getElementById('md-attachments');
     var attList = document.getElementById('md-attachment-list');
     var atts = m.attachments;
+    // 첨부파일 다운로드 헬퍼 (크로스 오리진 Blob 방식)
+    window._attData = atts || [];
     if (atts && atts.length) {
-      attList.innerHTML = atts.map(function(a) {
+      attList.innerHTML = atts.map(function(a, ai) {
         var isImg = /\.(png|jpe?g|gif|webp|svg)$/i.test(a.name);
         var sizeStr = a.size > 1024*1024 ? (a.size/1024/1024).toFixed(1)+'MB' : Math.round((a.size||0)/1024)+'KB';
-        return '<a href="' + escHtml(a.url) + '" target="_blank" download="' + escHtml(a.name) + '" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid #e2e8f0;border-radius:7px;background:#f8fafc;text-decoration:none;color:#374151" onmouseover="this.style.background=\'#eff6ff\'" onmouseout="this.style.background=\'#f8fafc\'">'
+        return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid #e2e8f0;border-radius:7px;background:#f8fafc;color:#374151">'
           + (isImg
             ? '<img src="' + escHtml(a.url) + '" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0">'
             : '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>')
           + '<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(a.name) + '</div>'
           + '<div style="font-size:10.5px;color:#94a3b8">' + sizeStr + '</div></div>'
-          + '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>'
-          + '</a>';
+          + '<button onclick="downloadAttachment(' + ai + ')" title="다운로드" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;color:#2563eb;display:flex;align-items:center" onmouseover="this.style.background=\'#eff6ff\'" onmouseout="this.style.background=\'none\'">'
+            + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>'
+          + '</button>'
+          + '</div>';
       }).join('');
       attWrap.style.display = '';
     } else {
