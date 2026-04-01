@@ -1492,12 +1492,12 @@
   var TIME_SLOTS = (function() {
     var slots = [];
     for (var h = 9; h <= 22; h++) {
-      var steps = (h < 22) ? [0, 30] : [0];
-      steps.forEach(function(m) {
+      var maxM = (h < 22) ? 50 : 0;
+      for (var m = 0; m <= maxM; m += 10) {
         var hh = h < 10 ? '0' + h : '' + h;
-        var mm = m === 0 ? '00' : '30';
+        var mm = m < 10 ? '0' + m : '' + m;
         slots.push(hh + ':' + mm);
-      });
+      }
     }
     return slots;
   })();
