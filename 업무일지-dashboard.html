@@ -4633,22 +4633,54 @@
     });
   }
 
+  // ── 메시지 목록 패널 열기 (알림에서 호출)
+  function openMsgPanel(tab) {
+    var listPanel = document.getElementById('msg-list-panel');
+    var composePanel = document.getElementById('msg-compose-panel');
+    if (composePanel) composePanel.style.display = 'none';
+    if (listPanel) {
+      listPanel.style.display = 'flex';
+      switchMsgTab(tab || 'inbox');
+    }
+  }
+
   // ── 수신 메시지 팝업 (우하단)
   function showIncomingMsg(msg) {
     var wrap = document.getElementById('msg-incoming-wrap');
     if (!wrap) return;
+    var senderName = escHtml(msg.sender_name || '알 수 없음');
+    var initial = (msg.sender_name || '?').charAt(0).toUpperCase();
+    var preview = escHtml((msg.body || '').replace(/\n/g, ' ').slice(0, 80) + ((msg.body||'').length > 80 ? '...' : ''));
+    var hasAtt = msg.attachments && msg.attachments.length;
     var el = document.createElement('div');
-    el.style.cssText = 'pointer-events:auto;background:#1e293b;color:#fff;padding:12px 16px;border-radius:14px;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,0.25);animation:msgSlideIn 0.3s ease;font-family:inherit';
-    el.innerHTML = '<div style="font-size:11px;color:#93c5fd;font-weight:700;margin-bottom:4px">📨 ' + escHtml(msg.sender_name || '알 수 없음') + '</div>'
-      + '<div style="font-size:13px;line-height:1.5;white-space:pre-wrap">' + escHtml((msg.body||'').slice(0,100) + ((msg.body||'').length > 100 ? '...' : '')) + '</div>'
-      + '<button onclick="this.parentNode.remove()" style="position:absolute;top:8px;right:10px;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;line-height:1">×</button>';
-    el.style.position = 'relative';
+    el.style.cssText = 'pointer-events:auto;background:#fff;color:#1e293b;padding:0;border-radius:16px;width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.18),0 2px 8px rgba(0,0,0,0.08);animation:msgSlideIn 0.35s cubic-bezier(.21,1.02,.73,1);font-family:inherit;overflow:hidden;border:1px solid #e2e8f0';
+    el.innerHTML =
+      '<div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:10px 14px;display:flex;align-items:center;gap:8px">'
+        + '<div style="width:8px;height:8px;border-radius:50%;background:#fff;opacity:0.9;flex-shrink:0;animation:msgPulse 1.5s ease infinite"></div>'
+        + '<span style="font-size:11px;font-weight:700;color:#fff;letter-spacing:0.3px">새 메시지가 도착했습니다</span>'
+        + '<button onclick="this.closest(\'[data-noti]\').remove()" style="margin-left:auto;background:rgba(255,255,255,0.2);border:none;color:#fff;cursor:pointer;font-size:15px;line-height:1;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button>'
+      + '</div>'
+      + '<div style="padding:12px 14px;display:flex;gap:10px;align-items:flex-start">'
+        + '<div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + initial + '</div>'
+        + '<div style="flex:1;min-width:0">'
+          + '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:3px">' + senderName + '</div>'
+          + '<div style="font-size:12px;color:#475569;line-height:1.5;word-break:break-all">' + (preview || (hasAtt ? '📎 파일 ' + msg.attachments.length + '개' : '(내용 없음)')) + '</div>'
+        + '</div>'
+      + '</div>'
+      + '<div style="padding:0 14px 12px;display:flex;gap:8px;justify-content:flex-end">'
+        + '<button onclick="this.closest(\'[data-noti]\').remove()" style="padding:5px 12px;background:#f1f5f9;border:none;border-radius:8px;font-size:12px;color:#64748b;cursor:pointer;font-weight:600">닫기</button>'
+        + '<button onclick="openMsgPanel(\'inbox\');this.closest(\'[data-noti]\').remove()" style="padding:5px 12px;background:#2563eb;border:none;border-radius:8px;font-size:12px;color:#fff;cursor:pointer;font-weight:600">메시지 보기</button>'
+      + '</div>';
+    el.setAttribute('data-noti', '1');
     wrap.appendChild(el);
+    // 진동 효과 (지원하는 경우)
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
     setTimeout(function() {
-      el.style.transition = 'opacity 0.4s';
+      el.style.transition = 'opacity 0.5s, transform 0.5s';
       el.style.opacity = '0';
-      setTimeout(function() { el.remove(); }, 400);
-    }, 6000);
+      el.style.transform = 'translateX(20px)';
+      setTimeout(function() { el.remove(); }, 500);
+    }, 8000);
   }
 
   // ── 뱃지 업데이트 (읽지 않은 수신 메시지 수)
@@ -4681,8 +4713,12 @@
 </script>
 <style>
   @keyframes msgSlideIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateX(40px) scale(0.95); }
+    to   { opacity: 1; transform: translateX(0) scale(1); }
+  }
+  @keyframes msgPulse {
+    0%, 100% { opacity: 0.9; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.3); }
   }
 </style>
 </body>
