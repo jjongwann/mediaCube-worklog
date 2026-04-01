@@ -1333,16 +1333,23 @@
   ];
 
   // 분(정수) 반환, 저장용 소수시간 변환은 submitJournal에서 /60
+  var LUNCH_START = 12 * 60 + 30; // 12:30
+  var LUNCH_END   = 13 * 60 + 30; // 13:30
+
   function calcTaskHrs(startVal, endVal) {
     if (!startVal || !endVal) return null;
     var sp = startVal.split(':');
     var ep = endVal.split(':');
     if (sp.length < 2 || ep.length < 2) return null;
-    var startMins = parseInt(sp[0]) * 60 + parseInt(sp[1]);
-    var endMins   = parseInt(ep[0]) * 60 + parseInt(ep[1]);
-    var diff = endMins - startMins;
+    var s = parseInt(sp[0]) * 60 + parseInt(sp[1]);
+    var e = parseInt(ep[0]) * 60 + parseInt(ep[1]);
+    var diff = e - s;
     if (diff <= 0) return null;
-    return diff; // 분(minutes) 반환
+    // 점심 시간(12:30~13:30)과 겹치는 구간만큼 차감
+    var overlapStart = Math.max(s, LUNCH_START);
+    var overlapEnd   = Math.min(e, LUNCH_END);
+    var overlap      = Math.max(0, overlapEnd - overlapStart);
+    return diff - overlap; // 분(minutes) 반환
   }
 
   function fmtDuration(mins) {

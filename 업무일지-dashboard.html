@@ -3272,12 +3272,20 @@
     return m + '분';
   }
 
+  var LUNCH_START = 12 * 60 + 30; // 12:30
+  var LUNCH_END   = 13 * 60 + 30; // 13:30
+
   function taskMins(t) {
     if (t.startTime && t.endTime) {
       var sp = t.startTime.split(':'), ep = t.endTime.split(':');
       if (sp.length >= 2 && ep.length >= 2) {
-        var diff = (parseInt(ep[0])*60+parseInt(ep[1])) - (parseInt(sp[0])*60+parseInt(sp[1]));
-        if (diff > 0) return diff;
+        var s = parseInt(sp[0])*60+parseInt(sp[1]);
+        var e = parseInt(ep[0])*60+parseInt(ep[1]);
+        var diff = e - s;
+        if (diff > 0) {
+          var overlap = Math.max(0, Math.min(e, LUNCH_END) - Math.max(s, LUNCH_START));
+          return diff - overlap;
+        }
       }
     }
     return Math.round(parseFloat(t.hrs || 0) * 60);
