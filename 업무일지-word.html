@@ -1549,11 +1549,25 @@
       opt.textContent = slot;
       opt.addEventListener('click', function(e) {
         e.stopPropagation();
+        // 임시로 값 적용 후 겹침 검사
+        var prevVal = btn.dataset.val;
         btn.dataset.val = slot;
         btn.querySelector('.t-time-label').textContent = slot;
         btn.classList.add('has-val');
         btn.classList.remove('active');
         closeTimePop();
+
+        // 겹침 검사: 현재 행 제외, 다른 행들과 비교
+        var currentRow = btn.closest('tr');
+        var overlap = checkTimeOverlap(currentRow);
+        if (overlap) {
+          // 롤백
+          btn.dataset.val = prevVal;
+          btn.querySelector('.t-time-label').textContent = prevVal || '--';
+          if (!prevVal) btn.classList.remove('has-val');
+          alert('⚠️ 시간이 겹칩니다!\n\n입력한 시간대가 다른 업무 [' + overlap + '] 와 겹칩니다.\n시간을 다시 선택해 주세요.');
+          return;
+        }
         calcTotalTaskHrs();
       });
       pop.appendChild(opt);
@@ -1575,6 +1589,33 @@
     // 선택된 항목으로 스크롤
     var sel = pop.querySelector('.selected');
     if (sel) setTimeout(function() { sel.scrollIntoView({ block: 'center' }); }, 10);
+  }
+
+  function toMins(val) {
+    if (!val) return null;
+    var p = val.split(':');
+    if (p.length < 2) return null;
+    return parseInt(p[0]) * 60 + parseInt(p[1]);
+  }
+
+  function checkTimeOverlap(currentRow) {
+    var curStart = toMins((currentRow.querySelector('.t-start') || {}).dataset && currentRow.querySelector('.t-start').dataset.val);
+    var curEnd   = toMins((currentRow.querySelector('.t-end')   || {}).dataset && currentRow.querySelector('.t-end').dataset.val);
+    if (curStart === null || curEnd === null || curEnd <= curStart) return null;
+
+    var rows = document.querySelectorAll('#task-list tr');
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i] === currentRow) continue;
+      var s = toMins(rows[i].querySelector('.t-start') && rows[i].querySelector('.t-start').dataset.val);
+      var e = toMins(rows[i].querySelector('.t-end')   && rows[i].querySelector('.t-end').dataset.val);
+      if (s === null || e === null || e <= s) continue;
+      // 겹침: curStart < e && curEnd > s
+      if (curStart < e && curEnd > s) {
+        var name = (rows[i].querySelector('.task-text') || {}).value || ('업무 ' + (i + 1));
+        return name || ('행 ' + (i + 1));
+      }
+    }
+    return null;
   }
 
   function wireTimePicker(tr) {
