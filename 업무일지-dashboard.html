@@ -2043,7 +2043,7 @@
 </div>
 
 <!-- ═══ 수신 메시지 팝업 (우하단) ═══ -->
-<div id="msg-incoming-wrap" style="position:fixed;bottom:20px;right:20px;z-index:9997;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none"></div>
+<div id="msg-incoming-wrap" style="position:fixed;bottom:20px;right:20px;z-index:2147483647;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none"></div>
 
 <!-- ═══ 메시지 상세보기 + 답장 모달 ═══ -->
 <div id="msg-detail-overlay" onclick="if(event.target===this)closeMsgDetail()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:10000;align-items:center;justify-content:center">
@@ -4680,7 +4680,7 @@
       el.style.opacity = '0';
       el.style.transform = 'translateX(20px)';
       setTimeout(function() { el.remove(); }, 500);
-    }, 8000);
+    }, 10000);
   }
 
   // ── 뱃지 업데이트 (읽지 않은 수신 메시지 수)
