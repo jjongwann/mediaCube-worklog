@@ -4551,7 +4551,7 @@
         var dot = rowEl.querySelector('span[style*="border-radius:50%"][style*="ef4444"]');
         if (dot) dot.remove();
       }
-      updateMsgBadge();
+      decBadge(); // 즉시 -1 감소 (DB 응답 기다리지 않음)
     }
 
     // 답장 영역: 받은 메시지일 때만 표시
@@ -4697,11 +4697,22 @@
   function updateMsgBadge() {
     msgFetch('messages?receiver_id=eq.' + _userId + '&is_read=eq.false&deleted_by_receiver=eq.false&select=id').then(function(r) { return r.json(); }).then(function(rows) {
       var cnt = Array.isArray(rows) ? rows.length : 0;
-      var b1 = document.getElementById('msg-badge');
-      var b2 = document.getElementById('msg-badge2');
-      if (b1) { b1.textContent = cnt; b1.style.display = cnt > 0 ? 'inline-block' : 'none'; }
-      if (b2) { b2.textContent = cnt; b2.style.display = cnt > 0 ? 'inline-block' : 'none'; }
+      setBadgeCount(cnt);
     }).catch(function() {});
+  }
+
+  function setBadgeCount(cnt) {
+    var b1 = document.getElementById('msg-badge');
+    var b2 = document.getElementById('msg-badge2');
+    if (b1) { b1.textContent = cnt; b1.style.display = cnt > 0 ? 'inline-block' : 'none'; }
+    if (b2) { b2.textContent = cnt; b2.style.display = cnt > 0 ? 'inline-block' : 'none'; }
+  }
+
+  function decBadge() {
+    var b1 = document.getElementById('msg-badge');
+    var cur = b1 ? (parseInt(b1.textContent) || 0) : 0;
+    var next = Math.max(0, cur - 1);
+    setBadgeCount(next);
   }
 
   // ── 폴링: 새 메시지 확인 (15초마다)
