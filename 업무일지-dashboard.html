@@ -2468,13 +2468,13 @@
     }
 
     var maxHrs = taskList[0].hrs;
-    var totalHrs = Math.round(taskList.reduce(function(s,t){ return s+t.hrs; }, 0) * 10) / 10;
+    var totalMinsEmp = Math.round(taskList.reduce(function(s,t){ return s+t.hrs; }, 0) * 60);
     var BAR_COLS = ['#3b82f6','#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899'];
 
     var html = '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">'
       + '<span style="font-size:15px;font-weight:700;color:var(--text-primary)">' + u.fullName + '</span>'
       + '<span style="font-size:12px;color:var(--text-muted)">(' + u.dept + ')</span>'
-      + '<span style="font-size:13px;font-weight:700;color:#d97706;margin-left:auto">총 ' + totalHrs + 'h</span>'
+      + '<span style="font-size:13px;font-weight:700;color:#d97706;margin-left:auto">총 ' + fmtDuration(totalMinsEmp) + '</span>'
       + '</div>'
       + '<div style="display:flex;flex-direction:column;gap:10px">';
 
@@ -2486,7 +2486,7 @@
         + '<div style="flex:0 0 200px;background:#f1f5f9;border-radius:20px;height:10px;overflow:hidden">'
           + '<div class="emp-tts-bar" style="width:0%;height:100%;border-radius:20px;background:' + color + ';transition:width 0.5s cubic-bezier(.22,.61,.36,1)" data-pct="' + pct + '"></div>'
         + '</div>'
-        + '<span style="font-size:13px;font-weight:700;color:#d97706;min-width:40px;text-align:right">' + t.hrs + 'h</span>'
+        + '<span style="font-size:13px;font-weight:700;color:#d97706;min-width:60px;text-align:right">' + fmtDuration(Math.round(t.hrs * 60)) + '</span>'
         + '</div>';
     });
 
@@ -2698,13 +2698,13 @@
 
       hasAnyTime = true;
       var maxHrs = taskHrsList[0].hrs;
-      var totalHrs = Math.round(taskHrsList.reduce(function(s, t){ return s + t.hrs; }, 0) * 10) / 10;
+      var totalHrsPrint = Math.round(taskHrsList.reduce(function(s, t){ return s + t.hrs; }, 0) * 60);
 
       timeChartHtml += '<div style="margin-bottom:24px">'
         + '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px;padding:7px 12px;background:#f8fafc;border-radius:6px;border-left:3px solid var(--accent)">'
           + '<span style="font-size:13px;font-weight:700;color:var(--text-primary)">' + u.fullName + '</span>'
           + '<span style="font-size:11px;color:var(--text-muted)">(' + u.dept + ')</span>'
-          + '<span style="font-size:11px;font-weight:700;color:#d97706;margin-left:auto">총 ' + totalHrs + 'h</span>'
+          + '<span style="font-size:11px;font-weight:700;color:#d97706;margin-left:auto">총 ' + fmtDuration(totalHrsPrint) + '</span>'
         + '</div>'
         + '<div style="display:flex;flex-direction:column;gap:7px">';
 
@@ -2716,7 +2716,7 @@
           + '<div style="flex:1;background:#f1f5f9;border-radius:20px;height:10px;overflow:hidden;min-width:60px">'
             + '<div style="width:' + pct + '%;height:100%;border-radius:20px;background:' + color + '"></div>'
           + '</div>'
-          + '<span style="font-size:12px;font-weight:700;color:#d97706;min-width:36px;text-align:right;flex-shrink:0">' + t.hrs + 'h</span>'
+          + '<span style="font-size:12px;font-weight:700;color:#d97706;min-width:52px;text-align:right;flex-shrink:0">' + fmtDuration(Math.round(t.hrs * 60)) + '</span>'
           + '</div>';
       });
 
@@ -3586,14 +3586,15 @@
 
         hasAny = true;
         var maxHrs = taskList[0].hrs;
-        var totalHrs = Math.round(taskList.reduce(function(s,t){ return s+t.hrs; }, 0) * 10) / 10;
+        var totalHrs = taskList.reduce(function(s,t){ return s+t.hrs; }, 0);
         grandTotal += totalHrs;
+        var totalHrsMins = Math.round(totalHrs * 60);
 
         html += '<div style="margin-bottom:18px">'
           + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:5px 10px;background:#f8fafc;border-radius:6px;border-left:3px solid var(--accent)">'
             + '<span style="font-size:12px;font-weight:700;color:var(--text-primary)">' + u.fullName + '</span>'
             + '<span style="font-size:11px;color:var(--text-muted)">(' + u.dept + ')</span>'
-            + '<span style="font-size:11px;font-weight:700;color:#d97706;margin-left:auto">총 ' + totalHrs + 'h</span>'
+            + '<span style="font-size:11px;font-weight:700;color:#d97706;margin-left:auto">총 ' + fmtDuration(totalHrsMins) + '</span>'
           + '</div>';
 
         taskList.slice(0, 15).forEach(function(t, i) {
@@ -3604,7 +3605,7 @@
             + '<span class="tts-bar-status" style="background:' + STATUS_B[sc] + ';color:' + STATUS_C[sc] + '">' + STATUS_N[sc] + '</span>'
             + '<span class="tts-bar-name" title="' + t.name + '">' + t.name + '</span>'
             + '<div class="tts-bar-track"><div class="tts-bar-fill" style="width:0%;background:' + color + '" data-pct="' + pct + '"></div></div>'
-            + '<span class="tts-bar-hrs">' + t.hrs + 'h</span>'
+            + '<span class="tts-bar-hrs">' + fmtDuration(Math.round(t.hrs * 60)) + '</span>'
             + '</div>';
         });
 
@@ -3617,7 +3618,7 @@
         return;
       }
 
-      sub.textContent = '전체 누적 ' + (Math.round(grandTotal * 10) / 10) + 'h';
+      sub.textContent = '전체 누적 ' + fmtDuration(Math.round(grandTotal * 60));
       list.innerHTML = html;
 
     } else {
@@ -3645,8 +3646,8 @@
         return;
       }
 
-      var totalHrs = Math.round(taskList.reduce(function(s,t){ return s + t.hrs; }, 0) * 10) / 10;
-      sub.textContent = '총 ' + taskList.length + '개 업무 · 누적 ' + totalHrs + 'h';
+      var totalMins = Math.round(taskList.reduce(function(s,t){ return s + t.hrs; }, 0) * 60);
+      sub.textContent = '총 ' + taskList.length + '개 업무 · 누적 ' + fmtDuration(totalMins);
       var maxHrs = taskList[0].hrs;
       var SHOW_LIMIT = 10;
 
@@ -3659,7 +3660,7 @@
             + '<span class="tts-bar-status" style="background:' + STATUS_B[sc] + ';color:' + STATUS_C[sc] + '">' + STATUS_N[sc] + '</span>'
             + '<span class="tts-bar-name" title="' + t.name + '">' + t.name + '</span>'
             + '<div class="tts-bar-track"><div class="tts-bar-fill" style="width:0%;background:' + color + '" data-pct="' + pct + '"></div></div>'
-            + '<span class="tts-bar-hrs">' + t.hrs + 'h</span>'
+            + '<span class="tts-bar-hrs">' + fmtDuration(Math.round(t.hrs * 60)) + '</span>'
             + '</div>';
         }).join('');
         var moreBtn = (taskList.length > limit)
