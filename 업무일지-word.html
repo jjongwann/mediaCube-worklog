@@ -905,7 +905,7 @@
 <body>
 
 <div class="toolbar">
-  <button class="btn" onclick="window.location.href='업무일지-dashboard.html'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> 뒤로</button>
+  <button class="btn" onclick="localStorage.removeItem('editJournalBackup');window.location.href='업무일지-dashboard.html'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> 뒤로</button>
   <span class="toolbar-title">미디어큐브 <span class="toolbar-sep">›</span> 업무일지</span>
   <button class="btn" onclick="addTask()">+ 업무 추가</button>
   <button class="btn-primary btn" onclick="window.print()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> 인쇄 / PDF</button>
@@ -1117,7 +1117,7 @@
     </div>
   </div>
   <div class="submit-bar-actions">
-    <button class="btn-back" onclick="window.location.href='업무일지-dashboard.html'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> 대시보드로</button>
+    <button class="btn-back" onclick="localStorage.removeItem('editJournalBackup');window.location.href='업무일지-dashboard.html'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> 대시보드로</button>
     <button class="btn-submit" onclick="submitJournal()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 제출하기</button>
   </div>
 </div>
@@ -1163,6 +1163,11 @@
   // ── Edit mode: load saved journal data ──
   (function() {
     var raw = sessionStorage.getItem(EDIT_KEY);
+    // 새로고침으로 sessionStorage가 사라진 경우 localStorage 백업 복원
+    if (!raw) {
+      var backup = localStorage.getItem('editJournalBackup');
+      if (backup) raw = backup;
+    }
     if (!raw) {
       document.getElementById('doc-date').valueAsDate = new Date();
       // 신규 작성: 로그인 계정 이름/부서 디폴트
@@ -1177,6 +1182,8 @@
     }
     try { editingEntry = JSON.parse(raw); } catch(e) { return; }
     sessionStorage.removeItem(EDIT_KEY);
+    // 새로고침 대비 localStorage에 백업 (저장/뒤로가기 시 제거)
+    localStorage.setItem('editJournalBackup', JSON.stringify(editingEntry));
 
     // Populate header fields
     if (editingEntry.date)    document.getElementById('doc-date').value    = editingEntry.date;
@@ -1742,6 +1749,7 @@
     };
 
     sbUpsert(record).then(function() {
+      localStorage.removeItem('editJournalBackup');
       window.location.href = '업무일지-dashboard.html';
     }).catch(function(e) {
       alert('저장 중 오류가 발생했습니다: ' + e.message);
