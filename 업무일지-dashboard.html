@@ -2444,20 +2444,20 @@
     var all = journalCache;
     var uJournals = all.filter(function(j){ return j.user_id === uid; });
 
-    var taskHrsMap = {};
+    var taskMinsMap = {};
     uJournals.forEach(function(j) {
       (j.tasks || []).forEach(function(t) {
         var name = (t.text || '').trim();
-        var hrs = parseFloat(t.hrs || 0);
-        if (!name || !hrs) return;
-        taskHrsMap[name] = (taskHrsMap[name] || 0) + hrs;
+        var mins = taskMins(t);
+        if (!name || !mins) return;
+        taskMinsMap[name] = (taskMinsMap[name] || 0) + mins;
       });
     });
 
-    var taskList = Object.keys(taskHrsMap).map(function(k) {
-      return { name: k, hrs: taskHrsMap[k] };
-    }).filter(function(t){ return t.hrs > 0; });
-    taskList.sort(function(a,b){ return b.hrs - a.hrs; });
+    var taskList = Object.keys(taskMinsMap).map(function(k) {
+      return { name: k, mins: taskMinsMap[k] };
+    }).filter(function(t){ return t.mins > 0; });
+    taskList.sort(function(a,b){ return b.mins - a.mins; });
 
     var section = document.getElementById('emp-task-time-section');
     var content = document.getElementById('emp-tts-content');
@@ -2468,8 +2468,8 @@
       return;
     }
 
-    var maxHrs = taskList[0].hrs;
-    var totalMinsEmp = Math.round(taskList.reduce(function(s,t){ return s+t.hrs; }, 0) * 60);
+    var maxMins = taskList[0].mins;
+    var totalMinsEmp = taskList.reduce(function(s,t){ return s+t.mins; }, 0);
     var BAR_COLS = ['#3b82f6','#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899'];
 
     var html = '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">'
@@ -2480,14 +2480,14 @@
       + '<div style="display:flex;flex-direction:column;gap:10px">';
 
     taskList.slice(0, 20).forEach(function(t, i) {
-      var pct = Math.round(t.hrs / maxHrs * 100);
+      var pct = Math.round(t.mins / maxMins * 100);
       var color = BAR_COLS[i % BAR_COLS.length];
       html += '<div style="display:flex;align-items:center;gap:12px">'
         + '<span style="font-size:13px;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + t.name + '">' + t.name + '</span>'
         + '<div style="flex:0 0 200px;background:#f1f5f9;border-radius:20px;height:10px;overflow:hidden">'
           + '<div class="emp-tts-bar" style="width:0%;height:100%;border-radius:20px;background:' + color + ';transition:width 0.5s cubic-bezier(.22,.61,.36,1)" data-pct="' + pct + '"></div>'
         + '</div>'
-        + '<span style="font-size:13px;font-weight:700;color:#d97706;min-width:60px;text-align:right">' + fmtDuration(Math.round(t.hrs * 60)) + '</span>'
+        + '<span style="font-size:13px;font-weight:700;color:#d97706;min-width:60px;text-align:right">' + fmtDuration(t.mins) + '</span>'
         + '</div>';
     });
 
@@ -2680,26 +2680,26 @@
       var uJournals = all.filter(function(j){ return j.user_id === u.id; });
       if (!uJournals.length) return;
 
-      // 업무명별 총 hrs 집계
-      var taskHrsMap = {};
+      // 업무명별 총 분 집계
+      var taskMinsMap = {};
       uJournals.forEach(function(j) {
         (j.tasks || []).forEach(function(t) {
           var name = (t.text || '').trim();
-          var hrs = parseFloat(t.hrs || 0);
-          if (!name || !hrs) return;
-          taskHrsMap[name] = (taskHrsMap[name] || 0) + hrs;
+          var mins = taskMins(t);
+          if (!name || !mins) return;
+          taskMinsMap[name] = (taskMinsMap[name] || 0) + mins;
         });
       });
 
-      var taskHrsList = Object.keys(taskHrsMap).map(function(k) {
-        return { name: k, hrs: taskHrsMap[k] };
-      }).filter(function(t){ return t.hrs > 0; });
-      taskHrsList.sort(function(a, b){ return b.hrs - a.hrs; });
+      var taskHrsList = Object.keys(taskMinsMap).map(function(k) {
+        return { name: k, mins: taskMinsMap[k] };
+      }).filter(function(t){ return t.mins > 0; });
+      taskHrsList.sort(function(a, b){ return b.mins - a.mins; });
       if (!taskHrsList.length) return;
 
       hasAnyTime = true;
-      var maxHrs = taskHrsList[0].hrs;
-      var totalHrsPrint = Math.round(taskHrsList.reduce(function(s, t){ return s + t.hrs; }, 0) * 60);
+      var maxMins = taskHrsList[0].mins;
+      var totalHrsPrint = taskHrsList.reduce(function(s, t){ return s + t.mins; }, 0);
 
       timeChartHtml += '<div style="margin-bottom:24px">'
         + '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px;padding:7px 12px;background:#f8fafc;border-radius:6px;border-left:3px solid var(--accent)">'
@@ -2710,14 +2710,14 @@
         + '<div style="display:flex;flex-direction:column;gap:7px">';
 
       taskHrsList.slice(0, 15).forEach(function(t, i) {
-        var pct = Math.round(t.hrs / maxHrs * 100);
+        var pct = Math.round(t.mins / maxMins * 100);
         var color = BAR_COLS[i % BAR_COLS.length];
         timeChartHtml += '<div style="display:flex;align-items:center;gap:10px">'
           + '<span style="font-size:12px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;width:200px;display:block" title="' + t.name + '">' + t.name + '</span>'
           + '<div style="flex:1;background:#f1f5f9;border-radius:20px;height:10px;overflow:hidden;min-width:60px">'
             + '<div style="width:' + pct + '%;height:100%;border-radius:20px;background:' + color + '"></div>'
           + '</div>'
-          + '<span style="font-size:12px;font-weight:700;color:#d97706;min-width:52px;text-align:right;flex-shrink:0">' + fmtDuration(Math.round(t.hrs * 60)) + '</span>'
+          + '<span style="font-size:12px;font-weight:700;color:#d97706;min-width:52px;text-align:right;flex-shrink:0">' + fmtDuration(t.mins) + '</span>'
           + '</div>';
       });
 
@@ -3572,41 +3572,41 @@
         uJournals.forEach(function(j) {
           (j.tasks || []).forEach(function(t) {
             var name = (t.text || '').trim();
-            if (!name || !t.hrs) return;
+            var mins = taskMins(t);
+            if (!name || !mins) return;
             if (!taskMap[name]) { taskMap[name] = 0; statusMap[name] = t.status || 'todo'; }
-            taskMap[name] += parseFloat(t.hrs || 0);
+            taskMap[name] += mins;
             statusMap[name] = t.status || statusMap[name];
           });
         });
 
         var taskList = Object.keys(taskMap).map(function(k) {
-          return { name: k, hrs: taskMap[k], status: statusMap[k] };
-        }).filter(function(t){ return t.hrs > 0; });
-        taskList.sort(function(a, b){ return b.hrs - a.hrs; });
+          return { name: k, mins: taskMap[k], status: statusMap[k] };
+        }).filter(function(t){ return t.mins > 0; });
+        taskList.sort(function(a, b){ return b.mins - a.mins; });
         if (!taskList.length) return;
 
         hasAny = true;
-        var maxHrs = taskList[0].hrs;
-        var totalHrs = taskList.reduce(function(s,t){ return s+t.hrs; }, 0);
-        grandTotal += totalHrs;
-        var totalHrsMins = Math.round(totalHrs * 60);
+        var maxMins = taskList[0].mins;
+        var totalMinsAdmin = taskList.reduce(function(s,t){ return s+t.mins; }, 0);
+        grandTotal += totalMinsAdmin;
 
         html += '<div style="margin-bottom:18px">'
           + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:5px 10px;background:#f8fafc;border-radius:6px;border-left:3px solid var(--accent)">'
             + '<span style="font-size:12px;font-weight:700;color:var(--text-primary)">' + u.fullName + '</span>'
             + '<span style="font-size:11px;color:var(--text-muted)">(' + u.dept + ')</span>'
-            + '<span style="font-size:11px;font-weight:700;color:#d97706;margin-left:auto">총 ' + fmtDuration(totalHrsMins) + '</span>'
+            + '<span style="font-size:11px;font-weight:700;color:#d97706;margin-left:auto">총 ' + fmtDuration(totalMinsAdmin) + '</span>'
           + '</div>';
 
         taskList.slice(0, 15).forEach(function(t, i) {
-          var pct = Math.round(t.hrs / maxHrs * 100);
+          var pct = Math.round(t.mins / maxMins * 100);
           var color = BAR_COLORS[i % BAR_COLORS.length];
           var sc = t.status || 'todo';
           html += '<div class="tts-bar-row">'
             + '<span class="tts-bar-status" style="background:' + STATUS_B[sc] + ';color:' + STATUS_C[sc] + '">' + STATUS_N[sc] + '</span>'
             + '<span class="tts-bar-name" title="' + t.name + '">' + t.name + '</span>'
             + '<div class="tts-bar-track"><div class="tts-bar-fill" style="width:0%;background:' + color + '" data-pct="' + pct + '"></div></div>'
-            + '<span class="tts-bar-hrs">' + fmtDuration(Math.round(t.hrs * 60)) + '</span>'
+            + '<span class="tts-bar-hrs">' + fmtDuration(t.mins) + '</span>'
             + '</div>';
         });
 
@@ -3619,7 +3619,7 @@
         return;
       }
 
-      sub.textContent = '전체 누적 ' + fmtDuration(Math.round(grandTotal * 60));
+      sub.textContent = '전체 누적 ' + fmtDuration(grandTotal);
       list.innerHTML = html;
 
     } else {
@@ -3629,17 +3629,18 @@
       myJournals.forEach(function(j) {
         (j.tasks || []).forEach(function(t) {
           var name = (t.text || '').trim();
-          if (!name || !t.hrs) return;
+          var mins = taskMins(t);
+          if (!name || !mins) return;
           if (!taskMap[name]) { taskMap[name] = 0; statusMap[name] = t.status || 'todo'; }
-          taskMap[name] += parseFloat(t.hrs || 0);
+          taskMap[name] += mins;
           statusMap[name] = t.status || statusMap[name];
         });
       });
 
       var taskList = Object.keys(taskMap).map(function(k) {
-        return { name: k, hrs: taskMap[k], status: statusMap[k] };
-      }).filter(function(t){ return t.hrs > 0; });
-      taskList.sort(function(a, b){ return b.hrs - a.hrs; });
+        return { name: k, mins: taskMap[k], status: statusMap[k] };
+      }).filter(function(t){ return t.mins > 0; });
+      taskList.sort(function(a, b){ return b.mins - a.mins; });
 
       if (!taskList.length) {
         list.innerHTML = '<div class="tts-empty">시간이 기록된 업무가 없습니다.</div>';
@@ -3647,21 +3648,21 @@
         return;
       }
 
-      var totalMins = Math.round(taskList.reduce(function(s,t){ return s + t.hrs; }, 0) * 60);
+      var totalMins = taskList.reduce(function(s,t){ return s + t.mins; }, 0);
       sub.textContent = '총 ' + taskList.length + '개 업무 · 누적 ' + fmtDuration(totalMins);
-      var maxHrs = taskList[0].hrs;
+      var maxMins = taskList[0].mins;
       var SHOW_LIMIT = 10;
 
       function renderRows(limit) {
         var rows = taskList.slice(0, limit).map(function(t, i) {
-          var pct = Math.round(t.hrs / maxHrs * 100);
+          var pct = Math.round(t.mins / maxMins * 100);
           var color = BAR_COLORS[i % BAR_COLORS.length];
           var sc = t.status || 'todo';
           return '<div class="tts-bar-row">'
             + '<span class="tts-bar-status" style="background:' + STATUS_B[sc] + ';color:' + STATUS_C[sc] + '">' + STATUS_N[sc] + '</span>'
             + '<span class="tts-bar-name" title="' + t.name + '">' + t.name + '</span>'
             + '<div class="tts-bar-track"><div class="tts-bar-fill" style="width:0%;background:' + color + '" data-pct="' + pct + '"></div></div>'
-            + '<span class="tts-bar-hrs">' + fmtDuration(Math.round(t.hrs * 60)) + '</span>'
+            + '<span class="tts-bar-hrs">' + fmtDuration(t.mins) + '</span>'
             + '</div>';
         }).join('');
         var moreBtn = (taskList.length > limit)
