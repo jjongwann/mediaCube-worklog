@@ -272,7 +272,7 @@
   .task-table tbody tr:last-child td:last-child  { border-radius: 0 0 6px 0; }
   .col-task-status { width: 76px; text-align: center; }
   .col-task-name   { min-width: 200px; }
-  .col-task-hrs    { width: 206px; text-align: center; white-space: nowrap; }
+  .col-task-hrs    { width: 230px; min-width: 230px; max-width: 230px; text-align: center; white-space: nowrap; }
   .col-task-del    { width: 30px; text-align: center; }
 
   /* ── Task 진행률 입력 ── */
@@ -313,12 +313,14 @@
     border: 1px solid #fde68a;
     border-radius: 12px;
     padding: 2px 8px;
+    width: 38px;
     min-width: 38px;
     text-align: center;
     flex-shrink: 0;
-    display: none;
+    display: inline-block;
+    visibility: hidden;
   }
-  .time-duration.visible { display: inline-block; }
+  .time-duration.visible { visibility: visible; }
   .task-item td { transition: background 0.1s; }
   .task-item:hover td { background: #fafafa; }
   .task-del {
@@ -458,7 +460,9 @@
     cursor: pointer;
     font-family: inherit;
     white-space: nowrap;
-    min-width: 74px;
+    width: 82px;
+    min-width: 82px;
+    max-width: 82px;
     justify-content: space-between;
     transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
     user-select: none;
