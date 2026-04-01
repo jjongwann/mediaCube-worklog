@@ -313,12 +313,12 @@
     border: 1px solid #fde68a;
     border-radius: 12px;
     padding: 2px 8px;
-    width: 38px;
-    min-width: 38px;
+    min-width: 52px;
     text-align: center;
     flex-shrink: 0;
     display: inline-block;
     visibility: hidden;
+    white-space: nowrap;
   }
   .time-duration.visible { visibility: visible; }
   .task-item td { transition: background 0.1s; }
@@ -1275,24 +1275,23 @@
         taskList.appendChild(tr);
       });
       // readonly 모드: entry.tasks에서 직접 총 시간 계산 (startTime/endTime 우선)
-      var totalHrs = 0;
+      var totalMins = 0;
       entry.tasks.forEach(function(t) {
-        var h = 0;
+        var m = 0;
         if (t.startTime && t.endTime) {
           var sp = t.startTime.split(':'), ep = t.endTime.split(':');
           if (sp.length >= 2 && ep.length >= 2) {
-            var diff = (parseInt(sp[0])*60 + parseInt(sp[1]));
-            var diff2 = (parseInt(ep[0])*60 + parseInt(ep[1]));
-            if (diff2 > diff) h = Math.floor((diff2 - diff) / 6) / 10;
+            var s = parseInt(sp[0])*60 + parseInt(sp[1]);
+            var e = parseInt(ep[0])*60 + parseInt(ep[1]);
+            if (e > s) m = e - s;
           }
         }
-        if (!h) h = parseFloat(t.hrs || 0);
-        totalHrs += h;
+        if (!m && t.hrs) m = Math.round(parseFloat(t.hrs) * 60);
+        totalMins += m;
       });
-      totalHrs = Math.round(totalHrs * 10) / 10;
       calcProgress(); // calcTotalTaskHrs가 내부 호출되어 '—'로 덮어쓰므로 아래에서 재설정
       var metricTime = document.getElementById('metric-time');
-      if (metricTime) metricTime.value = totalHrs > 0 ? totalHrs + 'h' : '—';
+      if (metricTime) metricTime.value = totalMins > 0 ? fmtDuration(totalMins) : '—';
     }
 
     // Toolbar
@@ -1332,6 +1331,7 @@
     {cls: 'status-todo',  text: '예정'}
   ];
 
+  // 분(정수) 반환, 저장용 소수시간 변환은 submitJournal에서 /60
   function calcTaskHrs(startVal, endVal) {
     if (!startVal || !endVal) return null;
     var sp = startVal.split(':');
@@ -1341,11 +1341,20 @@
     var endMins   = parseInt(ep[0]) * 60 + parseInt(ep[1]);
     var diff = endMins - startMins;
     if (diff <= 0) return null;
-    return Math.floor(diff / 6) / 10;
+    return diff; // 분(minutes) 반환
+  }
+
+  function fmtDuration(mins) {
+    if (!mins || mins <= 0) return null;
+    var h = Math.floor(mins / 60);
+    var m = mins % 60;
+    if (h > 0 && m > 0) return h + '시간 ' + m + '분';
+    if (h > 0) return h + '시간';
+    return m + '분';
   }
 
   function calcTotalTaskHrs() {
-    var total = 0;
+    var totalMins = 0;
     var hasAny = false;
     document.querySelectorAll('#task-list tr').forEach(function(tr) {
       var startBtn = tr.querySelector('.t-start');
@@ -1354,12 +1363,12 @@
       if (!startBtn || !endBtn) return;
       var startVal = startBtn.dataset ? startBtn.dataset.val : '';
       var endVal   = endBtn.dataset   ? endBtn.dataset.val   : '';
-      var hrs = calcTaskHrs(startVal, endVal);
+      var mins = calcTaskHrs(startVal, endVal);
       if (durEl) {
-        if (hrs !== null) {
-          durEl.textContent = hrs + 'h';
+        if (mins !== null) {
+          durEl.textContent = fmtDuration(mins);
           durEl.classList.add('visible');
-          total += hrs;
+          totalMins += mins;
           hasAny = true;
         } else {
           durEl.textContent = '';
@@ -1368,7 +1377,7 @@
       }
     });
     var metricTime = document.getElementById('metric-time');
-    if (metricTime) metricTime.value = hasAny ? (Math.round(total * 10) / 10) + 'h' : '—';
+    if (metricTime) metricTime.value = hasAny ? fmtDuration(totalMins) : '—';
   }
 
   function wireTimeRange(tr) { /* 커스텀 피커는 wireTimePicker로 처리 */ }
@@ -1594,7 +1603,7 @@
                   if (sp.length < 2 || ep.length < 2) return '';
                   var diff = (parseInt(ep[0])*60+parseInt(ep[1])) - (parseInt(sp[0])*60+parseInt(sp[1]));
                   if (diff <= 0) return '';
-                  return '<span class="time-duration visible">' + (Math.floor(diff/6)/10) + 'h</span>';
+                  return '<span class="time-duration visible">' + fmtDuration(diff) + '</span>';
                 })()
             : '<button type="button" class="t-time-btn t-start' + (startTime ? ' has-val' : '') + '" data-val="' + (startTime||'') + '">'
               + '<span class="t-time-label">' + (startTime || '--') + '</span>'
@@ -1727,7 +1736,8 @@
       var endBtn    = tr.querySelector('.t-end');
       var startTime = (startBtn && startBtn.dataset) ? (startBtn.dataset.val || '') : '';
       var endTime   = (endBtn   && endBtn.dataset)   ? (endBtn.dataset.val   || '') : '';
-      var hrs       = calcTaskHrs(startTime, endTime) || 0;
+      var diffMins  = calcTaskHrs(startTime, endTime) || 0;
+      var hrs       = diffMins ? Math.round(diffMins / 60 * 10) / 10 : 0;
       tasks.push({ text: text, status: taskStatus, done: false, pct: pct, startTime: startTime, endTime: endTime, hrs: hrs });
     });
 
