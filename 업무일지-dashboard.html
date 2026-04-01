@@ -4429,17 +4429,7 @@
     var ids = Array.from(document.querySelectorAll('#msg-list-body .msg-cb:checked')).map(function(cb) { return cb.dataset.id; });
     if (!ids.length) { alert('삭제할 메시지를 선택해주세요.'); return; }
     if (!confirm(ids.length + '개 메시지를 삭제하시겠습니까?')) return;
-    msgFetch('messages?id=in.(' + ids.join(',') + ')', {
-      method: 'DELETE',
-      headers: SB_DEL_HDR
-    }).then(function(r) {
-      if (r.ok) {
-        showToast(ids.length + '개 삭제되었습니다.');
-        loadMsgList(_msgTab);
-      } else {
-        r.text().then(function(t) { alert('삭제 실패: ' + t); });
-      }
-    }).catch(function(e) { alert('오류: ' + e.message); });
+    msgDoDelete(ids, ids.length + '개 삭제되었습니다.');
   }
 
   // ── 전체 삭제
@@ -4447,16 +4437,24 @@
     var msgs = window._msgCache;
     if (!msgs || !msgs.length) { alert('삭제할 메시지가 없습니다.'); return; }
     if (!confirm('현재 탭의 메시지 ' + msgs.length + '개를 모두 삭제하시겠습니까?')) return;
-    var ids = msgs.map(function(m) { return m.id; });
-    msgFetch('messages?id=in.(' + ids.join(',') + ')', {
+    msgDoDelete(msgs.map(function(m) { return m.id; }), '전체 삭제되었습니다.');
+  }
+
+  function msgDoDelete(ids, successMsg) {
+    // UUID 배열을 PostgREST in.() 포맷으로 — 따옴표 없이
+    var filter = 'messages?id=in.(' + ids.join(',') + ')';
+    fetch(SB_URL + '/rest/v1/' + filter, {
       method: 'DELETE',
-      headers: SB_DEL_HDR
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken, 'Prefer': 'return=minimal' }
     }).then(function(r) {
-      if (r.ok) {
-        showToast('전체 삭제되었습니다.');
+      if (r.status === 204 || r.ok) {
+        showToast(successMsg);
         loadMsgList(_msgTab);
       } else {
-        r.text().then(function(t) { alert('삭제 실패: ' + t); });
+        r.text().then(function(t) {
+          console.error('msg delete error', r.status, t);
+          alert('삭제 실패 (' + r.status + '): ' + t);
+        });
       }
     }).catch(function(e) { alert('오류: ' + e.message); });
   }
