@@ -1647,6 +1647,13 @@
           <span class="tts-sub" id="tts-sub-text"></span>
           <div id="tts-status-filter" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center"></div>
         </div>
+        <div style="position:relative;flex-shrink:0">
+          <input id="tts-search" type="text" placeholder="업무 검색..." oninput="ttsSearchFilter(this.value)"
+            style="width:180px;padding:5px 28px 5px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;outline:none;color:#374151;background:#f8fafc"
+            onfocus="this.style.borderColor='#2563eb';this.style.background='#fff'"
+            onblur="this.style.borderColor='#e2e8f0';this.style.background='#f8fafc'">
+          <svg style="position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
         <button class="tts-close" onclick="closeTaskTimeSection()" title="닫기">×</button>
       </div>
       <div class="tts-bar-list" id="tts-bar-list"></div>
@@ -3687,7 +3694,16 @@
     }
   }
 
+  function ttsSearchFilter(q) {
+    var keyword = q.trim().toLowerCase();
+    document.querySelectorAll('#tts-bar-list .tts-bar-row').forEach(function(row) {
+      var name = (row.querySelector('.tts-bar-name') || row).textContent.toLowerCase();
+      row.style.display = (!keyword || name.indexOf(keyword) !== -1) ? '' : 'none';
+    });
+  }
+
   function closeTaskTimeSection() {
+    var s = document.getElementById('tts-search'); if (s) s.value = '';
     document.getElementById('task-time-section').style.display = 'none';
     document.getElementById('sc-wip').classList.remove('chart-active');
     _chartMode = 'monthly';
