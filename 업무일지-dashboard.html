@@ -5086,20 +5086,22 @@
   // ── 폴링: 새 메시지 확인 (15초마다)
   var _lastMsgCheck = new Date().toISOString();
   function pollNewMessages() {
-    msgFetch('messages?receiver_id=eq.' + _userId + '&deleted_by_receiver=eq.false&created_at=gt.' + encodeURIComponent(_lastMsgCheck) + '&order=created_at.asc').then(function(r) { return r.json(); }).then(function(msgs) {
+    // is_read=eq.false 조건: 채팅 뷰에서 이미 읽음 처리된 메시지는 제외
+    msgFetch('messages?receiver_id=eq.' + _userId + '&is_read=eq.false&deleted_by_receiver=eq.false&created_at=gt.' + encodeURIComponent(_lastMsgCheck) + '&order=created_at.asc').then(function(r) { return r.json(); }).then(function(msgs) {
       if (!Array.isArray(msgs)) return;
       _lastMsgCheck = new Date().toISOString();
 
-      var chatOpen = document.getElementById('chat-overlay') && document.getElementById('chat-overlay').style.display !== 'none';
+      var chatOverlay = document.getElementById('chat-overlay');
+      var chatOpen = chatOverlay && chatOverlay.style.display !== 'none';
 
       msgs.forEach(function(m) {
-        // 채팅 뷰가 열려 있고 해당 발신자와 대화 중이면 알림 생략
-        if (chatOpen && _chatOtherId === m.sender_id) return;
+        // 채팅 뷰가 열려 있고 해당 발신자와 대화 중이면 알림·뱃지 모두 생략
+        if (chatOpen && _chatOtherId && _chatOtherId === m.sender_id) return;
         showIncomingMsg(m);
       });
 
       // 채팅 뷰 밖에서 온 새 메시지가 있을 때만 뱃지 갱신
-      var outsideMsgs = msgs.filter(function(m) { return !(chatOpen && _chatOtherId === m.sender_id); });
+      var outsideMsgs = msgs.filter(function(m) { return !(chatOpen && _chatOtherId && _chatOtherId === m.sender_id); });
       if (outsideMsgs.length) updateMsgBadge();
     }).catch(function() {});
   }
