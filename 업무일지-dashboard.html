@@ -1620,7 +1620,7 @@
         <div class="stat-value" id="s-done-rate">0%</div>
         <div class="stat-sub">전체 일지 평균 진행률</div>
       </div>
-      <div class="stat-card stat-card-link" onclick="setChartMode('tasktime')" title="업무별 누적 시간 보기">
+      <div class="stat-card stat-card-link" id="sc-tasktime" onclick="setChartMode('tasktime')" title="업무별 누적 시간 보기">
         <div class="stat-card-top">
           <span class="stat-label">업무별 누적 시간</span>
           <span class="stat-icon-box amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
@@ -3849,8 +3849,7 @@
     }
     _chartMode = mode;
     document.getElementById('sc-total').classList.toggle('chart-active', mode === 'monthly');
-    document.getElementById('sc-week').classList.toggle('chart-active',  mode === 'weekly');
-    document.getElementById('sc-wip').classList.toggle('chart-active',   mode === 'tasktime');
+    document.getElementById('sc-tasktime').classList.toggle('chart-active', mode === 'tasktime');
     if (mode === 'tasktime') {
       renderTaskTimeChart();
     } else {
@@ -3870,7 +3869,7 @@
   function closeTaskTimeSection() {
     var s = document.getElementById('tts-search'); if (s) s.value = '';
     document.getElementById('task-time-section').style.display = 'none';
-    document.getElementById('sc-wip').classList.remove('chart-active');
+    document.getElementById('sc-tasktime').classList.remove('chart-active');
     _chartMode = null;
   }
 
