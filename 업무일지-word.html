@@ -2782,54 +2782,35 @@
   </div>
 
   <!-- ── 메시지 상세보기 + 답장 모달 (워드 페이지용) ── -->
-  <div id="wmd-overlay"
-    style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:2147483646;align-items:center;justify-content:center">
-    <div
-      style="background:#fff;border-radius:16px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.25);font-family:inherit">
-      <div
-        style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #f1f5f9">
-        <span style="font-size:15px;font-weight:700;color:#1e293b">받은 메시지</span>
-        <button onclick="wmdClose()"
-          style="background:none;border:none;cursor:pointer;font-size:20px;color:#94a3b8;line-height:1">×</button>
+  <!-- 채팅 뷰 패널 (word.html) -->
+  <div id="wmd-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:2147483646;align-items:center;justify-content:center" onclick="if(event.target===this)wmdClose()">
+    <div style="background:#fff;border-radius:20px;width:440px;max-width:95vw;height:620px;max-height:90vh;box-shadow:0 20px 60px rgba(0,0,0,0.25);font-family:inherit;display:flex;flex-direction:column;overflow:hidden">
+      <!-- 헤더 -->
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #f1f5f9;flex-shrink:0;background:#fff">
+        <div id="wmd-avatar" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div id="wmd-other-name" style="font-size:14px;font-weight:700;color:#0f172a"></div>
+          <div id="wmd-other-dept" style="font-size:11px;color:#94a3b8"></div>
+        </div>
+        <button onclick="wmdClose()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:22px;line-height:1;padding:2px 6px">×</button>
       </div>
-      <div style="padding:16px 20px 0">
-        <div
-          style="display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;margin-bottom:12px;flex-wrap:wrap">
-          <span>보낸 사람</span>
-          <span id="wmd-from" style="font-weight:700;color:#1e293b"></span>
-          <span style="color:#cbd5e1">›</span>
-          <span>받는 사람</span>
-          <span id="wmd-to" style="font-weight:700;color:#1e293b"></span>
-          <span id="wmd-dt" style="margin-left:auto;color:#94a3b8;font-size:11px"></span>
-        </div>
-        <div id="wmd-body"
-          style="font-size:14px;color:#1e293b;line-height:1.75;white-space:pre-wrap;padding:14px;background:#f8fafc;border-radius:10px;min-height:60px">
-        </div>
-        <div id="wmd-att-wrap" style="margin-top:12px;display:none">
-          <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:6px">첨부파일</div>
-          <div id="wmd-att-list" style="display:flex;flex-direction:column;gap:6px"></div>
-        </div>
-      </div>
-      <div style="padding:14px 20px 0">
-        <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px">↩ 답장</div>
-        <textarea id="wmd-reply-text" rows="4" placeholder="답장 내용을 입력하세요... (Ctrl+Enter 전송)"
-          style="width:100%;box-sizing:border-box;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;font-size:13px;font-family:inherit;resize:vertical;outline:none"
-          onkeydown="if(event.ctrlKey&&event.key==='Enter'){wmdSendReply();}"></textarea>
-        <div id="wmd-file-list" style="margin-top:6px;display:flex;flex-direction:column;gap:4px"></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-bottom:16px">
-          <label
-            style="display:flex;align-items:center;gap:6px;font-size:12px;color:#2563eb;cursor:pointer;font-weight:600">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path
-                d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-            </svg>
-            파일 첨부
+      <!-- 메시지 영역 -->
+      <div id="wmd-chat-messages" style="flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:6px;background:#f8fafc"></div>
+      <!-- 입력 영역 -->
+      <div style="border-top:1px solid #f1f5f9;background:#fff;flex-shrink:0">
+        <div id="wmd-chat-file-list" style="padding:0 14px;display:flex;flex-direction:column;gap:4px"></div>
+        <div style="display:flex;align-items:flex-end;gap:8px;padding:10px 14px">
+          <label style="cursor:pointer;color:#94a3b8;display:flex;align-items:center;flex-shrink:0" title="파일 첨부">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
             <input type="file" id="wmd-file-input" multiple style="display:none" onchange="wmdOnFileChange(this)">
           </label>
-          <button id="wmd-send-btn" onclick="wmdSendReply()"
-            style="padding:8px 20px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer">답장
-            보내기</button>
+          <textarea id="wmd-chat-input" rows="1" placeholder="메시지를 입력하세요... (Ctrl+Enter 전송)"
+            style="flex:1;border:1px solid #e2e8f0;border-radius:12px;padding:9px 13px;font-size:13px;font-family:inherit;resize:none;outline:none;background:#f8fafc;max-height:100px;overflow-y:auto;line-height:1.5"
+            onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();wmdChatSend();}"
+            oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+          <button onclick="wmdChatSend()" style="width:38px;height:38px;border-radius:50%;background:#2563eb;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
         </div>
       </div>
     </div>
@@ -2866,76 +2847,122 @@
     (function () {
       if (!_userId) return;
       var _lastCheck = new Date().toISOString();
-      var _wmdMsg = null;
+      var _wmdOtherId = null;
+      var _wmdOtherName = null;
       var _wmdFiles = [];
+      var _wmdPollTimer = null;
+      var _wmdLastMsgId = null;
 
       function escH(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
       function p2(n) { return n < 10 ? '0' + n : '' + n; }
+      function msgFetch(path, opts) {
+        return fetch(SB_URL + '/rest/v1/' + path, Object.assign({ headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken, 'Content-Type': 'application/json' } }, opts || {}));
+      }
 
-      // ── 상세보기 모달 열기
+      // ── 채팅 패널 열기
       window.wmdOpen = function (msg) {
-        _wmdMsg = msg;
+        _wmdOtherId = msg.sender_id;
+        _wmdOtherName = msg.sender_name || '알 수 없음';
         _wmdFiles = [];
-        var dt = msg.created_at ? new Date(msg.created_at) : null;
-        document.getElementById('wmd-from').textContent = msg.sender_name || '알 수 없음';
-        document.getElementById('wmd-to').textContent = '나';
-        document.getElementById('wmd-dt').textContent = dt ? (dt.getFullYear() + '.' + p2(dt.getMonth() + 1) + '.' + p2(dt.getDate()) + ' ' + p2(dt.getHours()) + ':' + p2(dt.getMinutes())) : '';
-        document.getElementById('wmd-body').textContent = msg.body || '';
-        document.getElementById('wmd-reply-text').value = '';
-        document.getElementById('wmd-file-list').innerHTML = '';
+        _wmdLastMsgId = null;
+
+        var initial = (_wmdOtherName || '?').charAt(0).toUpperCase();
+        document.getElementById('wmd-avatar').textContent = initial;
+        document.getElementById('wmd-other-name').textContent = _wmdOtherName;
+        document.getElementById('wmd-other-dept').textContent = '';
+        document.getElementById('wmd-chat-input').value = '';
+        document.getElementById('wmd-chat-file-list').innerHTML = '';
         document.getElementById('wmd-file-input').value = '';
 
-        // 첨부파일
-        var atts = msg.attachments;
-        var attWrap = document.getElementById('wmd-att-wrap');
-        var attList = document.getElementById('wmd-att-list');
-        if (atts && atts.length) {
-          attList.innerHTML = atts.map(function (a, ai) {
-            var sizeStr = a.size > 1024 * 1024 ? (a.size / 1024 / 1024).toFixed(1) + 'MB' : Math.round((a.size || 0) / 1024) + 'KB';
-            return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid #e2e8f0;border-radius:7px;background:#f8fafc">'
-              + '<span style="font-size:12px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escH(a.name) + '</span>'
-              + '<span style="font-size:11px;color:#94a3b8">' + sizeStr + '</span>'
-              + '<button onclick="wmdDownload(' + ai + ')" style="background:none;border:none;cursor:pointer;color:#2563eb;padding:2px 4px;font-size:11px;font-weight:600">다운로드</button>'
-              + '</div>';
-          }).join('');
-          attWrap.style.display = '';
-        } else {
-          attWrap.style.display = 'none';
-        }
+        document.getElementById('wmd-overlay').style.display = 'flex';
+        wmdLoadHistory(true);
 
-        // 읽음 처리
-        if (!msg.is_read) {
-          msg.is_read = true;
-          fetch(SB_URL + '/rest/v1/messages?id=eq.' + msg.id, {
-            method: 'PATCH',
-            headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-            body: JSON.stringify({ is_read: true })
-          }).catch(function () { });
-        }
-
-        var overlay = document.getElementById('wmd-overlay');
-        overlay.style.display = 'flex';
+        if (_wmdPollTimer) clearInterval(_wmdPollTimer);
+        _wmdPollTimer = setInterval(function () { if (_wmdOtherId) wmdLoadHistory(false); }, 3000);
       };
 
       window.wmdClose = function () {
         document.getElementById('wmd-overlay').style.display = 'none';
-        _wmdMsg = null;
+        _wmdOtherId = null;
         _wmdFiles = [];
+        _wmdLastMsgId = null;
+        if (_wmdPollTimer) { clearInterval(_wmdPollTimer); _wmdPollTimer = null; }
       };
 
-      window.wmdDownload = function (idx) {
-        var a = (_wmdMsg && _wmdMsg.attachments) ? _wmdMsg.attachments[idx] : null;
-        if (!a) return;
-        fetch(a.url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } })
-          .then(function (r) { return r.blob(); })
-          .then(function (blob) {
-            var u = URL.createObjectURL(blob);
-            var link = document.createElement('a');
-            link.href = u; link.download = a.name; link.click();
-            setTimeout(function () { URL.revokeObjectURL(u); }, 1000);
-          }).catch(function (e) { alert('다운로드 오류: ' + e.message); });
-      };
+      // ── 채팅 히스토리 로드
+      function wmdLoadHistory(showSpinner) {
+        var body = document.getElementById('wmd-chat-messages');
+        if (showSpinner) body.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;font-size:13px">불러오는 중...</div>';
+        var q = 'messages?or=(and(sender_id.eq.' + _userId + ',receiver_id.eq.' + _wmdOtherId + '),and(sender_id.eq.' + _wmdOtherId + ',receiver_id.eq.' + _userId + '))&order=created_at.asc&limit=200';
+        msgFetch(q).then(function (r) { return r.json(); }).then(function (msgs) {
+          if (!Array.isArray(msgs)) msgs = [];
+          msgs = msgs.filter(function (m) {
+            if (m.sender_id === _userId) return !m.deleted_by_sender;
+            if (m.receiver_id === _userId) return !m.deleted_by_receiver;
+            return true;
+          });
+          if (!msgs.length) {
+            if (showSpinner) body.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px">대화 내역이 없습니다.</div>';
+            return;
+          }
+          var latestId = msgs[msgs.length - 1].id;
+          var hasNew = latestId !== _wmdLastMsgId;
+          var unread = msgs.filter(function (m) { return m.receiver_id === _userId && !m.is_read; }).map(function (m) { return m.id; });
+          if (unread.length && hasNew) {
+            msgFetch('messages?id=in.(' + unread.join(',') + ')', { method: 'PATCH', body: JSON.stringify({ is_read: true }) });
+          }
+          if (!hasNew && !showSpinner) return;
+          _wmdLastMsgId = latestId;
+          var wasAtBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 80;
+          wmdRenderMessages(msgs);
+          if (showSpinner || wasAtBottom) setTimeout(function () { body.scrollTop = body.scrollHeight; }, 50);
+        }).catch(function () {
+          if (showSpinner) body.innerHTML = '<div style="text-align:center;padding:30px;color:#ef4444;font-size:13px">불러오기 실패</div>';
+        });
+      }
 
+      // ── 채팅 메시지 렌더링
+      function wmdRenderMessages(msgs) {
+        var body = document.getElementById('wmd-chat-messages');
+        var lastDate = '';
+        var html = '';
+        msgs.forEach(function (m) {
+          var isMine = m.sender_id === _userId;
+          var dt = m.created_at ? new Date(m.created_at) : null;
+          var dateStr = dt ? (dt.getFullYear() + '년 ' + (dt.getMonth() + 1) + '월 ' + dt.getDate() + '일') : '';
+          var timeStr = dt ? (p2(dt.getHours()) + ':' + p2(dt.getMinutes())) : '';
+          if (dateStr && dateStr !== lastDate) {
+            html += '<div style="text-align:center;margin:10px 0"><span style="font-size:11px;color:#94a3b8;background:#e2e8f0;padding:3px 12px;border-radius:20px">' + dateStr + '</span></div>';
+            lastDate = dateStr;
+          }
+          var initial = (_wmdOtherName || '?').charAt(0).toUpperCase();
+          var atts = m.attachments && m.attachments.length ? m.attachments.map(function (a) {
+            var sizeStr = a.size > 1024 * 1024 ? (a.size / 1024 / 1024).toFixed(1) + 'MB' : Math.round((a.size || 0) / 1024) + 'KB';
+            return '<div onclick="wmdChatDownload(\'' + escH(a.url) + '\',\'' + escH(a.name) + '\')" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:rgba(255,255,255,0.15);cursor:pointer;margin-top:5px">'
+              + '<div style="width:30px;height:30px;border-radius:6px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:700;color:#fff">파일</div>'
+              + '<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escH(a.name) + '</div>'
+              + '<div style="font-size:10px;opacity:0.7">' + sizeStr + '</div></div>'
+              + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>'
+              + '</div>';
+          }).join('') : '';
+          if (isMine) {
+            html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">'
+              + (m.body ? '<div style="max-width:72%;background:#2563eb;color:#fff;padding:9px 13px;border-radius:18px 18px 4px 18px;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word">' + escH(m.body) + atts + '</div>' : (atts ? '<div style="max-width:72%;background:#2563eb;color:#fff;padding:9px 13px;border-radius:18px 18px 4px 18px">' + atts + '</div>' : ''))
+              + '<span style="font-size:10px;color:#94a3b8;margin-right:4px">' + timeStr + '</span></div>';
+          } else {
+            html += '<div style="display:flex;align-items:flex-end;gap:8px">'
+              + '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + initial + '</div>'
+              + '<div style="display:flex;flex-direction:column;gap:2px;max-width:72%">'
+                + '<span style="font-size:10px;color:#94a3b8;margin-left:2px">' + escH(_wmdOtherName) + '</span>'
+                + (m.body ? '<div style="background:#fff;border:1px solid #e2e8f0;padding:9px 13px;border-radius:18px 18px 18px 4px;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;color:#1e293b">' + escH(m.body) + atts + '</div>' : (atts ? '<div style="background:#fff;border:1px solid #e2e8f0;padding:9px 13px;border-radius:18px 18px 18px 4px;color:#1e293b">' + atts + '</div>' : ''))
+                + '<span style="font-size:10px;color:#94a3b8;margin-left:2px">' + timeStr + '</span>'
+              + '</div></div>';
+          }
+        });
+        body.innerHTML = html;
+      }
+
+      // ── 파일 첨부
       window.wmdOnFileChange = function (input) {
         Array.from(input.files).forEach(function (f) { _wmdFiles.push(f); });
         renderWmdFileList();
@@ -2943,7 +2970,7 @@
       };
 
       function renderWmdFileList() {
-        document.getElementById('wmd-file-list').innerHTML = _wmdFiles.map(function (f, i) {
+        document.getElementById('wmd-chat-file-list').innerHTML = _wmdFiles.map(function (f, i) {
           return '<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#475569;padding:4px 8px;background:#f1f5f9;border-radius:6px">'
             + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escH(f.name) + '</span>'
             + '<button onclick="wmdRemoveFile(' + i + ')" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:14px;line-height:1">×</button>'
@@ -2953,16 +2980,13 @@
 
       window.wmdRemoveFile = function (i) { _wmdFiles.splice(i, 1); renderWmdFileList(); };
 
-      window.wmdSendReply = function () {
-        if (!_wmdMsg) return;
-        var body = document.getElementById('wmd-reply-text').value.trim();
-        if (!body && !_wmdFiles.length) { alert('내용을 입력하세요.'); return; }
-        var btn = document.getElementById('wmd-send-btn');
-        btn.disabled = true; btn.textContent = '전송 중...';
-
+      // ── 메시지 전송
+      window.wmdChatSend = function () {
+        if (!_wmdOtherId) return;
+        var body = document.getElementById('wmd-chat-input').value.trim();
+        if (!body && !_wmdFiles.length) return;
         var session = JSON.parse(localStorage.getItem('mediacube_session') || 'null');
         var senderName = (session && session.user && session.user.user_metadata && session.user.user_metadata.full_name) || '나';
-
         Promise.all(_wmdFiles.map(function (f) {
           var path = 'messages/' + Date.now() + '_' + f.name.replace(/\s+/g, '_');
           return fetch(SB_URL + '/storage/v1/object/' + path, {
@@ -2976,25 +3000,30 @@
           return fetch(SB_URL + '/rest/v1/messages', {
             method: 'POST',
             headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-            body: JSON.stringify({ sender_id: _userId, receiver_id: _wmdMsg.sender_id, sender_name: senderName, body: body, is_read: false, attachments: attachments.length ? attachments : null })
+            body: JSON.stringify({ sender_id: _userId, receiver_id: _wmdOtherId, sender_name: senderName, body: body, is_read: false, attachments: attachments.length ? attachments : null })
           });
         }).then(function (r) {
-          btn.disabled = false; btn.textContent = '답장 보내기';
           if (r.ok || r.status === 201) {
-            wmdClose();
-            var toast = document.createElement('div');
-            toast.textContent = '답장을 보냈습니다.';
-            toast.style.cssText = 'position:fixed;bottom:80px;right:20px;background:#1e293b;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:2147483647;font-family:inherit';
-            document.body.appendChild(toast);
-            setTimeout(function () { toast.remove(); }, 2500);
+            document.getElementById('wmd-chat-input').value = '';
+            document.getElementById('wmd-chat-input').style.height = 'auto';
+            _wmdFiles = []; renderWmdFileList();
+            document.getElementById('wmd-file-input').value = '';
+            _wmdLastMsgId = null;
+            wmdLoadHistory(false);
           } else { r.text().then(function (t) { alert('전송 실패: ' + t); }); }
-        }).catch(function (e) { btn.disabled = false; btn.textContent = '답장 보내기'; alert('오류: ' + e.message); });
+        }).catch(function (e) { alert('오류: ' + e.message); });
       };
 
-      // ── 클릭 외부 닫기
-      document.getElementById('wmd-overlay').addEventListener('click', function (e) {
-        if (e.target === this) wmdClose();
-      });
+      // ── 첨부파일 다운로드
+      window.wmdChatDownload = function (url, name) {
+        fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } })
+          .then(function (r) { return r.blob(); })
+          .then(function (blob) {
+            var u = URL.createObjectURL(blob);
+            var a = document.createElement('a'); a.href = u; a.download = name; a.click();
+            setTimeout(function () { URL.revokeObjectURL(u); }, 1000);
+          }).catch(function (e) { alert('다운로드 오류: ' + e.message); });
+      };
 
       // ── 알림 표시
       function showNoti(msg) {
@@ -3035,12 +3064,16 @@
       }
 
       function poll() {
-        fetch(SB_URL + '/rest/v1/messages?receiver_id=eq.' + _userId + '&deleted_by_receiver=eq.false&created_at=gt.' + encodeURIComponent(_lastCheck) + '&order=created_at.asc', {
+        fetch(SB_URL + '/rest/v1/messages?receiver_id=eq.' + _userId + '&is_read=eq.false&deleted_by_receiver=eq.false&created_at=gt.' + encodeURIComponent(_lastCheck) + '&order=created_at.asc', {
           headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken }
         }).then(function (r) { return r.json(); }).then(function (msgs) {
           if (!Array.isArray(msgs)) return;
           _lastCheck = new Date().toISOString();
-          msgs.forEach(function (m) { showNoti(m); });
+          var chatOpen = document.getElementById('wmd-overlay') && document.getElementById('wmd-overlay').style.display !== 'none';
+          msgs.forEach(function (m) {
+            if (chatOpen && _wmdOtherId && _wmdOtherId === m.sender_id) return;
+            showNoti(m);
+          });
         }).catch(function () { });
       }
 
