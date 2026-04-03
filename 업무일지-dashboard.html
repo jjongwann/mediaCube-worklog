@@ -3716,7 +3716,18 @@
 
   /* ── Keyboard ── */
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') { closeModal(); closeDetail(); }
+    if (e.key === 'Escape') {
+      closeModal(); closeDetail();
+      // 채팅 뷰 → 메시지 목록 → 메시지 작성 → 프로필 순으로 우선순위
+      var chatOverlay = document.getElementById('chat-overlay');
+      if (chatOverlay && chatOverlay.style.display !== 'none') { closeChatPanel(); return; }
+      var msgList = document.getElementById('msg-list-panel');
+      if (msgList && msgList.style.display !== 'none') { closeMsgList(); return; }
+      var msgCompose = document.getElementById('msg-compose-panel');
+      if (msgCompose && msgCompose.style.display !== 'none') { closeMsgCompose(); return; }
+      var profileOverlay = document.getElementById('profile-overlay');
+      if (profileOverlay && profileOverlay.classList.contains('show')) { closeProfileModal(); return; }
+    }
     if ((e.metaKey||e.ctrlKey) && e.key === 'k') {
       e.preventDefault();
       document.getElementById('search-input').focus();
