@@ -4693,7 +4693,13 @@
       // 읽지 않은 수신 메시지 읽음 처리 (새 메시지 있을 때만)
       if (hasNew) {
         var unread = msgs.filter(function(m) { return m.receiver_id === _userId && !m.is_read; }).map(function(m) { return m.id; });
-        if (unread.length) { markMsgsRead(unread); updateMsgBadge(); }
+        if (unread.length) {
+          markMsgsRead(unread);
+          // DB 재조회 대신 즉시 차감 (PATCH 완료 전 재조회 시 오류 방지)
+          var b1 = document.getElementById('msg-badge');
+          var cur = b1 ? (parseInt(b1.textContent) || 0) : 0;
+          setBadgeCount(Math.max(0, cur - unread.length));
+        }
       }
 
       if (!hasNew && !showSpinner) return; // 변화 없으면 UI 갱신 안 함
