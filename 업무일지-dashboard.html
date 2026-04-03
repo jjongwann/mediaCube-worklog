@@ -1719,7 +1719,7 @@
         </div>
       </div>
       <!-- 차트 -->
-      <div style="position:relative;height:280px"><canvas id="sales-chart"></canvas></div>
+      <div style="position:relative;height:200px"><canvas id="sales-chart"></canvas></div>
       <!-- 요약 카드 -->
       <div id="sales-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:14px"></div>
     </div>
@@ -5360,8 +5360,10 @@
             backgroundColor: chartColors.map(function(c){ return c+'cc'; }),
             borderColor: chartColors,
             borderWidth: 0,
-            borderRadius: 6,
-            maxBarThickness: 52
+            borderRadius: 5,
+            maxBarThickness: 80,
+            categoryPercentage: 0.75,
+            barPercentage: 0.9
           }]
         },
         options: {
@@ -5379,11 +5381,11 @@
             }
           },
           scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#9ca3af' } },
+            x: { grid: { display: false }, ticks: { font: { size: 12, weight: '600' }, color: '#374151' } },
             y: {
               beginAtZero: true, grid: { color: '#f3f4f6' },
               ticks: {
-                font: { size: 10 }, color: '#9ca3af',
+                font: { size: 11 }, color: '#9ca3af',
                 callback: function(v){
                   if (v>=100000000) return (v/100000000).toFixed(0)+'억';
                   if (v>=10000)     return (v/10000).toFixed(0)+'만';
@@ -5427,11 +5429,11 @@
             }
           },
           scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#9ca3af' } },
+            x: { grid: { display: false }, ticks: { font: { size: 12, weight: '600' }, color: '#374151' } },
             y: {
               beginAtZero: true, grid: { color: '#f3f4f6' },
               ticks: {
-                font: { size: 10 }, color: '#9ca3af',
+                font: { size: 11 }, color: '#9ca3af',
                 callback: function(v){
                   if (v>=100000000) return (v/100000000).toFixed(0)+'억';
                   if (v>=10000)     return (v/10000).toFixed(0)+'만';
