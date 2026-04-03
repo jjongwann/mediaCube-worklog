@@ -1712,7 +1712,7 @@
             <button id="sales-btn-bar" onclick="salesSetType('bar')" style="padding:4px 14px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:600">막대</button>
             <button id="sales-btn-line" onclick="salesSetType('line')" style="padding:4px 14px;border:none;background:#f8fafc;color:#64748b;cursor:pointer;font-weight:600">꺾은선</button>
           </div>
-          <button onclick="openSalesInput()" style="display:flex;align-items:center;gap:5px;padding:5px 13px;background:#2563eb;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">
+          <button id="sales-input-btn" onclick="openSalesInput()" style="display:none;align-items:center;gap:5px;padding:5px 13px;background:#2563eb;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             데이터 입력
           </button>
@@ -5334,7 +5334,9 @@
 
     // 차트 데이터
     var chartLabels = SALES_CHART_ITEMS.map(function(i){ return i.label; });
-    var chartValues = SALES_CHART_ITEMS.map(function(i){ return entry[i.key]||0; });
+    // 로그 스케일에서 0은 표시 불가 → 1로 치환 (툴팁에서는 원래 값 사용)
+    var chartRawValues = SALES_CHART_ITEMS.map(function(i){ return entry[i.key]||0; });
+    var chartValues = chartRawValues.map(function(v){ return v > 0 ? v : 1; });
     var chartColors = SALES_CHART_ITEMS.map(function(i){ return i.color; });
     var chartBgs    = SALES_CHART_ITEMS.map(function(i){ return i.bg; });
 
@@ -5371,20 +5373,21 @@
               borderColor: '#e2e8f0', borderWidth: 1, padding: 10,
               callbacks: {
                 title: function(items){ return monthLabel + ' · ' + items[0].label; },
-                label: function(ctx){ return ' ' + fmtW(ctx.parsed.y); }
+                label: function(ctx){ return ' ' + fmtW(chartRawValues[ctx.dataIndex]||0); }
               }
             }
           },
           scales: {
             x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#9ca3af' } },
             y: {
-              beginAtZero: true, grid: { color: '#f3f4f6' },
+              type: 'logarithmic', grid: { color: '#f3f4f6' },
               ticks: {
                 font: { size: 10 }, color: '#9ca3af',
                 callback: function(v){
+                  if (v===0) return '0';
                   if (v>=100000000) return (v/100000000).toFixed(0)+'억';
                   if (v>=10000)     return (v/10000).toFixed(0)+'만';
-                  return v;
+                  return v.toLocaleString();
                 }
               }
             }
@@ -5419,20 +5422,21 @@
               borderColor: '#e2e8f0', borderWidth: 1, padding: 10,
               callbacks: {
                 title: function(items){ return monthLabel + ' · ' + items[0].label; },
-                label: function(ctx){ return ' ' + fmtW(ctx.parsed.y); }
+                label: function(ctx){ return ' ' + fmtW(chartRawValues[ctx.dataIndex]||0); }
               }
             }
           },
           scales: {
             x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#9ca3af' } },
             y: {
-              beginAtZero: true, grid: { color: '#f3f4f6' },
+              type: 'logarithmic', grid: { color: '#f3f4f6' },
               ticks: {
                 font: { size: 10 }, color: '#9ca3af',
                 callback: function(v){
+                  if (v===0) return '0';
                   if (v>=100000000) return (v/100000000).toFixed(0)+'억';
                   if (v>=10000)     return (v/10000).toFixed(0)+'만';
-                  return v;
+                  return v.toLocaleString();
                 }
               }
             }
@@ -5452,6 +5456,9 @@
   }
 
   function salesInit() {
+    // 관리자만 데이터 입력 버튼 표시
+    var btn = document.getElementById('sales-input-btn');
+    if (btn && _isAdmin) { btn.style.display = 'flex'; }
     salesUpdateMonthSel();
     renderSalesWidget();
   }
