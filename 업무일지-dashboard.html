@@ -1720,12 +1720,15 @@
       </div>
       <!-- 차트 + 통계 패널 2단 -->
       <div style="display:grid;grid-template-columns:1fr 220px;gap:16px;align-items:stretch">
-        <div style="position:relative;height:200px"><canvas id="sales-chart"></canvas></div>
-        <!-- 통계 패널 -->
+        <!-- 왼쪽: 차트 + 요약 카드 -->
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="position:relative;height:200px"><canvas id="sales-chart"></canvas></div>
+          <!-- 요약 카드 (차트 바로 아래) -->
+          <div id="sales-summary" style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px"></div>
+        </div>
+        <!-- 오른쪽: 통계 패널 -->
         <div id="sales-stat-panel" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;font-size:12px"></div>
       </div>
-      <!-- 요약 카드 -->
-      <div id="sales-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:12px"></div>
     </div>
 
     <!-- 매출 데이터 입력 모달 -->
@@ -5488,9 +5491,9 @@
     // 요약 카드 (항목만)
     document.getElementById('sales-summary').innerHTML = SALES_CHART_ITEMS.map(function(item) {
       var v = entry[item.key] || 0;
-      return '<div style="background:'+item.bg+';border-radius:8px;padding:9px 11px;border:1px solid '+item.color+'22">'
-        + '<div style="font-size:10px;color:'+item.color+';font-weight:700;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+item.label+'</div>'
-        + '<div style="font-size:13px;font-weight:800;color:#111827">'+fmtW(v)+'</div>'
+      return '<div style="background:'+item.bg+';border-radius:7px;padding:7px 8px;border:1px solid '+item.color+'33;text-align:center">'
+        + '<div style="font-size:9px;color:'+item.color+';font-weight:700;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+item.label+'</div>'
+        + '<div style="font-size:12px;font-weight:800;color:#111827;white-space:nowrap">'+fmtW(v)+'</div>'
         + '</div>';
     }).join('');
   }
