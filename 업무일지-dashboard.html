@@ -4829,7 +4829,7 @@
     var q = (document.getElementById('hist-search').value || '').trim().toLowerCase();
     var journals = loadJournals();
     // 관리자: 전체, 직원: 본인 것만
-    if (!_isAdmin) journals = journals.filter(function(j) { return j.userId === _userId; });
+    if (!_isAdmin) journals = journals.filter(function(j) { return j.user_id === _userId; });
 
     var items = journals.filter(function(j) {
       var val = _histTab === 'plan' ? (j.nextPlan || '') : (j.note || '');
