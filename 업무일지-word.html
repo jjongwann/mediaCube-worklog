@@ -1890,21 +1890,25 @@
           tr.innerHTML = _taskRowHtml(scls, stxt, t.text, t.pct, t.startTime, t.endTime, true);
           taskList.appendChild(tr);
         });
-        // readonly 모드: entry.tasks에서 직접 총 시간 계산 (startTime/endTime 우선)
-        var totalMins = 0;
+        // readonly 모드: entry.tasks에서 직접 총 시간 계산 (중복 구간 union)
+        var roIntervals = [];
         entry.tasks.forEach(function (t) {
-          var m = 0;
           if (t.startTime && t.endTime) {
             var sp = t.startTime.split(':'), ep = t.endTime.split(':');
             if (sp.length >= 2 && ep.length >= 2) {
               var s = parseInt(sp[0]) * 60 + parseInt(sp[1]);
               var e = parseInt(ep[0]) * 60 + parseInt(ep[1]);
-              if (e > s) m = e - s;
+              if (e > s) roIntervals.push([s, e]);
             }
           }
-          if (!m && t.hrs) m = Math.round(parseFloat(t.hrs) * 60);
-          totalMins += m;
         });
+        var totalMins = roIntervals.length > 0 ? calcUnionMins(roIntervals) : 0;
+        // fallback: startTime 없는 항목은 hrs로 보정 (union에 포함 안 된 경우)
+        if (!totalMins) {
+          entry.tasks.forEach(function (t) {
+            if (!t.startTime && t.hrs) totalMins += Math.round(parseFloat(t.hrs) * 60);
+          });
+        }
         calcProgress(); // calcTotalTaskHrs가 내부 호출되어 '—'로 덮어쓰므로 아래에서 재설정
         var metricTime = document.getElementById('metric-time');
         if (metricTime) metricTime.value = totalMins > 0 ? fmtDuration(totalMins) : '—';
@@ -1951,6 +1955,23 @@
     var LUNCH_START = 12 * 60 + 30; // 12:30
     var LUNCH_END = 13 * 60 + 30; // 13:30
 
+    // 겹치는 구간을 합쳐서 실제 총 시간(중복 미적산) 계산
+    function calcUnionMins(intervals) {
+      var valid = intervals.filter(function(iv) { return iv[0] < iv[1]; });
+      if (!valid.length) return 0;
+      valid.sort(function(a, b) { return a[0] - b[0]; });
+      var merged = [valid[0].slice()];
+      for (var i = 1; i < valid.length; i++) {
+        var last = merged[merged.length - 1];
+        if (valid[i][0] < last[1]) {
+          last[1] = Math.max(last[1], valid[i][1]);
+        } else {
+          merged.push(valid[i].slice());
+        }
+      }
+      return merged.reduce(function(sum, iv) { return sum + iv[1] - iv[0]; }, 0);
+    }
+
     function calcTaskHrs(startVal, endVal) {
       if (!startVal || !endVal) return null;
       var sp = startVal.split(':');
@@ -1977,7 +1998,7 @@
     }
 
     function calcTotalTaskHrs() {
-      var totalMins = 0;
+      var intervals = [];
       var hasAny = false;
       document.querySelectorAll('#task-list tr').forEach(function (tr) {
         var startBtn = tr.querySelector('.t-start');
@@ -1991,7 +2012,8 @@
           if (mins !== null) {
             durEl.textContent = fmtDuration(mins);
             durEl.classList.add('visible');
-            totalMins += mins;
+            var s = toMins(startVal), e = toMins(endVal);
+            if (s !== null && e !== null) intervals.push([s, e]);
             hasAny = true;
           } else {
             durEl.textContent = '';
@@ -2000,7 +2022,7 @@
         }
       });
       var metricTime = document.getElementById('metric-time');
-      if (metricTime) metricTime.value = hasAny ? fmtDuration(totalMins) : '—';
+      if (metricTime) metricTime.value = hasAny ? fmtDuration(calcUnionMins(intervals)) : '—';
     }
 
     function wireTimeRange(tr) { /* 커스텀 피커는 wireTimePicker로 처리 */ }
@@ -2181,17 +2203,7 @@
           btn.classList.remove('active');
           closeTimePop();
 
-          // 겹침 검사: 현재 행 제외, 다른 행들과 비교
-          var currentRow = btn.closest('tr');
-          var overlap = checkTimeOverlap(currentRow);
-          if (overlap) {
-            // 롤백
-            btn.dataset.val = prevVal;
-            btn.querySelector('.t-time-label').textContent = prevVal || '--';
-            if (!prevVal) btn.classList.remove('has-val');
-            alert('⚠️ 시간이 겹칩니다!\n\n입력한 시간대가 다른 업무 [' + overlap + '] 와 겹칩니다.\n시간을 다시 선택해 주세요.');
-            return;
-          }
+          // 동시 진행 업무 허용: 겹침 검사 없이 바로 합산
           calcTotalTaskHrs();
         });
         pop.appendChild(opt);
