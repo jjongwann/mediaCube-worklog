@@ -5334,10 +5334,7 @@
     // 차트 데이터
     var chartLabels = SALES_CHART_ITEMS.map(function(i){ return i.label; });
     var chartRawValues = SALES_CHART_ITEMS.map(function(i){ return entry[i.key]||0; });
-    // 최대값의 3%를 최솟값으로 설정 → 0원 항목도 얇게 보임
-    var maxVal = Math.max.apply(null, chartRawValues) || 1;
-    var minBar = Math.round(maxVal * 0.03);
-    var chartValues = chartRawValues.map(function(v){ return v > 0 ? v : minBar; });
+    var chartValues = chartRawValues.slice(); // 실제 값 그대로 사용
     var chartColors = SALES_CHART_ITEMS.map(function(i){ return i.color; });
     var chartBgs    = SALES_CHART_ITEMS.map(function(i){ return i.bg; });
 
@@ -5361,9 +5358,9 @@
             borderColor: chartColors,
             borderWidth: 0,
             borderRadius: 5,
-            maxBarThickness: 80,
-            categoryPercentage: 0.75,
-            barPercentage: 0.9
+            maxBarThickness: 56,
+            categoryPercentage: 0.6,
+            barPercentage: 0.85
           }]
         },
         options: {
