@@ -1697,6 +1697,65 @@
       </div>
     </div>
 
+    <!-- ══ 매출 분석 위젯 ══ -->
+    <div id="sales-widget" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px 20px;margin-bottom:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:13px;font-weight:700;color:#111827">음원 매출 분석</span>
+          <span style="font-size:11px;color:#94a3b8">단위: 원</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <!-- 차트 유형 토글 -->
+          <div style="display:flex;border:1px solid #e2e8f0;border-radius:7px;overflow:hidden;font-size:11px">
+            <button id="sales-btn-bar" onclick="salesSetType('bar')" style="padding:4px 12px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:600">막대</button>
+            <button id="sales-btn-line" onclick="salesSetType('line')" style="padding:4px 12px;border:none;background:#f8fafc;color:#64748b;cursor:pointer;font-weight:600">꺾은선</button>
+          </div>
+          <button onclick="openSalesInput()" style="display:flex;align-items:center;gap:5px;padding:5px 13px;background:#2563eb;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            월 데이터 입력
+          </button>
+        </div>
+      </div>
+      <!-- 범례 -->
+      <div id="sales-legend" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;font-size:11px"></div>
+      <!-- 차트 -->
+      <div style="position:relative;height:260px"><canvas id="sales-chart"></canvas></div>
+      <!-- 요약 카드 -->
+      <div id="sales-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:16px"></div>
+    </div>
+
+    <!-- 매출 데이터 입력 모달 -->
+    <div id="sales-input-overlay" onclick="if(event.target===this)closeSalesInput()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:10005;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:16px;width:520px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.22);font-family:inherit">
+        <div style="display:flex;align-items:center;padding:16px 20px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border-radius:16px 16px 0 0">
+          <span style="font-size:14px;font-weight:700;flex:1">월 매출 데이터 입력</span>
+          <button onclick="closeSalesInput()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:20px;line-height:1;opacity:0.8">×</button>
+        </div>
+        <div style="padding:20px">
+          <div style="display:flex;gap:10px;margin-bottom:16px">
+            <div style="flex:1">
+              <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px">연도</label>
+              <select id="sales-input-year" style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none"></select>
+            </div>
+            <div style="flex:1">
+              <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px">월</label>
+              <select id="sales-input-month" style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+                <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+                <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+                <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+                <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="sales-input-fields"></div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">
+            <button onclick="closeSalesInput()" style="padding:8px 18px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#64748b;font-size:13px;cursor:pointer;font-weight:600">취소</button>
+            <button onclick="salesSaveData()" style="padding:8px 18px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-size:13px;cursor:pointer;font-weight:600">저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- List Toolbar -->
     <div class="list-toolbar">
       <span class="list-toolbar-title" id="list-section-title">전체 일지</span>
@@ -5134,6 +5193,236 @@
   // 초기화: 뱃지 + 폴링 시작
   if (_userId) {
     updateMsgBadge();
+    _msgPollTimer = setInterval(pollNewMessages, 5000);
+  }
+
+  // ══════════════════════════════════════════
+  // 매출 분석 위젯
+  // ══════════════════════════════════════════
+  var _salesChart = null;
+  var _salesType  = 'bar';
+
+  // 항목 정의
+  var SALES_ITEMS = [
+    { key: 'annual',   label: 'Annual',          color: '#f59e0b' },
+    { key: 'needle',   label: 'Needle drop',      color: '#84cc16' },
+    { key: 'buyout',   label: 'Buyout',           color: '#06b6d4' },
+    { key: 'custom',   label: 'Custom/디지털',    color: '#eab308' },
+    { key: 'komca',    label: 'KOMCA/Koscap',     color: '#a78bfa' },
+    { key: 'youtube',  label: 'Youtube',          color: '#f87171' },
+    { key: 'song',     label: '선곡료',           color: '#34d399' },
+    { key: 'fee',      label: '협회 수수료',      color: '#94a3b8' }
+  ];
+
+  // 기본 데이터 (2026년 1월)
+  var SALES_DEFAULT = {
+    '2026-1': { annual:40081818, needle:72990000, buyout:0, custom:560350, komca:171861, youtube:830908, song:41750000, fee:28534 }
+  };
+
+  function salesLoadData() {
+    try {
+      var raw = localStorage.getItem('mc_sales_data');
+      return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(SALES_DEFAULT));
+    } catch(e) { return JSON.parse(JSON.stringify(SALES_DEFAULT)); }
+  }
+
+  function salesSaveData() {
+    var year  = parseInt(document.getElementById('sales-input-year').value);
+    var month = parseInt(document.getElementById('sales-input-month').value);
+    var key   = year + '-' + month;
+    var data  = salesLoadData();
+    var entry = {};
+    SALES_ITEMS.forEach(function(item) {
+      var v = document.getElementById('sales-field-' + item.key);
+      entry[item.key] = v ? (parseInt(v.value.replace(/,/g,'')) || 0) : 0;
+    });
+    data[key] = entry;
+    localStorage.setItem('mc_sales_data', JSON.stringify(data));
+    closeSalesInput();
+    renderSalesWidget();
+    showToast('매출 데이터가 저장되었습니다.');
+  }
+
+  function salesSetType(type) {
+    _salesType = type;
+    document.getElementById('sales-btn-bar').style.background  = type === 'bar'  ? '#2563eb' : '#f8fafc';
+    document.getElementById('sales-btn-bar').style.color       = type === 'bar'  ? '#fff'    : '#64748b';
+    document.getElementById('sales-btn-line').style.background = type === 'line' ? '#2563eb' : '#f8fafc';
+    document.getElementById('sales-btn-line').style.color      = type === 'line' ? '#fff'    : '#64748b';
+    renderSalesWidget();
+  }
+
+  function openSalesInput() {
+    // 연도 셀렉트 초기화
+    var ySel = document.getElementById('sales-input-year');
+    ySel.innerHTML = '';
+    var now = new Date();
+    for (var y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) {
+      var opt = document.createElement('option');
+      opt.value = y; opt.textContent = y + '년';
+      if (y === now.getFullYear()) opt.selected = true;
+      ySel.appendChild(opt);
+    }
+    document.getElementById('sales-input-month').value = now.getMonth() + 1;
+
+    // 입력 필드 생성
+    var fields = document.getElementById('sales-input-fields');
+    fields.innerHTML = SALES_ITEMS.map(function(item) {
+      return '<div>'
+        + '<label style="font-size:11px;font-weight:600;color:#374151;display:flex;align-items:center;gap:5px;margin-bottom:3px">'
+          + '<span style="width:10px;height:10px;border-radius:50%;background:' + item.color + ';display:inline-block;flex-shrink:0"></span>'
+          + item.label
+        + '</label>'
+        + '<input id="sales-field-' + item.key + '" type="text" placeholder="0"'
+          + ' style="width:100%;box-sizing:border-box;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none"'
+          + ' oninput="this.value=this.value.replace(/[^0-9]/g,\'\').replace(/\B(?=(\\d{3})+(?!\\d))/g,\',\')"'
+          + ' onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#e2e8f0\'">'
+        + '</div>';
+    }).join('');
+
+    document.getElementById('sales-input-overlay').style.display = 'flex';
+  }
+
+  function closeSalesInput() {
+    document.getElementById('sales-input-overlay').style.display = 'none';
+  }
+
+  function renderSalesWidget() {
+    var data   = salesLoadData();
+    // 월 키를 날짜순 정렬
+    var keys   = Object.keys(data).sort(function(a, b) {
+      var pa = a.split('-'), pb = b.split('-');
+      return (parseInt(pa[0])*100 + parseInt(pa[1])) - (parseInt(pb[0])*100 + parseInt(pb[1]));
+    });
+    var labels = keys.map(function(k) { var p = k.split('-'); return p[0] + '년 ' + p[1] + '월'; });
+
+    // 총 매출 계산
+    var totals = keys.map(function(k) {
+      var e = data[k] || {};
+      return SALES_ITEMS.reduce(function(s, item) { return s + (e[item.key] || 0); }, 0);
+    });
+
+    // 범례
+    var legendEl = document.getElementById('sales-legend');
+    legendEl.innerHTML = SALES_ITEMS.map(function(item) {
+      return '<span style="display:flex;align-items:center;gap:4px">'
+        + '<span style="width:10px;height:10px;border-radius:50%;background:' + item.color + ';flex-shrink:0"></span>'
+        + '<span style="color:#374151">' + item.label + '</span>'
+        + '</span>';
+    }).join('') + '<span style="display:flex;align-items:center;gap:4px;margin-left:auto">'
+      + '<span style="width:10px;height:3px;background:#1e293b;display:inline-block;border-radius:2px"></span>'
+      + '<span style="color:#374151;font-weight:700">총 매출</span></span>';
+
+    // datasets
+    var datasets = SALES_ITEMS.map(function(item) {
+      return {
+        type: _salesType,
+        label: item.label,
+        data: keys.map(function(k) { return (data[k] || {})[item.key] || 0; }),
+        backgroundColor: _salesType === 'bar' ? item.color + '99' : item.color + '22',
+        borderColor: item.color,
+        borderWidth: _salesType === 'bar' ? 1.5 : 2,
+        borderRadius: _salesType === 'bar' ? 4 : 0,
+        fill: _salesType === 'line',
+        tension: 0.35,
+        pointRadius: _salesType === 'line' ? 3 : 0,
+        pointBackgroundColor: item.color,
+        stack: _salesType === 'bar' ? 'stack' : undefined
+      };
+    });
+
+    // 총 매출 라인
+    datasets.push({
+      type: 'line',
+      label: '총 매출',
+      data: totals,
+      borderColor: '#1e293b',
+      borderWidth: 2.5,
+      pointRadius: 4,
+      pointBackgroundColor: '#1e293b',
+      tension: 0.35,
+      fill: false
+    });
+
+    var ctx = document.getElementById('sales-chart').getContext('2d');
+    if (_salesChart) { _salesChart.destroy(); _salesChart = null; }
+    _salesChart = new Chart(ctx, {
+      data: { labels: labels, datasets: datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: 16 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            mode: 'index', intersect: false,
+            callbacks: {
+              label: function(ctx) {
+                var v = ctx.parsed.y;
+                return ' ' + ctx.dataset.label + ': ' + v.toLocaleString() + '원';
+              }
+            }
+          }
+        },
+        scales: {
+          x: { stacked: _salesType === 'bar', grid: { display: false }, ticks: { font: { size: 11 }, color: '#9ca3af' } },
+          y: {
+            stacked: _salesType === 'bar',
+            beginAtZero: true,
+            grid: { color: '#f3f4f6' },
+            ticks: {
+              font: { size: 10 }, color: '#9ca3af',
+              callback: function(v) {
+                if (v >= 100000000) return (v/100000000).toFixed(0) + '억';
+                if (v >= 10000) return (v/10000).toFixed(0) + '만';
+                return v;
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // 요약 카드 (최신 월 기준)
+    var latestKey = keys[keys.length - 1];
+    var latest    = data[latestKey] || {};
+    var latestLabel = labels[labels.length - 1] || '';
+    var totalLatest = SALES_ITEMS.reduce(function(s, item) { return s + (latest[item.key] || 0); }, 0);
+    var salesLatest = (latest.annual||0)+(latest.needle||0)+(latest.buyout||0)+(latest.custom||0)+(latest.komca||0)+(latest.youtube||0);
+
+    function fmtW(v) {
+      if (v >= 100000000) return (v/100000000).toFixed(2) + '억원';
+      if (v >= 10000)     return (v/10000).toFixed(0) + '만원';
+      return v.toLocaleString() + '원';
+    }
+
+    var summaries = [
+      { label: '총 매출', value: fmtW(totalLatest), color: '#1e293b', icon: '💰' },
+      { label: '실 매출', value: fmtW(salesLatest), color: '#2563eb', icon: '📊' },
+      { label: '선곡료', value: fmtW(latest.song||0), color: '#16a34a', icon: '🎵' },
+      { label: 'Annual', value: fmtW(latest.annual||0), color: '#f59e0b', icon: '📅' },
+      { label: 'Needle drop', value: fmtW(latest.needle||0), color: '#84cc16', icon: '🎧' },
+      { label: 'Youtube', value: fmtW(latest.youtube||0), color: '#f87171', icon: '▶️' },
+    ];
+
+    document.getElementById('sales-summary').innerHTML = summaries.map(function(s) {
+      return '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px">'
+        + '<div style="font-size:16px;margin-bottom:4px">' + s.icon + '</div>'
+        + '<div style="font-size:11px;color:#64748b;margin-bottom:3px">' + s.label + ' <span style="color:#94a3b8">(' + latestLabel + ')</span></div>'
+        + '<div style="font-size:14px;font-weight:700;color:' + s.color + '">' + s.value + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  // ESC로 매출 모달 닫기
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && document.getElementById('sales-input-overlay').style.display !== 'none') {
+      closeSalesInput();
+    }
+  });
+
+  // 초기 렌더
+  renderSalesWidget();
+
     _msgPollTimer = setInterval(pollNewMessages, 5000);
   }
 </script>
