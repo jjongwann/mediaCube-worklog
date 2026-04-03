@@ -4638,7 +4638,14 @@
     // 두 유저 간 전체 대화 fetch
     var q = 'messages?or=(and(sender_id.eq.' + _userId + ',receiver_id.eq.' + _chatOtherId + '),and(sender_id.eq.' + _chatOtherId + ',receiver_id.eq.' + _userId + '))&order=created_at.asc&limit=200';
     msgFetch(q).then(function(r) { return r.json(); }).then(function(msgs) {
-      if (!Array.isArray(msgs) || !msgs.length) {
+      if (!Array.isArray(msgs)) msgs = [];
+      // 내가 삭제한 메시지 제외: 내가 보낸 건 deleted_by_sender, 내가 받은 건 deleted_by_receiver
+      msgs = msgs.filter(function(m) {
+        if (m.sender_id === _userId) return !m.deleted_by_sender;
+        if (m.receiver_id === _userId) return !m.deleted_by_receiver;
+        return true;
+      });
+      if (!msgs.length) {
         body.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px">대화 내역이 없습니다.</div>';
         return;
       }
