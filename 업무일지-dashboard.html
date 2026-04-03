@@ -1742,11 +1742,11 @@
           <div style="display:flex;gap:10px;margin-bottom:16px">
             <div style="flex:1">
               <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px">연도</label>
-              <select id="sales-input-year" style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none"></select>
+              <select id="sales-input-year" onchange="salesRefillFields()" style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none"></select>
             </div>
             <div style="flex:1">
               <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px">월</label>
-              <select id="sales-input-month" style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+              <select id="sales-input-month" onchange="salesRefillFields()" style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
                 <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
                 <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
                 <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
@@ -5325,15 +5325,32 @@
       if (y === now.getFullYear()) opt.selected = true;
       ySel.appendChild(opt);
     }
-    document.getElementById('sales-input-month').value = now.getMonth()+1;
-
-    // 현재 선택된 월 데이터 미리 채우기
+    // 현재 차트에서 보고 있는 월로 초기 선택
     var selKey = (document.getElementById('sales-month-sel')||{}).value || '';
-    var existing = selKey ? (salesLoadData()[selKey] || {}) : {};
+    if (selKey) {
+      var parts = selKey.split('-');
+      if (parts.length === 2) {
+        ySel.value = parts[0];
+        document.getElementById('sales-input-month').value = parts[1];
+      }
+    } else {
+      document.getElementById('sales-input-month').value = now.getMonth()+1;
+    }
 
+    salesRefillFields();
+    document.getElementById('sales-input-overlay').style.display = 'flex';
+  }
+
+  function salesRefillFields() {
+    var y = (document.getElementById('sales-input-year') || {}).value || '';
+    var m = (document.getElementById('sales-input-month') || {}).value || '';
+    if (!y || !m) return;
+    var key = y + '-' + m;
+    var existing = salesLoadData()[key] || null; // null이면 미입력 월
     var fields = document.getElementById('sales-input-fields');
+    if (!fields) return;
     fields.innerHTML = SALES_ITEMS.map(function(item) {
-      var val = existing[item.key] ? existing[item.key].toLocaleString() : '';
+      var val = (existing && existing[item.key]) ? existing[item.key].toLocaleString() : '';
       return '<div>'
         + '<label style="font-size:11px;font-weight:600;color:#374151;display:flex;align-items:center;gap:5px;margin-bottom:4px">'
           + '<span style="width:10px;height:10px;border-radius:50%;background:'+item.color+';display:inline-block;flex-shrink:0"></span>'
@@ -5345,8 +5362,6 @@
           + ' onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#e2e8f0\'">'
         + '</div>';
     }).join('');
-
-    document.getElementById('sales-input-overlay').style.display = 'flex';
   }
 
   function closeSalesInput() {
