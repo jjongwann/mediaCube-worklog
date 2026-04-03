@@ -1663,8 +1663,8 @@
       <div class="tts-bar-list" id="tts-bar-list"></div>
     </div>
 
-    <!-- Charts Row -->
-    <div class="charts-row" id="charts-row">
+    <!-- Charts Row (숨김 — 업무별 누적시간 기능은 유지) -->
+    <div class="charts-row" id="charts-row" style="display:none">
       <div class="chart-card">
         <div class="chart-card-header">
           <span class="chart-card-title" id="chart-trend-title">월별 작성 추이</span>
@@ -3818,7 +3818,7 @@
       renderTaskTimeChart();
     } else {
       document.getElementById('task-time-section').style.display = 'none';
-      renderCharts();
+      // charts-row는 숨김 유지
     }
   }
 
@@ -3834,8 +3834,7 @@
     var s = document.getElementById('tts-search'); if (s) s.value = '';
     document.getElementById('task-time-section').style.display = 'none';
     document.getElementById('sc-wip').classList.remove('chart-active');
-    _chartMode = 'monthly';
-    document.getElementById('sc-total').classList.add('chart-active');
+    _chartMode = null;
   }
 
   function renderTaskTimeChart() {
@@ -5334,9 +5333,11 @@
 
     // 차트 데이터
     var chartLabels = SALES_CHART_ITEMS.map(function(i){ return i.label; });
-    // 로그 스케일에서 0은 표시 불가 → 1로 치환 (툴팁에서는 원래 값 사용)
     var chartRawValues = SALES_CHART_ITEMS.map(function(i){ return entry[i.key]||0; });
-    var chartValues = chartRawValues.map(function(v){ return v > 0 ? v : 1; });
+    // 최대값의 3%를 최솟값으로 설정 → 0원 항목도 얇게 보임
+    var maxVal = Math.max.apply(null, chartRawValues) || 1;
+    var minBar = Math.round(maxVal * 0.03);
+    var chartValues = chartRawValues.map(function(v){ return v > 0 ? v : minBar; });
     var chartColors = SALES_CHART_ITEMS.map(function(i){ return i.color; });
     var chartBgs    = SALES_CHART_ITEMS.map(function(i){ return i.bg; });
 
@@ -5380,11 +5381,10 @@
           scales: {
             x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#9ca3af' } },
             y: {
-              type: 'logarithmic', grid: { color: '#f3f4f6' },
+              beginAtZero: true, grid: { color: '#f3f4f6' },
               ticks: {
                 font: { size: 10 }, color: '#9ca3af',
                 callback: function(v){
-                  if (v===0) return '0';
                   if (v>=100000000) return (v/100000000).toFixed(0)+'억';
                   if (v>=10000)     return (v/10000).toFixed(0)+'만';
                   return v.toLocaleString();
@@ -5429,11 +5429,10 @@
           scales: {
             x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#9ca3af' } },
             y: {
-              type: 'logarithmic', grid: { color: '#f3f4f6' },
+              beginAtZero: true, grid: { color: '#f3f4f6' },
               ticks: {
                 font: { size: 10 }, color: '#9ca3af',
                 callback: function(v){
-                  if (v===0) return '0';
                   if (v>=100000000) return (v/100000000).toFixed(0)+'억';
                   if (v>=10000)     return (v/10000).toFixed(0)+'만';
                   return v.toLocaleString();
