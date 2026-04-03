@@ -1718,10 +1718,14 @@
           </button>
         </div>
       </div>
-      <!-- 차트 -->
-      <div style="position:relative;height:200px"><canvas id="sales-chart"></canvas></div>
+      <!-- 차트 + 통계 패널 2단 -->
+      <div style="display:grid;grid-template-columns:1fr 220px;gap:16px;align-items:stretch">
+        <div style="position:relative;height:200px"><canvas id="sales-chart"></canvas></div>
+        <!-- 통계 패널 -->
+        <div id="sales-stat-panel" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;font-size:12px"></div>
+      </div>
       <!-- 요약 카드 -->
-      <div id="sales-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:14px"></div>
+      <div id="sales-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:12px"></div>
     </div>
 
     <!-- 매출 데이터 입력 모달 -->
@@ -5214,10 +5218,8 @@
   ];
 
   // 차트에 표시할 전체 항목 (자동 계산 포함)
-  var SALES_CHART_ITEMS = SALES_ITEMS.concat([
-    { key: '_real',  label: '실 매출',  color: '#2563eb', bg: '#dbeafe' },
-    { key: '_total', label: '총 매출',  color: '#111827', bg: '#f1f5f9' }
-  ]);
+  // 차트에는 항목만 (실매출·총매출은 통계 패널로)
+  var SALES_CHART_ITEMS = SALES_ITEMS;
 
   // 기본 데이터 (2026년 1월)
   var SALES_DEFAULT = {
@@ -5443,11 +5445,51 @@
       });
     }
 
-    // 요약 카드
+    // 통계 패널 (실매출·총매출 + 항목 비중)
+    var real  = entry._real  || 0;
+    var total = entry._total || 0;
+    var topItems = SALES_ITEMS.slice().sort(function(a,b){ return (entry[b.key]||0)-(entry[a.key]||0); }).slice(0,3);
+    var statPanel = document.getElementById('sales-stat-panel');
+    if (statPanel) {
+      statPanel.innerHTML =
+        '<div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #e2e8f0">📊 ' + monthLabel + ' 통계</div>'
+        + '<div style="display:flex;flex-direction:column;gap:10px;flex:1">'
+          // 실매출
+          + '<div style="background:#dbeafe;border-radius:8px;padding:10px 12px">'
+            + '<div style="font-size:10px;color:#2563eb;font-weight:700;margin-bottom:3px">실 매출</div>'
+            + '<div style="font-size:16px;font-weight:800;color:#1e40af">' + fmtW(real) + '</div>'
+            + '<div style="font-size:10px;color:#64748b;margin-top:2px">음원 라이선스 합계</div>'
+          + '</div>'
+          // 총매출
+          + '<div style="background:#f0fdf4;border-radius:8px;padding:10px 12px">'
+            + '<div style="font-size:10px;color:#16a34a;font-weight:700;margin-bottom:3px">총 매출</div>'
+            + '<div style="font-size:16px;font-weight:800;color:#15803d">' + fmtW(total) + '</div>'
+            + '<div style="font-size:10px;color:#64748b;margin-top:2px">선곡료·수수료 포함</div>'
+          + '</div>'
+          // TOP 3
+          + '<div style="border-top:1px solid #e2e8f0;padding-top:8px">'
+            + '<div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:6px">TOP 매출 항목</div>'
+            + topItems.map(function(item, i) {
+                var v = entry[item.key] || 0;
+                var pct = total > 0 ? Math.round(v / total * 100) : 0;
+                var medals = ['🥇','🥈','🥉'];
+                return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">'
+                  + '<span style="font-size:11px;color:#374151">' + medals[i] + ' ' + item.label + '</span>'
+                  + '<span style="font-size:11px;font-weight:700;color:' + item.color + '">' + pct + '%</span>'
+                  + '</div>'
+                  + '<div style="height:4px;background:#f1f5f9;border-radius:2px;margin-bottom:6px">'
+                    + '<div style="height:4px;width:' + pct + '%;background:' + item.color + ';border-radius:2px"></div>'
+                  + '</div>';
+              }).join('')
+          + '</div>'
+        + '</div>';
+    }
+
+    // 요약 카드 (항목만)
     document.getElementById('sales-summary').innerHTML = SALES_CHART_ITEMS.map(function(item) {
       var v = entry[item.key] || 0;
-      return '<div style="background:'+item.bg+';border-radius:8px;padding:10px 12px;border:1px solid '+item.color+'22">'
-        + '<div style="font-size:10px;color:'+item.color+';font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+item.label+'</div>'
+      return '<div style="background:'+item.bg+';border-radius:8px;padding:9px 11px;border:1px solid '+item.color+'22">'
+        + '<div style="font-size:10px;color:'+item.color+';font-weight:700;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+item.label+'</div>'
         + '<div style="font-size:13px;font-weight:800;color:#111827">'+fmtW(v)+'</div>'
         + '</div>';
     }).join('');
