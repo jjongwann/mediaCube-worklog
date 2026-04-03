@@ -1604,10 +1604,10 @@
         <div class="stat-value" id="s-total">0</div>
         <div class="stat-sub">누적 작성 건수</div>
       </div>
-      <div class="stat-card stat-card-link" id="sc-wip" onclick="setChartMode('tasktime')" title="업무별 시간 보기">
+      <div class="stat-card" id="sc-wip">
         <div class="stat-card-top">
-          <span class="stat-label">업무별 누적 시간</span>
-          <span class="stat-icon-box amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+          <span class="stat-label">진행 중</span>
+          <span class="stat-icon-box indigo"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
         </div>
         <div class="stat-value" id="s-wip">0</div>
         <div class="stat-sub">미완료 일지 수</div>
@@ -1619,6 +1619,14 @@
         </div>
         <div class="stat-value" id="s-done-rate">0%</div>
         <div class="stat-sub">전체 일지 평균 진행률</div>
+      </div>
+      <div class="stat-card stat-card-link" onclick="setChartMode('tasktime')" title="업무별 누적 시간 보기">
+        <div class="stat-card-top">
+          <span class="stat-label">업무별 누적 시간</span>
+          <span class="stat-icon-box amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        </div>
+        <div class="stat-value" style="font-size:18px">▶</div>
+        <div class="stat-sub">클릭하여 차트 보기</div>
       </div>
     </div>
 
