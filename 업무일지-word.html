@@ -1568,7 +1568,7 @@
           </tr>
         </thead>
         <tbody id="task-list">
-          <tr class="task-item" draggable="true">
+          <tr class="task-item">
             <td class="col-task-drag" title="드래그하여 순서 변경">⠿</td>
             <td class="col-task-status"><span class="task-status status-todo">예정</span></td>
             <td class="col-task-name"><textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea></td>
@@ -2110,7 +2110,6 @@
         ta.style.height = ta.scrollHeight + 'px';
         wireStatus(tr.querySelector('.task-status'));
         wireTimePicker(tr);
-        tr.draggable = true;
         initTaskDrag(tr);
       });
       calcProgress();
@@ -2287,15 +2286,22 @@
         + '<td class="col-task-del">' + (readonly ? '' : '<button class="task-del" onclick="deleteTask(this)" title="삭제">×</button>') + '</td>';
     }
 
-    // ── 드래그앤드롭 순서 변경
+    // ── 드래그앤드롭 순서 변경 (핸들에서만 가능)
     var _dragSrc = null;
     function initTaskDrag(tr) {
+      var handle = tr.querySelector('.col-task-drag');
+      if (handle) {
+        handle.addEventListener('mousedown', function() { tr.draggable = true; });
+        handle.addEventListener('mouseup',   function() { tr.draggable = false; });
+      }
       tr.addEventListener('dragstart', function(e) {
+        if (!tr.draggable) { e.preventDefault(); return; }
         _dragSrc = tr;
         tr.classList.add('dragging');
         e.dataTransfer.effectAllowed = 'move';
       });
       tr.addEventListener('dragend', function() {
+        tr.draggable = false;
         tr.classList.remove('dragging');
         document.querySelectorAll('#task-list .task-item').forEach(function(r) { r.classList.remove('drag-over'); });
         _dragSrc = null;
@@ -2325,7 +2331,7 @@
 
     function initAllTaskDrag() {
       document.querySelectorAll('#task-list .task-item').forEach(function(tr) {
-        tr.draggable = true;
+        tr.draggable = false;
         initTaskDrag(tr);
       });
     }
@@ -2334,7 +2340,6 @@
       var tbody = document.getElementById('task-list');
       var tr = document.createElement('tr');
       tr.className = 'task-item';
-      tr.draggable = true;
       tr.innerHTML = _taskRowHtml('status-todo', '예정', '', 0, '', '', false);
       tbody.appendChild(tr);
       initTaskDrag(tr);
