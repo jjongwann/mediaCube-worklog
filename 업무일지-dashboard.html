@@ -5089,8 +5089,18 @@
     msgFetch('messages?receiver_id=eq.' + _userId + '&deleted_by_receiver=eq.false&created_at=gt.' + encodeURIComponent(_lastMsgCheck) + '&order=created_at.asc').then(function(r) { return r.json(); }).then(function(msgs) {
       if (!Array.isArray(msgs)) return;
       _lastMsgCheck = new Date().toISOString();
-      msgs.forEach(function(m) { showIncomingMsg(m); });
-      if (msgs.length) updateMsgBadge();
+
+      var chatOpen = document.getElementById('chat-overlay') && document.getElementById('chat-overlay').style.display !== 'none';
+
+      msgs.forEach(function(m) {
+        // 채팅 뷰가 열려 있고 해당 발신자와 대화 중이면 알림 생략
+        if (chatOpen && _chatOtherId === m.sender_id) return;
+        showIncomingMsg(m);
+      });
+
+      // 채팅 뷰 밖에서 온 새 메시지가 있을 때만 뱃지 갱신
+      var outsideMsgs = msgs.filter(function(m) { return !(chatOpen && _chatOtherId === m.sender_id); });
+      if (outsideMsgs.length) updateMsgBadge();
     }).catch(function() {});
   }
 
