@@ -5413,18 +5413,18 @@
     }).join('');
   }
 
+    _msgPollTimer = setInterval(pollNewMessages, 5000);
+  }
+
   // ESC로 매출 모달 닫기
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && document.getElementById('sales-input-overlay').style.display !== 'none') {
+    if (e.key === 'Escape' && document.getElementById('sales-input-overlay') && document.getElementById('sales-input-overlay').style.display !== 'none') {
       closeSalesInput();
     }
   });
 
-  // 초기 렌더
+  // 초기 렌더 (로그인 여부 무관)
   renderSalesWidget();
-
-    _msgPollTimer = setInterval(pollNewMessages, 5000);
-  }
 </script>
 <style>
   @keyframes msgSlideIn {
