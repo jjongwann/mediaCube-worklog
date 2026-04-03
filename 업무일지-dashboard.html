@@ -4778,24 +4778,32 @@
         <button id="hist-tab-note" onclick="switchHistTab('note')" style="padding:8px 16px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:#94a3b8;border-bottom:2px solid transparent;margin-bottom:-2px">메모 / 특이사항</button>
       </div>
     </div>
-    <!-- 검색 + 날짜 필터 -->
-    <div style="padding:12px 20px;flex-shrink:0;border-bottom:1px solid #f1f5f9;display:flex;flex-direction:column;gap:8px">
+    <!-- 검색 + 날짜 필터 + 직원 필터 -->
+    <div style="padding:14px 20px;flex-shrink:0;border-bottom:1px solid #f1f5f9;display:flex;flex-direction:column;gap:10px">
+      <!-- 내용 검색 -->
       <div style="position:relative">
+        <svg style="position:absolute;left:11px;top:50%;transform:translateY(-50%);pointer-events:none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input id="hist-search" type="text" placeholder="내용 검색..." oninput="renderHistList()"
-          style="width:100%;box-sizing:border-box;padding:7px 32px 7px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;color:#374151"
-          onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
-        <svg style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          style="width:100%;box-sizing:border-box;padding:7px 12px 7px 32px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;color:#374151;background:#f8fafc"
+          onfocus="this.style.borderColor='#2563eb';this.style.background='#fff'" onblur="this.style.borderColor='#e2e8f0';this.style.background='#f8fafc'">
       </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:12px;color:#64748b;white-space:nowrap;font-weight:500">날짜</span>
+      <!-- 날짜 범위 -->
+      <div style="display:flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         <input id="hist-date-from" type="date" onchange="renderHistList()"
-          style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#374151;outline:none;background:#fff"
-          onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
-        <span style="color:#94a3b8;font-size:12px">—</span>
+          style="flex:1;border:none;background:transparent;font-size:12px;color:#374151;outline:none;min-width:0">
+        <span style="color:#cbd5e1;font-size:13px;font-weight:300">|</span>
         <input id="hist-date-to" type="date" onchange="renderHistList()"
-          style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#374151;outline:none;background:#fff"
-          onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
-        <button onclick="histClearDate()" title="날짜 초기화" style="padding:4px 8px;background:#f1f5f9;border:none;border-radius:7px;font-size:11px;color:#64748b;cursor:pointer;white-space:nowrap;font-weight:600">초기화</button>
+          style="flex:1;border:none;background:transparent;font-size:12px;color:#374151;outline:none;min-width:0">
+        <button onclick="histClearDate()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;line-height:1;padding:0 2px;flex-shrink:0" title="초기화">×</button>
+      </div>
+      <!-- 직원 필터 (관리자 전용) -->
+      <div id="hist-emp-filter" style="display:none">
+        <select id="hist-emp-select" onchange="renderHistList()"
+          style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#374151;outline:none;background:#f8fafc;cursor:pointer"
+          onfocus="this.style.borderColor='#2563eb';this.style.background='#fff'" onblur="this.style.borderColor='#e2e8f0';this.style.background='#f8fafc'">
+          <option value="">전체 직원</option>
+        </select>
       </div>
     </div>
     <!-- 목록 -->
@@ -4820,6 +4828,16 @@
     document.getElementById('hist-search').value = '';
     document.getElementById('hist-date-from').value = '';
     document.getElementById('hist-date-to').value = '';
+    // 관리자: 직원 필터 표시 + 옵션 채우기
+    if (_isAdmin) {
+      var empFilter = document.getElementById('hist-emp-filter');
+      var empSelect = document.getElementById('hist-emp-select');
+      empFilter.style.display = '';
+      empSelect.innerHTML = '<option value="">전체 직원</option>'
+        + (ALL_USERS || []).filter(function(u) { return !u.isAdmin; }).map(function(u) {
+            return '<option value="' + u.id + '">' + escHtml(u.fullName) + ' (' + escHtml(u.dept) + ')</option>';
+          }).join('');
+    }
     renderHistList();
   }
 
@@ -4849,12 +4867,14 @@
 
   function renderHistList() {
     var body = document.getElementById('hist-list-body');
-    var q      = (document.getElementById('hist-search').value || '').trim().toLowerCase();
-    var dFrom  = document.getElementById('hist-date-from').value || '';
-    var dTo    = document.getElementById('hist-date-to').value   || '';
+    var q        = (document.getElementById('hist-search').value || '').trim().toLowerCase();
+    var dFrom    = document.getElementById('hist-date-from').value || '';
+    var dTo      = document.getElementById('hist-date-to').value   || '';
+    var empSel   = _isAdmin ? (document.getElementById('hist-emp-select') || {}).value || '' : '';
     var journals = loadJournals();
-    // 관리자: 전체, 직원: 본인 것만
+    // 관리자: 전체(직원 선택 가능), 직원: 본인 것만
     if (!_isAdmin) journals = journals.filter(function(j) { return j.user_id === _userId; });
+    if (_isAdmin && empSel) journals = journals.filter(function(j) { return j.user_id === empSel; });
 
     var items = journals.filter(function(j) {
       var val = _histTab === 'plan' ? (j.nextPlan || '') : (j.note || '');
