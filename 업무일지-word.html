@@ -355,6 +355,18 @@
       border-radius: 0 0 6px 0;
     }
 
+    .col-task-drag {
+      width: 22px;
+      text-align: center;
+      cursor: grab;
+      color: #cbd5e1;
+      user-select: none;
+      padding: 0 4px;
+    }
+    .col-task-drag:active { cursor: grabbing; }
+    .task-item.drag-over { border-top: 2px solid #2563eb; }
+    .task-item.dragging { opacity: 0.4; }
+
     .col-task-status {
       width: 76px;
       text-align: center;
@@ -1548,6 +1560,7 @@
       <table class="task-table">
         <thead>
           <tr>
+            <th class="col-task-drag"></th>
             <th class="col-task-status">상태</th>
             <th class="col-task-name">업무명</th>
             <th class="col-task-hrs">시간 <span style="font-size:10px;font-weight:400;color:#9ca3af">(시작 ~ 종료)</span></th>
@@ -1555,7 +1568,8 @@
           </tr>
         </thead>
         <tbody id="task-list">
-          <tr class="task-item">
+          <tr class="task-item" draggable="true">
+            <td class="col-task-drag" title="드래그하여 순서 변경">⠿</td>
             <td class="col-task-status"><span class="task-status status-todo">예정</span></td>
             <td class="col-task-name"><textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea></td>
             <td class="col-task-hrs">
@@ -2072,6 +2086,7 @@
 
     document.querySelectorAll('.task-status').forEach(wireStatus);
     document.querySelectorAll('#task-list tr').forEach(wireTimePicker);
+    initAllTaskDrag();
 
     // ── Edit mode: restore task list ──
     if (editingEntry && editingEntry.tasks && editingEntry.tasks.length > 0) {
@@ -2095,6 +2110,8 @@
         ta.style.height = ta.scrollHeight + 'px';
         wireStatus(tr.querySelector('.task-status'));
         wireTimePicker(tr);
+        tr.draggable = true;
+        initTaskDrag(tr);
       });
       calcProgress();
     }
@@ -2239,7 +2256,8 @@
     function _taskRowHtml(scls, stxt, text, pct, startTime, endTime, readonly) {
       var dis = readonly ? ' disabled' : '';
       var ro = readonly ? ' readonly' : '';
-      return '<td class="col-task-status"><span class="task-status ' + scls + '">' + stxt + '</span></td>'
+      return (readonly ? '<td class="col-task-drag"></td>' : '<td class="col-task-drag" title="드래그하여 순서 변경">⠿</td>')
+        + '<td class="col-task-status"><span class="task-status ' + scls + '">' + stxt + '</span></td>'
         + '<td class="col-task-name">' + (readonly
           ? '<input type="text" class="task-text" value="' + (text || '').replace(/"/g, '&quot;') + '"' + ro + '>'
           : '<textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea>')
@@ -2269,12 +2287,57 @@
         + '<td class="col-task-del">' + (readonly ? '' : '<button class="task-del" onclick="deleteTask(this)" title="삭제">×</button>') + '</td>';
     }
 
+    // ── 드래그앤드롭 순서 변경
+    var _dragSrc = null;
+    function initTaskDrag(tr) {
+      tr.addEventListener('dragstart', function(e) {
+        _dragSrc = tr;
+        tr.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      tr.addEventListener('dragend', function() {
+        tr.classList.remove('dragging');
+        document.querySelectorAll('#task-list .task-item').forEach(function(r) { r.classList.remove('drag-over'); });
+        _dragSrc = null;
+      });
+      tr.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (_dragSrc && _dragSrc !== tr) {
+          document.querySelectorAll('#task-list .task-item').forEach(function(r) { r.classList.remove('drag-over'); });
+          tr.classList.add('drag-over');
+        }
+      });
+      tr.addEventListener('drop', function(e) {
+        e.preventDefault();
+        if (_dragSrc && _dragSrc !== tr) {
+          var tbody = document.getElementById('task-list');
+          var rows = Array.from(tbody.querySelectorAll('.task-item'));
+          var srcIdx = rows.indexOf(_dragSrc);
+          var tgtIdx = rows.indexOf(tr);
+          if (srcIdx < tgtIdx) tbody.insertBefore(_dragSrc, tr.nextSibling);
+          else tbody.insertBefore(_dragSrc, tr);
+          tr.classList.remove('drag-over');
+          calcProgress();
+        }
+      });
+    }
+
+    function initAllTaskDrag() {
+      document.querySelectorAll('#task-list .task-item').forEach(function(tr) {
+        tr.draggable = true;
+        initTaskDrag(tr);
+      });
+    }
+
     function addTask() {
       var tbody = document.getElementById('task-list');
       var tr = document.createElement('tr');
       tr.className = 'task-item';
+      tr.draggable = true;
       tr.innerHTML = _taskRowHtml('status-todo', '예정', '', 0, '', '', false);
       tbody.appendChild(tr);
+      initTaskDrag(tr);
 
       var ta = tr.querySelector('textarea');
       ta.addEventListener('input', function () {
