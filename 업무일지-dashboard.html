@@ -5319,14 +5319,15 @@
         type: _salesType,
         label: item.label,
         data: keys.map(function(k) { return (data[k] || {})[item.key] || 0; }),
-        backgroundColor: _salesType === 'bar' ? item.color + '99' : item.color + '22',
+        backgroundColor: _salesType === 'bar' ? item.color + 'cc' : item.color + '22',
         borderColor: item.color,
-        borderWidth: _salesType === 'bar' ? 1.5 : 2,
-        borderRadius: _salesType === 'bar' ? 4 : 0,
+        borderWidth: _salesType === 'bar' ? 0 : 2,
+        borderRadius: _salesType === 'bar' ? 0 : 0,
         fill: _salesType === 'line',
         tension: 0.35,
         pointRadius: _salesType === 'line' ? 3 : 0,
         pointBackgroundColor: item.color,
+        maxBarThickness: 72,
         stack: _salesType === 'bar' ? 'stack' : undefined
       };
     });
@@ -5338,8 +5339,10 @@
       data: totals,
       borderColor: '#1e293b',
       borderWidth: 2.5,
-      pointRadius: 4,
-      pointBackgroundColor: '#1e293b',
+      pointRadius: 5,
+      pointBackgroundColor: '#fff',
+      pointBorderColor: '#1e293b',
+      pointBorderWidth: 2,
       tension: 0.35,
       fill: false
     });
@@ -5350,21 +5353,29 @@
       data: { labels: labels, datasets: datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: 16 } },
+        layout: { padding: { top: 20, right: 10 } },
         plugins: {
           legend: { display: false },
           tooltip: {
             mode: 'index', intersect: false,
+            backgroundColor: '#fff',
+            titleColor: '#111827',
+            bodyColor: '#374151',
+            borderColor: '#e2e8f0',
+            borderWidth: 1,
+            padding: 12,
             callbacks: {
               label: function(ctx) {
                 var v = ctx.parsed.y;
-                return ' ' + ctx.dataset.label + ': ' + v.toLocaleString() + '원';
+                if (!v) return null;
+                var fv = v >= 100000000 ? (v/100000000).toFixed(2)+'억' : v >= 10000 ? (v/10000).toFixed(0)+'만' : v.toLocaleString();
+                return ' ' + ctx.dataset.label + ': ' + fv + '원';
               }
             }
           }
         },
         scales: {
-          x: { stacked: _salesType === 'bar', grid: { display: false }, ticks: { font: { size: 11 }, color: '#9ca3af' } },
+          x: { stacked: _salesType === 'bar', grid: { display: false }, offset: true, ticks: { font: { size: 11 }, color: '#9ca3af' } },
           y: {
             stacked: _salesType === 'bar',
             beginAtZero: true,
