@@ -4613,6 +4613,8 @@
   var _chatOtherId   = null;
   var _chatOtherName = null;
   var _chatFiles     = [];
+  var _chatPollTimer = null;
+  var _chatLastMsgId = null; // 마지막으로 렌더링된 메시지 ID (변화 감지용)
 
   function openMsgDetail(idx) {
     var convs = window._msgCache;
@@ -4644,42 +4646,71 @@
     document.getElementById('chat-file-input').value = '';
 
     document.getElementById('chat-overlay').style.display = 'flex';
-    loadChatHistory();
+    _chatLastMsgId = null;
+    loadChatHistory(true); // 첫 로드: 스피너 표시
+
+    // 실시간 폴링 (3초마다)
+    if (_chatPollTimer) clearInterval(_chatPollTimer);
+    _chatPollTimer = setInterval(function() {
+      if (_chatOtherId) loadChatHistory(false);
+    }, 3000);
   }
 
   function closeChatPanel() {
     document.getElementById('chat-overlay').style.display = 'none';
     _chatOtherId = null;
     _chatFiles   = [];
+    _chatLastMsgId = null;
+    if (_chatPollTimer) { clearInterval(_chatPollTimer); _chatPollTimer = null; }
   }
 
-  function loadChatHistory() {
+  function loadChatHistory(showSpinner) {
     var body = document.getElementById('chat-messages');
-    body.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;font-size:13px">불러오는 중...</div>';
+    if (showSpinner) {
+      body.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;font-size:13px">불러오는 중...</div>';
+    }
 
     // 두 유저 간 전체 대화 fetch
     var q = 'messages?or=(and(sender_id.eq.' + _userId + ',receiver_id.eq.' + _chatOtherId + '),and(sender_id.eq.' + _chatOtherId + ',receiver_id.eq.' + _userId + '))&order=created_at.asc&limit=200';
     msgFetch(q).then(function(r) { return r.json(); }).then(function(msgs) {
       if (!Array.isArray(msgs)) msgs = [];
-      // 내가 삭제한 메시지 제외: 내가 보낸 건 deleted_by_sender, 내가 받은 건 deleted_by_receiver
+      // 내가 삭제한 메시지 제외
       msgs = msgs.filter(function(m) {
         if (m.sender_id === _userId) return !m.deleted_by_sender;
         if (m.receiver_id === _userId) return !m.deleted_by_receiver;
         return true;
       });
+
       if (!msgs.length) {
-        body.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px">대화 내역이 없습니다.</div>';
+        if (showSpinner) body.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px">대화 내역이 없습니다.</div>';
         return;
       }
-      // 읽지 않은 수신 메시지 일괄 읽음 처리
-      var unread = msgs.filter(function(m) { return m.receiver_id === _userId && !m.is_read; }).map(function(m) { return m.id; });
-      if (unread.length) markMsgsRead(unread);
+
+      // 새 메시지가 없으면 렌더링 생략
+      var latestId = msgs[msgs.length - 1].id;
+      var hasNew = latestId !== _chatLastMsgId;
+
+      // 읽지 않은 수신 메시지 읽음 처리 (새 메시지 있을 때만)
+      if (hasNew) {
+        var unread = msgs.filter(function(m) { return m.receiver_id === _userId && !m.is_read; }).map(function(m) { return m.id; });
+        if (unread.length) { markMsgsRead(unread); updateMsgBadge(); }
+      }
+
+      if (!hasNew && !showSpinner) return; // 변화 없으면 UI 갱신 안 함
+
+      _chatLastMsgId = latestId;
+
+      // 스크롤 위치 기억 (사용자가 위를 보고 있으면 강제 스크롤 안 함)
+      var wasAtBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 80;
 
       renderChatMessages(msgs);
-      // 스크롤 맨 아래
-      setTimeout(function() { body.scrollTop = body.scrollHeight; }, 50);
+
+      // 첫 로드거나 스크롤이 하단이었으면 맨 아래로
+      if (showSpinner || wasAtBottom) {
+        setTimeout(function() { body.scrollTop = body.scrollHeight; }, 50);
+      }
     }).catch(function() {
-      body.innerHTML = '<div style="text-align:center;padding:30px;color:#ef4444;font-size:13px">불러오기 실패</div>';
+      if (showSpinner) body.innerHTML = '<div style="text-align:center;padding:30px;color:#ef4444;font-size:13px">불러오기 실패</div>';
     });
   }
 
@@ -4811,7 +4842,8 @@
         _chatFiles = [];
         renderChatFileList();
         document.getElementById('chat-file-input').value = '';
-        loadChatHistory();
+        _chatLastMsgId = null; // 강제 갱신
+        loadChatHistory(false);
       } else { r.text().then(function(t) { alert('전송 실패: ' + t); }); }
     }).catch(function(e) { btn.disabled = false; alert('오류: ' + e.message); });
   }
