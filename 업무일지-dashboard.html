@@ -5555,7 +5555,10 @@
     var data  = salesLoadData();
     var entry = salesGetEntry(data, key);
     var p     = key.split('-');
-    var label = p[0]+'년 '+p[1]+'월';
+    var curYear = parseInt(p[0]), curMon = parseInt(p[1]);
+    var label = curYear+'년 '+curMon+'월';
+    var prevKey = (curYear-1)+'-'+curMon;
+    var prevEntry = data[prevKey] ? salesGetEntry(data, prevKey) : null;
 
     function fmtOri(v) { return v.toLocaleString() + '원'; }
     function fmtW2(v) {
@@ -5563,43 +5566,69 @@
       if (v >= 10000)     return (v/10000).toFixed(0)+'만원';
       return v.toLocaleString()+'원';
     }
+    function yoyStr(cur, prev) {
+      if (!prev) return '';
+      var pct = ((cur - prev) / prev * 100).toFixed(2);
+      var up = parseFloat(pct) >= 0;
+      return '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px;background:'+(up?'#dcfce7':'#fee2e2')+';color:'+(up?'#16a34a':'#dc2626')+'">'+(up?'▲':'▼')+' '+(up?'+':'')+pct+'%</span>';
+    }
 
     var isReal = type === 'real';
     var headerBg = isReal ? 'linear-gradient(135deg,#2563eb,#1d4ed8)' : 'linear-gradient(135deg,#16a34a,#15803d)';
     var titleStr = (isReal ? '실 매출' : '총 매출') + ' 상세 — ' + label;
 
-    // 표시할 항목 결정
-    var items;
-    if (isReal) {
-      // 실 매출: 수동 입력값 1개
-      items = [{ label: '실 매출 (직접 입력)', value: entry._real, color: '#2563eb', bg: '#dbeafe' }];
-    } else {
-      // 총 매출: 8개 항목 전체
-      items = SALES_ITEMS.map(function(i) {
-        return { label: i.label, value: entry[i.key]||0, color: i.color, bg: i.bg };
-      });
-      items.push({ label: '합계', value: entry._total, color: '#0f172a', bg: '#f1f5f9', bold: true });
-    }
+    var total    = isReal ? entry._real  : entry._total;
+    var prevTotal = prevEntry ? (isReal ? prevEntry._real : prevEntry._total) : 0;
 
-    var total = isReal ? entry._real : entry._total;
-    var rows = items.map(function(item) {
-      var pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0.0';
-      var isSub = !isReal && item.label !== '합계';
-      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9">'
-        + '<div style="width:10px;height:10px;border-radius:50%;background:'+item.color+';flex-shrink:0"></div>'
-        + '<div style="flex:1;font-size:12px;font-weight:'+(item.bold?'700':'500')+';color:#374151">'+item.label+'</div>'
-        + '<div style="font-size:12px;font-weight:700;color:'+item.color+';min-width:90px;text-align:right">'+fmtOri(item.value)+'</div>'
-        + (isSub ? '<div style="font-size:11px;color:#94a3b8;min-width:42px;text-align:right">'+pct+'%</div>' : '<div style="min-width:42px"></div>')
+    // 항목 rows (실매출은 전년비교만, 총매출은 8개 항목)
+    var rows = '';
+    if (isReal) {
+      // 전년 동월 비교 행
+      if (prevEntry) {
+        rows = '<div style="padding:8px 0;border-bottom:1px solid #f1f5f9">'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+            + '<span style="font-size:12px;color:#64748b;font-weight:600">전년 동월 ('+(curYear-1)+'년 '+curMon+'월)</span>'
+            + '<span style="font-size:12px;font-weight:700;color:#374151">'+fmtOri(prevTotal)+'</span>'
+          + '</div>'
+          + '<div style="display:flex;align-items:center;justify-content:space-between">'
+            + '<span style="font-size:12px;color:#64748b;font-weight:600">전년 대비</span>'
+            + '<span style="font-size:12px;font-weight:700">' + yoyStr(total, prevTotal) + '</span>'
+          + '</div>'
         + '</div>';
-    }).join('');
+      }
+    } else {
+      var items = SALES_ITEMS.map(function(i) {
+        return { label: i.label, value: entry[i.key]||0, color: i.color };
+      });
+      items.push({ label: '합계', value: entry._total, color: '#0f172a', bold: true });
+      rows = items.map(function(item) {
+        var pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0.0';
+        var isSub = item.label !== '합계';
+        return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9">'
+          + '<div style="width:10px;height:10px;border-radius:50%;background:'+item.color+';flex-shrink:0"></div>'
+          + '<div style="flex:1;font-size:12px;font-weight:'+(item.bold?'700':'500')+';color:#374151">'+item.label+'</div>'
+          + '<div style="font-size:12px;font-weight:700;color:'+item.color+';min-width:110px;text-align:right">'+fmtOri(item.value)+'</div>'
+          + (isSub ? '<div style="font-size:11px;color:#94a3b8;min-width:40px;text-align:right">'+pct+'%</div>' : '<div style="min-width:40px"></div>')
+          + '</div>';
+      }).join('');
+      if (prevEntry) {
+        rows += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0 4px">'
+          + '<span style="font-size:12px;color:#64748b;font-weight:600">전년 동월 ('+(curYear-1)+'년 '+curMon+'월) ' + fmtOri(prevTotal) + '</span>'
+          + yoyStr(total, prevTotal)
+          + '</div>';
+      }
+    }
 
     document.getElementById('sales-detail-header').style.background = headerBg;
     document.getElementById('sales-detail-title').textContent = titleStr;
     document.getElementById('sales-detail-body').innerHTML =
-      '<div style="margin-bottom:12px;padding:10px 12px;background:'+(isReal?'#dbeafe':'#f0fdf4')+';border-radius:8px">'
-        + '<div style="font-size:11px;color:'+(isReal?'#2563eb':'#16a34a')+';font-weight:700;margin-bottom:2px">'+(isReal?'실 매출':'총 매출')+'</div>'
-        + '<div style="font-size:22px;font-weight:800;color:'+(isReal?'#1e40af':'#15803d')+'">'+fmtW2(total)+'</div>'
-        + '<div style="font-size:11px;color:#64748b;margin-top:2px">'+fmtOri(total)+'</div>'
+      '<div style="margin-bottom:14px;padding:12px 14px;background:'+(isReal?'#dbeafe':'#f0fdf4')+';border-radius:10px">'
+        + '<div style="font-size:11px;color:'+(isReal?'#2563eb':'#16a34a')+';font-weight:700;margin-bottom:4px">'+(isReal?'실 매출':'총 매출')+'</div>'
+        + '<div style="display:flex;align-items:center">'
+          + '<span style="font-size:22px;font-weight:800;color:'+(isReal?'#1e40af':'#15803d')+'">'+fmtW2(total)+'</span>'
+          + yoyStr(total, prevTotal)
+        + '</div>'
+        + '<div style="font-size:11px;color:#64748b;margin-top:3px">'+fmtOri(total)+'</div>'
       + '</div>'
       + rows;
 
