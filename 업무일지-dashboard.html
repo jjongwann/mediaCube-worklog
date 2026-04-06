@@ -2425,6 +2425,15 @@
   var _isAdmin = (_currentSession && _currentSession._is_admin) || false;
   var _userId = (_currentSession && _currentSession.user && _currentSession.user.id) || null;
 
+  /* ── 음원팀 버튼: 사운드콘텐츠사업부 소속이면 즉시 표시 ── */
+  document.addEventListener('DOMContentLoaded', function() {
+    var _soundUsernames = ['soundsupport','webmaster20','soundstore','soundsales'];
+    if (_soundUsernames.indexOf(_currentUsername) !== -1) {
+      var stBtn = document.getElementById('soundteam-sidebar-btn');
+      if (stBtn) stBtn.style.display = '';
+    }
+  });
+
   /* ── 계정별 프로필 이미지 ── */
   var PROFILE_IMG = {
     'info':         'profile_image/info.jpg',
