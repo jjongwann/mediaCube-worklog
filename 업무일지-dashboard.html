@@ -6449,6 +6449,10 @@
   .soundteam-scroll::-webkit-scrollbar-track { background: transparent; }
   .soundteam-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
   .soundteam-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  .st-task-scroll::-webkit-scrollbar { width: 4px; }
+  .st-task-scroll::-webkit-scrollbar-track { background: transparent; }
+  .st-task-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+  .st-task-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   input[type="date"].soundteam-date::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.6); }
 </style>
 <script>
@@ -6588,7 +6592,7 @@
         html += '<div style="padding:20px 14px;text-align:center;color:#94a3b8;font-size:12px">'
           + (dFrom || dTo ? '해당 기간에 업무 내역이 없습니다.' : '등록된 업무가 없습니다.') + '</div>';
       } else {
-        html += '<div style="padding:10px 14px 12px;display:flex;flex-direction:column;gap:6px">';
+        html += '<div class="st-task-scroll" style="padding:10px 14px 12px;display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;overflow-x:hidden">';
         taskEntries.forEach(function(t) {
           var bg  = ST_STATUS_BG[t.status]  || '#f3f4f6';
           var clr = ST_STATUS_CLR[t.status] || '#374151';
