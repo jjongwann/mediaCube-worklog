@@ -5581,7 +5581,7 @@
     // 월 드롭다운 채우기
     var allKeys = Object.keys(data).sort(function(a, b) {
       var ap = a.split('-'), bp = b.split('-');
-      return (parseInt(bp[0])*100+parseInt(bp[1])) - (parseInt(ap[0])*100+parseInt(ap[1]));
+      return (parseInt(ap[0])*100+parseInt(ap[1])) - (parseInt(bp[0])*100+parseInt(bp[1]));
     });
     var labelEl = document.getElementById('sales-detail-month-label');
     if (labelEl) labelEl.textContent = label;
