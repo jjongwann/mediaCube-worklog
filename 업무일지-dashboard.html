@@ -1716,12 +1716,12 @@
           <!-- 숨겨진 select (값 저장용) -->
           <select id="sales-month-sel" onchange="renderSalesWidget()" style="display:none"></select>
           <span style="font-size:11px;color:#94a3b8">단위: 원</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <button onclick="openCumulModal()" style="display:flex;align-items:center;gap:6px;padding:5px 13px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:filter .15s" onmouseover="this.style.filter='brightness(0.9)'" onmouseout="this.style.filter=''">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             월별 누계 통계
           </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <div style="display:flex;border:1px solid #e2e8f0;border-radius:7px;overflow:hidden;font-size:11px">
             <button id="sales-btn-bar" onclick="salesSetType('bar')" style="padding:4px 14px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:600">막대</button>
             <button id="sales-btn-line" onclick="salesSetType('line')" style="padding:4px 14px;border:none;background:#f8fafc;color:#64748b;cursor:pointer;font-weight:600">꺾은선</button>
