@@ -1733,8 +1733,8 @@
       <div style="display:grid;grid-template-columns:1fr 250px;gap:16px;align-items:stretch">
         <!-- 왼쪽: 차트 + 요약 카드 -->
         <div style="display:flex;flex-direction:column;gap:10px">
+          <div id="sales-chart-legend" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;min-height:22px"></div>
           <div style="position:relative;flex:1;min-height:160px">
-            <div id="sales-chart-legend" style="position:absolute;top:4px;right:6px;display:flex;gap:6px;z-index:10;flex-wrap:wrap;justify-content:flex-end"></div>
             <canvas id="sales-chart"></canvas>
           </div>
           <!-- 요약 카드 (차트 바로 아래) -->
@@ -5807,7 +5807,7 @@
         options: {
           responsive: true, maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
-          layout: { padding: { top: hasPrev ? 8 : 24 } },
+          layout: { padding: { top: 4 } },
           plugins: {
             legend: { display: false },
             tooltip: {
@@ -5872,7 +5872,7 @@
         options: {
           responsive: true, maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
-          layout: { padding: { top: hasPrev ? 8 : 24 } },
+          layout: { padding: { top: 4 } },
           plugins: {
             legend: { display: false },
             tooltip: {
