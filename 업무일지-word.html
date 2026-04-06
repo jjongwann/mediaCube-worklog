@@ -1969,7 +1969,11 @@
           merged.push(valid[i].slice());
         }
       }
-      return merged.reduce(function(sum, iv) { return sum + iv[1] - iv[0]; }, 0);
+      return merged.reduce(function(sum, iv) {
+        var diff = iv[1] - iv[0];
+        var lunchOv = Math.max(0, Math.min(iv[1], LUNCH_END) - Math.max(iv[0], LUNCH_START));
+        return sum + diff - lunchOv;
+      }, 0);
     }
 
     function calcTaskHrs(startVal, endVal) {
