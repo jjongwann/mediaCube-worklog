@@ -5556,11 +5556,27 @@
               display: true,
               position: 'top',
               align: 'end',
-              labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 }, padding: 12,
+              onClick: function(e, legendItem, legend) {
+                var idx = legendItem.datasetIndex;
+                var ci = legend.chart;
+                var meta = ci.getDatasetMeta(idx);
+                meta.hidden = !meta.hidden;
+                ci.update();
+              },
+              labels: { boxWidth: 0, font: { size: 11, weight: '600' }, padding: 16,
                 generateLabels: function(chart) {
                   return chart.data.datasets.map(function(ds, i) {
-                    return { text: ds.label, fillStyle: i===0 ? chartColors[0]+'44' : chartColors[0]+'cc',
-                      strokeStyle: 'transparent', hidden: false, datasetIndex: i };
+                    var meta = chart.getDatasetMeta(i);
+                    var hidden = meta.hidden;
+                    var color = i === 0 ? chartColors[0]+'88' : chartColors[0]+'cc';
+                    return {
+                      text: (hidden ? '○ ' : '✓ ') + ds.label,
+                      fillStyle: 'transparent',
+                      strokeStyle: 'transparent',
+                      fontColor: hidden ? '#94a3b8' : (i === 0 ? '#94a3b8' : '#374151'),
+                      hidden: false,
+                      datasetIndex: i
+                    };
                   });
                 }
               }
@@ -5625,7 +5641,30 @@
           interaction: { mode: 'index', intersect: false },
           layout: { padding: { top: 24 } },
           plugins: {
-            legend: hasPrev ? { display: true, position: 'top', align: 'end', labels: { boxWidth: 10, font: { size: 11 }, padding: 12 } } : { display: false },
+            legend: hasPrev ? {
+              display: true, position: 'top', align: 'end',
+              onClick: function(e, legendItem, legend) {
+                var idx = legendItem.datasetIndex;
+                var ci = legend.chart;
+                var meta = ci.getDatasetMeta(idx);
+                meta.hidden = !meta.hidden;
+                ci.update();
+              },
+              labels: { boxWidth: 0, font: { size: 11, weight: '600' }, padding: 16,
+                generateLabels: function(chart) {
+                  return chart.data.datasets.map(function(ds, i) {
+                    var meta = chart.getDatasetMeta(i);
+                    var hidden = meta.hidden;
+                    return {
+                      text: (hidden ? '○ ' : '✓ ') + ds.label,
+                      fillStyle: 'transparent', strokeStyle: 'transparent',
+                      fontColor: hidden ? '#94a3b8' : '#374151',
+                      hidden: false, datasetIndex: i
+                    };
+                  });
+                }
+              }
+            } : { display: false },
             tooltip: {
               backgroundColor: '#fff', titleColor: '#111827', bodyColor: '#374151',
               borderColor: '#e2e8f0', borderWidth: 1, padding: 10,
