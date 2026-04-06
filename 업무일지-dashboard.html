@@ -3247,17 +3247,32 @@
     var cell = function(v){ return '<Cell><Data ss:Type="String">'+x(v)+'</Data></Cell>'; };
     var num  = function(v){ return '<Cell><Data ss:Type="Number">'+Number(v||0)+'</Data></Cell>'; };
 
-    var headers = ['작성일','작성자','주요 목표','업무유형','상태','진행률(%)','완료','진행중','이슈','보류','업무 추진 현황','총 시간(h)','업무 요약','발생 이슈','리스크','익일 계획','특이사항','업무 내역'];
+    var headers = ['작성일','작성자','주요 목표','업무유형','상태','진행률(%)','완료','진행중','이슈','보류','업무 추진 현황','총 작업시간','업무 요약','발생 이슈','리스크','익일 계획','특이사항','업무 내역'];
     var headerRow = '<Row ss:StyleID="header">' + headers.map(function(h){ return cell(h); }).join('') + '</Row>';
+
+    function xlsFmtDuration(mins) {
+      if (!mins || mins <= 0) return '—';
+      var h = Math.floor(mins / 60);
+      var m = mins % 60;
+      if (h > 0 && m > 0) return h + '시간 ' + m + '분';
+      if (h > 0) return h + '시간';
+      return m + '분';
+    }
 
     var rows = data.map(function(j) {
       var tasks = j.tasks||[];
       var cnt = {done:0,wip:0,issue:0,hold:0};
       tasks.forEach(function(t){ var s=t.status||(t.done?'done':'todo'); if(cnt[s]!==undefined) cnt[s]++; });
       var taskText = tasks.length > 0
-        ? tasks.map(function(t){ var s=t.status||(t.done?'done':'todo'); return '[' + (ST[s]||s) + '] ' + (t.text||'') + (t.pct ? ' (' + t.pct + '%)' : '') + (t.hrs ? ' ' + t.hrs + 'h' : ''); }).join('\n')
+        ? tasks.map(function(t){
+            var s = t.status||(t.done?'done':'todo');
+            var timeStr = (t.startTime && t.endTime) ? ' [' + t.startTime + '~' + t.endTime + ']' : '';
+            return '[' + (ST[s]||s) + '] ' + (t.text||'') + timeStr + (t.pct ? ' (' + t.pct + '%)' : '');
+          }).join('\n')
         : '';
-      var totalHrs = tasks.reduce(function(sum, t){ return sum + (parseFloat(t.hrs)||0); }, 0);
+      // 중복 구간 union + 점심 제외
+      var totalMins = calcTasksUnionMins(tasks);
+      var totalTimeStr = xlsFmtDuration(totalMins);
       var wpList = j.workProgress && j.workProgress.length > 0 ? j.workProgress : [];
       var wpText = wpList.length > 0
         ? wpList.map(function(row){ return (row.name||'') + ': ' + (row.summary||'') + ' (' + (row.pct||0) + '%)'; }).join('\n')
@@ -3266,7 +3281,7 @@
         + cell(j.date) + cell(j.author) + cell(j.project) + cell(j.type)
         + cell(ST[j.status]||'') + num(j.progress||0)
         + num(cnt.done) + num(cnt.wip) + num(cnt.issue) + num(cnt.hold)
-        + cell(wpText) + num(totalHrs) + cell(j.summary||j.memo) + cell(j.issue)
+        + cell(wpText) + cell(totalTimeStr) + cell(j.summary||j.memo) + cell(j.issue)
         + cell(j.risk) + cell(j.nextPlan) + cell(j.note) + cell(taskText)
         + '</Row>';
     });
