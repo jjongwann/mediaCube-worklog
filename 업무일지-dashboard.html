@@ -5637,6 +5637,7 @@
                   return ' ' + c.dataset.label + ': ' + fmtW(v);
                 },
                 afterLabel: function(c) {
+                  // hasPrev면 dataset[0]=전년, dataset[1]=현재 → 현재(index 1)에 전년대비 표시
                   if (!hasPrev || c.datasetIndex !== 1) return;
                   var cur = chartValues[c.dataIndex]||0;
                   var prev = prevValues[c.dataIndex]||0;
@@ -5651,19 +5652,7 @@
       });
       if (hasPrev) renderSalesLegend();
     } else {
-      var lineDatasets = [{
-        label: monthLabel,
-        data: chartValues,
-        borderColor: '#2563eb',
-        backgroundColor: 'rgba(37,99,235,0.07)',
-        borderWidth: 2.5,
-        fill: true,
-        tension: 0.4,
-        pointRadius: 5,
-        pointBackgroundColor: chartColors,
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2
-      }];
+      var lineDatasets = [];
       if (hasPrev) {
         lineDatasets.push({
           label: prevLabel,
@@ -5680,6 +5669,19 @@
           pointBorderWidth: 2
         });
       }
+      lineDatasets.push({
+        label: monthLabel,
+        data: chartValues,
+        borderColor: '#2563eb',
+        backgroundColor: 'rgba(37,99,235,0.07)',
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 5,
+        pointBackgroundColor: chartColors,
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2
+      });
       _salesChart = new Chart(ctx, {
         type: 'line',
         data: { labels: chartLabels, datasets: lineDatasets },
