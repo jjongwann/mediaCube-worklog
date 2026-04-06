@@ -1706,8 +1706,16 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-size:13px;font-weight:700;color:#111827">음원 매출 분석</span>
-          <!-- 월 선택 -->
-          <select id="sales-month-sel" onchange="renderSalesWidget()" style="padding:4px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;color:#374151;outline:none;cursor:pointer;background:#f8fafc"></select>
+          <!-- 월 선택 커스텀 드롭다운 -->
+          <div style="position:relative" id="sales-month-dropdown-wrap">
+            <button id="sales-month-btn" onclick="toggleSalesMonthDrop(event)" style="display:flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:600;color:#374151;background:#f8fafc;cursor:pointer;outline:none;transition:border-color .15s">
+              <span id="sales-month-btn-label">—</span>
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="#94a3b8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div id="sales-month-drop" style="display:none;position:absolute;top:calc(100% + 6px);left:0;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.10);min-width:160px;z-index:9999;padding:6px 0;overflow:hidden"></div>
+          </div>
+          <!-- 숨겨진 select (값 저장용) -->
+          <select id="sales-month-sel" onchange="renderSalesWidget()" style="display:none"></select>
           <span style="font-size:11px;color:#94a3b8">단위: 원</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
@@ -5304,6 +5312,13 @@
     renderSalesWidget();
   }
 
+  var _salesDropOpen = false;
+
+  function salesMonthLabel(k) {
+    var p = k.split('-');
+    return p[0]+'년 '+p[1]+'월';
+  }
+
   function salesUpdateMonthSel() {
     var data = salesLoadData();
     var keys = Object.keys(data).sort(function(a,b){
@@ -5314,12 +5329,80 @@
     var cur = sel ? sel.value : '';
     if (!sel) return;
     sel.innerHTML = keys.map(function(k){
-      var p=k.split('-');
-      return '<option value="'+k+'">'+p[0]+'년 '+p[1]+'월</option>';
+      return '<option value="'+k+'">'+salesMonthLabel(k)+'</option>';
     }).join('');
     if (keys.indexOf(cur) !== -1) sel.value = cur;
     else sel.value = keys[keys.length-1] || '';
+    // 커스텀 드롭다운 버튼 레이블 갱신
+    var lbl = document.getElementById('sales-month-btn-label');
+    if (lbl) lbl.textContent = sel.value ? salesMonthLabel(sel.value) : '—';
+    // 드롭다운 항목 갱신
+    renderSalesMonthDrop(keys, sel.value);
   }
+
+  function renderSalesMonthDrop(keys, selected) {
+    var drop = document.getElementById('sales-month-drop');
+    if (!drop) return;
+    var isAdmin = typeof _isAdmin !== 'undefined' && _isAdmin;
+    drop.innerHTML = keys.map(function(k) {
+      var isDefault = (k === '2025-1' || k === '2026-1'); // DEFAULT 데이터는 삭제 불가
+      var active = k === selected;
+      return '<div style="display:flex;align-items:center;padding:0 8px;gap:4px">'
+        + '<button onclick="salesSelectMonth(\''+k+'\')" style="flex:1;text-align:left;padding:8px 10px;border:none;background:'+(active?'#eff6ff':'transparent')+';color:'+(active?'#2563eb':'#374151')+';font-size:12px;font-weight:'+(active?'700':'500')+';border-radius:7px;cursor:pointer;transition:background .12s">'
+          + (active ? '<svg width="10" height="10" viewBox="0 0 10 10" style="margin-right:5px;vertical-align:middle"><circle cx="5" cy="5" r="4" fill="#2563eb"/></svg>' : '<span style="display:inline-block;width:15px"></span>')
+          + salesMonthLabel(k)
+        + '</button>'
+        + (isAdmin && !isDefault
+          ? '<button onclick="salesDeleteMonth(\''+k+'\',event)" title="삭제" style="flex-shrink:0;width:22px;height:22px;border:none;background:transparent;color:#94a3b8;cursor:pointer;border-radius:5px;font-size:14px;line-height:1;transition:color .12s" onmouseover="this.style.color=\'#ef4444\';this.style.background=\'#fee2e2\'" onmouseout="this.style.color=\'#94a3b8\';this.style.background=\'transparent\'">×</button>'
+          : '<span style="width:22px;flex-shrink:0"></span>')
+        + '</div>';
+    }).join('');
+  }
+
+  function toggleSalesMonthDrop(e) {
+    e.stopPropagation();
+    var drop = document.getElementById('sales-month-drop');
+    if (!drop) return;
+    _salesDropOpen = !_salesDropOpen;
+    drop.style.display = _salesDropOpen ? 'block' : 'none';
+  }
+
+  function closeSalesMonthDrop() {
+    _salesDropOpen = false;
+    var drop = document.getElementById('sales-month-drop');
+    if (drop) drop.style.display = 'none';
+  }
+
+  function salesSelectMonth(k) {
+    var sel = document.getElementById('sales-month-sel');
+    if (sel) { sel.value = k; sel.dispatchEvent(new Event('change')); }
+    var lbl = document.getElementById('sales-month-btn-label');
+    if (lbl) lbl.textContent = salesMonthLabel(k);
+    var data = salesLoadData();
+    var keys = Object.keys(data).sort(function(a,b){
+      var pa=a.split('-'),pb=b.split('-');
+      return (parseInt(pa[0])*100+parseInt(pa[1]))-(parseInt(pb[0])*100+parseInt(pb[1]));
+    });
+    renderSalesMonthDrop(keys, k);
+    closeSalesMonthDrop();
+  }
+
+  function salesDeleteMonth(k, e) {
+    e.stopPropagation();
+    if (!confirm(salesMonthLabel(k) + ' 데이터를 삭제할까요?')) return;
+    var raw = localStorage.getItem('mc_sales_data');
+    var stored = raw ? JSON.parse(raw) : {};
+    delete stored[k];
+    localStorage.setItem('mc_sales_data', JSON.stringify(stored));
+    salesUpdateMonthSel();
+    renderSalesWidget();
+    showToast(salesMonthLabel(k) + ' 데이터가 삭제됐습니다.');
+  }
+
+  // 드롭다운 외부 클릭 시 닫기
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('#sales-month-dropdown-wrap')) closeSalesMonthDrop();
+  });
 
   function openSalesInput() {
     var ySel = document.getElementById('sales-input-year');
