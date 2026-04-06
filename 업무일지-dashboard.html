@@ -6423,9 +6423,9 @@
       </div>
       <!-- 날짜 필터 -->
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px">
-        <input type="date" id="soundteam-date-from" onchange="renderSoundTeamPanel()" style="flex:1;padding:6px 10px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:12px;background:rgba(255,255,255,0.15);color:#fff;outline:none;min-width:0;font-family:inherit">
+        <input type="date" id="soundteam-date-from" onchange="if(_soundTeamCache.length>0)renderSoundTeamPanel()" style="flex:1;padding:6px 10px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:12px;background:rgba(255,255,255,0.15);color:#fff;outline:none;min-width:0;font-family:inherit">
         <span style="color:rgba(255,255,255,0.6);font-size:12px">—</span>
-        <input type="date" id="soundteam-date-to" onchange="renderSoundTeamPanel()" style="flex:1;padding:6px 10px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:12px;background:rgba(255,255,255,0.15);color:#fff;outline:none;min-width:0;font-family:inherit">
+        <input type="date" id="soundteam-date-to" onchange="if(_soundTeamCache.length>0)renderSoundTeamPanel()" style="flex:1;padding:6px 10px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:12px;background:rgba(255,255,255,0.15);color:#fff;outline:none;min-width:0;font-family:inherit">
         <button onclick="soundteamClearDate()" style="padding:6px 10px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:#fff;font-size:11px;cursor:pointer;white-space:nowrap;font-family:inherit" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">초기화</button>
       </div>
     </div>
@@ -6451,7 +6451,9 @@
 
   function _stEsc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  function openSoundTeamPanel() {
+  var _soundTeamCache = [];
+
+  async function openSoundTeamPanel() {
     var today = new Date();
     var yyyy = today.getFullYear();
     var mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -6461,16 +6463,51 @@
     document.getElementById('soundteam-date-from').value = firstOfMonth;
     document.getElementById('soundteam-date-to').value = todayStr;
     document.getElementById('soundteam-overlay').style.display = 'flex';
+    document.getElementById('soundteam-body').innerHTML = '<div style="text-align:center;padding:40px 0;color:#94a3b8;font-size:13px">불러오는 중...</div>';
+    await _fetchSoundTeamJournals();
     renderSoundTeamPanel();
+  }
+
+  async function _fetchSoundTeamJournals() {
+    var SOUND_NAMES = ['윤다은 주임','최해현 사원','김태오 과장','신동원 차장'];
+    // PostgREST or 필터로 팀원 4명 author 기준 조회
+    var orFilter = SOUND_NAMES.map(function(n) {
+      return 'author.eq.' + n;
+    }).join(',');
+    var url = SB_URL + '/rest/v1/journals?select=*&or=(' + encodeURIComponent(orFilter) + ')&order=date.desc,created_at.desc';
+    try {
+      // 1차: 현재 사용자 JWT로 시도
+      var res = await fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } });
+      var rows = await res.json();
+      if (Array.isArray(rows) && rows.length > 0) {
+        _soundTeamCache = rows.map(dbToLocal);
+        return;
+      }
+    } catch(e) {}
+    try {
+      // 2차: anon key로 시도 (RLS가 anon 허용하는 경우)
+      var res2 = await fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } });
+      var rows2 = await res2.json();
+      if (Array.isArray(rows2) && rows2.length > 0) {
+        _soundTeamCache = rows2.map(dbToLocal);
+        return;
+      }
+    } catch(e) {}
+    // 3차: journalCache 폴백 (최소한 현재 사용자 데이터라도 표시)
+    _soundTeamCache = loadJournals().filter(function(j) {
+      var a = (j.author || '').trim();
+      return SOUND_NAMES.indexOf(a) !== -1;
+    });
   }
 
   function closeSoundTeamPanel() {
     document.getElementById('soundteam-overlay').style.display = 'none';
   }
 
-  function soundteamClearDate() {
+  async function soundteamClearDate() {
     document.getElementById('soundteam-date-from').value = '';
     document.getElementById('soundteam-date-to').value = '';
+    if (_soundTeamCache.length === 0) await _fetchSoundTeamJournals();
     renderSoundTeamPanel();
   }
 
@@ -6478,7 +6515,7 @@
     var body = document.getElementById('soundteam-body');
     var dFrom = document.getElementById('soundteam-date-from').value || '';
     var dTo   = document.getElementById('soundteam-date-to').value   || '';
-    var journals = loadJournals();
+    var journals = _soundTeamCache;
 
     // username 순서로 표시 (ALL_USERS에서 username으로 찾기)
     var SOUND_USERNAMES = ['soundsupport','webmaster20','soundstore','soundsales'];
