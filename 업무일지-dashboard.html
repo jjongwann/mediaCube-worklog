@@ -742,7 +742,6 @@
     position: fixed;
     z-index: 1200;
     right: 16px;
-    top: 220px;
   }
   .drp-top {
     display: flex;
@@ -3517,10 +3516,18 @@
     panel.style.display = drPanelOpen ? '' : 'none';
     btn.classList.toggle('active', drPanelOpen);
     if (drPanelOpen) {
-      // Position panel below the button
+      // 버튼 위치 기준으로 패널 위치 계산 (뷰포트 하단 넘치면 버튼 위로)
       var rect = btn.getBoundingClientRect();
-      panel.style.top  = (rect.bottom + 6) + 'px';
-      panel.style.right = '16px';
+      panel.style.display = '';
+      var panelH = panel.offsetHeight || 240;
+      var spaceBelow = window.innerHeight - rect.bottom - 8;
+      if (spaceBelow < panelH && rect.top > panelH) {
+        panel.style.top = (rect.top - panelH - 6) + 'px';
+      } else {
+        panel.style.top = (rect.bottom + 6) + 'px';
+      }
+      panel.style.right = Math.max(8, window.innerWidth - rect.right) + 'px';
+      panel.style.left = 'auto';
       // Pre-fill inputs if range already active
       if (drFrom) document.getElementById('drp-from').valueAsDate = drFrom;
       if (drTo)   document.getElementById('drp-to').valueAsDate   = drTo;
