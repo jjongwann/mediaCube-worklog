@@ -5379,143 +5379,198 @@
     if (!selKey) return;
 
     var p = selKey.split('-');
-    var monthLabel = p[0]+'년 '+p[1]+'월';
-    var entry = salesGetEntry(data, selKey);
+    var curYear = parseInt(p[0]), curMon = parseInt(p[1]);
+    var monthLabel = curYear+'년 '+curMon+'월';
+    var prevKey  = (curYear-1)+'-'+curMon;
+    var prevLabel = (curYear-1)+'년 '+curMon+'월';
 
-    // 차트 데이터
-    var chartLabels = SALES_CHART_ITEMS.map(function(i){ return i.label; });
-    var chartRawValues = SALES_CHART_ITEMS.map(function(i){ return entry[i.key]||0; });
-    var chartValues = chartRawValues.slice(); // 실제 값 그대로 사용
-    var chartColors = SALES_CHART_ITEMS.map(function(i){ return i.color; });
-    var chartBgs    = SALES_CHART_ITEMS.map(function(i){ return i.bg; });
+    var entry  = salesGetEntry(data, selKey);
+    var prevRaw = data[prevKey] || null;
+    var prevEntry = prevRaw ? salesGetEntry(data, prevKey) : null;
+    var hasPrev = !!prevEntry;
+
+    var chartLabels    = SALES_CHART_ITEMS.map(function(i){ return i.label; });
+    var chartValues    = SALES_CHART_ITEMS.map(function(i){ return entry[i.key]||0; });
+    var prevValues     = SALES_CHART_ITEMS.map(function(i){ return hasPrev ? (prevEntry[i.key]||0) : 0; });
+    var chartColors    = SALES_CHART_ITEMS.map(function(i){ return i.color; });
 
     function fmtW(v) {
       if (v >= 100000000) return (v/100000000).toFixed(2)+'억원';
       if (v >= 10000)     return (v/10000).toFixed(0)+'만원';
       return v.toLocaleString()+'원';
     }
+    function fmtPct(cur, prev) {
+      if (!prev) return null;
+      var pct = Math.round((cur - prev) / prev * 100);
+      return (pct >= 0 ? '+' : '') + pct + '%';
+    }
 
     var ctx = document.getElementById('sales-chart').getContext('2d');
     if (_salesChart) { _salesChart.destroy(); _salesChart = null; }
 
+    var yTickCb = function(v){
+      if (v>=100000000) return (v/100000000).toFixed(0)+'억';
+      if (v>=10000)     return (v/10000).toFixed(0)+'만';
+      return v.toLocaleString();
+    };
+    var commonScales = {
+      x: { grid: { display: false }, ticks: { font: { size: 12, weight: '600' }, color: '#374151' } },
+      y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { font: { size: 11 }, color: '#9ca3af', callback: yTickCb } }
+    };
+
     if (_salesType === 'bar') {
+      var datasets = [{
+        label: monthLabel,
+        data: chartValues,
+        backgroundColor: chartColors.map(function(c){ return c+'cc'; }),
+        borderColor: chartColors,
+        borderWidth: 0,
+        borderRadius: 5,
+        maxBarThickness: hasPrev ? 32 : 56,
+        categoryPercentage: hasPrev ? 0.7 : 0.6,
+        barPercentage: 0.85
+      }];
+      if (hasPrev) {
+        datasets.unshift({
+          label: prevLabel,
+          data: prevValues,
+          backgroundColor: chartColors.map(function(c){ return c+'44'; }),
+          borderColor: chartColors.map(function(c){ return c+'88'; }),
+          borderWidth: 1,
+          borderRadius: 5,
+          maxBarThickness: 32,
+          categoryPercentage: 0.7,
+          barPercentage: 0.85
+        });
+      }
       _salesChart = new Chart(ctx, {
         type: 'bar',
-        data: {
-          labels: chartLabels,
-          datasets: [{
-            data: chartValues,
-            backgroundColor: chartColors.map(function(c){ return c+'cc'; }),
-            borderColor: chartColors,
-            borderWidth: 0,
-            borderRadius: 5,
-            maxBarThickness: 56,
-            categoryPercentage: 0.6,
-            barPercentage: 0.85
-          }]
-        },
+        data: { labels: chartLabels, datasets: datasets },
         options: {
           responsive: true, maintainAspectRatio: false,
-          layout: { padding: { top: 24 } },
+          layout: { padding: { top: hasPrev ? 28 : 24 } },
           plugins: {
-            legend: { display: false },
+            legend: hasPrev ? {
+              display: true,
+              position: 'top',
+              align: 'end',
+              labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 }, padding: 12,
+                generateLabels: function(chart) {
+                  return chart.data.datasets.map(function(ds, i) {
+                    return { text: ds.label, fillStyle: i===0 ? chartColors[0]+'44' : chartColors[0]+'cc',
+                      strokeStyle: 'transparent', hidden: false, datasetIndex: i };
+                  });
+                }
+              }
+            } : { display: false },
             tooltip: {
               backgroundColor: '#fff', titleColor: '#111827', bodyColor: '#374151',
               borderColor: '#e2e8f0', borderWidth: 1, padding: 10,
               callbacks: {
-                title: function(items){ return monthLabel + ' · ' + items[0].label; },
-                label: function(ctx){ return ' ' + fmtW(chartRawValues[ctx.dataIndex]||0); }
-              }
-            }
-          },
-          scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 12, weight: '600' }, color: '#374151' } },
-            y: {
-              beginAtZero: true, grid: { color: '#f3f4f6' },
-              ticks: {
-                font: { size: 11 }, color: '#9ca3af',
-                callback: function(v){
-                  if (v>=100000000) return (v/100000000).toFixed(0)+'억';
-                  if (v>=10000)     return (v/10000).toFixed(0)+'만';
-                  return v.toLocaleString();
+                title: function(items){ return items[0].label; },
+                label: function(c){
+                  var v = c.dataset.data[c.dataIndex]||0;
+                  return ' ' + c.dataset.label + ': ' + fmtW(v);
+                },
+                afterLabel: function(c) {
+                  if (!hasPrev || c.datasetIndex !== 1) return;
+                  var cur = chartValues[c.dataIndex]||0;
+                  var prev = prevValues[c.dataIndex]||0;
+                  var p2 = fmtPct(cur, prev);
+                  return p2 ? ' 전년대비: ' + p2 : '';
                 }
               }
             }
-          }
+          },
+          scales: commonScales
         }
       });
     } else {
+      var lineDatasets = [{
+        label: monthLabel,
+        data: chartValues,
+        borderColor: '#2563eb',
+        backgroundColor: 'rgba(37,99,235,0.07)',
+        borderWidth: 2.5,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 5,
+        pointBackgroundColor: chartColors,
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2
+      }];
+      if (hasPrev) {
+        lineDatasets.push({
+          label: prevLabel,
+          data: prevValues,
+          borderColor: '#94a3b8',
+          backgroundColor: 'rgba(148,163,184,0.05)',
+          borderWidth: 2,
+          borderDash: [5, 4],
+          fill: false,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: '#94a3b8',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
+        });
+      }
       _salesChart = new Chart(ctx, {
         type: 'line',
-        data: {
-          labels: chartLabels,
-          datasets: [{
-            data: chartValues,
-            borderColor: '#2563eb',
-            backgroundColor: 'rgba(37,99,235,0.07)',
-            borderWidth: 2.5,
-            fill: true,
-            tension: 0.4,
-            pointRadius: 5,
-            pointBackgroundColor: chartColors,
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2
-          }]
-        },
+        data: { labels: chartLabels, datasets: lineDatasets },
         options: {
           responsive: true, maintainAspectRatio: false,
           layout: { padding: { top: 24 } },
           plugins: {
-            legend: { display: false },
+            legend: hasPrev ? { display: true, position: 'top', align: 'end', labels: { boxWidth: 10, font: { size: 11 }, padding: 12 } } : { display: false },
             tooltip: {
               backgroundColor: '#fff', titleColor: '#111827', bodyColor: '#374151',
               borderColor: '#e2e8f0', borderWidth: 1, padding: 10,
               callbacks: {
-                title: function(items){ return monthLabel + ' · ' + items[0].label; },
-                label: function(ctx){ return ' ' + fmtW(chartRawValues[ctx.dataIndex]||0); }
-              }
-            }
-          },
-          scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 12, weight: '600' }, color: '#374151' } },
-            y: {
-              beginAtZero: true, grid: { color: '#f3f4f6' },
-              ticks: {
-                font: { size: 11 }, color: '#9ca3af',
-                callback: function(v){
-                  if (v>=100000000) return (v/100000000).toFixed(0)+'억';
-                  if (v>=10000)     return (v/10000).toFixed(0)+'만';
-                  return v.toLocaleString();
+                title: function(items){ return items[0].label; },
+                label: function(c){ return ' ' + c.dataset.label + ': ' + fmtW(c.dataset.data[c.dataIndex]||0); },
+                afterLabel: function(c) {
+                  if (!hasPrev || c.datasetIndex !== 0) return;
+                  var p2 = fmtPct(chartValues[c.dataIndex]||0, prevValues[c.dataIndex]||0);
+                  return p2 ? ' 전년대비: ' + p2 : '';
                 }
               }
             }
-          }
+          },
+          scales: commonScales
         }
       });
     }
 
-    // 통계 패널 (실매출·총매출 + 항목 비중)
+    // 통계 패널
     var real  = entry._real  || 0;
     var total = entry._total || 0;
+    var prevReal  = hasPrev ? (prevEntry._real  || 0) : 0;
+    var prevTotal = hasPrev ? (prevEntry._total || 0) : 0;
+
+    function yoyBadge(cur, prev) {
+      if (!prev) return '';
+      var pct = Math.round((cur - prev) / prev * 100);
+      var up = pct >= 0;
+      return '<span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:6px;background:'+(up?'#dcfce7':'#fee2e2')+';color:'+(up?'#16a34a':'#dc2626')+'">'+(up?'▲':'▼')+' '+(up?'+':'')+pct+'%</span>';
+    }
+
     var topItems = SALES_ITEMS.slice().sort(function(a,b){ return (entry[b.key]||0)-(entry[a.key]||0); }).slice(0,3);
     var statPanel = document.getElementById('sales-stat-panel');
     if (statPanel) {
       statPanel.innerHTML =
         '<div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid #e2e8f0">📊 ' + monthLabel + ' 통계</div>'
         + '<div style="display:flex;flex-direction:column;gap:10px;flex:1">'
-          // 실매출
           + '<div style="background:#dbeafe;border-radius:8px;padding:10px 12px">'
             + '<div style="font-size:10px;color:#2563eb;font-weight:700;margin-bottom:3px">실 매출</div>'
-            + '<div style="font-size:16px;font-weight:800;color:#1e40af">' + fmtW(real) + '</div>'
-            + '<div style="font-size:10px;color:#64748b;margin-top:2px">음원 라이선스 합계</div>'
+            + '<div style="font-size:16px;font-weight:800;color:#1e40af;display:flex;align-items:center">' + fmtW(real) + yoyBadge(real, prevReal) + '</div>'
+            + (hasPrev ? '<div style="font-size:10px;color:#64748b;margin-top:2px">전년 동월 ' + fmtW(prevReal) + '</div>' : '<div style="font-size:10px;color:#64748b;margin-top:2px">음원 라이선스 합계</div>')
           + '</div>'
-          // 총매출
           + '<div style="background:#f0fdf4;border-radius:8px;padding:10px 12px">'
             + '<div style="font-size:10px;color:#16a34a;font-weight:700;margin-bottom:3px">총 매출</div>'
-            + '<div style="font-size:16px;font-weight:800;color:#15803d">' + fmtW(total) + '</div>'
-            + '<div style="font-size:10px;color:#64748b;margin-top:2px">선곡료·수수료 포함</div>'
+            + '<div style="font-size:16px;font-weight:800;color:#15803d;display:flex;align-items:center">' + fmtW(total) + yoyBadge(total, prevTotal) + '</div>'
+            + (hasPrev ? '<div style="font-size:10px;color:#64748b;margin-top:2px">전년 동월 ' + fmtW(prevTotal) + '</div>' : '<div style="font-size:10px;color:#64748b;margin-top:2px">선곡료·수수료 포함</div>')
           + '</div>'
-          // TOP 3
           + '<div style="border-top:1px solid #e2e8f0;padding-top:8px">'
             + '<div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:6px">TOP 매출 항목</div>'
             + topItems.map(function(item, i) {
@@ -5534,14 +5589,24 @@
         + '</div>';
     }
 
-    // 요약 카드 (항목만)
+    // 요약 카드
     document.getElementById('sales-summary').innerHTML = SALES_CHART_ITEMS.map(function(item) {
       var v = entry[item.key] || 0;
+      var pv = hasPrev ? (prevEntry[item.key]||0) : 0;
+      var badge = hasPrev && pv ? (function(){
+        var pct = Math.round((v-pv)/pv*100);
+        var up = pct >= 0;
+        return '<div style="font-size:9px;font-weight:700;color:'+(up?'#16a34a':'#dc2626')+'">'+(up?'▲':'▼')+(up?'+':'')+pct+'%</div>';
+      })() : '';
       return '<div style="background:'+item.bg+';border-radius:7px;padding:7px 8px;border:1px solid '+item.color+'33;text-align:center">'
-        + '<div style="font-size:9px;color:'+item.color+';font-weight:700;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+item.label+'</div>'
+        + '<div style="font-size:9px;color:'+item.color+';font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+item.label+'</div>'
         + '<div style="font-size:12px;font-weight:800;color:#111827;white-space:nowrap">'+fmtW(v)+'</div>'
+        + badge
         + '</div>';
     }).join('');
+  }
+
+
   }
 
   function salesInit() {
