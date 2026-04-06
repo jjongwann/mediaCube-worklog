@@ -6489,9 +6489,10 @@
       var uid = user.id;
 
       var uJournals = journals.filter(function(j) {
-        // user_id 또는 author(username)로 매칭
-        if (j.user_id && j.user_id !== uid) return false;
-        if (!j.user_id && (j.author || '') !== uname) return false;
+        // user_id(UUID) 또는 author(표시이름) 중 하나라도 일치하면 포함
+        var matchById = uid && j.user_id === uid;
+        var matchByName = user.fullName && (j.author || '').trim() === user.fullName.trim();
+        if (!matchById && !matchByName) return false;
         if (dFrom && (j.date || '') < dFrom) return false;
         if (dTo   && (j.date || '') > dTo)   return false;
         return true;
@@ -6549,8 +6550,8 @@
           var nm  = ST_STATUS_NAME[t.status] || t.status;
           html += '<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:8px;background:#f8fafc;border:1px solid #f1f5f9">'
             + '<span style="flex-shrink:0;margin-top:1px;display:inline-block;padding:2px 7px;border-radius:6px;background:' + bg + ';color:' + clr + ';font-size:10px;font-weight:700;white-space:nowrap">' + nm + '</span>'
-            + '<span style="font-size:12px;color:#374151;line-height:1.5;word-break:break-all">' + _stEsc(t.text) + '</span>'
-            + (t.count > 1 ? '<span style="flex-shrink:0;margin-left:auto;font-size:10px;color:#94a3b8;white-space:nowrap">' + t.count + '일</span>' : '')
+            + '<span style="flex:1;min-width:0;font-size:12px;color:#374151;line-height:1.5;word-break:break-word">' + _stEsc(t.text) + '</span>'
+            + (t.count > 1 ? '<span style="flex-shrink:0;font-size:10px;color:#94a3b8;white-space:nowrap;padding-left:4px">' + t.count + '일</span>' : '')
             + '</div>';
         });
         html += '</div>';
