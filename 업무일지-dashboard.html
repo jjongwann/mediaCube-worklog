@@ -5549,6 +5549,7 @@
         data: { labels: chartLabels, datasets: datasets },
         options: {
           responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
           layout: { padding: { top: hasPrev ? 28 : 24 } },
           plugins: {
             legend: hasPrev ? {
@@ -5621,6 +5622,7 @@
         data: { labels: chartLabels, datasets: lineDatasets },
         options: {
           responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
           layout: { padding: { top: 24 } },
           plugins: {
             legend: hasPrev ? { display: true, position: 'top', align: 'end', labels: { boxWidth: 10, font: { size: 11 }, padding: 12 } } : { display: false },
