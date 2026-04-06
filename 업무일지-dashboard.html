@@ -1718,7 +1718,8 @@
           <select id="sales-month-sel" onchange="renderSalesWidget()" style="display:none"></select>
           <span style="font-size:11px;color:#94a3b8">단위: 원</span>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div id="sales-chart-legend" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"></div>
           <div style="display:flex;border:1px solid #e2e8f0;border-radius:7px;overflow:hidden;font-size:11px">
             <button id="sales-btn-bar" onclick="salesSetType('bar')" style="padding:4px 14px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:600">막대</button>
             <button id="sales-btn-line" onclick="salesSetType('line')" style="padding:4px 14px;border:none;background:#f8fafc;color:#64748b;cursor:pointer;font-weight:600">꺾은선</button>
@@ -1733,7 +1734,6 @@
       <div style="display:grid;grid-template-columns:1fr 250px;gap:16px;align-items:stretch">
         <!-- 왼쪽: 차트 + 요약 카드 -->
         <div style="display:flex;flex-direction:column;gap:10px">
-          <div id="sales-chart-legend" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;min-height:22px"></div>
           <div style="position:relative;flex:1;min-height:160px">
             <canvas id="sales-chart"></canvas>
           </div>
