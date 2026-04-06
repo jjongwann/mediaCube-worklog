@@ -2601,6 +2601,13 @@
     var todayStr = localDateStr(today);
     var weekStart = getWeekStart();
 
+    // 비관리자: 본인 일지만 표시 (RLS가 전체 허용돼도 프론트에서 필터)
+    if (!_isAdmin) {
+      var _myName = (_currentSession && _currentSession._display && (_currentSession._display.fullName || _currentSession._display.name)) || '';
+      data = data.filter(function(j) {
+        return (_userId && j.user_id === _userId) || (_myName && (j.author || '').trim() === _myName.trim());
+      });
+    }
     // 관리자 직원 필터
     if (_isAdmin && adminEmpFilter) {
       data = data.filter(function(j) { return j.user_id === adminEmpFilter; });
