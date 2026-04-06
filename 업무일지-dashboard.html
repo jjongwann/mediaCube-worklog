@@ -1750,8 +1750,15 @@
       <div style="background:#fff;border-radius:16px;width:500px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.22);font-family:inherit">
         <div id="sales-detail-header" style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-radius:16px 16px 0 0;color:#fff">
           <span id="sales-detail-title" style="font-size:13px;font-weight:700;flex:1;white-space:nowrap"></span>
-          <select id="sales-detail-month-sel" onchange="openSalesDetail(_salesDetailType,this.value)" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.35);border-radius:8px;color:#fff;font-size:12px;font-weight:600;padding:5px 10px;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;min-width:110px;text-align:center"></select>
-          <button onclick="closeSalesDetail()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;line-height:1;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button>
+          <!-- 커스텀 월 선택 드롭다운 -->
+          <div id="sales-detail-month-wrap" style="position:relative;flex-shrink:0">
+            <button id="sales-detail-month-btn" onclick="toggleSalesDetailDrop(event)" style="display:flex;align-items:center;gap:7px;padding:6px 13px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.30);border-radius:9px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;outline:none;white-space:nowrap;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.24)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+              <span id="sales-detail-month-label">—</span>
+              <svg id="sales-detail-month-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none" style="transition:transform .2s;flex-shrink:0"><path d="M1 1l4 4 4-4" stroke="rgba(255,255,255,0.85)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div id="sales-detail-month-drop" style="display:none;position:absolute;top:calc(100% + 8px);right:0;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.14);min-width:148px;z-index:10010;padding:5px 0;overflow:hidden"></div>
+          </div>
+          <button onclick="closeSalesDetail()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;line-height:1;width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">×</button>
         </div>
         <div id="sales-detail-body" style="padding:20px"></div>
       </div>
@@ -5569,11 +5576,10 @@
       var ap = a.split('-'), bp = b.split('-');
       return (parseInt(bp[0])*100+parseInt(bp[1])) - (parseInt(ap[0])*100+parseInt(ap[1]));
     });
-    var selEl = document.getElementById('sales-detail-month-sel');
-    selEl.innerHTML = allKeys.map(function(k) {
-      var kp = k.split('-');
-      return '<option value="'+k+'"'+(k===key?' selected':'')+' style="color:#111;background:#fff">'+kp[0]+'년 '+kp[1]+'월</option>';
-    }).join('');
+    var labelEl = document.getElementById('sales-detail-month-label');
+    if (labelEl) labelEl.textContent = label;
+    renderSalesDetailDrop(allKeys, key, isReal ? '#2563eb' : '#16a34a');
+    closeSalesDetailDrop();
 
     function fmtOri(v) { return (v||0).toLocaleString() + '원'; }
     function fmtW2(v) {
@@ -5667,7 +5673,55 @@
 
   function closeSalesDetail() {
     document.getElementById('sales-detail-overlay').style.display = 'none';
+    closeSalesDetailDrop();
   }
+
+  var _salesDetailDropOpen = false;
+
+  function toggleSalesDetailDrop(e) {
+    e.stopPropagation();
+    _salesDetailDropOpen = !_salesDetailDropOpen;
+    var drop  = document.getElementById('sales-detail-month-drop');
+    var arrow = document.getElementById('sales-detail-month-arrow');
+    if (drop)  drop.style.display   = _salesDetailDropOpen ? 'block' : 'none';
+    if (arrow) arrow.style.transform = _salesDetailDropOpen ? 'rotate(180deg)' : '';
+  }
+
+  function closeSalesDetailDrop() {
+    _salesDetailDropOpen = false;
+    var drop  = document.getElementById('sales-detail-month-drop');
+    var arrow = document.getElementById('sales-detail-month-arrow');
+    if (drop)  drop.style.display   = 'none';
+    if (arrow) arrow.style.transform = '';
+  }
+
+  function renderSalesDetailDrop(keys, selected, accent) {
+    var drop = document.getElementById('sales-detail-month-drop');
+    if (!drop) return;
+    accent = accent || '#2563eb';
+    drop.innerHTML = keys.map(function(k) {
+      var kp = k.split('-');
+      var lbl = kp[0]+'년 '+kp[1]+'월';
+      var active = k === selected;
+      return '<button onclick="closeSalesDetailDrop();openSalesDetail(_salesDetailType,\''+k+'\')" '
+        + 'style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:9px 14px;border:none;'
+        + 'background:'+(active?'#f0f9ff':'transparent')+';'
+        + 'color:'+(active?accent:'#374151')+';'
+        + 'font-size:12px;font-weight:'+(active?'700':'500')+';cursor:pointer;transition:background .1s" '
+        + 'onmouseover="if(!'+active+')this.style.background=\'#f8fafc\'" '
+        + 'onmouseout="if(!'+active+')this.style.background=\'transparent\'">'
+        + (active
+          ? '<svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3.5" fill="'+accent+'"/></svg>'
+          : '<span style="display:inline-block;width:8px"></span>')
+        + lbl
+        + '</button>';
+    }).join('');
+  }
+
+  // 상세 드롭다운 외부 클릭 닫기
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('#sales-detail-month-wrap')) closeSalesDetailDrop();
+  });
 
   function renderSalesWidget() {
     var data    = salesLoadData();
