@@ -1769,6 +1769,26 @@
             </div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="sales-input-fields"></div>
+          <!-- 실매출 + 총매출 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0">
+            <div>
+              <label style="font-size:11px;font-weight:700;color:#2563eb;display:flex;align-items:center;gap:5px;margin-bottom:4px">
+                <span style="width:10px;height:10px;border-radius:50%;background:#2563eb;display:inline-block;flex-shrink:0"></span>
+                실 매출 <span style="font-size:10px;font-weight:400;color:#94a3b8">(직접 입력)</span>
+              </label>
+              <input id="sales-field-real" type="text" placeholder="0"
+                style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid #2563eb;border-radius:7px;font-size:13px;outline:none;font-weight:600"
+                oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')"
+                onfocus="this.style.borderColor='#1d4ed8'" onblur="this.style.borderColor='#2563eb'">
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:700;color:#16a34a;display:flex;align-items:center;gap:5px;margin-bottom:4px">
+                <span style="width:10px;height:10px;border-radius:50%;background:#16a34a;display:inline-block;flex-shrink:0"></span>
+                총 매출 <span style="font-size:10px;font-weight:400;color:#94a3b8">(자동 계산)</span>
+              </label>
+              <div id="sales-total-display" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;font-weight:600;color:#15803d;background:#f0fdf4">0</div>
+            </div>
+          </div>
           <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">
             <button onclick="closeSalesInput()" style="padding:8px 18px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#64748b;font-size:13px;cursor:pointer;font-weight:600">취소</button>
             <button onclick="salesSaveData()" style="padding:8px 18px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-size:13px;cursor:pointer;font-weight:600">저장</button>
@@ -5283,8 +5303,8 @@
 
   // 기본 데이터 (2026년 1월)
   var SALES_DEFAULT = {
-    '2025-1': { annual:8900000, needle:94200000, buyout:0, custom:326596, komca:87100963, youtube:989130, song:22000000, fee:301307 },
-    '2026-1': { annual:40081818, needle:72990000, buyout:0, custom:560350, komca:171861, youtube:830908, song:41750000, fee:28534 }
+    '2025-1': { annual:8900000, needle:94200000, buyout:0, custom:326596, komca:87100963, youtube:989130, song:22000000, fee:301307, real:191516689 },
+    '2026-1': { annual:40081818, needle:72990000, buyout:0, custom:560350, komca:171861, youtube:830908, song:41750000, fee:28534, real:114634937 }
   };
 
   function salesLoadData() {
@@ -5298,8 +5318,10 @@
 
   function salesGetEntry(data, key) {
     var e = data[key] || {};
-    var real  = (e.annual||0)+(e.needle||0)+(e.buyout||0)+(e.custom||0)+(e.komca||0)+(e.youtube||0);
-    var total = real + (e.song||0) + (e.fee||0);
+    // 총 매출 = 8개 항목 합산 (자동)
+    var total = (e.annual||0)+(e.needle||0)+(e.buyout||0)+(e.custom||0)+(e.komca||0)+(e.youtube||0)+(e.song||0)+(e.fee||0);
+    // 실 매출 = 수동 입력값 (없으면 0)
+    var real = e.real !== undefined ? e.real : 0;
     return Object.assign({}, e, { _real: real, _total: total });
   }
 
@@ -5313,6 +5335,8 @@
       var v = document.getElementById('sales-field-' + item.key);
       entry[item.key] = v ? (parseInt(v.value.replace(/,/g,'')) || 0) : 0;
     });
+    var realEl = document.getElementById('sales-field-real');
+    entry.real = realEl ? (parseInt(realEl.value.replace(/,/g,'')) || 0) : 0;
     data[key] = entry;
     localStorage.setItem('mc_sales_data', JSON.stringify(data));
     closeSalesInput();
@@ -5474,12 +5498,22 @@
     document.getElementById('sales-input-overlay').style.display = 'flex';
   }
 
+  function salesCalcModalTotal() {
+    var sum = 0;
+    SALES_ITEMS.forEach(function(item) {
+      var el = document.getElementById('sales-field-' + item.key);
+      sum += el ? (parseInt(el.value.replace(/,/g,'')) || 0) : 0;
+    });
+    var disp = document.getElementById('sales-total-display');
+    if (disp) disp.textContent = sum.toLocaleString() + '원';
+  }
+
   function salesRefillFields() {
     var y = (document.getElementById('sales-input-year') || {}).value || '';
     var m = (document.getElementById('sales-input-month') || {}).value || '';
     if (!y || !m) return;
     var key = y + '-' + m;
-    var existing = salesLoadData()[key] || null; // null이면 미입력 월
+    var existing = salesLoadData()[key] || null;
     var fields = document.getElementById('sales-input-fields');
     if (!fields) return;
     fields.innerHTML = SALES_ITEMS.map(function(item) {
@@ -5491,10 +5525,15 @@
         + '</label>'
         + '<input id="sales-field-'+item.key+'" type="text" placeholder="0" value="'+val+'"'
           + ' style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none"'
-          + ' oninput="this.value=this.value.replace(/[^0-9]/g,\'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g,\',\')"'
+          + ' oninput="this.value=this.value.replace(/[^0-9]/g,\'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g,\',\');salesCalcModalTotal()"'
           + ' onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#e2e8f0\'">'
         + '</div>';
     }).join('');
+    // 실매출 채우기
+    var realEl = document.getElementById('sales-field-real');
+    if (realEl) realEl.value = (existing && existing.real) ? existing.real.toLocaleString() : '';
+    // 총매출 자동 계산
+    salesCalcModalTotal();
   }
 
   function closeSalesInput() {
