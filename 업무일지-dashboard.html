@@ -1733,7 +1733,10 @@
       <div style="display:grid;grid-template-columns:1fr 250px;gap:16px;align-items:stretch">
         <!-- 왼쪽: 차트 + 요약 카드 -->
         <div style="display:flex;flex-direction:column;gap:10px">
-          <div style="position:relative;flex:1;min-height:160px"><canvas id="sales-chart"></canvas></div>
+          <div style="position:relative;flex:1;min-height:160px">
+            <div id="sales-chart-legend" style="position:absolute;top:4px;right:6px;display:flex;gap:6px;z-index:10;flex-wrap:wrap;justify-content:flex-end"></div>
+            <canvas id="sales-chart"></canvas>
+          </div>
           <!-- 요약 카드 (차트 바로 아래) -->
           <div id="sales-summary" style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px"></div>
         </div>
@@ -5334,6 +5337,32 @@
     return p[0]+'년 '+p[1]+'월';
   }
 
+  function renderSalesLegend() {
+    var leg = document.getElementById('sales-chart-legend');
+    if (!leg || !_salesChart) return;
+    leg.innerHTML = _salesChart.data.datasets.map(function(ds, i) {
+      var meta = _salesChart.getDatasetMeta(i);
+      var hidden = meta.hidden;
+      var bg = hidden ? '#f1f5f9' : '#fff';
+      var border = hidden ? '1px solid #e2e8f0' : '1px solid #2563eb';
+      var color = hidden ? '#94a3b8' : '#111';
+      var check = hidden
+        ? '<svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="4.5" stroke="#cbd5e1" stroke-width="1.5"/></svg>'
+        : '<svg width="11" height="11" viewBox="0 0 11 11" fill="none"><circle cx="5.5" cy="5.5" r="5.5" fill="#2563eb"/><path d="M3 5.5l2 2 3-3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      return '<button onclick="salesLegendToggle('+i+')" style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:'+bg+';border:'+border+';border-radius:20px;font-size:11px;font-weight:700;color:'+color+';cursor:pointer;transition:all .15s;box-shadow:'+(hidden?'none':'0 1px 4px rgba(37,99,235,0.10)')+'">'
+        + check + ds.label
+        + '</button>';
+    }).join('');
+  }
+
+  function salesLegendToggle(idx) {
+    if (!_salesChart) return;
+    var meta = _salesChart.getDatasetMeta(idx);
+    meta.hidden = !meta.hidden;
+    _salesChart.update();
+    renderSalesLegend();
+  }
+
   function salesUpdateMonthSel() {
     var data = salesLoadData();
     var keys = Object.keys(data).sort(function(a,b){
@@ -5550,37 +5579,9 @@
         options: {
           responsive: true, maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
-          layout: { padding: { top: hasPrev ? 28 : 24 } },
+          layout: { padding: { top: hasPrev ? 8 : 24 } },
           plugins: {
-            legend: hasPrev ? {
-              display: true,
-              position: 'top',
-              align: 'end',
-              onClick: function(e, legendItem, legend) {
-                var idx = legendItem.datasetIndex;
-                var ci = legend.chart;
-                var meta = ci.getDatasetMeta(idx);
-                meta.hidden = !meta.hidden;
-                ci.update();
-              },
-              labels: { boxWidth: 0, font: { size: 11, weight: '600' }, padding: 16,
-                generateLabels: function(chart) {
-                  return chart.data.datasets.map(function(ds, i) {
-                    var meta = chart.getDatasetMeta(i);
-                    var hidden = meta.hidden;
-                    var color = i === 0 ? chartColors[0]+'88' : chartColors[0]+'cc';
-                    return {
-                      text: (hidden ? '○ ' : '✓ ') + ds.label,
-                      fillStyle: 'transparent',
-                      strokeStyle: 'transparent',
-                      fontColor: hidden ? '#94a3b8' : (i === 0 ? '#94a3b8' : '#374151'),
-                      hidden: false,
-                      datasetIndex: i
-                    };
-                  });
-                }
-              }
-            } : { display: false },
+            legend: { display: false },
             tooltip: {
               backgroundColor: '#fff', titleColor: '#111827', bodyColor: '#374151',
               borderColor: '#e2e8f0', borderWidth: 1, padding: 10,
@@ -5603,6 +5604,7 @@
           scales: commonScales
         }
       });
+      if (hasPrev) renderSalesLegend();
     } else {
       var lineDatasets = [{
         label: monthLabel,
@@ -5639,32 +5641,9 @@
         options: {
           responsive: true, maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
-          layout: { padding: { top: 24 } },
+          layout: { padding: { top: hasPrev ? 8 : 24 } },
           plugins: {
-            legend: hasPrev ? {
-              display: true, position: 'top', align: 'end',
-              onClick: function(e, legendItem, legend) {
-                var idx = legendItem.datasetIndex;
-                var ci = legend.chart;
-                var meta = ci.getDatasetMeta(idx);
-                meta.hidden = !meta.hidden;
-                ci.update();
-              },
-              labels: { boxWidth: 0, font: { size: 11, weight: '600' }, padding: 16,
-                generateLabels: function(chart) {
-                  return chart.data.datasets.map(function(ds, i) {
-                    var meta = chart.getDatasetMeta(i);
-                    var hidden = meta.hidden;
-                    return {
-                      text: (hidden ? '○ ' : '✓ ') + ds.label,
-                      fillStyle: 'transparent', strokeStyle: 'transparent',
-                      fontColor: hidden ? '#94a3b8' : '#374151',
-                      hidden: false, datasetIndex: i
-                    };
-                  });
-                }
-              }
-            } : { display: false },
+            legend: { display: false },
             tooltip: {
               backgroundColor: '#fff', titleColor: '#111827', bodyColor: '#374151',
               borderColor: '#e2e8f0', borderWidth: 1, padding: 10,
@@ -5682,7 +5661,10 @@
           scales: commonScales
         }
       });
+      if (hasPrev) renderSalesLegend();
     }
+
+    if (!hasPrev) { var leg = document.getElementById('sales-chart-legend'); if (leg) leg.innerHTML = ''; }
 
     // 통계 패널
     var real  = entry._real  || 0;
