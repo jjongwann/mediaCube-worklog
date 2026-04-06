@@ -1718,6 +1718,10 @@
           <span style="font-size:11px;color:#94a3b8">단위: 원</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button onclick="openCumulModal()" style="display:flex;align-items:center;gap:6px;padding:5px 13px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:filter .15s" onmouseover="this.style.filter='brightness(0.9)'" onmouseout="this.style.filter=''">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            월별 누계 통계
+          </button>
           <div style="display:flex;border:1px solid #e2e8f0;border-radius:7px;overflow:hidden;font-size:11px">
             <button id="sales-btn-bar" onclick="salesSetType('bar')" style="padding:4px 14px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:600">막대</button>
             <button id="sales-btn-line" onclick="salesSetType('line')" style="padding:4px 14px;border:none;background:#f8fafc;color:#64748b;cursor:pointer;font-weight:600">꺾은선</button>
@@ -1760,6 +1764,42 @@
           <button onclick="closeSalesDetail()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;line-height:1;width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">×</button>
         </div>
         <div id="sales-detail-body" style="padding:20px"></div>
+      </div>
+    </div>
+
+    <!-- 월별 누계 통계 모달 -->
+    <div id="cumul-overlay" onclick="if(event.target===this)closeCumulModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:10007;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:18px;width:820px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.22);font-family:inherit">
+        <!-- 헤더 -->
+        <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-radius:18px 18px 0 0;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span style="font-size:14px;font-weight:700;flex:1">월별 누계 매출 통계</span>
+          <button onclick="closeCumulModal()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">×</button>
+        </div>
+        <!-- 기간 선택 -->
+        <div style="padding:16px 20px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid #f1f5f9;padding-bottom:14px">
+          <span style="font-size:12px;font-weight:600;color:#374151">기간 선택</span>
+          <select id="cumul-from" style="padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#374151;background:#f8fafc;outline:none"></select>
+          <span style="font-size:12px;color:#94a3b8">~</span>
+          <select id="cumul-to" style="padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#374151;background:#f8fafc;outline:none"></select>
+          <div style="display:flex;border:1px solid #e2e8f0;border-radius:7px;overflow:hidden;font-size:11px">
+            <button id="cumul-btn-bar" onclick="setCumulType('bar')" style="padding:5px 14px;border:none;background:#7c3aed;color:#fff;cursor:pointer;font-weight:600">막대</button>
+            <button id="cumul-btn-line" onclick="setCumulType('line')" style="padding:5px 14px;border:none;background:#f8fafc;color:#64748b;cursor:pointer;font-weight:600">꺾은선</button>
+          </div>
+          <button onclick="renderCumulChart()" style="padding:6px 16px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:filter .15s" onmouseover="this.style.filter='brightness(0.9)'" onmouseout="this.style.filter=''">조회</button>
+        </div>
+        <!-- 차트 + 통계 -->
+        <div style="padding:16px 20px;display:grid;grid-template-columns:1fr 220px;gap:16px;align-items:start">
+          <div>
+            <div style="position:relative;height:260px">
+              <canvas id="cumul-chart"></canvas>
+            </div>
+            <!-- 항목별 요약 -->
+            <div id="cumul-item-summary" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px"></div>
+          </div>
+          <!-- 우측 통계 패널 -->
+          <div id="cumul-stat-panel" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;font-size:12px;display:flex;flex-direction:column;gap:10px"></div>
+        </div>
       </div>
     </div>
 
@@ -5684,6 +5724,175 @@
   }
 
   var _salesDetailDropOpen = false;
+
+  /* ═══ 월별 누계 통계 ═══ */
+  var _cumulChart = null;
+  var _cumulType  = 'bar';
+
+  function openCumulModal() {
+    var data = salesLoadData();
+    var keys = Object.keys(data).sort(function(a,b){
+      var ap=a.split('-'),bp=b.split('-');
+      return (parseInt(ap[0])*100+parseInt(ap[1]))-(parseInt(bp[0])*100+parseInt(bp[1]));
+    });
+    var fromSel = document.getElementById('cumul-from');
+    var toSel   = document.getElementById('cumul-to');
+    var opts = keys.map(function(k){
+      var p=k.split('-');
+      return '<option value="'+k+'">'+p[0]+'년 '+p[1]+'월</option>';
+    }).join('');
+    fromSel.innerHTML = opts;
+    toSel.innerHTML   = opts;
+    toSel.selectedIndex = keys.length - 1;
+    setCumulType('bar');
+    document.getElementById('cumul-overlay').style.display = 'flex';
+    renderCumulChart();
+  }
+
+  function closeCumulModal() {
+    document.getElementById('cumul-overlay').style.display = 'none';
+  }
+
+  function setCumulType(t) {
+    _cumulType = t;
+    var barBtn  = document.getElementById('cumul-btn-bar');
+    var lineBtn = document.getElementById('cumul-btn-line');
+    if (barBtn)  { barBtn.style.background  = t==='bar'  ? '#7c3aed' : '#f8fafc'; barBtn.style.color  = t==='bar'  ? '#fff' : '#64748b'; }
+    if (lineBtn) { lineBtn.style.background = t==='line' ? '#7c3aed' : '#f8fafc'; lineBtn.style.color = t==='line' ? '#fff' : '#64748b'; }
+    if (_cumulChart) renderCumulChart();
+  }
+
+  function renderCumulChart() {
+    var fromKey = document.getElementById('cumul-from').value;
+    var toKey   = document.getElementById('cumul-to').value;
+    if (!fromKey || !toKey) return;
+
+    var fp=fromKey.split('-'), tp=toKey.split('-');
+    var fromN = parseInt(fp[0])*100+parseInt(fp[1]);
+    var toN   = parseInt(tp[0])*100+parseInt(tp[1]);
+    if (fromN > toN) { var tmp=fromKey; fromKey=toKey; toKey=tmp; fromN=parseInt(fromKey.split('-')[0])*100+parseInt(fromKey.split('-')[1]); toN=parseInt(toKey.split('-')[0])*100+parseInt(toKey.split('-')[1]); }
+
+    var data = salesLoadData();
+    var allKeys = Object.keys(data).sort(function(a,b){
+      var ap=a.split('-'),bp=b.split('-');
+      return (parseInt(ap[0])*100+parseInt(ap[1]))-(parseInt(bp[0])*100+parseInt(bp[1]));
+    }).filter(function(k){
+      var p=k.split('-');
+      var n=parseInt(p[0])*100+parseInt(p[1]);
+      return n>=fromN && n<=toN;
+    });
+
+    if (!allKeys.length) return;
+
+    // 항목별 누계
+    var totals = {};
+    SALES_ITEMS.forEach(function(item){ totals[item.key]=0; });
+    var totalReal=0, totalSum=0;
+    allKeys.forEach(function(k){
+      var e = salesGetEntry(data, k);
+      SALES_ITEMS.forEach(function(item){ totals[item.key]+=(e[item.key]||0); });
+      totalReal += e._real  || 0;
+      totalSum  += e._total || 0;
+    });
+
+    // 월별 레이블 & 데이터
+    var labels = allKeys.map(function(k){ var p=k.split('-'); return p[0]+'년 '+p[1]+'월'; });
+    var fp2=fromKey.split('-'), tp2=toKey.split('-');
+    var rangeLabel = fp2[0]+'년 '+fp2[1]+'월 ~ '+tp2[0]+'년 '+tp2[1]+'월';
+
+    // Chart.js datasets — 항목별 월별 값
+    var datasets = SALES_ITEMS.map(function(item){
+      return {
+        label: item.label,
+        data: allKeys.map(function(k){ return salesGetEntry(data,k)[item.key]||0; }),
+        backgroundColor: item.color + ((_cumulType==='bar') ? 'cc' : '22'),
+        borderColor: item.color,
+        borderWidth: _cumulType==='bar' ? 0 : 2,
+        borderRadius: _cumulType==='bar' ? 4 : 0,
+        fill: _cumulType==='line',
+        tension: 0.4,
+        pointRadius: _cumulType==='line' ? 4 : 0,
+        pointBackgroundColor: item.color,
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2
+      };
+    });
+
+    var ctx = document.getElementById('cumul-chart').getContext('2d');
+    if (_cumulChart) { _cumulChart.destroy(); _cumulChart=null; }
+
+    _cumulChart = new Chart(ctx, {
+      type: _cumulType==='bar' ? 'bar' : 'line',
+      data: { labels: labels, datasets: datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#fff', titleColor: '#111827', bodyColor: '#374151',
+            borderColor: '#e2e8f0', borderWidth: 1, padding: 10,
+            callbacks: {
+              label: function(c){ return ' '+c.dataset.label+': '+fmtCumul(c.raw||0); }
+            }
+          }
+        },
+        scales: {
+          x: { grid:{display:false}, ticks:{font:{size:11,weight:'600'},color:'#374151',maxRotation:30} },
+          y: { beginAtZero:true, grid:{color:'#f3f4f6'}, ticks:{font:{size:10},color:'#9ca3af',
+            callback: function(v){
+              if(v>=100000000){ var a=v/100000000; return (a%1===0?a.toFixed(0):a.toFixed(1))+'억'; }
+              if(v>=10000) return Math.round(v/10000)+'만';
+              return v.toLocaleString();
+            }
+          }}
+        }
+      }
+    });
+
+    function fmtCumul(v) {
+      if(v>=100000000) return (v/100000000).toFixed(2)+'억원';
+      if(v>=10000) return (v/10000).toFixed(0)+'만원';
+      return v.toLocaleString()+'원';
+    }
+    function fmtOri(v){ return (v||0).toLocaleString()+'원'; }
+
+    // 통계 패널
+    var stat = document.getElementById('cumul-stat-panel');
+    stat.innerHTML =
+      '<div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:4px;padding-bottom:6px;border-bottom:1px solid #e2e8f0">📊 '+rangeLabel+'</div>'
+      + '<div style="background:#dbeafe;border-radius:8px;padding:10px 12px">'
+        + '<div style="font-size:10px;color:#2563eb;font-weight:700;margin-bottom:3px">실 매출 합계</div>'
+        + '<div style="font-size:16px;font-weight:800;color:#1e40af">'+fmtCumul(totalReal)+'</div>'
+        + '<div style="font-size:10px;color:#64748b;margin-top:2px">'+fmtOri(totalReal)+'</div>'
+      + '</div>'
+      + '<div style="background:#f0fdf4;border-radius:8px;padding:10px 12px">'
+        + '<div style="font-size:10px;color:#16a34a;font-weight:700;margin-bottom:3px">총 매출 합계</div>'
+        + '<div style="font-size:16px;font-weight:800;color:#15803d">'+fmtCumul(totalSum)+'</div>'
+        + '<div style="font-size:10px;color:#64748b;margin-top:2px">'+fmtOri(totalSum)+'</div>'
+      + '</div>'
+      + '<div style="border-top:1px solid #e2e8f0;padding-top:8px">'
+        + '<div style="font-size:10px;font-weight:700;color:#374151;margin-bottom:6px">항목별 누계</div>'
+        + SALES_ITEMS.map(function(item){
+          var pct = totalSum>0 ? ((totals[item.key]/totalSum)*100).toFixed(1) : '0.0';
+          return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'
+            + '<div style="width:8px;height:8px;border-radius:50%;background:'+item.color+';flex-shrink:0"></div>'
+            + '<div style="flex:1;font-size:10px;color:#374151;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+item.label+'</div>'
+            + '<div style="font-size:10px;font-weight:700;color:'+item.color+'">'+fmtCumul(totals[item.key])+'</div>'
+            + '<div style="font-size:9px;color:#94a3b8;min-width:32px;text-align:right">'+pct+'%</div>'
+            + '</div>';
+        }).join('')
+      + '</div>';
+
+    // 항목별 요약 칩
+    var summary = document.getElementById('cumul-item-summary');
+    summary.innerHTML = SALES_ITEMS.map(function(item){
+      return '<div style="background:'+item.bg+';border-radius:8px;padding:8px 10px;text-align:center">'
+        + '<div style="font-size:10px;color:'+item.color+';font-weight:700;margin-bottom:3px">'+item.label+'</div>'
+        + '<div style="font-size:13px;font-weight:800;color:#1e293b">'+fmtCumul(totals[item.key])+'</div>'
+        + '</div>';
+    }).join('');
+  }
 
   function toggleSalesDetailDrop(e) {
     e.stopPropagation();
