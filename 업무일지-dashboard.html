@@ -1527,6 +1527,10 @@
       <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
       업무 히스토리
     </div>
+    <div id="soundteam-sidebar-btn" class="sidebar-item" style="display:none" onclick="openSoundTeamPanel()">
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+      음원팀 업무 현황
+    </div>
   </div>
 
   <!-- 관리자 전용 섹션 -->
@@ -4445,6 +4449,12 @@
       var adminSb = document.getElementById('admin-sidebar-section');
       if (adminSb) adminSb.style.display = '';
     }
+    // 사운드콘텐츠사업부 소속이면 음원팀 업무 현황 버튼 표시
+    var _soundTeamIds = ['11ef0fe1-4e6d-4b1f-af04-5c42aa99acfd','0465c0f5-51bf-4730-ae75-4377c3dc61af','842ae24f-570e-4c75-8902-ed6cf476a0a7','90f0bfb3-3c69-4885-8ccc-5928fb29e29b'];
+    if (_soundTeamIds.indexOf(_userId) !== -1) {
+      var stBtn = document.getElementById('soundteam-sidebar-btn');
+      if (stBtn) stBtn.style.display = '';
+    }
     // 온보딩: 로그인 후 첫 방문 시 1회만 표시
     var onboardShownKey = 'mc_onboard_shown_' + (_currentUsername || 'guest');
     if (!sessionStorage.getItem(onboardShownKey)) {
@@ -6382,6 +6392,160 @@
         + '<div style="font-size:13px;color:#374151;line-height:1.7;white-space:pre-wrap;word-break:break-all">' + highlighted + '</div>'
         + '</div>';
     }).join('');
+  }
+</script>
+
+<!-- ── 음원팀 업무 현황 패널 ── -->
+<div id="soundteam-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9990;align-items:flex-start;justify-content:flex-end" onclick="if(event.target===this)closeSoundTeamPanel()">
+  <div style="width:480px;height:100vh;background:#fff;box-shadow:-8px 0 32px rgba(0,0,0,0.15);display:flex;flex-direction:column;font-family:inherit;animation:soundteamSlideIn 0.25s ease">
+    <!-- 헤더 -->
+    <div style="padding:20px 20px 16px;background:linear-gradient(135deg,#0ea5e9,#0369a1);flex-shrink:0">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;background:rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:#fff">음원팀 업무 현황</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.75);margin-top:1px">사운드컨텐츠사업부</div>
+          </div>
+        </div>
+        <button onclick="closeSoundTeamPanel()" style="background:rgba(255,255,255,0.15);border:none;cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;line-height:1;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">×</button>
+      </div>
+      <!-- 날짜 필터 -->
+      <div style="margin-top:14px;display:flex;align-items:center;gap:8px">
+        <input type="date" id="soundteam-date-from" onchange="renderSoundTeamPanel()" style="flex:1;padding:6px 10px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:12px;background:rgba(255,255,255,0.15);color:#fff;outline:none;min-width:0;font-family:inherit">
+        <span style="color:rgba(255,255,255,0.6);font-size:12px">—</span>
+        <input type="date" id="soundteam-date-to" onchange="renderSoundTeamPanel()" style="flex:1;padding:6px 10px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:12px;background:rgba(255,255,255,0.15);color:#fff;outline:none;min-width:0;font-family:inherit">
+        <button onclick="soundteamClearDate()" style="padding:6px 10px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:#fff;font-size:11px;cursor:pointer;white-space:nowrap;font-family:inherit" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">초기화</button>
+      </div>
+    </div>
+    <!-- 목록 -->
+    <div id="soundteam-body" class="soundteam-scroll" style="flex:1;overflow-y:auto;padding:16px 16px 20px;display:flex;flex-direction:column;gap:12px;background:#f8fafc"></div>
+  </div>
+</div>
+<style>
+  @keyframes soundteamSlideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to   { transform: translateX(0);    opacity: 1; }
+  }
+  .soundteam-scroll::-webkit-scrollbar { width: 6px; }
+  .soundteam-scroll::-webkit-scrollbar-track { background: transparent; }
+  .soundteam-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+  .soundteam-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  input[type="date"].soundteam-date::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.6); }
+</style>
+<script>
+  var SOUND_TEAM_IDS = ['11ef0fe1-4e6d-4b1f-af04-5c42aa99acfd','0465c0f5-51bf-4730-ae75-4377c3dc61af','842ae24f-570e-4c75-8902-ed6cf476a0a7','90f0bfb3-3c69-4885-8ccc-5928fb29e29b'];
+  var ST_STATUS_NAME = { done:'완료', wip:'진행 중', issue:'이슈', hold:'보류', todo:'예정' };
+  var ST_STATUS_BG   = { done:'#f0fdf4', wip:'#eff6ff', issue:'#fdf4ff', hold:'#fffbeb', todo:'#f3f4f6' };
+  var ST_STATUS_CLR  = { done:'#16a34a', wip:'#2563eb', issue:'#9333ea', hold:'#d97706', todo:'#374151' };
+
+  function _stEsc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function openSoundTeamPanel() {
+    var today = new Date();
+    var yyyy = today.getFullYear();
+    var mm = String(today.getMonth() + 1).padStart(2, '0');
+    var dd = String(today.getDate()).padStart(2, '0');
+    var todayStr = yyyy + '-' + mm + '-' + dd;
+    var firstOfMonth = yyyy + '-' + mm + '-01';
+    document.getElementById('soundteam-date-from').value = firstOfMonth;
+    document.getElementById('soundteam-date-to').value = todayStr;
+    document.getElementById('soundteam-overlay').style.display = 'flex';
+    renderSoundTeamPanel();
+  }
+
+  function closeSoundTeamPanel() {
+    document.getElementById('soundteam-overlay').style.display = 'none';
+  }
+
+  function soundteamClearDate() {
+    document.getElementById('soundteam-date-from').value = '';
+    document.getElementById('soundteam-date-to').value = '';
+    renderSoundTeamPanel();
+  }
+
+  function renderSoundTeamPanel() {
+    var body = document.getElementById('soundteam-body');
+    var dFrom = document.getElementById('soundteam-date-from').value || '';
+    var dTo   = document.getElementById('soundteam-date-to').value   || '';
+    var journals = loadJournals();
+
+    var html = '';
+    SOUND_TEAM_IDS.forEach(function(uid) {
+      var user = (ALL_USERS || []).find(function(u) { return u.id === uid; });
+      if (!user) return;
+
+      var uJournals = journals.filter(function(j) {
+        if (j.user_id !== uid) return false;
+        if (dFrom && (j.date || '') < dFrom) return false;
+        if (dTo   && (j.date || '') > dTo)   return false;
+        return true;
+      }).sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
+
+      // 기간 내 tasks 누적 집계 (중복 텍스트 병합, 최신 status 우선)
+      var taskMap = {}; // key: text, value: { status, dates[] }
+      uJournals.forEach(function(j) {
+        (j.tasks || []).forEach(function(t) {
+          var txt = (t.text || '').trim();
+          if (!txt) return;
+          if (!taskMap[txt]) {
+            taskMap[txt] = { status: t.status || 'todo', dates: [] };
+          } else {
+            // 최신 status로 덮어쓰기 (journals가 날짜 내림차순이므로 첫 번째가 최신)
+          }
+          if (j.date && taskMap[txt].dates.indexOf(j.date) === -1) {
+            taskMap[txt].dates.push(j.date);
+          }
+        });
+      });
+
+      var taskEntries = Object.keys(taskMap).map(function(txt) {
+        return { text: txt, status: taskMap[txt].status, count: taskMap[txt].dates.length };
+      });
+
+      // 프로필 이미지
+      var imgSrc = (PROFILE_IMG && PROFILE_IMG[user.username]) ? PROFILE_IMG[user.username] : null;
+      var avatarHtml = imgSrc
+        ? '<img src="' + imgSrc + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #e0f2fe;flex-shrink:0">'
+        : '<div style="width:36px;height:36px;border-radius:50%;background:#0ea5e9;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0">' + (user.fullName || '?').charAt(0) + '</div>';
+
+      html += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">';
+      // 직원 헤더
+      html += '<div style="padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f1f5f9">'
+        + avatarHtml
+        + '<div style="min-width:0">'
+          + '<div style="font-size:13px;font-weight:700;color:#1e293b">' + _stEsc(user.fullName) + '</div>'
+          + '<div style="font-size:11px;color:#94a3b8;margin-top:1px">' + _stEsc(user.dept) + '</div>'
+        + '</div>'
+        + '<div style="margin-left:auto;font-size:11px;color:#64748b;background:#f1f5f9;padding:3px 8px;border-radius:10px;white-space:nowrap">'
+          + (taskEntries.length > 0 ? taskEntries.length + '개 업무' : '업무 없음')
+        + '</div>'
+        + '</div>';
+
+      // 업무 목록
+      if (taskEntries.length === 0) {
+        html += '<div style="padding:20px 14px;text-align:center;color:#94a3b8;font-size:12px">'
+          + (dFrom || dTo ? '해당 기간에 업무 내역이 없습니다.' : '등록된 업무가 없습니다.') + '</div>';
+      } else {
+        html += '<div style="padding:10px 14px 12px;display:flex;flex-direction:column;gap:6px">';
+        taskEntries.forEach(function(t) {
+          var bg  = ST_STATUS_BG[t.status]  || '#f3f4f6';
+          var clr = ST_STATUS_CLR[t.status] || '#374151';
+          var nm  = ST_STATUS_NAME[t.status] || t.status;
+          html += '<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:8px;background:#f8fafc;border:1px solid #f1f5f9">'
+            + '<span style="flex-shrink:0;margin-top:1px;display:inline-block;padding:2px 7px;border-radius:6px;background:' + bg + ';color:' + clr + ';font-size:10px;font-weight:700;white-space:nowrap">' + nm + '</span>'
+            + '<span style="font-size:12px;color:#374151;line-height:1.5;word-break:break-all">' + _stEsc(t.text) + '</span>'
+            + (t.count > 1 ? '<span style="flex-shrink:0;margin-left:auto;font-size:10px;color:#94a3b8;white-space:nowrap">' + t.count + '일</span>' : '')
+            + '</div>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+    });
+
+    body.innerHTML = html || '<div style="text-align:center;padding:40px 0;color:#94a3b8;font-size:13px">불러올 데이터가 없습니다.</div>';
   }
 </script>
 </body>
