@@ -5404,8 +5404,8 @@
     }
     function fmtPct(cur, prev) {
       if (!prev) return null;
-      var pct = Math.round((cur - prev) / prev * 100);
-      return (pct >= 0 ? '+' : '') + pct + '%';
+      var pct = ((cur - prev) / prev * 100).toFixed(2);
+      return (parseFloat(pct) >= 0 ? '+' : '') + pct + '%';
     }
 
     var ctx = document.getElementById('sales-chart').getContext('2d');
@@ -5553,8 +5553,8 @@
 
     function yoyBadge(cur, prev) {
       if (!prev) return '';
-      var pct = Math.round((cur - prev) / prev * 100);
-      var up = pct >= 0;
+      var pct = ((cur - prev) / prev * 100).toFixed(2);
+      var up = parseFloat(pct) >= 0;
       return '<span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:6px;background:'+(up?'#dcfce7':'#fee2e2')+';color:'+(up?'#16a34a':'#dc2626')+'">'+(up?'▲':'▼')+' '+(up?'+':'')+pct+'%</span>';
     }
 
@@ -5597,8 +5597,8 @@
       var v = entry[item.key] || 0;
       var pv = hasPrev ? (prevEntry[item.key]||0) : 0;
       var badge = hasPrev && pv ? (function(){
-        var pct = Math.round((v-pv)/pv*100);
-        var up = pct >= 0;
+        var pct = ((v-pv)/pv*100).toFixed(2);
+        var up = parseFloat(pct) >= 0;
         return '<div style="font-size:9px;font-weight:700;color:'+(up?'#16a34a':'#dc2626')+'">'+(up?'▲':'▼')+(up?'+':'')+pct+'%</div>';
       })() : '';
       return '<div style="background:'+item.bg+';border-radius:7px;padding:7px 8px;border:1px solid '+item.color+'33;text-align:center">'
