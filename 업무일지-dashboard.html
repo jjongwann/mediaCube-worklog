@@ -1747,10 +1747,11 @@
 
     <!-- 매출 상세 보기 모달 -->
     <div id="sales-detail-overlay" onclick="if(event.target===this)closeSalesDetail()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:10006;align-items:center;justify-content:center">
-      <div style="background:#fff;border-radius:16px;width:480px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.22);font-family:inherit">
-        <div id="sales-detail-header" style="display:flex;align-items:center;padding:16px 20px;border-radius:16px 16px 0 0;color:#fff">
-          <span id="sales-detail-title" style="font-size:14px;font-weight:700;flex:1"></span>
-          <button onclick="closeSalesDetail()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:20px;line-height:1;opacity:0.8">×</button>
+      <div style="background:#fff;border-radius:16px;width:500px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.22);font-family:inherit">
+        <div id="sales-detail-header" style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-radius:16px 16px 0 0;color:#fff">
+          <span id="sales-detail-title" style="font-size:13px;font-weight:700;flex:1;white-space:nowrap"></span>
+          <select id="sales-detail-month-sel" onchange="openSalesDetail(_salesDetailType,this.value)" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.35);border-radius:8px;color:#fff;font-size:12px;font-weight:600;padding:5px 10px;cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;min-width:110px;text-align:center"></select>
+          <button onclick="closeSalesDetail()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;line-height:1;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button>
         </div>
         <div id="sales-detail-body" style="padding:20px"></div>
       </div>
@@ -5551,7 +5552,10 @@
     document.getElementById('sales-input-overlay').style.display = 'none';
   }
 
+  var _salesDetailType = 'real';
+
   function openSalesDetail(type, key) {
+    _salesDetailType = type;
     var data  = salesLoadData();
     var entry = salesGetEntry(data, key);
     var p     = key.split('-');
@@ -5560,8 +5564,20 @@
     var prevKey = (curYear-1)+'-'+curMon;
     var prevEntry = data[prevKey] ? salesGetEntry(data, prevKey) : null;
 
-    function fmtOri(v) { return v.toLocaleString() + '원'; }
+    // 월 드롭다운 채우기
+    var allKeys = Object.keys(data).sort(function(a, b) {
+      var ap = a.split('-'), bp = b.split('-');
+      return (parseInt(bp[0])*100+parseInt(bp[1])) - (parseInt(ap[0])*100+parseInt(ap[1]));
+    });
+    var selEl = document.getElementById('sales-detail-month-sel');
+    selEl.innerHTML = allKeys.map(function(k) {
+      var kp = k.split('-');
+      return '<option value="'+k+'"'+(k===key?' selected':'')+' style="color:#111;background:#fff">'+kp[0]+'년 '+kp[1]+'월</option>';
+    }).join('');
+
+    function fmtOri(v) { return (v||0).toLocaleString() + '원'; }
     function fmtW2(v) {
+      v = v || 0;
       if (v >= 100000000) return (v/100000000).toFixed(2)+'억원';
       if (v >= 10000)     return (v/10000).toFixed(0)+'만원';
       return v.toLocaleString()+'원';
@@ -5570,68 +5586,82 @@
       if (!prev) return '';
       var pct = ((cur - prev) / prev * 100).toFixed(2);
       var up = parseFloat(pct) >= 0;
-      return '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px;background:'+(up?'#dcfce7':'#fee2e2')+';color:'+(up?'#16a34a':'#dc2626')+'">'+(up?'▲':'▼')+' '+(up?'+':'')+pct+'%</span>';
+      return '<span style="font-size:11px;font-weight:700;padding:2px 9px;border-radius:10px;margin-left:8px;background:'+(up?'#dcfce7':'#fee2e2')+';color:'+(up?'#16a34a':'#dc2626')+'">'+(up?'▲':'▼')+' '+(up?'+':'')+pct+'%</span>';
     }
 
     var isReal = type === 'real';
+    var accentColor = isReal ? '#2563eb' : '#16a34a';
     var headerBg = isReal ? 'linear-gradient(135deg,#2563eb,#1d4ed8)' : 'linear-gradient(135deg,#16a34a,#15803d)';
-    var titleStr = (isReal ? '실 매출' : '총 매출') + ' 상세 — ' + label;
+    var bgLight   = isReal ? '#dbeafe' : '#f0fdf4';
+    var textDark  = isReal ? '#1e40af' : '#15803d';
 
-    var total    = isReal ? entry._real  : entry._total;
+    var total     = isReal ? entry._real  : entry._total;
     var prevTotal = prevEntry ? (isReal ? prevEntry._real : prevEntry._total) : 0;
 
-    // 항목 rows (실매출은 전년비교만, 총매출은 8개 항목)
-    var rows = '';
-    if (isReal) {
-      // 전년 동월 비교 행
-      if (prevEntry) {
-        rows = '<div style="padding:8px 0;border-bottom:1px solid #f1f5f9">'
+    // 헤더 제목 (월 드롭다운이 있으므로 타입명만)
+    document.getElementById('sales-detail-header').style.background = headerBg;
+    document.getElementById('sales-detail-title').textContent = (isReal ? '실 매출' : '총 매출') + ' 상세';
+
+    // 상단 요약 박스
+    var summaryBox =
+      '<div style="margin-bottom:16px;padding:14px 16px;background:'+bgLight+';border-radius:12px">'
+        + '<div style="font-size:11px;color:'+accentColor+';font-weight:700;margin-bottom:6px">'+(isReal?'실 매출':'총 매출')+' — '+label+'</div>'
+        + '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'
+          + '<span style="font-size:24px;font-weight:800;color:'+textDark+'">'+fmtW2(total)+'</span>'
+          + yoyStr(total, prevTotal)
+        + '</div>'
+        + '<div style="font-size:11px;color:#64748b;margin-top:4px">'+fmtOri(total)+'</div>'
+      + '</div>';
+
+    // 전년 동월 비교 섹션 (공통)
+    var yoySection = '';
+    if (prevEntry) {
+      yoySection =
+        '<div style="margin-top:12px;padding:12px 14px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0">'
+          + '<div style="font-size:11px;color:#64748b;font-weight:600;margin-bottom:8px">전년 동월 비교</div>'
           + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
-            + '<span style="font-size:12px;color:#64748b;font-weight:600">전년 동월 ('+(curYear-1)+'년 '+curMon+'월)</span>'
-            + '<span style="font-size:12px;font-weight:700;color:#374151">'+fmtOri(prevTotal)+'</span>'
+            + '<span style="font-size:12px;color:#64748b">'+(curYear-1)+'년 '+curMon+'월</span>'
+            + '<span style="font-size:13px;font-weight:700;color:#374151">'+fmtOri(prevTotal)+'</span>'
           + '</div>'
           + '<div style="display:flex;align-items:center;justify-content:space-between">'
-            + '<span style="font-size:12px;color:#64748b;font-weight:600">전년 대비</span>'
-            + '<span style="font-size:12px;font-weight:700">' + yoyStr(total, prevTotal) + '</span>'
+            + '<span style="font-size:12px;color:#64748b">전년 대비</span>'
+            + '<span>'+yoyStr(total, prevTotal)+'</span>'
           + '</div>'
         + '</div>';
-      }
+    }
+
+    // 항목 rows
+    var rows = '';
+    if (isReal) {
+      // 실매출: 설명 텍스트
+      rows = '<div style="padding:10px 0;border-bottom:1px solid #f1f5f9;margin-bottom:4px">'
+        + '<div style="display:flex;align-items:center;gap:8px">'
+          + '<div style="width:10px;height:10px;border-radius:50%;background:'+accentColor+';flex-shrink:0"></div>'
+          + '<div style="flex:1;font-size:12px;font-weight:700;color:#374151">실 매출</div>'
+          + '<div style="font-size:13px;font-weight:700;color:'+accentColor+'">'+fmtOri(total)+'</div>'
+        + '</div>'
+      + '</div>';
     } else {
       var items = SALES_ITEMS.map(function(i) {
         return { label: i.label, value: entry[i.key]||0, color: i.color };
       });
       items.push({ label: '합계', value: entry._total, color: '#0f172a', bold: true });
-      rows = items.map(function(item) {
-        var pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0.0';
-        var isSub = item.label !== '합계';
-        return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9">'
-          + '<div style="width:10px;height:10px;border-radius:50%;background:'+item.color+';flex-shrink:0"></div>'
-          + '<div style="flex:1;font-size:12px;font-weight:'+(item.bold?'700':'500')+';color:#374151">'+item.label+'</div>'
-          + '<div style="font-size:12px;font-weight:700;color:'+item.color+';min-width:110px;text-align:right">'+fmtOri(item.value)+'</div>'
-          + (isSub ? '<div style="font-size:11px;color:#94a3b8;min-width:40px;text-align:right">'+pct+'%</div>' : '<div style="min-width:40px"></div>')
-          + '</div>';
-      }).join('');
-      if (prevEntry) {
-        rows += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0 4px">'
-          + '<span style="font-size:12px;color:#64748b;font-weight:600">전년 동월 ('+(curYear-1)+'년 '+curMon+'월) ' + fmtOri(prevTotal) + '</span>'
-          + yoyStr(total, prevTotal)
-          + '</div>';
-      }
+      rows = '<div style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:4px">'
+        + items.map(function(item, idx) {
+          var pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0.0';
+          var isSub = item.label !== '합계';
+          var isLast = !isSub;
+          return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;'+(isLast?'background:#f8fafc;border-top:1px solid #e2e8f0':'border-bottom:1px solid #f1f5f9')+'">'
+            + '<div style="width:9px;height:9px;border-radius:50%;background:'+item.color+';flex-shrink:0"></div>'
+            + '<div style="flex:1;font-size:12px;font-weight:'+(item.bold?'700':'500')+';color:#374151">'+item.label+'</div>'
+            + '<div style="font-size:12px;font-weight:700;color:'+(isLast?'#0f172a':item.color)+';min-width:115px;text-align:right">'+fmtOri(item.value)+'</div>'
+            + (isSub ? '<div style="font-size:11px;color:#94a3b8;min-width:42px;text-align:right">'+pct+'%</div>' : '<div style="min-width:42px"></div>')
+            + '</div>';
+        }).join('')
+        + '</div>';
     }
 
-    document.getElementById('sales-detail-header').style.background = headerBg;
-    document.getElementById('sales-detail-title').textContent = titleStr;
-    document.getElementById('sales-detail-body').innerHTML =
-      '<div style="margin-bottom:14px;padding:12px 14px;background:'+(isReal?'#dbeafe':'#f0fdf4')+';border-radius:10px">'
-        + '<div style="font-size:11px;color:'+(isReal?'#2563eb':'#16a34a')+';font-weight:700;margin-bottom:4px">'+(isReal?'실 매출':'총 매출')+'</div>'
-        + '<div style="display:flex;align-items:center">'
-          + '<span style="font-size:22px;font-weight:800;color:'+(isReal?'#1e40af':'#15803d')+'">'+fmtW2(total)+'</span>'
-          + yoyStr(total, prevTotal)
-        + '</div>'
-        + '<div style="font-size:11px;color:#64748b;margin-top:3px">'+fmtOri(total)+'</div>'
-      + '</div>'
-      + rows;
-
+    document.getElementById('sales-detail-body').innerHTML = summaryBox + rows + yoySection;
     document.getElementById('sales-detail-overlay').style.display = 'flex';
   }
 
