@@ -5539,8 +5539,14 @@
     if (_salesChart) { _salesChart.destroy(); _salesChart = null; }
 
     var yTickCb = function(v){
-      if (v>=100000000) return (v/100000000).toFixed(0)+'억';
-      if (v>=10000)     return (v/10000).toFixed(0)+'만';
+      if (v >= 100000000) {
+        var a = v / 100000000;
+        return (a % 1 === 0 ? a.toFixed(0) : a.toFixed(1)) + '억';
+      }
+      if (v >= 10000) {
+        var m = v / 10000;
+        return (m % 1 === 0 ? m.toFixed(0) : m.toFixed(0)) + '만';
+      }
       return v.toLocaleString();
     };
     var commonScales = {
