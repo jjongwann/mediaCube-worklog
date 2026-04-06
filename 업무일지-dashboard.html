@@ -4450,8 +4450,8 @@
       if (adminSb) adminSb.style.display = '';
     }
     // 사운드콘텐츠사업부 소속이면 음원팀 업무 현황 버튼 표시
-    var _soundTeamIds = ['11ef0fe1-4e6d-4b1f-af04-5c42aa99acfd','0465c0f5-51bf-4730-ae75-4377c3dc61af','842ae24f-570e-4c75-8902-ed6cf476a0a7','90f0bfb3-3c69-4885-8ccc-5928fb29e29b'];
-    if (_soundTeamIds.indexOf(_userId) !== -1) {
+    var _soundUsernames = ['soundsupport','webmaster20','soundstore','soundsales'];
+    if (_soundUsernames.indexOf(_currentUsername) !== -1) {
       var stBtn = document.getElementById('soundteam-sidebar-btn');
       if (stBtn) stBtn.style.display = '';
     }
@@ -6436,7 +6436,6 @@
   input[type="date"].soundteam-date::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.6); }
 </style>
 <script>
-  var SOUND_TEAM_IDS = ['11ef0fe1-4e6d-4b1f-af04-5c42aa99acfd','0465c0f5-51bf-4730-ae75-4377c3dc61af','842ae24f-570e-4c75-8902-ed6cf476a0a7','90f0bfb3-3c69-4885-8ccc-5928fb29e29b'];
   var ST_STATUS_NAME = { done:'완료', wip:'진행 중', issue:'이슈', hold:'보류', todo:'예정' };
   var ST_STATUS_BG   = { done:'#f0fdf4', wip:'#eff6ff', issue:'#fdf4ff', hold:'#fffbeb', todo:'#f3f4f6' };
   var ST_STATUS_CLR  = { done:'#16a34a', wip:'#2563eb', issue:'#9333ea', hold:'#d97706', todo:'#374151' };
@@ -6472,13 +6471,18 @@
     var dTo   = document.getElementById('soundteam-date-to').value   || '';
     var journals = loadJournals();
 
+    // username 순서로 표시 (ALL_USERS에서 username으로 찾기)
+    var SOUND_USERNAMES = ['soundsupport','webmaster20','soundstore','soundsales'];
     var html = '';
-    SOUND_TEAM_IDS.forEach(function(uid) {
-      var user = (ALL_USERS || []).find(function(u) { return u.id === uid; });
+    SOUND_USERNAMES.forEach(function(uname) {
+      var user = (ALL_USERS || []).find(function(u) { return u.username === uname; });
       if (!user) return;
+      var uid = user.id;
 
       var uJournals = journals.filter(function(j) {
-        if (j.user_id !== uid) return false;
+        // user_id 또는 author(username)로 매칭
+        if (j.user_id && j.user_id !== uid) return false;
+        if (!j.user_id && (j.author || '') !== uname) return false;
         if (dFrom && (j.date || '') < dFrom) return false;
         if (dTo   && (j.date || '') > dTo)   return false;
         return true;
