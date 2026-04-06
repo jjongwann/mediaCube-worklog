@@ -6471,10 +6471,11 @@
   async function _fetchSoundTeamJournals() {
     var SOUND_NAMES = ['윤다은 주임','최해현 사원','김태오 과장','신동원 차장'];
     // PostgREST or 필터로 팀원 4명 author 기준 조회
-    var orFilter = SOUND_NAMES.map(function(n) {
-      return 'author.eq.' + n;
+    // PostgREST or 필터: 각 값만 인코딩, 구조(or=, .eq., 쉼표)는 그대로 유지
+    var orParts = SOUND_NAMES.map(function(n) {
+      return 'author.eq.' + encodeURIComponent(n);
     }).join(',');
-    var url = SB_URL + '/rest/v1/journals?select=*&or=(' + encodeURIComponent(orFilter) + ')&order=date.desc,created_at.desc';
+    var url = SB_URL + '/rest/v1/journals?select=*&or=(' + orParts + ')&order=date.desc,created_at.desc';
     try {
       // 1차: 현재 사용자 JWT로 시도
       var res = await fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } });
