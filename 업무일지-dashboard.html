@@ -5766,8 +5766,9 @@
                   return ' ' + c.dataset.label + ': ' + fmtW(v);
                 },
                 afterLabel: function(c) {
-                  // hasPrev면 dataset[0]=전년, dataset[1]=현재 → 현재(index 1)에 전년대비 표시
+                  // dataset[0]=전년, dataset[1]=현재 → 둘 다 보일 때만 전년대비 표시
                   if (!hasPrev || c.datasetIndex !== 1) return;
+                  if (_salesChart && (_salesChart.getDatasetMeta(0).hidden || _salesChart.getDatasetMeta(1).hidden)) return;
                   var cur = chartValues[c.dataIndex]||0;
                   var prev = prevValues[c.dataIndex]||0;
                   var p2 = fmtPct(cur, prev);
@@ -5827,7 +5828,9 @@
                 title: function(items){ return items[0].label; },
                 label: function(c){ return ' ' + c.dataset.label + ': ' + fmtW(c.dataset.data[c.dataIndex]||0); },
                 afterLabel: function(c) {
+                  // dataset[0]=전년, dataset[1]=현재 → 둘 다 보일 때만 전년대비 표시
                   if (!hasPrev || c.datasetIndex !== 0) return;
+                  if (_salesChart && (_salesChart.getDatasetMeta(0).hidden || _salesChart.getDatasetMeta(1).hidden)) return;
                   var p2 = fmtPct(chartValues[c.dataIndex]||0, prevValues[c.dataIndex]||0);
                   return p2 ? ' 전년대비: ' + p2 : '';
                 }
