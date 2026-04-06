@@ -5795,35 +5795,36 @@
       totalSum  += e._total || 0;
     });
 
-    // 월별 레이블 & 데이터
-    var labels = allKeys.map(function(k){ var p=k.split('-'); return p[0]+'년 '+p[1]+'월'; });
+    // X축 = 항목(8개), Y값 = 기간 누적 합산 → 단일 dataset
+    var labels    = SALES_ITEMS.map(function(i){ return i.label; });
+    var values    = SALES_ITEMS.map(function(i){ return totals[i.key]; });
+    var bgColors  = SALES_ITEMS.map(function(i){ return i.color + (_cumulType==='bar' ? 'cc' : '44'); });
+    var bdColors  = SALES_ITEMS.map(function(i){ return i.color; });
     var fp2=fromKey.split('-'), tp2=toKey.split('-');
     var rangeLabel = fp2[0]+'년 '+fp2[1]+'월 ~ '+tp2[0]+'년 '+tp2[1]+'월';
 
-    // Chart.js datasets — 항목별 월별 값
-    var datasets = SALES_ITEMS.map(function(item){
-      return {
-        label: item.label,
-        data: allKeys.map(function(k){ return salesGetEntry(data,k)[item.key]||0; }),
-        backgroundColor: item.color + ((_cumulType==='bar') ? 'cc' : '22'),
-        borderColor: item.color,
-        borderWidth: _cumulType==='bar' ? 0 : 2,
-        borderRadius: _cumulType==='bar' ? 4 : 0,
-        fill: _cumulType==='line',
-        tension: 0.4,
-        pointRadius: _cumulType==='line' ? 4 : 0,
-        pointBackgroundColor: item.color,
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2
-      };
-    });
+    var dataset = {
+      label: '누계 매출',
+      data: values,
+      backgroundColor: bgColors,
+      borderColor: bdColors,
+      borderWidth: _cumulType==='bar' ? 0 : 2,
+      borderRadius: _cumulType==='bar' ? 6 : 0,
+      maxBarThickness: 60,
+      fill: false,
+      tension: 0.4,
+      pointRadius: _cumulType==='line' ? 5 : 0,
+      pointBackgroundColor: bdColors,
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2
+    };
 
     var ctx = document.getElementById('cumul-chart').getContext('2d');
     if (_cumulChart) { _cumulChart.destroy(); _cumulChart=null; }
 
     _cumulChart = new Chart(ctx, {
       type: _cumulType==='bar' ? 'bar' : 'line',
-      data: { labels: labels, datasets: datasets },
+      data: { labels: labels, datasets: [dataset] },
       options: {
         responsive: true, maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
@@ -5833,12 +5834,13 @@
             backgroundColor: '#fff', titleColor: '#111827', bodyColor: '#374151',
             borderColor: '#e2e8f0', borderWidth: 1, padding: 10,
             callbacks: {
-              label: function(c){ return ' '+c.dataset.label+': '+fmtCumul(c.raw||0); }
+              title: function(items){ return items[0].label; },
+              label: function(c){ return ' 누계: '+fmtCumul(c.raw||0); }
             }
           }
         },
         scales: {
-          x: { grid:{display:false}, ticks:{font:{size:11,weight:'600'},color:'#374151',maxRotation:30} },
+          x: { grid:{display:false}, ticks:{font:{size:11,weight:'600'},color:'#374151'} },
           y: { beginAtZero:true, grid:{color:'#f3f4f6'}, ticks:{font:{size:10},color:'#9ca3af',
             callback: function(v){
               if(v>=100000000){ var a=v/100000000; return (a%1===0?a.toFixed(0):a.toFixed(1))+'억'; }
