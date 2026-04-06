@@ -5257,13 +5257,16 @@
 
   // 기본 데이터 (2026년 1월)
   var SALES_DEFAULT = {
+    '2025-1': { annual:8900000, needle:94200000, buyout:0, custom:326596, komca:87100963, youtube:989130, song:22000000, fee:301307 },
     '2026-1': { annual:40081818, needle:72990000, buyout:0, custom:560350, komca:171861, youtube:830908, song:41750000, fee:28534 }
   };
 
   function salesLoadData() {
     try {
       var raw = localStorage.getItem('mc_sales_data');
-      return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(SALES_DEFAULT));
+      var stored = raw ? JSON.parse(raw) : {};
+      // DEFAULT 데이터를 베이스로 깔고 저장된 데이터로 덮어씀
+      return Object.assign(JSON.parse(JSON.stringify(SALES_DEFAULT)), stored);
     } catch(e) { return JSON.parse(JSON.stringify(SALES_DEFAULT)); }
   }
 
