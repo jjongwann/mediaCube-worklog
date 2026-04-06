@@ -301,6 +301,8 @@
     <span class="hero-chip">💹 음원 매출 분석</span>
     <span class="hero-chip">📈 누계 통계</span>
     <span class="hero-chip">🖨 엑셀 / PDF</span>
+    <span class="hero-chip">💬 메신저</span>
+    <span class="hero-chip">🕐 업무 히스토리</span>
     <span class="hero-chip">👑 관리자</span>
   </div>
 </div>
@@ -319,8 +321,10 @@
       <a href="#s6"  class="toc-item"><span class="toc-num">6</span> 음원 매출 분석</a>
       <a href="#s7"  class="toc-item"><span class="toc-num">7</span> 월별 누계 통계</a>
       <a href="#s8"  class="toc-item"><span class="toc-num">8</span> 엑셀 / PDF 저장</a>
-      <a href="#s9"  class="toc-item"><span class="toc-num">9</span> 관리자 기능</a>
-      <a href="#s10" class="toc-item"><span class="toc-num">10</span> 계정 목록</a>
+      <a href="#s9"  class="toc-item"><span class="toc-num">9</span> 메신저</a>
+      <a href="#s10" class="toc-item"><span class="toc-num">10</span> 업무 히스토리</a>
+      <a href="#s11" class="toc-item"><span class="toc-num">11</span> 관리자 기능</a>
+      <a href="#s12" class="toc-item"><span class="toc-num">12</span> 계정 목록</a>
     </div>
   </div>
 
@@ -918,13 +922,157 @@
 
   <hr class="divider">
 
-  <!-- ══════════════════════════════ 9. 관리자 ══════════════════════════════ -->
+  <!-- ══════════════════════════════ 9. 메신저 ══════════════════════════════ -->
   <a id="s9" class="section-anchor"></a>
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#eff6ff;">💬</div>
+      <div class="section-meta">
+        <div class="section-num">Section 09</div>
+        <div class="section-title">메신저 (팀 내부 메시지)</div>
+      </div>
+    </div>
+
+    <div class="callout callout-blue" style="margin-bottom:20px;">
+      <span class="callout-icon">📌</span>
+      <span>대시보드 우측 상단 프로필 아이콘을 클릭하면 <strong>메시지 보내기</strong>와 <strong>메시지 목록</strong> 메뉴가 나타납니다. 팀원 간 내부 메시지를 주고받을 수 있습니다. 읽지 않은 메시지가 있으면 빨간 배지가 표시됩니다.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>메시지 보내기</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-label">프로필 클릭 → 메시지 보내기</div>
+            <div class="step-desc">우측 상단 프로필 아이콘 클릭 후 <strong>메시지 보내기</strong>를 선택하면 작성 패널이 열립니다.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-label">수신자 선택</div>
+            <div class="step-desc">목록에서 원하는 팀원을 선택합니다. 여러 명에게 동시에 보낼 수 있습니다.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-label">내용 작성 & 첨부파일</div>
+            <div class="step-desc">메시지 내용을 입력합니다. 파일을 첨부할 수 있습니다 <span class="tag">최대 10MB · 복수 선택 가능</span>. <kbd>Ctrl</kbd>+<kbd>Enter</kbd>로 빠르게 전송할 수 있습니다.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-label">보내기</div>
+            <div class="step-desc">보내기 버튼을 클릭하면 메시지가 전송됩니다. 수신자 화면에 팝업 알림이 나타납니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>메시지 목록 & 관리</div>
+      <div class="feat-grid">
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#eff6ff;">📥</div>
+          <div class="feat-body">
+            <div class="feat-title">수신 메시지 확인</div>
+            <div class="feat-desc">프로필 → <strong>메시지 목록</strong>에서 받은 메시지를 확인합니다. 클릭하면 전체 내용과 첨부파일을 볼 수 있습니다.</div>
+          </div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#fef2f2;">🗑️</div>
+          <div class="feat-body">
+            <div class="feat-title">메시지 삭제</div>
+            <div class="feat-desc">메시지 목록에서 체크박스로 선택 후 <strong>선택 삭제</strong>를 클릭하거나, 전체 선택 후 일괄 삭제할 수 있습니다.</div>
+          </div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#f0fdf4;">↩️</div>
+          <div class="feat-body">
+            <div class="feat-title">답장</div>
+            <div class="feat-desc">메시지 상세 보기에서 <strong>답장</strong> 버튼을 클릭하면 해당 발신자에게 바로 답장 작성 패널이 열립니다.</div>
+          </div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#fdf4ff;">🔴</div>
+          <div class="feat-body">
+            <div class="feat-title">읽지 않은 메시지 배지</div>
+            <div class="feat-desc">프로필 아이콘과 메시지 목록 버튼에 빨간 숫자 배지가 표시됩니다. 메시지를 열면 읽음 처리됩니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-green">
+      <span class="callout-icon">💡</span>
+      <span>직원 프로필 모달(일지 작성자 클릭)에서도 <strong>메시지 보내기</strong> 버튼으로 바로 메시지를 보낼 수 있습니다.</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ══════════════════════════════ 10. 업무 히스토리 ══════════════════════════════ -->
+  <a id="s10" class="section-anchor"></a>
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#f0fdf4;">🕐</div>
+      <div class="section-meta">
+        <div class="section-num">Section 10</div>
+        <div class="section-title">업무 히스토리</div>
+      </div>
+    </div>
+
+    <div class="callout callout-green" style="margin-bottom:20px;">
+      <span class="callout-icon">📌</span>
+      <span>사이드바 하단 <strong>업무 히스토리</strong>를 클릭하면 과거 일지에 기록된 <strong>익일 계획</strong>과 <strong>메모/특이사항</strong>을 한눈에 검색·조회할 수 있습니다.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#16a34a;"></span>탭 구성</div>
+      <div class="feat-grid">
+        <div class="feat-card" style="border-color:#bbf7d0;background:#f0fdf4;">
+          <div class="feat-icon" style="background:#dcfce7;">📋</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#15803d;">익일 계획</div>
+            <div class="feat-desc">각 일지에 작성된 <strong>다음 날 계획</strong>을 날짜순으로 모아서 보여줍니다. 계획 이행 여부를 히스토리로 추적할 수 있습니다.</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#bbf7d0;background:#f0fdf4;">
+          <div class="feat-icon" style="background:#dcfce7;">📝</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#15803d;">메모 / 특이사항</div>
+            <div class="feat-desc">일지에 기록된 <strong>특이사항 및 메모</strong>를 모아서 보여줍니다. 중요 기록을 빠르게 다시 찾을 수 있습니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#16a34a;"></span>검색 & 필터</div>
+      <ul class="tip-list">
+        <li><strong>내용 검색</strong> — 키워드를 입력하면 해당 내용이 포함된 항목만 표시됩니다.</li>
+        <li><strong>날짜 범위 필터</strong> — 시작일 ~ 종료일을 지정해 특정 기간의 기록만 조회합니다. 초기화 버튼으로 필터를 한 번에 제거할 수 있습니다.</li>
+        <li><strong>직원 필터</strong> (관리자 전용) — 특정 직원의 히스토리만 따로 볼 수 있습니다.</li>
+      </ul>
+      <div class="callout callout-blue" style="margin-top:14px;">
+        <span class="callout-icon">💡</span>
+        <span>검색·필터는 실시간으로 적용됩니다. 별도의 조회 버튼 없이 입력하는 즉시 결과가 갱신됩니다.</span>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ══════════════════════════════ 11. 관리자 ══════════════════════════════ -->
+  <a id="s11" class="section-anchor"></a>
   <div class="section">
     <div class="section-header">
       <div class="section-icon" style="background:#fef3c7;">👑</div>
       <div class="section-meta">
-        <div class="section-num">Section 09</div>
+        <div class="section-num">Section 11</div>
         <div class="section-title">관리자 기능 <span class="upd-badge">UPDATED</span></div>
       </div>
     </div>
@@ -979,13 +1127,13 @@
 
   <hr class="divider">
 
-  <!-- ══════════════════════════════ 10. 계정 목록 ══════════════════════════════ -->
-  <a id="s10" class="section-anchor"></a>
+  <!-- ══════════════════════════════ 12. 계정 목록 ══════════════════════════════ -->
+  <a id="s12" class="section-anchor"></a>
   <div class="section">
     <div class="section-header">
       <div class="section-icon" style="background:#f3f4f6;">👥</div>
       <div class="section-meta">
-        <div class="section-num">Section 10</div>
+        <div class="section-num">Section 12</div>
         <div class="section-title">계정 목록</div>
       </div>
     </div>
