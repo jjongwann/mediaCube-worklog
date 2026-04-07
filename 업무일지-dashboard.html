@@ -2427,7 +2427,7 @@
 
   /* ── 음원팀 버튼: 사운드콘텐츠사업부 소속이면 즉시 표시 ── */
   document.addEventListener('DOMContentLoaded', function() {
-    var _soundUsernames = ['soundsupport','webmaster20','soundstore','soundsales','marketing','sunlee','admin'];
+    var _soundUsernames = ['soundsupport','webmaster20','soundstore','soundsales','marketing','sunlee','admin','developer'];
     if (_soundUsernames.indexOf(_currentUsername) !== -1) {
       var stBtn = document.getElementById('soundteam-sidebar-btn');
       if (stBtn) stBtn.style.display = '';
@@ -4476,7 +4476,7 @@
       if (adminSb) adminSb.style.display = '';
     }
     // 사운드콘텐츠사업부 소속이면 음원팀 업무 현황 버튼 표시
-    var _soundUsernames = ['soundsupport','webmaster20','soundstore','soundsales','marketing','sunlee','admin'];
+    var _soundUsernames = ['soundsupport','webmaster20','soundstore','soundsales','marketing','sunlee','admin','developer'];
     if (_soundUsernames.indexOf(_currentUsername) !== -1) {
       var stBtn = document.getElementById('soundteam-sidebar-btn');
       if (stBtn) stBtn.style.display = '';
@@ -6635,6 +6635,7 @@
     var wrapper = document.createElement('div');
     wrapper.style.cssText = 'padding:16px 16px 32px;display:flex;flex-direction:column;gap:12px';
 
+    // developer는 패널 열람 권한만, 본인 업무는 패널에 미표시
     var SOUND_USERNAMES = ['soundsupport','webmaster20','soundstore','soundsales','marketing','sunlee','admin'];
     var hasAny = false;
 

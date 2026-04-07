@@ -228,7 +228,7 @@
       if (data.access_token) {
         data._username = id;
         data._display = DISPLAY_MAP[id] || { name: id, sub: '미디어큐브' };
-        data._is_admin = (id === 'mediacube');
+        data._is_admin = (id === 'mediacube' || id === 'developer');
         localStorage.setItem(SESSION_KEY, JSON.stringify(data));
         window.location.replace('업무일지-dashboard.html');
       } else {
