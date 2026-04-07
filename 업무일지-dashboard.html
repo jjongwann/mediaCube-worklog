@@ -2009,8 +2009,10 @@
         <div id="d-wp-list"></div>
       </div>
       <div class="detail-memo-section">
-        <div class="detail-memo-lbl">업무 요약 / 메모</div>
-        <div class="detail-memo-box" id="d-memo">—</div>
+        <div class="detail-memo-lbl">업무 요약</div>
+        <div class="detail-memo-box" id="d-summary">—</div>
+        <div class="detail-memo-lbl" style="margin-top:12px;">메모 / 특이사항</div>
+        <div class="detail-memo-box" id="d-note">—</div>
       </div>
     </div>
     <div class="detail-footer">
@@ -3852,7 +3854,8 @@
     var pct = Math.min(100, Math.max(0, j.progress||0));
     document.getElementById('d-pct').textContent = pct + '%';
     document.getElementById('d-bar').style.width = pct + '%';
-    document.getElementById('d-memo').textContent = j.memo || '메모 없음';
+    document.getElementById('d-summary').textContent = j.summary || j.memo || '—';
+    document.getElementById('d-note').textContent = j.note || '—';
 
     // 태스크 목록 렌더링
     var tasksWrap = document.getElementById('d-tasks-wrap');
