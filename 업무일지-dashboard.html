@@ -2672,6 +2672,13 @@
   /* ── Stats ── */
   function updateStats() {
     var all = loadJournals();
+    // 비관리자: 본인 일지만 통계 계산
+    if (!_isAdmin) {
+      var _myName = (_currentSession && _currentSession._display && (_currentSession._display.fullName || _currentSession._display.name)) || '';
+      all = all.filter(function(j) {
+        return (_userId && j.user_id === _userId) || (_myName && (j.author || '').trim() === _myName.trim());
+      });
+    }
     var today = new Date(); today.setHours(0,0,0,0);
     var todayStr = localDateStr(today);
     var weekStart = getWeekStart();
