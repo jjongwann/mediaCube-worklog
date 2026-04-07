@@ -6473,6 +6473,7 @@
     var firstOfMonth = yyyy + '-' + mm + '-01';
     document.getElementById('soundteam-date-from').value = firstOfMonth;
     document.getElementById('soundteam-date-to').value = todayStr;
+    _stVisibleMap = {}; // 열 때마다 각 직원 표시 개수 초기화
     document.getElementById('soundteam-overlay').style.display = 'flex';
     document.getElementById('soundteam-body').innerHTML = '<div style="text-align:center;padding:40px 0;color:#94a3b8;font-size:13px">불러오는 중...</div>';
     await _fetchSoundTeamJournals();
@@ -6523,22 +6524,116 @@
     renderSoundTeamPanel();
   }
 
+  var ST_PAGE_SIZE = 10;
+  var _stVisibleMap = {}; // username → 현재 표시 개수
+
+  function _stTaskRowHtml(t) {
+    var bg  = ST_STATUS_BG[t.status]  || '#f3f4f6';
+    var clr = ST_STATUS_CLR[t.status] || '#374151';
+    var nm  = ST_STATUS_NAME[t.status] || t.status;
+    return '<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:8px;background:#f8fafc;border:1px solid #f1f5f9">'
+      + '<span style="flex-shrink:0;margin-top:1px;display:inline-block;padding:2px 7px;border-radius:6px;background:' + bg + ';color:' + clr + ';font-size:10px;font-weight:700;white-space:nowrap">' + nm + '</span>'
+      + '<span style="flex:1;min-width:0;font-size:12px;color:#374151;line-height:1.5;word-break:break-word">' + _stEsc(t.text) + '</span>'
+      + (t.count > 1 ? '<span style="flex-shrink:0;font-size:10px;color:#94a3b8;white-space:nowrap;padding-left:4px">' + t.count + '일</span>' : '')
+      + '</div>';
+  }
+
+  function _stRenderCard(uname, taskEntries, visibleCount) {
+    var user = (ALL_USERS || []).find(function(u) { return u.username === uname; });
+    if (!user) return null;
+
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)';
+
+    // 헤더
+    var imgSrc = (PROFILE_IMG && PROFILE_IMG[uname]) ? PROFILE_IMG[uname] : null;
+    var avatarHtml = imgSrc
+      ? '<img src="' + imgSrc + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #e0f2fe;flex-shrink:0">'
+      : '<div style="width:36px;height:36px;border-radius:50%;background:#0ea5e9;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0">' + (user.fullName || '?').charAt(0) + '</div>';
+
+    card.innerHTML = '<div style="padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f1f5f9">'
+      + avatarHtml
+      + '<div style="min-width:0">'
+        + '<div style="font-size:13px;font-weight:700;color:#1e293b">' + _stEsc(user.fullName) + '</div>'
+        + '<div style="font-size:11px;color:#94a3b8;margin-top:1px">' + _stEsc(user.dept) + '</div>'
+      + '</div>'
+      + '<div style="margin-left:auto;font-size:11px;color:#64748b;background:#f1f5f9;padding:3px 8px;border-radius:10px;white-space:nowrap">'
+        + (taskEntries.length > 0 ? taskEntries.length + '개 업무' : '업무 없음')
+      + '</div>'
+      + '</div>';
+
+    if (taskEntries.length === 0) {
+      var empty = document.createElement('div');
+      empty.style.cssText = 'padding:20px 14px;text-align:center;color:#94a3b8;font-size:12px';
+      empty.textContent = '해당 기간에 업무 내역이 없습니다.';
+      card.appendChild(empty);
+      return card;
+    }
+
+    // 업무 목록 컨테이너
+    var listDiv = document.createElement('div');
+    listDiv.style.cssText = 'padding:10px 14px 4px;display:flex;flex-direction:column;gap:6px';
+
+    var shown = Math.min(visibleCount, taskEntries.length);
+    for (var i = 0; i < shown; i++) {
+      var row = document.createElement('div');
+      row.innerHTML = _stTaskRowHtml(taskEntries[i]);
+      listDiv.appendChild(row.firstChild);
+    }
+    card.appendChild(listDiv);
+
+    // 더 보기 / 접기 버튼
+    var remaining = taskEntries.length - shown;
+    var btnWrap = document.createElement('div');
+    btnWrap.style.cssText = 'padding:6px 14px 12px';
+
+    if (taskEntries.length > ST_PAGE_SIZE) {
+      var btn = document.createElement('button');
+      btn.style.cssText = 'width:100%;padding:7px 0;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:600;cursor:pointer;color:#64748b;font-family:inherit;transition:background 0.15s';
+      btn.onmouseover = function() { this.style.background = '#f1f5f9'; };
+      btn.onmouseout  = function() { this.style.background = '#f8fafc'; };
+
+      if (remaining > 0) {
+        btn.textContent = '더 보기 (' + remaining + '개 남음)';
+        btn.onclick = function() {
+          _stVisibleMap[uname] = (_stVisibleMap[uname] || ST_PAGE_SIZE) + ST_PAGE_SIZE;
+          renderSoundTeamPanel();
+        };
+      } else {
+        btn.textContent = '접기';
+        btn.style.color = '#94a3b8';
+        btn.onclick = function() {
+          _stVisibleMap[uname] = ST_PAGE_SIZE;
+          renderSoundTeamPanel();
+        };
+      }
+      btnWrap.appendChild(btn);
+    } else {
+      btnWrap.style.paddingTop = '2px';
+      btnWrap.style.paddingBottom = '8px';
+    }
+    card.appendChild(btnWrap);
+    return card;
+  }
+
   function renderSoundTeamPanel() {
     var body = document.getElementById('soundteam-body');
     var dFrom = document.getElementById('soundteam-date-from').value || '';
     var dTo   = document.getElementById('soundteam-date-to').value   || '';
     var journals = _soundTeamCache;
 
-    // username 순서로 표시 (ALL_USERS에서 username으로 찾기)
+    var wrapper = document.createElement('div');
+    wrapper.style.cssText = 'padding:16px 16px 32px;display:flex;flex-direction:column;gap:12px';
+
     var SOUND_USERNAMES = ['soundsupport','webmaster20','soundstore','soundsales'];
-    var html = '';
+    var hasAny = false;
+
     SOUND_USERNAMES.forEach(function(uname) {
       var user = (ALL_USERS || []).find(function(u) { return u.username === uname; });
       if (!user) return;
       var uid = user.id;
 
       var uJournals = journals.filter(function(j) {
-        // user_id(UUID) 또는 author(표시이름) 중 하나라도 일치하면 포함
         var matchById = uid && j.user_id === uid;
         var matchByName = user.fullName && (j.author || '').trim() === user.fullName.trim();
         if (!matchById && !matchByName) return false;
@@ -6547,20 +6642,13 @@
         return true;
       }).sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
 
-      // 기간 내 tasks 누적 집계 (중복 텍스트 병합, 최신 status 우선)
-      var taskMap = {}; // key: text, value: { status, dates[] }
+      var taskMap = {};
       uJournals.forEach(function(j) {
         (j.tasks || []).forEach(function(t) {
           var txt = (t.text || '').trim();
           if (!txt) return;
-          if (!taskMap[txt]) {
-            taskMap[txt] = { status: t.status || 'todo', dates: [] };
-          } else {
-            // 최신 status로 덮어쓰기 (journals가 날짜 내림차순이므로 첫 번째가 최신)
-          }
-          if (j.date && taskMap[txt].dates.indexOf(j.date) === -1) {
-            taskMap[txt].dates.push(j.date);
-          }
+          if (!taskMap[txt]) taskMap[txt] = { status: t.status || 'todo', dates: [] };
+          if (j.date && taskMap[txt].dates.indexOf(j.date) === -1) taskMap[txt].dates.push(j.date);
         });
       });
 
@@ -6568,47 +6656,20 @@
         return { text: txt, status: taskMap[txt].status, count: taskMap[txt].dates.length };
       });
 
-      // 프로필 이미지
-      var imgSrc = (PROFILE_IMG && PROFILE_IMG[user.username]) ? PROFILE_IMG[user.username] : null;
-      var avatarHtml = imgSrc
-        ? '<img src="' + imgSrc + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #e0f2fe;flex-shrink:0">'
-        : '<div style="width:36px;height:36px;border-radius:50%;background:#0ea5e9;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0">' + (user.fullName || '?').charAt(0) + '</div>';
-
-      html += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)">';
-      // 직원 헤더
-      html += '<div style="padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f1f5f9">'
-        + avatarHtml
-        + '<div style="min-width:0">'
-          + '<div style="font-size:13px;font-weight:700;color:#1e293b">' + _stEsc(user.fullName) + '</div>'
-          + '<div style="font-size:11px;color:#94a3b8;margin-top:1px">' + _stEsc(user.dept) + '</div>'
-        + '</div>'
-        + '<div style="margin-left:auto;font-size:11px;color:#64748b;background:#f1f5f9;padding:3px 8px;border-radius:10px;white-space:nowrap">'
-          + (taskEntries.length > 0 ? taskEntries.length + '개 업무' : '업무 없음')
-        + '</div>'
-        + '</div>';
-
-      // 업무 목록
-      if (taskEntries.length === 0) {
-        html += '<div style="padding:20px 14px;text-align:center;color:#94a3b8;font-size:12px">'
-          + (dFrom || dTo ? '해당 기간에 업무 내역이 없습니다.' : '등록된 업무가 없습니다.') + '</div>';
-      } else {
-        html += '<div style="padding:10px 14px 12px;display:flex;flex-direction:column;gap:6px">';
-        taskEntries.forEach(function(t) {
-          var bg  = ST_STATUS_BG[t.status]  || '#f3f4f6';
-          var clr = ST_STATUS_CLR[t.status] || '#374151';
-          var nm  = ST_STATUS_NAME[t.status] || t.status;
-          html += '<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:8px;background:#f8fafc;border:1px solid #f1f5f9">'
-            + '<span style="flex-shrink:0;margin-top:1px;display:inline-block;padding:2px 7px;border-radius:6px;background:' + bg + ';color:' + clr + ';font-size:10px;font-weight:700;white-space:nowrap">' + nm + '</span>'
-            + '<span style="flex:1;min-width:0;font-size:12px;color:#374151;line-height:1.5;word-break:break-word">' + _stEsc(t.text) + '</span>'
-            + (t.count > 1 ? '<span style="flex-shrink:0;font-size:10px;color:#94a3b8;white-space:nowrap;padding-left:4px">' + t.count + '일</span>' : '')
-            + '</div>';
-        });
-        html += '</div>';
-      }
-      html += '</div>';
+      if (!_stVisibleMap[uname]) _stVisibleMap[uname] = ST_PAGE_SIZE;
+      var card = _stRenderCard(uname, taskEntries, _stVisibleMap[uname]);
+      if (card) { wrapper.appendChild(card); hasAny = true; }
     });
 
-    body.innerHTML = '<div style="padding:16px 16px 32px;display:flex;flex-direction:column;gap:12px">' + (html || '<div style="text-align:center;padding:40px 0;color:#94a3b8;font-size:13px">불러올 데이터가 없습니다.</div>') + '</div>';
+    if (!hasAny) {
+      var empty = document.createElement('div');
+      empty.style.cssText = 'text-align:center;padding:40px 0;color:#94a3b8;font-size:13px';
+      empty.textContent = '불러올 데이터가 없습니다.';
+      wrapper.appendChild(empty);
+    }
+
+    body.innerHTML = '';
+    body.appendChild(wrapper);
   }
 </script>
 </body>
