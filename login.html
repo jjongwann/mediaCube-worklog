@@ -221,8 +221,10 @@
       headers: { 'apikey': SB_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email, password: pw })
     })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
+    .then(function(r) { return r.json().then(function(data) { return { status: r.status, data: data }; }); })
+    .then(function(res) {
+      var status = res.status;
+      var data = res.data;
       if (data.access_token) {
         data._username = id;
         data._display = DISPLAY_MAP[id] || { name: id, sub: '미디어큐브' };
@@ -230,13 +232,36 @@
         localStorage.setItem(SESSION_KEY, JSON.stringify(data));
         window.location.replace('업무일지-dashboard.html');
       } else {
-        showError('아이디 또는 비밀번호가 틀렸습니다.');
+        var msg = '로그인에 실패했습니다.';
+        var errCode = (data.error_code || data.error || '').toString().toLowerCase();
+        var errMsg  = (data.message || data.msg || data.error_description || '').toString().toLowerCase();
+        if (status === 400 || status === 401 || status === 422) {
+          if (errCode.indexOf('invalid') !== -1 || errMsg.indexOf('invalid login') !== -1 || errMsg.indexOf('invalid credentials') !== -1 || errMsg.indexOf('wrong password') !== -1) {
+            msg = '비밀번호가 올바르지 않습니다. 다시 확인해 주세요.';
+          } else if (errMsg.indexOf('email not confirmed') !== -1) {
+            msg = '이메일 인증이 완료되지 않은 계정입니다. 관리자에게 문의하세요.';
+          } else if (errMsg.indexOf('user not found') !== -1 || errMsg.indexOf('no user') !== -1) {
+            msg = '등록되지 않은 계정입니다. 관리자에게 문의하세요.';
+          } else if (errMsg.indexOf('too many') !== -1 || errCode.indexOf('over_request_rate_limit') !== -1) {
+            msg = '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.';
+          } else {
+            msg = '비밀번호가 올바르지 않습니다. 다시 확인해 주세요.';
+          }
+        } else if (status === 429) {
+          msg = '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.';
+        } else if (status >= 500) {
+          msg = '서버 오류가 발생했습니다 (오류코드: ' + status + '). 잠시 후 다시 시도해 주세요.';
+        }
+        // 개발 디버그용 (콘솔에만 출력)
+        console.warn('[Login Error]', status, data);
+        showError(msg);
         btn.disabled = false;
         btn.textContent = '로그인';
       }
     })
-    .catch(function() {
-      showError('네트워크 오류가 발생했습니다. 다시 시도해 주세요.');
+    .catch(function(e) {
+      console.warn('[Login Network Error]', e);
+      showError('네트워크 오류가 발생했습니다. 인터넷 연결을 확인하고 다시 시도해 주세요.');
       btn.disabled = false;
       btn.textContent = '로그인';
     });
