@@ -2067,6 +2067,7 @@
     document.addEventListener('click', function (e) {
       if (_activeDropdown && !_activeDropdown.contains(e.target)) closeStatusDropdown();
     });
+    document.addEventListener('scroll', closeStatusDropdown, true);
 
     function wireStatus(badge) {
       badge.addEventListener('click', function (e) {
@@ -2106,10 +2107,17 @@
         document.body.appendChild(dropdown);
         _activeDropdown = dropdown;
 
-        // 위치 설정 — 배지 아래 정렬
+        // 위치 설정 — 배지 아래 정렬, 뷰포트 넘침 방지
         var rect = badge.getBoundingClientRect();
-        var top = rect.bottom + 4;
+        var dropH = dropdown.offsetHeight || 180;
         var left = rect.left;
+        var top;
+        if (rect.bottom + 4 + dropH > window.innerHeight) {
+          top = rect.top - dropH - 4; // 배지 위쪽으로
+        } else {
+          top = rect.bottom + 4;
+        }
+        if (top < 0) top = 4;
         if (left + 140 > window.innerWidth) left = window.innerWidth - 150;
         dropdown.style.top = top + 'px';
         dropdown.style.left = left + 'px';
