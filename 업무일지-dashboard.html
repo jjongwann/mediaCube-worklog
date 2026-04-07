@@ -6412,13 +6412,13 @@
 </script>
 
 <!-- ── 음원팀 업무 현황 패널 ── -->
-<div id="soundteam-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9990;align-items:flex-start;justify-content:flex-end" onclick="if(event.target===this)closeSoundTeamPanel()">
-  <div style="width:480px;height:100vh;background:#fff;box-shadow:-8px 0 32px rgba(0,0,0,0.15);display:flex;flex-direction:column;font-family:inherit;animation:soundteamSlideIn 0.25s ease">
-    <!-- 헤더 -->
+<div id="soundteam-overlay" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.4);z-index:9990" onclick="if(event.target===this)closeSoundTeamPanel()">
+  <div style="position:absolute;top:0;right:0;bottom:0;width:480px;max-width:100vw;background:#fff;box-shadow:-8px 0 32px rgba(0,0,0,0.15);display:flex;flex-direction:column;font-family:inherit;animation:soundteamSlideIn 0.25s ease;overflow:hidden">
+    <!-- 헤더 (고정) -->
     <div style="padding:20px 20px 16px;background:linear-gradient(135deg,#0ea5e9,#0369a1);flex-shrink:0">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:32px;height:32px;background:rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center">
+          <div style="width:32px;height:32px;background:rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
           <div>
@@ -6426,18 +6426,18 @@
             <div style="font-size:11px;color:rgba(255,255,255,0.75);margin-top:1px">사운드컨텐츠사업부</div>
           </div>
         </div>
-        <button onclick="closeSoundTeamPanel()" style="background:rgba(255,255,255,0.15);border:none;cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;line-height:1;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">×</button>
+        <button onclick="closeSoundTeamPanel()" style="background:rgba(255,255,255,0.15);border:none;cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;line-height:1;flex-shrink:0" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">×</button>
       </div>
       <!-- 날짜 필터 -->
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px">
         <input type="date" id="soundteam-date-from" onchange="if(_soundTeamCache.length>0)renderSoundTeamPanel()" style="flex:1;padding:6px 10px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:12px;background:rgba(255,255,255,0.15);color:#fff;outline:none;min-width:0;font-family:inherit">
-        <span style="color:rgba(255,255,255,0.6);font-size:12px">—</span>
+        <span style="color:rgba(255,255,255,0.6);font-size:12px;flex-shrink:0">—</span>
         <input type="date" id="soundteam-date-to" onchange="if(_soundTeamCache.length>0)renderSoundTeamPanel()" style="flex:1;padding:6px 10px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:12px;background:rgba(255,255,255,0.15);color:#fff;outline:none;min-width:0;font-family:inherit">
-        <button onclick="soundteamClearDate()" style="padding:6px 10px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:#fff;font-size:11px;cursor:pointer;white-space:nowrap;font-family:inherit" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">초기화</button>
+        <button onclick="soundteamClearDate()" style="padding:6px 10px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:#fff;font-size:11px;cursor:pointer;white-space:nowrap;font-family:inherit;flex-shrink:0" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">초기화</button>
       </div>
     </div>
-    <!-- 목록 -->
-    <div id="soundteam-body" class="soundteam-scroll" style="flex:1;min-height:0;overflow-y:auto;padding:16px 16px 32px;display:flex;flex-direction:column;gap:12px;background:#f8fafc"></div>
+    <!-- 스크롤 본문 -->
+    <div id="soundteam-body" class="soundteam-scroll" style="flex:1;overflow-y:scroll;overflow-x:hidden;background:#f8fafc;padding:0"></div>
   </div>
 </div>
 <style>
@@ -6592,7 +6592,7 @@
         html += '<div style="padding:20px 14px;text-align:center;color:#94a3b8;font-size:12px">'
           + (dFrom || dTo ? '해당 기간에 업무 내역이 없습니다.' : '등록된 업무가 없습니다.') + '</div>';
       } else {
-        html += '<div class="st-task-scroll" style="padding:10px 14px 12px;display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;overflow-x:hidden">';
+        html += '<div style="padding:10px 14px 12px;display:flex;flex-direction:column;gap:6px">';
         taskEntries.forEach(function(t) {
           var bg  = ST_STATUS_BG[t.status]  || '#f3f4f6';
           var clr = ST_STATUS_CLR[t.status] || '#374151';
@@ -6608,7 +6608,7 @@
       html += '</div>';
     });
 
-    body.innerHTML = html || '<div style="text-align:center;padding:40px 0;color:#94a3b8;font-size:13px">불러올 데이터가 없습니다.</div>';
+    body.innerHTML = '<div style="padding:16px 16px 32px;display:flex;flex-direction:column;gap:12px">' + (html || '<div style="text-align:center;padding:40px 0;color:#94a3b8;font-size:13px">불러올 데이터가 없습니다.</div>') + '</div>';
   }
 </script>
 </body>
