@@ -5538,7 +5538,7 @@
   function renderSalesMonthDrop(keys, selected) {
     var drop = document.getElementById('sales-month-drop');
     if (!drop) return;
-    var isAdmin = (typeof _isAdmin !== 'undefined' && _isAdmin) || _currentUsername === 'info';
+    var isAdmin = (typeof _isAdmin !== 'undefined' && _isAdmin) || _currentUsername === 'info' || _currentUsername === 'developer';
     drop.innerHTML = keys.map(function(k) {
       var isDefault = (k === '2025-1' || k === '2026-1'); // DEFAULT 데이터는 삭제 불가
       var active = k === selected;
@@ -6245,7 +6245,7 @@
   function salesInit() {
     // 관리자 또는 info(회계·경리팀) 계정만 데이터 입력 버튼 표시
     var btn = document.getElementById('sales-input-btn');
-    if (btn && (_isAdmin || _currentUsername === 'info')) { btn.style.display = 'flex'; }
+    if (btn && (_isAdmin || _currentUsername === 'info' || _currentUsername === 'developer')) { btn.style.display = 'flex'; }
     salesUpdateMonthSel();
     renderSalesWidget();
   }
