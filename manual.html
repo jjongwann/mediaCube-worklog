@@ -304,6 +304,7 @@
     <span class="hero-chip">💬 메신저</span>
     <span class="hero-chip">🕐 업무 히스토리</span>
     <span class="hero-chip">👑 관리자</span>
+    <span class="hero-chip">👥 음원팀 현황</span>
   </div>
 </div>
 
@@ -314,8 +315,8 @@
     <div class="toc-title">목차</div>
     <div class="toc-grid">
       <a href="#s1"  class="toc-item"><span class="toc-num">1</span> 로그인</a>
-      <a href="#s2"  class="toc-item"><span class="toc-num">2</span> 대시보드</a>
-      <a href="#s3"  class="toc-item"><span class="toc-num">3</span> 일지 작성</a>
+      <a href="#s2"  class="toc-item"><span class="toc-num">2</span> 대시보드 · 음원팀 현황</a>
+      <a href="#s3"  class="toc-item"><span class="toc-num">3</span> 일지 작성 · 미완료 가져오기</a>
       <a href="#s4"  class="toc-item"><span class="toc-num">4</span> 상태 관리</a>
       <a href="#s5"  class="toc-item"><span class="toc-num">5</span> 자동완성</a>
       <a href="#s6"  class="toc-item"><span class="toc-num">6</span> 음원 매출 분석</a>
@@ -447,6 +448,45 @@
       <div class="card-title"><span class="card-title-dot"></span>+ 새 일지 작성</div>
       <p style="font-size:13.5px;color:var(--muted);">화면 우측 상단의 <strong style="color:var(--text)">+ 새 일지 작성</strong> 버튼을 클릭하면 오늘 날짜로 업무일지 입력 폼이 열립니다. 이미 오늘 일지가 있으면 해당 일지로 바로 이동합니다.</p>
     </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title"><span class="card-title-dot" style="background:#0ea5e9;"></span>음원팀 업무 현황 패널 <span class="new-badge">NEW</span></div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">사이드바 하단 <strong style="color:var(--text)">음원팀 업무 현황</strong> 버튼을 클릭하면 사운드콘텐츠사업부 팀원 전체의 오늘 업무 내역을 슬라이드 패널로 한눈에 확인할 수 있습니다.</p>
+      <div class="feat-grid">
+        <div class="feat-card" style="border-color:#bae6fd;background:#f0f9ff;">
+          <div class="feat-icon" style="background:#e0f2fe;">👤</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#0369a1;">표시 대상 계정</div>
+            <div class="feat-desc">사운드콘텐츠사업부 소속 계정(soundsupport, webmaster20, soundstore, soundsales, marketing, sunlee, admin)과 <strong>developer</strong> 계정에서 버튼이 표시됩니다.</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#bae6fd;background:#f0f9ff;">
+          <div class="feat-icon" style="background:#e0f2fe;">📋</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#0369a1;">직원별 업무 카드</div>
+            <div class="feat-desc">사운드콘텐츠사업부 7명의 오늘 업무 항목이 직원별 카드로 표시됩니다. 시간 정보는 제외되고 업무 내용과 상태만 표시됩니다.</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#bae6fd;background:#f0f9ff;">
+          <div class="feat-icon" style="background:#e0f2fe;">🔢</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#0369a1;">더 보기 / 접기</div>
+            <div class="feat-desc">직원별로 최대 10개 항목이 표시되며, 10개를 초과하면 <strong>더 보기</strong> 버튼이 나타납니다. 전체를 펼친 후 <strong>접기</strong> 버튼으로 다시 줄일 수 있습니다.</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#bae6fd;background:#f0f9ff;">
+          <div class="feat-icon" style="background:#e0f2fe;">👁️</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#0369a1;">developer 계정 특이사항</div>
+            <div class="feat-desc">developer 계정은 패널 버튼이 표시되지만, 패널 내 <strong>본인(developer)의 카드는 포함되지 않습니다.</strong> 사운드콘텐츠사업부 7명의 현황만 표시됩니다.</div>
+          </div>
+        </div>
+      </div>
+      <div class="callout callout-blue" style="margin-top:14px;">
+        <span class="callout-icon">💡</span>
+        <span>패널은 당일 일지를 기준으로 데이터를 불러옵니다. 오늘 일지를 아직 작성하지 않은 직원의 카드는 <strong>업무 없음</strong>으로 표시됩니다.</span>
+      </div>
+    </div>
   </div>
 
   <hr class="divider">
@@ -536,6 +576,31 @@
       <div class="callout callout-green" style="margin-top:12px;">
         <span class="callout-icon">예시</span>
         <span>11:00~14:00 업무 입력 시 → 3시간 중 점심 1시간 제외 → <strong>실 작업시간 2시간</strong></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#16a34a;"></span>직전일 미완료 가져오기 <span class="new-badge">NEW</span></div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">일지 작성 폼의 <strong style="color:var(--text)">금일 업무 내역</strong> 영역에서 <strong style="color:#16a34a">직전일 미완료 가져오기</strong> 버튼을 클릭하면, 직전 영업일의 미완료 업무 항목을 현재 일지로 불러옵니다.</p>
+      <div class="feat-grid">
+        <div class="feat-card" style="border-color:#bbf7d0;background:#f0fdf4;">
+          <div class="feat-icon" style="background:#dcfce7;">📥</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#15803d;">가져오는 항목</div>
+            <div class="feat-desc">직전 영업일(주말·공휴일 건너뜀) 일지에서 <strong>완료(체크) 처리되지 않은</strong> 업무 항목의 업무명을 가져옵니다.</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#bbf7d0;background:#f0fdf4;">
+          <div class="feat-icon" style="background:#dcfce7;">⏱️</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#15803d;">시간 미포함</div>
+            <div class="feat-desc">업무명만 가져오며 시작 시간 / 종료 시간은 복사되지 않습니다. 오늘의 시간은 직접 입력합니다.</div>
+          </div>
+        </div>
+      </div>
+      <div class="callout callout-green" style="margin-top:14px;">
+        <span class="callout-icon">💡</span>
+        <span>전날 마무리하지 못한 업무를 빠르게 이어받아 오늘 일지에 추가할 수 있습니다. 버튼은 <strong>업무 항목 추가</strong> 버튼 옆에 위치합니다.</span>
       </div>
     </div>
 
@@ -668,7 +733,7 @@
 
     <div class="callout callout-purple" style="margin-bottom:20px;">
       <span class="callout-icon">📌</span>
-      <span>대시보드 하단 <strong>음원 매출 분석</strong> 패널에서 월별 음원 매출 현황을 차트와 통계로 한눈에 확인할 수 있습니다. 관리자만 데이터를 입력할 수 있습니다.</span>
+      <span>대시보드 하단 <strong>음원 매출 분석</strong> 패널에서 월별 음원 매출 현황을 차트와 통계로 한눈에 확인할 수 있습니다. 데이터 입력은 <strong>관리자(mediacube)</strong>, <strong>info</strong>, <strong>developer</strong> 계정에서 가능합니다.</span>
     </div>
 
     <div class="card">
@@ -744,13 +809,13 @@
     </div>
 
     <div class="card">
-      <div class="card-title"><span class="card-title-dot" style="background:#7c3aed;"></span>매출 데이터 입력 (관리자 전용)</div>
+      <div class="card-title"><span class="card-title-dot" style="background:#7c3aed;"></span>매출 데이터 입력 (관리자 · info · developer)</div>
       <div class="steps">
         <div class="step">
           <div class="step-num" style="background:#7c3aed;">1</div>
           <div class="step-body">
             <div class="step-label">+ 데이터 입력 버튼 클릭</div>
-            <div class="step-desc">관리자 로그인 시 우측 상단에 <strong>+ 데이터 입력</strong> 버튼이 나타납니다.</div>
+            <div class="step-desc"><strong>관리자(mediacube)</strong>, <strong>info</strong>, <strong>developer</strong> 계정으로 로그인 시 우측 상단에 <strong>+ 데이터 입력</strong> 버튼이 나타납니다.</div>
           </div>
         </div>
         <div class="step">
@@ -1189,6 +1254,24 @@
             <td>developer</td>
             <td>임종완 주임</td>
             <td>개발팀</td>
+            <td><span class="role-badge role-user">일반</span></td>
+          </tr>
+          <tr>
+            <td>marketing</td>
+            <td>김혜진(영업) 사원</td>
+            <td>사운드콘텐츠사업부</td>
+            <td><span class="role-badge role-user">일반</span></td>
+          </tr>
+          <tr>
+            <td>sunlee</td>
+            <td>이광순 이사</td>
+            <td>사운드콘텐츠사업부</td>
+            <td><span class="role-badge role-user">일반</span></td>
+          </tr>
+          <tr>
+            <td>admin</td>
+            <td>김춘화 이사</td>
+            <td>사운드콘텐츠사업부</td>
             <td><span class="role-badge role-user">일반</span></td>
           </tr>
         </tbody>
