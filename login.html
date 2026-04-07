@@ -252,8 +252,10 @@
         } else if (status >= 500) {
           msg = '서버 오류가 발생했습니다 (오류코드: ' + status + '). 잠시 후 다시 시도해 주세요.';
         }
-        // 개발 디버그용 (콘솔에만 출력)
+        // 실제 오류 내용 표시 (디버그)
+        var detail = data.message || data.msg || data.error_description || data.error || '';
         console.warn('[Login Error]', status, data);
+        if (detail) msg += '\n(' + detail + ')';
         showError(msg);
         btn.disabled = false;
         btn.textContent = '로그인';
