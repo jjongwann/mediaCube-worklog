@@ -5538,7 +5538,7 @@
   function renderSalesMonthDrop(keys, selected) {
     var drop = document.getElementById('sales-month-drop');
     if (!drop) return;
-    var isAdmin = typeof _isAdmin !== 'undefined' && _isAdmin;
+    var isAdmin = (typeof _isAdmin !== 'undefined' && _isAdmin) || _currentUsername === 'info';
     drop.innerHTML = keys.map(function(k) {
       var isDefault = (k === '2025-1' || k === '2026-1'); // DEFAULT 데이터는 삭제 불가
       var active = k === selected;
