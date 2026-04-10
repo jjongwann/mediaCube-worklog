@@ -5502,7 +5502,9 @@
       real: entry.real, updated_at: new Date().toISOString() };
     fetch(SB_URL + '/rest/v1/sales_data', {
       method: 'POST', headers: SB_HDR, body: JSON.stringify(row)
-    }).catch(function(e) { console.error('sales save error', e); });
+    }).then(function(r) {
+      if (!r.ok) r.text().then(function(t) { console.error('sales save failed', r.status, t); showToast('저장 실패: ' + r.status); });
+    }).catch(function(e) { console.error('sales save error', e); showToast('저장 오류: 네트워크 확인'); });
 
     closeSalesInput();
     salesUpdateMonthSel();
