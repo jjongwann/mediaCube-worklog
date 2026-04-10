@@ -5436,13 +5436,37 @@
     '2026-1': { annual:40081818, needle:72990000, buyout:0, custom:560350, komca:171861, youtube:830908, song:41750000, fee:28534, real:114634937 }
   };
 
-  function salesLoadData() {
+  var _salesCache  = null; // 병합된 데이터 (SALES_DEFAULT + DB)
+  var _salesDbKeys = new Set(); // DB에 실제 저장된 month_key 집합
+
+  async function salesFetchFromDB() {
     try {
-      var raw = localStorage.getItem('mc_sales_data');
-      var stored = raw ? JSON.parse(raw) : {};
-      // DEFAULT 데이터를 베이스로 깔고 저장된 데이터로 덮어씀
-      return Object.assign(JSON.parse(JSON.stringify(SALES_DEFAULT)), stored);
-    } catch(e) { return JSON.parse(JSON.stringify(SALES_DEFAULT)); }
+      var res = await fetch(SB_URL + '/rest/v1/sales_data?select=*', { headers: SB_HDR });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var rows = await res.json();
+      var data = JSON.parse(JSON.stringify(SALES_DEFAULT));
+      _salesDbKeys = new Set();
+      if (Array.isArray(rows)) {
+        rows.forEach(function(r) {
+          data[r.month_key] = {
+            annual: r.annual||0, needle: r.needle||0, buyout: r.buyout||0,
+            custom: r.custom||0, komca: r.komca||0, youtube: r.youtube||0,
+            song: r.song||0, fee: r.fee||0, real: r.real||0
+          };
+          _salesDbKeys.add(r.month_key);
+        });
+      }
+      _salesCache = data;
+    } catch(e) {
+      console.error('salesFetchFromDB error', e);
+      if (!_salesCache) _salesCache = JSON.parse(JSON.stringify(SALES_DEFAULT));
+    }
+    salesUpdateMonthSel();
+    renderSalesWidget();
+  }
+
+  function salesLoadData() {
+    return _salesCache || JSON.parse(JSON.stringify(SALES_DEFAULT));
   }
 
   function salesGetEntry(data, key) {
@@ -5466,8 +5490,20 @@
     });
     var realEl = document.getElementById('sales-field-real');
     entry.real = realEl ? (parseInt(realEl.value.replace(/,/g,'')) || 0) : 0;
-    data[key] = entry;
-    localStorage.setItem('mc_sales_data', JSON.stringify(data));
+    // 캐시 즉시 갱신
+    if (!_salesCache) _salesCache = JSON.parse(JSON.stringify(SALES_DEFAULT));
+    _salesCache[key] = entry;
+    _salesDbKeys.add(key);
+
+    // Supabase upsert (Prefer: resolution=merge-duplicates → INSERT OR UPDATE)
+    var row = { month_key: key, annual: entry.annual, needle: entry.needle,
+      buyout: entry.buyout, custom: entry.custom, komca: entry.komca,
+      youtube: entry.youtube, song: entry.song, fee: entry.fee,
+      real: entry.real, updated_at: new Date().toISOString() };
+    fetch(SB_URL + '/rest/v1/sales_data', {
+      method: 'POST', headers: SB_HDR, body: JSON.stringify(row)
+    }).catch(function(e) { console.error('sales save error', e); });
+
     closeSalesInput();
     salesUpdateMonthSel();
     renderSalesWidget();
@@ -5542,7 +5578,7 @@
     if (!drop) return;
     var isAdmin = (typeof _isAdmin !== 'undefined' && _isAdmin) || _currentUsername === 'info' || _currentUsername === 'developer';
     drop.innerHTML = keys.map(function(k) {
-      var isDefault = (k === '2025-1' || k === '2026-1'); // DEFAULT 데이터는 삭제 불가
+      var isDefault = !_salesDbKeys.has(k); // DB에 저장된 데이터만 삭제 가능
       var active = k === selected;
       return '<div style="display:flex;align-items:center;padding:0 8px;gap:4px">'
         + '<button onclick="salesSelectMonth(\''+k+'\')" style="flex:1;text-align:left;padding:8px 10px;border:none;background:'+(active?'#eff6ff':'transparent')+';color:'+(active?'#2563eb':'#374151')+';font-size:12px;font-weight:'+(active?'700':'500')+';border-radius:7px;cursor:pointer;transition:background .12s">'
@@ -5587,10 +5623,16 @@
   function salesDeleteMonth(k, e) {
     e.stopPropagation();
     if (!confirm(salesMonthLabel(k) + ' 데이터를 삭제할까요?')) return;
-    var raw = localStorage.getItem('mc_sales_data');
-    var stored = raw ? JSON.parse(raw) : {};
-    delete stored[k];
-    localStorage.setItem('mc_sales_data', JSON.stringify(stored));
+
+    // 캐시에서 제거
+    if (_salesCache) delete _salesCache[k];
+    _salesDbKeys.delete(k);
+
+    // Supabase에서 삭제
+    fetch(SB_URL + '/rest/v1/sales_data?month_key=eq.' + encodeURIComponent(k), {
+      method: 'DELETE', headers: SB_DEL_HDR
+    }).catch(function(e) { console.error('sales delete error', e); });
+
     salesUpdateMonthSel();
     renderSalesWidget();
     showToast(salesMonthLabel(k) + ' 데이터가 삭제됐습니다.');
@@ -6248,8 +6290,11 @@
     // 관리자 또는 info(회계·경리팀) 계정만 데이터 입력 버튼 표시
     var btn = document.getElementById('sales-input-btn');
     if (btn && (_isAdmin || _currentUsername === 'info' || _currentUsername === 'developer')) { btn.style.display = 'flex'; }
+    // 기본 데이터로 먼저 렌더 후 Supabase에서 실제 데이터 로드
+    _salesCache = JSON.parse(JSON.stringify(SALES_DEFAULT));
     salesUpdateMonthSel();
     renderSalesWidget();
+    salesFetchFromDB(); // 비동기로 DB 데이터 로드 후 재렌더
   }
 
   // ESC로 매출 모달 닫기
