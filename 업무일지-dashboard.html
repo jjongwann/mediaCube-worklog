@@ -5461,6 +5461,9 @@
       console.error('salesFetchFromDB error', e);
       if (!_salesCache) _salesCache = JSON.parse(JSON.stringify(SALES_DEFAULT));
     }
+    // DB 로드 후 항상 가장 최신 월 선택
+    var sel = document.getElementById('sales-month-sel');
+    if (sel) sel.value = '';
     salesUpdateMonthSel();
     renderSalesWidget();
   }
