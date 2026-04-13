@@ -6868,8 +6868,8 @@
     items.forEach(function(j) {
       var card = document.createElement('div');
       card.style.cssText = 'background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.05)';
-      // 삭제 버튼: 본인 일지 또는 관리자만
-      var canDelete = _isAdmin || j.user_id === _userId;
+      // 삭제 버튼: 본인 일지만 (관리자 제외)
+      var canDelete = !_isAdmin && j.user_id === _userId;
       var delBtn = canDelete
         ? '<button onclick="deleteAchievement(\'' + j.id + '\')" title="삭제" '
           + 'style="background:none;border:none;cursor:pointer;color:#c4b5fd;font-size:16px;line-height:1;padding:2px 4px;border-radius:5px;transition:color .15s" '
