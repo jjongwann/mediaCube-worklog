@@ -6889,11 +6889,21 @@
 
   function deleteAchievement(journalId) {
     if (!confirm('이 성과 기록을 삭제할까요?\n(해당 일지의 업무 성과 내용이 지워집니다)')) return;
+    // 로컬 캐시 즉시 반영
     var data = loadJournals();
     var j = data.find(function(x){ return x.id === journalId; });
     if (!j) return;
     j.risk = '';
-    saveJournals(data);
+    journalCache = data;
+    journalCacheSnapshot = JSON.parse(JSON.stringify(data));
+    // Supabase에 직접 PATCH (risk 필드만)
+    fetch(SB_URL + '/rest/v1/journals?id=eq.' + encodeURIComponent(journalId), {
+      method: 'PATCH',
+      headers: SB_DEL_HDR,
+      body: JSON.stringify({ risk: '' })
+    }).then(function(r) {
+      if (!r.ok) r.text().then(function(t){ console.error('deleteAchievement failed', r.status, t); });
+    }).catch(function(e){ console.error('deleteAchievement error', e); });
     renderAchievementPanel();
     showToast('성과 기록이 삭제되었습니다.');
   }
