@@ -6868,13 +6868,34 @@
     items.forEach(function(j) {
       var card = document.createElement('div');
       card.style.cssText = 'background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.05)';
-      card.innerHTML = '<div style="padding:10px 14px;background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-bottom:1px solid #ddd6fe;display:flex;align-items:center;justify-content:space-between">'
-        + '<div style="font-size:12px;font-weight:700;color:#4f46e5">' + _achEsc(j.title || '무제') + '</div>'
-        + '<div style="font-size:11px;color:#7c3aed;font-weight:600">' + (j.date||'').replace(/-/g,'.') + '</div>'
+      // 삭제 버튼: 본인 일지 또는 관리자만
+      var canDelete = _isAdmin || j.user_id === _userId;
+      var delBtn = canDelete
+        ? '<button onclick="deleteAchievement(\'' + j.id + '\')" title="삭제" '
+          + 'style="background:none;border:none;cursor:pointer;color:#c4b5fd;font-size:16px;line-height:1;padding:2px 4px;border-radius:5px;transition:color .15s" '
+          + 'onmouseover="this.style.color=\'#ef4444\'" onmouseout="this.style.color=\'#c4b5fd\'">×</button>'
+        : '';
+      card.innerHTML = '<div style="padding:10px 14px;background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-bottom:1px solid #ddd6fe;display:flex;align-items:center;justify-content:space-between;gap:8px">'
+        + '<div style="font-size:12px;font-weight:700;color:#4f46e5;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _achEsc(j.title || '무제') + '</div>'
+        + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
+          + '<span style="font-size:11px;color:#7c3aed;font-weight:600">' + (j.date||'').replace(/-/g,'.') + '</span>'
+          + delBtn
+        + '</div>'
         + '</div>'
         + '<div style="padding:12px 14px;font-size:13px;color:#374151;line-height:1.7;white-space:pre-wrap">' + _achEsc(j.risk) + '</div>';
       body.appendChild(card);
     });
+  }
+
+  function deleteAchievement(journalId) {
+    if (!confirm('이 성과 기록을 삭제할까요?\n(해당 일지의 업무 성과 내용이 지워집니다)')) return;
+    var data = loadJournals();
+    var j = data.find(function(x){ return x.id === journalId; });
+    if (!j) return;
+    j.risk = '';
+    saveJournals(data);
+    renderAchievementPanel();
+    showToast('성과 기록이 삭제되었습니다.');
   }
 </script>
 </body>
