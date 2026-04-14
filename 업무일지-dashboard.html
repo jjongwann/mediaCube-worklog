@@ -7147,8 +7147,9 @@
    업무 지시 패널
 ══════════════════════════════════════════ */
 (function() {
-  var DIRECTIVE_GIVERS    = ['mediacube','info','admin','sunlee','developer'];
-  var DIRECTIVE_RECEIVERS = ['soundstore','soundsales','soundsupport','webmaster20','developer'];
+  var _allUsernames = (ALL_USERS||[]).map(function(u){ return u.username; });
+  var DIRECTIVE_GIVERS    = _allUsernames;
+  var DIRECTIVE_RECEIVERS = _allUsernames;
   var _isGiver    = DIRECTIVE_GIVERS.indexOf(_currentUsername) !== -1;
   var _isReceiver = DIRECTIVE_RECEIVERS.indexOf(_currentUsername) !== -1;
 
