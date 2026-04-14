@@ -6634,17 +6634,18 @@
     var q      = (document.getElementById('hist-search').value || '').trim().toLowerCase();
     var dFrom  = document.getElementById('hist-date-from').value || '';
     var dTo    = document.getElementById('hist-date-to').value   || '';
-    var empSel = _isAdmin ? (document.getElementById('hist-emp-select') || {}).value || '' : '';
+    var _canEmpFilter = _isAdmin || _currentUsername === 'developer';
+    var empSel = _canEmpFilter ? (document.getElementById('hist-emp-select') || {}).value || '' : '';
     var journals = loadJournals();
 
     // 탭별 접근 범위 결정
     if (_histTab === 'issue') {
-      // 발생 이슈: 전 직원 공유 (직원 필터만 적용)
+      // 발생 이슈: 전 직원 공유, 직원 필터 적용 (관리자·developer)
       if (empSel) journals = journals.filter(function(j) { return j.user_id === empSel; });
     } else {
-      // 익일 계획 / 메모: 관리자 전체, 직원 본인만
-      if (!_isAdmin) journals = journals.filter(function(j) { return j.user_id === _userId; });
-      if (_isAdmin && empSel) journals = journals.filter(function(j) { return j.user_id === empSel; });
+      // 익일 계획 / 메모: 관리자·developer 전체, 직원 본인만
+      if (!_canEmpFilter) journals = journals.filter(function(j) { return j.user_id === _userId; });
+      if (_canEmpFilter && empSel) journals = journals.filter(function(j) { return j.user_id === empSel; });
     }
 
     var tabLabel = _histTab === 'plan' ? '익일 계획' : _histTab === 'note' ? '메모 / 특이사항' : '발생 이슈';
