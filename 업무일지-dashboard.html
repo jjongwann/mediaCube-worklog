@@ -7247,7 +7247,7 @@
       + '<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:6px">담당자 * <span id="dir-assignee-count" style="font-weight:400;color:#94a3b8">(0명 선택)</span></label>'
       + '<div style="border:1px solid #e2e8f0;border-radius:8px;overflow-y:auto;max-height:168px;background:#fff">' + assigneeCheckboxes + '</div></div>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
-      + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">마감일 *</label>'
+      + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">마감일</label>'
       + '<input id="dir-due" type="date" min="' + today + '" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;font-family:inherit"></div>'
       + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">우선순위 *</label>'
       + '<select id="dir-priority" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;font-family:inherit">'
@@ -7290,9 +7290,11 @@
     var p = _PRIORITY[d.priority] || _PRIORITY.medium;
     var s = _STATUS[d.status]   || _STATUS.pending;
     var todayMs = new Date(); todayMs.setHours(0,0,0,0);
-    var dueMs   = new Date(d.due_date);
-    var overdue = d.status !== 'done' && dueMs < todayMs;
-    var dueLabel = overdue ? '📅 ' + escHtml(d.due_date) + ' <span style="color:#ef4444;font-weight:600">(기한 초과)</span>' : '📅 ' + escHtml(d.due_date);
+    var dueMs   = d.due_date ? new Date(d.due_date) : null;
+    var overdue = dueMs && d.status !== 'done' && dueMs < todayMs;
+    var dueLabel = d.due_date
+      ? (overdue ? '📅 ' + escHtml(d.due_date) + ' <span style="color:#ef4444;font-weight:600">(기한 초과)</span>' : '📅 ' + escHtml(d.due_date))
+      : '<span style="color:#94a3b8">마감일 미정</span>';
 
     var html = '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px;margin-bottom:10px">'
       + '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">'
@@ -7327,7 +7329,6 @@
     title = title.trim(); content = content.trim();
     if (!title)    { alert('제목을 입력해주세요.'); return; }
     if (!content)  { alert('상세 내용을 입력해주세요.'); return; }
-    if (!dueDate)  { alert('마감일을 선택해주세요.'); return; }
     if (!priority) { alert('우선순위를 선택해주세요.'); return; }
 
     // 체크된 담당자 수집
@@ -7348,7 +7349,7 @@
     // 담당자별 레코드 생성 (Promise.all)
     var rows = assignees.map(function(a) {
       return { title:title, content:content, assigner_id:_userId, assigner_name:assignerName,
-               assignee_id:a.id, assignee_name:a.name, due_date:dueDate, priority:priority, status:'pending' };
+               assignee_id:a.id, assignee_name:a.name, due_date:dueDate||null, priority:priority, status:'pending' };
     });
 
     fetch(SB_URL + '/rest/v1/task_directives', {
