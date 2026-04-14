@@ -4084,6 +4084,8 @@
     if (e.key === 'Escape') {
       closeModal(); closeDetail();
       // 채팅 뷰 → 메시지 목록 → 메시지 작성 → 프로필 순으로 우선순위
+      var directiveOverlay = document.getElementById('directive-overlay');
+      if (directiveOverlay && directiveOverlay.style.display !== 'none') { closeDirectivePanel(); return; }
       var chatOverlay = document.getElementById('chat-overlay');
       if (chatOverlay && chatOverlay.style.display !== 'none') { closeChatPanel(); return; }
       var msgList = document.getElementById('msg-list-panel');
