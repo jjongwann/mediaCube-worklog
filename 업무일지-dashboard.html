@@ -7486,9 +7486,13 @@
         method:'PATCH', headers:SB_DEL_HDR, body:JSON.stringify({ tasks:tasks })
       }).then(function(r) {
         if (r.ok||r.status===204) {
+          // 로컬 캐시 업데이트
           var cached = journalCache.find(function(j){ return j.id===journal.id; });
           if (cached) { cached.tasks=tasks; journalCacheSnapshot=JSON.parse(JSON.stringify(journalCache)); }
-          showToast('[' + title + '] 항목이 오늘 일지에 추가되었습니다!');
+          // 수정된 일지 데이터로 편집 폼으로 이동
+          var editData = cached ? JSON.parse(JSON.stringify(cached)) : Object.assign({}, journal, { tasks:tasks });
+          sessionStorage.setItem('editJournal', JSON.stringify(editData));
+          window.location.href = '업무일지-word.html';
         } else { r.text().then(function(t){ console.error('importDirective',r.status,t); showToast('일지 추가 중 오류가 발생했습니다.'); }); }
       });
     }).catch(function(e){ showToast('오류: ' + e.message); });
