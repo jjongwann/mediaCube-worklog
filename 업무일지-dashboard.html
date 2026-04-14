@@ -7224,7 +7224,7 @@
     var assigneeCheckboxes = '';
     DIRECTIVE_RECEIVERS.forEach(function(uname) {
       var u = (ALL_USERS||[]).find(function(x){ return x.username === uname; });
-      if (u && u.id !== _userId) {
+      if (u && u.id !== _userId && u.username !== 'mediacube') {
         var imgEl = u.img
           ? '<img src="' + escHtml(u.img) + '" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0">'
           : '<div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + escHtml((u.fullName||'?').charAt(0)) + '</div>';
@@ -7245,7 +7245,7 @@
       + '<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">상세 내용 *</label>'
       + '<textarea id="dir-content" placeholder="업무 내용을 자세히 입력해주세요" rows="3" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;outline:none;font-family:inherit"></textarea></div>'
       + '<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:6px">담당자 * <span id="dir-assignee-count" style="font-weight:400;color:#94a3b8">(0명 선택)</span></label>'
-      + '<div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#fff">' + assigneeCheckboxes + '</div></div>'
+      + '<div style="border:1px solid #e2e8f0;border-radius:8px;overflow-y:auto;max-height:168px;background:#fff">' + assigneeCheckboxes + '</div></div>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
       + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">마감일 *</label>'
       + '<input id="dir-due" type="date" min="' + today + '" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;font-family:inherit"></div>'
