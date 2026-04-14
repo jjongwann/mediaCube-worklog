@@ -305,6 +305,9 @@
     <span class="hero-chip">🕐 업무 히스토리</span>
     <span class="hero-chip">👑 관리자</span>
     <span class="hero-chip">👥 음원팀 현황</span>
+    <span class="hero-chip">🏆 업무 성과</span>
+    <span class="hero-chip">⚠️ 발생 이슈</span>
+    <span class="hero-chip">📋 업무 지시</span>
   </div>
 </div>
 
@@ -326,6 +329,9 @@
       <a href="#s10" class="toc-item"><span class="toc-num">10</span> 업무 히스토리</a>
       <a href="#s11" class="toc-item"><span class="toc-num">11</span> 관리자 기능</a>
       <a href="#s12" class="toc-item"><span class="toc-num">12</span> 계정 목록</a>
+      <a href="#s13" class="toc-item"><span class="toc-num">13</span> 업무 성과</a>
+      <a href="#s14" class="toc-item"><span class="toc-num">14</span> 발생 이슈 조회 · 해결 알림</a>
+      <a href="#s15" class="toc-item"><span class="toc-num">15</span> 업무 지시</a>
     </div>
   </div>
 
@@ -1062,7 +1068,7 @@
     </div>
 
     <div class="card">
-      <div class="card-title"><span class="card-title-dot" style="background:#16a34a;"></span>탭 구성</div>
+      <div class="card-title"><span class="card-title-dot" style="background:#16a34a;"></span>탭 구성 (3개)</div>
       <div class="feat-grid">
         <div class="feat-card" style="border-color:#bbf7d0;background:#f0fdf4;">
           <div class="feat-icon" style="background:#dcfce7;">📋</div>
@@ -1076,6 +1082,13 @@
           <div class="feat-body">
             <div class="feat-title" style="color:#15803d;">메모 / 특이사항</div>
             <div class="feat-desc">일지에 기록된 <strong>특이사항 및 메모</strong>를 모아서 보여줍니다. 중요 기록을 빠르게 다시 찾을 수 있습니다.</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#fecaca;background:#fef2f2;">
+          <div class="feat-icon" style="background:#fee2e2;">⚠️</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#b91c1c;">발생 이슈 <span class="new-badge">NEW</span></div>
+            <div class="feat-desc">음원팀 전 직원 일지에 기록된 <strong>발생 이슈</strong>를 모아서 보여줍니다. 이슈 항목마다 <strong>이슈 해결 완료</strong> 버튼으로 팀 전체에 해결 알림을 발송할 수 있습니다.</div>
           </div>
         </div>
       </div>
@@ -1247,6 +1260,274 @@
     <div class="callout callout-blue">
       <span class="callout-icon">🔑</span>
       <span>비밀번호 변경이 필요한 경우 관리자(<strong>mediacube</strong>)에게 문의하세요.</span>
+    </div>
+  </div>
+
+
+  <hr class="divider">
+
+  <!-- ══════════════════════════════ 13. 업무 성과 ══════════════════════════════ -->
+  <a id="s13" class="section-anchor"></a>
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#f5f3ff;">🏆</div>
+      <div class="section-meta">
+        <div class="section-num">Section 13</div>
+        <div class="section-title">업무 성과 <span class="new-badge">NEW</span></div>
+      </div>
+    </div>
+
+    <div class="callout callout-purple" style="margin-bottom:20px;">
+      <span class="callout-icon">📌</span>
+      <span>사이드바의 <strong>업무 성과</strong> 메뉴를 클릭하면 일지에 기록된 업무 성과를 기간별로 모아 조회할 수 있습니다. 일지 작성 시 <strong>업무 성과</strong> 입력란에 작성한 내용이 여기에 표시됩니다.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#7c3aed;"></span>사용 방법</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num" style="background:#7c3aed;">1</div>
+          <div class="step-body">
+            <div class="step-label">사이드바 → 업무 성과 클릭</div>
+            <div class="step-desc">우측 슬라이드 패널이 열립니다. 기본값으로 <strong>이번 달 1일 ~ 오늘</strong>의 성과가 표시됩니다.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:#7c3aed;">2</div>
+          <div class="step-body">
+            <div class="step-label">기간 필터 설정</div>
+            <div class="step-desc">시작일과 종료일을 입력해 원하는 기간의 성과만 조회합니다. <strong>초기화</strong> 버튼으로 전체 기간을 볼 수 있습니다.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:#7c3aed;">3</div>
+          <div class="step-body">
+            <div class="step-label">성과 카드 확인</div>
+            <div class="step-desc">날짜별로 성과 내용이 카드 형태로 나타납니다. 본인이 작성한 성과는 <strong>×</strong> 버튼으로 삭제할 수 있습니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#f5f3ff;">📝</div>
+        <div class="feat-body">
+          <div class="feat-title">성과 입력 방법</div>
+          <div class="feat-desc">업무일지 작성 폼의 <strong>이슈 및 리스크</strong> 섹션 하단 <strong>업무 성과</strong> 란에 내용을 입력하고 일지를 저장하면 자동으로 성과 목록에 등록됩니다.</div>
+        </div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon" style="background:#fef3c7;">👑</div>
+        <div class="feat-body">
+          <div class="feat-title">관리자 전용: 직원별 조회</div>
+          <div class="feat-desc">관리자(mediacube) 계정에서는 패널 상단 탭으로 <strong>직원별 업무 성과</strong>를 개별 조회할 수 있습니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ══════════════════════════════ 14. 발생 이슈 ══════════════════════════════ -->
+  <a id="s14" class="section-anchor"></a>
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#fef2f2;">⚠️</div>
+      <div class="section-meta">
+        <div class="section-num">Section 14</div>
+        <div class="section-title">발생 이슈 조회 · 해결 알림 <span class="new-badge">NEW</span></div>
+      </div>
+    </div>
+
+    <div class="callout callout-red" style="margin-bottom:20px;">
+      <span class="callout-icon">📌</span>
+      <span>업무 히스토리 패널의 <strong>발생 이슈</strong> 탭에서 음원팀 전 직원의 이슈 기록을 한눈에 조회하고, 이슈 해결 시 팀 전체에 알림을 발송할 수 있습니다.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#dc2626;"></span>발생 이슈 탭 사용 방법</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num" style="background:#dc2626;">1</div>
+          <div class="step-body">
+            <div class="step-label">사이드바 → 업무 히스토리 → 발생 이슈 탭 클릭</div>
+            <div class="step-desc">음원팀 전 직원이 일지에 기록한 발생 이슈가 날짜 최신순으로 표시됩니다. 날짜·키워드 필터로 원하는 이슈를 검색할 수 있습니다.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num" style="background:#dc2626;">2</div>
+          <div class="step-body">
+            <div class="step-label">이슈 해결 완료 버튼 클릭</div>
+            <div class="step-desc">이슈가 해결되면 해당 이슈 카드의 <strong>이슈 해결 완료</strong> 버튼을 클릭합니다. 클릭 즉시 전 직원의 화면에 해결 완료 알림 배너가 표시됩니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#dc2626;"></span>이슈 해결 완료 알림 배너</div>
+      <div class="feat-grid">
+        <div class="feat-card" style="border-color:#bbf7d0;background:#f0fdf4;">
+          <div class="feat-icon" style="background:#dcfce7;">✅</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#15803d;">실시간 팀 알림</div>
+            <div class="feat-desc">이슈 해결 완료 버튼을 누르면 해당 이슈 내용과 처리자 이름이 담긴 <strong>녹색 알림 배너</strong>가 팀원 전체 화면 우측 하단에 표시됩니다.</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#bbf7d0;background:#f0fdf4;">
+          <div class="feat-icon" style="background:#dcfce7;">⏱️</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#15803d;">10초 유지 · 페이지 이동 후에도 표시</div>
+            <div class="feat-desc">알림 배너는 <strong>10초간</strong> 표시됩니다. 알림 표시 중 다른 페이지로 이동해도 남은 시간 동안 배너가 계속 표시됩니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-amber">
+      <span class="callout-icon">💡</span>
+      <span>발생 이슈는 <strong>일지 작성 폼의 이슈 및 리스크 섹션</strong>에서 입력합니다. 이슈가 입력된 일지는 전체 상태가 자동으로 <span class="badge b-issue" style="font-size:11px;padding:2px 8px;"><span class="badge-dot bd-issue" style="width:6px;height:6px;"></span> 이슈</span> 로 표시됩니다.</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ══════════════════════════════ 15. 업무 지시 ══════════════════════════════ -->
+  <a id="s15" class="section-anchor"></a>
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#eff6ff;">📋</div>
+      <div class="section-meta">
+        <div class="section-num">Section 15</div>
+        <div class="section-title">업무 지시 <span class="new-badge">NEW</span></div>
+      </div>
+    </div>
+
+    <div class="callout callout-blue" style="margin-bottom:20px;">
+      <span class="callout-icon">📌</span>
+      <span>사이드바의 <strong>업무 지시</strong> 메뉴를 클릭하면 팀원에게 업무를 지시하거나 받은 업무를 관리할 수 있습니다. 지시 발송 시 담당자에게 자동으로 알림이 전송됩니다.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>3탭 구성</div>
+      <div class="feat-grid">
+        <div class="feat-card" style="border-color:#bfdbfe;background:#eff6ff;">
+          <div class="feat-icon" style="background:#dbeafe;">✏️</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#1d4ed8;">업무 지시</div>
+            <div class="feat-desc">새 업무 지시를 작성하는 탭입니다. 제목·상세내용·마감일(선택)·우선순위·담당자를 입력하고 <strong>업무 지시하기</strong> 버튼을 클릭합니다.</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#bfdbfe;background:#eff6ff;">
+          <div class="feat-icon" style="background:#dbeafe;">📤</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#1d4ed8;">지시한 업무</div>
+            <div class="feat-desc">내가 지시한 업무 목록을 확인합니다. 담당자의 진행 상태가 표시되며, <strong>×</strong> 버튼으로 삭제할 수 있습니다.</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#bfdbfe;background:#eff6ff;">
+          <div class="feat-icon" style="background:#dbeafe;">📥</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#1d4ed8;">받은 업무</div>
+            <div class="feat-desc">나에게 지시된 업무 목록을 확인합니다. 상태를 변경하고, 일지로 가져오기 버튼으로 오늘 일지에 업무 항목을 추가할 수 있습니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>업무 지시하기</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-label">제목·내용·우선순위 입력 <span style="color:var(--red);font-size:11px;font-weight:600;">(필수)</span></div>
+            <div class="step-desc">업무 제목, 상세 내용, 우선순위(높음·중간·낮음)를 입력합니다. 마감일은 선택 사항입니다.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-label">담당자 선택 (복수 선택 가능)</div>
+            <div class="step-desc">담당자 목록에서 체크박스로 1명 이상 선택합니다. 여러 명 선택 시 각자에게 개별 업무 지시가 생성됩니다. 목록은 최대 4명씩 스크롤로 표시됩니다.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-label">업무 지시하기 버튼 클릭</div>
+            <div class="step-desc">전송 즉시 담당자에게 <strong>새 업무 지시 도착</strong> 알림 배너가 표시되고, 사이드바 업무 지시 버튼에 읽지 않은 수가 뱃지로 나타납니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#16a34a;"></span>받은 업무 관리</div>
+      <div class="feat-grid">
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#f0fdf4;">🔄</div>
+          <div class="feat-body">
+            <div class="feat-title">상태 변경</div>
+            <div class="feat-desc">받은 업무 카드의 <strong>상태 드롭다운</strong>으로 <span class="badge b-todo" style="font-size:11px;padding:1px 7px;">대기</span> <span class="badge b-wip" style="font-size:11px;padding:1px 7px;">진행중</span> <span class="badge b-done" style="font-size:11px;padding:1px 7px;">완료</span> 중 선택합니다. 변경 즉시 지시자에게 상태 변경 알림이 전송됩니다.</div>
+          </div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#f5f3ff;">📥</div>
+          <div class="feat-body">
+            <div class="feat-title">일지로 가져오기</div>
+            <div class="feat-desc"><strong>📥 일지로 가져오기</strong> 버튼을 클릭하면 해당 업무 항목이 오늘 일지에 자동 추가되고 수정 폼으로 이동합니다. 오늘 일지가 없으면 신규 입력 폼으로 이동합니다.</div>
+          </div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#f0fdf4;">✅</div>
+          <div class="feat-body">
+            <div class="feat-title">일지에서 자동 완료 처리</div>
+            <div class="feat-desc">일지에 가져온 업무 항목의 상태를 <span class="badge b-done" style="font-size:11px;padding:1px 7px;">완료</span> 로 변경하면, 업무 지시 상태도 자동으로 <strong>완료</strong>로 업데이트되고 지시자에게 완료 알림이 전송됩니다.</div>
+          </div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#fef2f2;">🔢</div>
+          <div class="feat-body">
+            <div class="feat-title">읽지 않은 업무 뱃지</div>
+            <div class="feat-desc">새로운 업무 지시가 도착하면 사이드바 <strong>업무 지시</strong> 버튼에 빨간 숫자 뱃지가 표시됩니다. 받은 업무 탭을 열면 모두 읽음 처리됩니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#94a3b8;"></span>완료 항목 자동 정리</div>
+      <div class="callout callout-blue" style="margin-top:0;">
+        <span class="callout-icon">💡</span>
+        <span>상태가 <strong>완료</strong>인 업무는 목록 <strong>하단으로 이동</strong>되고 회색으로 표시됩니다. <strong>완료 후 24시간이 지나면 자동으로 사라집니다.</strong> 지시한 업무 목록에도 동일하게 적용됩니다.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot"></span>알림 배너 안내</div>
+      <div class="feat-grid">
+        <div class="feat-card" style="border-color:#bbf7d0;background:#f0fdf4;">
+          <div class="feat-icon" style="background:#dcfce7;">📥</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#15803d;">새 업무 지시 도착</div>
+            <div class="feat-desc">업무 지시를 받으면 화면 우측 하단에 <strong>새 업무 지시 도착</strong> 초록 배너가 10초간 표시됩니다. 다른 페이지로 이동해도 남은 시간 동안 유지됩니다.</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#fde68a;background:#fffbeb;">
+          <div class="feat-icon" style="background:#fef3c7;">🔄</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#92400e;">업무 상태 변경 알림</div>
+            <div class="feat-desc">담당자가 상태를 변경하면 지시자에게 <strong>업무 상태 변경</strong> 노란 배너가 10초간 표시됩니다. 어떤 업무가 어떤 상태로 바뀌었는지 알려줍니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-green">
+      <span class="callout-icon">⌨️</span>
+      <span>업무 지시 패널을 열었을 때 <kbd>ESC</kbd> 키를 누르면 패널이 닫힙니다.</span>
     </div>
   </div>
 
