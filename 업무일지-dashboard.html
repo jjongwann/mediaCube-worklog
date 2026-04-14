@@ -7357,18 +7357,22 @@
       + '<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:' + p.bg + ';color:' + p.color + ';border:1px solid ' + p.border + ';flex-shrink:0;white-space:nowrap">' + p.label + '</span>'
       + '</div>'
       + '<div style="font-size:12px;color:#374151;line-height:1.5;margin-bottom:8px;background:#f8fafc;padding:8px 10px;border-radius:8px;white-space:pre-wrap;word-break:break-word">' + escHtml(d.content) + '</div>'
-      + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
-      + '<span style="font-size:11px;color:#64748b">' + dueLabel + '</span>'
-      + '<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:' + s.bg + ';color:' + s.color + ';border:1px solid ' + s.border + '">' + s.label + '</span>';
+      + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+      + '<span style="font-size:11px;color:#64748b;flex-shrink:0">' + dueLabel + '</span>';
 
     if (role === 'receiver') {
-      [['pending','대기'],['in_progress','진행중'],['done','완료']].forEach(function(b) {
-        if (b[0] !== d.status) {
-          var sc = _STATUS[b[0]];
-          html += '<button onclick="window.updateDirectiveStatus(\'' + d.id + '\',\'' + b[0] + '\')" style="font-size:11px;padding:2px 8px;background:' + sc.bg + ';border:1px solid ' + sc.border + ';border-radius:20px;cursor:pointer;color:' + sc.color + ';font-weight:600">' + b[1] + '</button>';
-        }
-      });
-      html += '<button onclick="window.importDirectiveToJournal(\'' + d.id + '\',\'' + escHtml(d.title).replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\')" style="font-size:11px;padding:2px 8px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:20px;cursor:pointer;color:#7c3aed;font-weight:600;margin-left:auto">📥 일지로 가져오기</button>';
+      // 상태 드롭다운
+      html += '<select onchange="window.updateDirectiveStatus(\'' + d.id + '\',this.value)" '
+        + 'style="font-size:11px;padding:3px 24px 3px 8px;background:' + s.bg + ';border:1px solid ' + s.border + ';border-radius:20px;cursor:pointer;color:' + s.color + ';font-weight:600;outline:none">'
+        + '<option value="pending"'  + (d.status==='pending'   ?' selected':'') + '>대기</option>'
+        + '<option value="in_progress"' + (d.status==='in_progress'?' selected':'') + '>진행중</option>'
+        + '<option value="done"'     + (d.status==='done'      ?' selected':'') + '>완료</option>'
+        + '</select>';
+      html += '<button onclick="window.importDirectiveToJournal(\'' + d.id + '\')" '
+        + 'style="font-size:11px;padding:3px 10px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:20px;cursor:pointer;color:#7c3aed;font-weight:600;margin-left:auto;white-space:nowrap" '
+        + 'onmouseover="this.style.background=\'#ede9fe\'" onmouseout="this.style.background=\'#f5f3ff\'">📥 일지로 가져오기</button>';
+    } else {
+      html += '<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:' + s.bg + ';color:' + s.color + ';border:1px solid ' + s.border + '">' + s.label + '</span>';
     }
     html += '</div></div>';
     return html;
@@ -7466,8 +7470,11 @@
     _renderPanel();
   };
 
-  window.importDirectiveToJournal = function(id, title) {
-    var today = (function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
+  window.importDirectiveToJournal = function(id) {
+    var d = _directives.find(function(x){ return x.id === id; });
+    if (!d) { showToast('업무 정보를 찾을 수 없습니다.'); return; }
+    var title = d.title;
+    var today = (function(){ var dt=new Date(); return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); })();
     fetch(SB_URL + '/rest/v1/journals?user_id=eq.' + _userId + '&date=eq.' + today + '&select=id,tasks', {
       headers: { 'apikey':SB_KEY, 'Authorization':'Bearer '+_sbToken }
     }).then(function(r){ return r.json(); }).then(function(rows) {
@@ -7481,10 +7488,10 @@
         if (r.ok||r.status===204) {
           var cached = journalCache.find(function(j){ return j.id===journal.id; });
           if (cached) { cached.tasks=tasks; journalCacheSnapshot=JSON.parse(JSON.stringify(journalCache)); }
-          showToast('오늘 일지에 [' + title + '] 항목이 추가되었습니다!');
+          showToast('[' + title + '] 항목이 오늘 일지에 추가되었습니다!');
         } else { r.text().then(function(t){ console.error('importDirective',r.status,t); showToast('일지 추가 중 오류가 발생했습니다.'); }); }
       });
-    });
+    }).catch(function(e){ showToast('오류: ' + e.message); });
   };
 
   /* ── 업무 지시 알림 배너 ── */
