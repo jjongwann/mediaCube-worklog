@@ -6338,8 +6338,9 @@
       </div>
       <!-- 탭 -->
       <div style="display:flex;gap:0;border-bottom:2px solid #f1f5f9;margin:0 -20px;padding:0 20px">
-        <button id="hist-tab-plan" onclick="switchHistTab('plan')" style="padding:8px 16px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:700;color:#2563eb;border-bottom:2px solid #2563eb;margin-bottom:-2px">익일 계획</button>
-        <button id="hist-tab-note" onclick="switchHistTab('note')" style="padding:8px 16px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:#94a3b8;border-bottom:2px solid transparent;margin-bottom:-2px">메모 / 특이사항</button>
+        <button id="hist-tab-plan"  onclick="switchHistTab('plan')"  style="padding:8px 16px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:700;color:#2563eb;border-bottom:2px solid #2563eb;margin-bottom:-2px">익일 계획</button>
+        <button id="hist-tab-note"  onclick="switchHistTab('note')"  style="padding:8px 16px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:#94a3b8;border-bottom:2px solid transparent;margin-bottom:-2px">메모 / 특이사항</button>
+        <button id="hist-tab-issue" onclick="switchHistTab('issue')" style="padding:8px 16px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:#94a3b8;border-bottom:2px solid transparent;margin-bottom:-2px">발생 이슈</button>
       </div>
     </div>
     <!-- 검색 + 날짜 필터 + 직원 필터 -->
@@ -6397,8 +6398,8 @@
     document.getElementById('hist-search').value = '';
     document.getElementById('hist-date-from').value = '';
     document.getElementById('hist-date-to').value = '';
-    // 관리자: 직원 필터 표시 + 옵션 채우기
-    if (_isAdmin) {
+    // 관리자 또는 developer: 직원 필터 표시 + 옵션 채우기
+    if (_isAdmin || _currentUsername === 'developer') {
       var empFilter = document.getElementById('hist-emp-filter');
       var empSelect = document.getElementById('hist-emp-select');
       empFilter.style.display = '';
@@ -6420,55 +6421,86 @@
     document.getElementById('history-overlay').style.display = 'none';
   }
 
+  // 음원팀 username 목록 (발생 이슈 공유 범위)
+  var HIST_SOUND_USERNAMES = ['soundsupport','webmaster20','soundstore','soundsales','marketing','sunlee','admin'];
+
   function switchHistTab(tab) {
     _histTab = tab;
-    var planBtn = document.getElementById('hist-tab-plan');
-    var noteBtn = document.getElementById('hist-tab-note');
-    planBtn.style.color        = tab === 'plan' ? '#2563eb' : '#94a3b8';
-    planBtn.style.fontWeight   = tab === 'plan' ? '700' : '600';
-    planBtn.style.borderBottom = tab === 'plan' ? '2px solid #2563eb' : '2px solid transparent';
-    noteBtn.style.color        = tab === 'note' ? '#2563eb' : '#94a3b8';
-    noteBtn.style.fontWeight   = tab === 'note' ? '700' : '600';
-    noteBtn.style.borderBottom = tab === 'note' ? '2px solid #2563eb' : '2px solid transparent';
+    ['plan','note','issue'].forEach(function(t) {
+      var btn = document.getElementById('hist-tab-' + t);
+      if (!btn) return;
+      var active = t === tab;
+      btn.style.color        = active ? '#2563eb' : '#94a3b8';
+      btn.style.fontWeight   = active ? '700' : '600';
+      btn.style.borderBottom = active ? '2px solid #2563eb' : '2px solid transparent';
+    });
     document.getElementById('hist-search').value = '';
     renderHistList();
   }
 
   function renderHistList() {
     var body = document.getElementById('hist-list-body');
-    var q        = (document.getElementById('hist-search').value || '').trim().toLowerCase();
-    var dFrom    = document.getElementById('hist-date-from').value || '';
-    var dTo      = document.getElementById('hist-date-to').value   || '';
-    var empSel   = _isAdmin ? (document.getElementById('hist-emp-select') || {}).value || '' : '';
+    var q      = (document.getElementById('hist-search').value || '').trim().toLowerCase();
+    var dFrom  = document.getElementById('hist-date-from').value || '';
+    var dTo    = document.getElementById('hist-date-to').value   || '';
+    var empSel = _isAdmin ? (document.getElementById('hist-emp-select') || {}).value || '' : '';
     var journals = loadJournals();
-    // 관리자: 전체(직원 선택 가능), 직원: 본인 것만
-    if (!_isAdmin) journals = journals.filter(function(j) { return j.user_id === _userId; });
-    if (_isAdmin && empSel) journals = journals.filter(function(j) { return j.user_id === empSel; });
+
+    // 탭별 접근 범위 결정
+    if (_histTab === 'issue') {
+      // 발생 이슈: 관리자(mediacube, developer) → 전체, 음원팀 → 음원팀 전체, 그 외 → 본인만
+      var isSoundMember = HIST_SOUND_USERNAMES.indexOf(_currentUsername) !== -1;
+      if (_isAdmin || _currentUsername === 'developer') {
+        // 전체 공개 — 직원 필터 적용
+        if (empSel) journals = journals.filter(function(j) { return j.user_id === empSel; });
+      } else if (isSoundMember) {
+        // 음원팀끼리 공유
+        journals = journals.filter(function(j) {
+          var u = (ALL_USERS||[]).find(function(u){ return u.id === j.user_id; });
+          return u && HIST_SOUND_USERNAMES.indexOf(u.username) !== -1;
+        });
+      } else {
+        // 그 외: 본인만
+        journals = journals.filter(function(j) { return j.user_id === _userId; });
+      }
+    } else {
+      // 익일 계획 / 메모: 관리자 전체, 직원 본인만
+      if (!_isAdmin) journals = journals.filter(function(j) { return j.user_id === _userId; });
+      if (_isAdmin && empSel) journals = journals.filter(function(j) { return j.user_id === empSel; });
+    }
+
+    var tabLabel = _histTab === 'plan' ? '익일 계획' : _histTab === 'note' ? '메모 / 특이사항' : '발생 이슈';
 
     var items = journals.filter(function(j) {
-      var val = _histTab === 'plan' ? (j.nextPlan || '') : (j.note || '');
+      var val = _histTab === 'plan' ? (j.nextPlan || '') : _histTab === 'note' ? (j.note || '') : (j.issue || '');
       if (!val.trim()) return false;
       if (dFrom && (j.date || '') < dFrom) return false;
       if (dTo   && (j.date || '') > dTo)   return false;
       if (q && val.toLowerCase().indexOf(q) === -1 && (j.title||'').toLowerCase().indexOf(q) === -1) return false;
       return true;
-    });
+    }).sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
 
     if (!items.length) {
-      body.innerHTML = '<div style="text-align:center;padding:40px 0;color:#94a3b8;font-size:13px">' + (_histTab === 'plan' ? '익일 계획' : '메모 / 특이사항') + ' 내용이 없습니다.</div>';
+      body.innerHTML = '<div style="text-align:center;padding:40px 0;color:#94a3b8;font-size:13px">' + tabLabel + ' 내용이 없습니다.</div>';
       return;
     }
 
+    // 발생 이슈 탭: 작성자 항상 표시
+    var showAuthor = _isAdmin || _histTab === 'issue';
+    var accentColor = _histTab === 'issue' ? '#dc2626' : '#2563eb';
+    var cardBorder  = _histTab === 'issue' ? '#fecaca' : '#e2e8f0';
+    var cardBg      = _histTab === 'issue' ? '#fef2f2' : '#f8fafc';
+
     body.innerHTML = items.map(function(j) {
-      var val = _histTab === 'plan' ? (j.nextPlan || '') : (j.note || '');
+      var val = _histTab === 'plan' ? (j.nextPlan || '') : _histTab === 'note' ? (j.note || '') : (j.issue || '');
       var dateStr = j.date ? j.date.replace(/-/g, '.') : '';
-      var highlighted = q ? val.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi'), '<mark style="background:#fef08a;border-radius:2px">$1</mark>') : escHtml(val);
+      var highlighted;
       if (q) highlighted = val.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi'), '<mark style="background:#fef08a;border-radius:2px">$1</mark>');
       else highlighted = escHtml(val);
-      return '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px">'
+      return '<div style="background:' + cardBg + ';border:1px solid ' + cardBorder + ';border-radius:12px;padding:14px 16px">'
         + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-          + '<span style="font-size:11px;font-weight:700;color:#fff;background:#2563eb;border-radius:5px;padding:2px 8px">' + dateStr + '</span>'
-          + (_isAdmin ? '<span style="font-size:11px;color:#64748b;font-weight:600">' + escHtml(j.author || '') + '</span>' : '')
+          + '<span style="font-size:11px;font-weight:700;color:#fff;background:' + accentColor + ';border-radius:5px;padding:2px 8px">' + dateStr + '</span>'
+          + (showAuthor ? '<span style="font-size:11px;color:#64748b;font-weight:600">' + escHtml(j.author || '') + '</span>' : '')
           + '<span style="font-size:12px;color:#64748b;margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">' + escHtml(j.title || '') + '</span>'
         + '</div>'
         + '<div style="font-size:13px;color:#374151;line-height:1.7;white-space:pre-wrap;word-break:break-all">' + highlighted + '</div>'
