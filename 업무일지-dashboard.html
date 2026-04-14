@@ -6424,6 +6424,57 @@
   // 음원팀 username 목록 (발생 이슈 공유 범위)
   var HIST_SOUND_USERNAMES = ['soundsupport','webmaster20','soundstore','soundsales','marketing','sunlee','admin'];
 
+  // 이슈 해결 완료: DB 업데이트 + 관련 전원에게 메시지 전송
+  function resolveIssue(journalId, title, author) {
+    if (!confirm('[' + title + ']\n발생 이슈를 해결 완료로 처리하고\n관련 팀원 전체에게 알림을 보낼까요?')) return;
+
+    // 1) Supabase PATCH — issue 필드 비우기
+    fetch(SB_URL + '/rest/v1/journals?id=eq.' + encodeURIComponent(journalId), {
+      method: 'PATCH', headers: SB_DEL_HDR, body: JSON.stringify({ issue: '' })
+    }).then(function(r) {
+      if (!r.ok) r.text().then(function(t){ console.error('resolveIssue patch failed', r.status, t); });
+    }).catch(function(e){ console.error('resolveIssue patch error', e); });
+
+    // 로컬 캐시 업데이트
+    var j = journalCache.find(function(x){ return x.id === journalId; });
+    if (j) { j.issue = ''; journalCacheSnapshot = JSON.parse(JSON.stringify(journalCache)); }
+
+    // 2) 메시지 전송 대상 결정
+    //    - 음원팀 전원 + mediacube + developer (본인 제외)
+    var myUser = (ALL_USERS||[]).find(function(u){ return u.id === _userId; });
+    var senderName = myUser ? myUser.fullName : _currentUsername;
+    var targetUsernames = HIST_SOUND_USERNAMES.concat(['mediacube','developer']);
+    var recipients = (ALL_USERS||[]).filter(function(u){
+      return targetUsernames.indexOf(u.username) !== -1 && u.id !== _userId;
+    });
+
+    if (recipients.length) {
+      var msgBody = '✅ 발생 이슈 해결 완료\n\n'
+        + '【일지】' + title + '\n'
+        + '【작성자】' + author + '\n'
+        + '【처리자】' + senderName + '\n\n'
+        + '해당 이슈가 해결 처리되었습니다.';
+
+      var rows = recipients.map(function(u) {
+        return { sender_id: _userId, receiver_id: u.id, sender_name: senderName,
+          body: msgBody, is_read: false, attachments: null };
+      });
+      msgFetch('messages', {
+        method: 'POST',
+        headers: Object.assign({}, SB_HDR, { 'Prefer': 'return=minimal' }),
+        body: JSON.stringify(rows)
+      }).then(function(r) {
+        if (r.ok || r.status === 201) showToast('이슈 해결 완료! ' + recipients.length + '명에게 알림을 보냈습니다.');
+        else r.text().then(function(t){ console.error('resolveIssue msg failed', r.status, t); showToast('이슈 처리됨 (알림 전송 실패)'); });
+      }).catch(function(e){ console.error('resolveIssue msg error', e); });
+    } else {
+      showToast('이슈가 해결 완료 처리되었습니다.');
+    }
+
+    // 3) 패널 재렌더
+    renderHistList();
+  }
+
   function switchHistTab(tab) {
     _histTab = tab;
     ['plan','note','issue'].forEach(function(t) {
@@ -6491,21 +6542,34 @@
     var cardBorder  = _histTab === 'issue' ? '#fecaca' : '#e2e8f0';
     var cardBg      = _histTab === 'issue' ? '#fef2f2' : '#f8fafc';
 
-    body.innerHTML = items.map(function(j) {
+    body.innerHTML = '';
+    items.forEach(function(j) {
       var val = _histTab === 'plan' ? (j.nextPlan || '') : _histTab === 'note' ? (j.note || '') : (j.issue || '');
       var dateStr = j.date ? j.date.replace(/-/g, '.') : '';
       var highlighted;
       if (q) highlighted = val.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi'), '<mark style="background:#fef08a;border-radius:2px">$1</mark>');
       else highlighted = escHtml(val);
-      return '<div style="background:' + cardBg + ';border:1px solid ' + cardBorder + ';border-radius:12px;padding:14px 16px">'
-        + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+
+      var card = document.createElement('div');
+      card.style.cssText = 'background:' + cardBg + ';border:1px solid ' + cardBorder + ';border-radius:12px;padding:14px 16px';
+
+      // 발생 이슈 탭: 해결 완료 버튼 추가
+      var resolveBtn = '';
+      if (_histTab === 'issue') {
+        resolveBtn = '<button onclick="resolveIssue(\'' + j.id + '\',\'' + escHtml(j.title||'무제').replace(/'/g,"\\'") + '\',\'' + escHtml(j.author||'').replace(/'/g,"\\'") + '\')" '
+          + 'style="padding:3px 10px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap" '
+          + 'onmouseover="this.style.background=\'#15803d\'" onmouseout="this.style.background=\'#16a34a\'">✓ 해결 완료</button>';
+      }
+
+      card.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
           + '<span style="font-size:11px;font-weight:700;color:#fff;background:' + accentColor + ';border-radius:5px;padding:2px 8px">' + dateStr + '</span>'
           + (showAuthor ? '<span style="font-size:11px;color:#64748b;font-weight:600">' + escHtml(j.author || '') + '</span>' : '')
-          + '<span style="font-size:12px;color:#64748b;margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px">' + escHtml(j.title || '') + '</span>'
+          + '<span style="font-size:12px;color:#64748b;margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px">' + escHtml(j.title || '') + '</span>'
+          + resolveBtn
         + '</div>'
-        + '<div style="font-size:13px;color:#374151;line-height:1.7;white-space:pre-wrap;word-break:break-all">' + highlighted + '</div>'
-        + '</div>';
-    }).join('');
+        + '<div style="font-size:13px;color:#374151;line-height:1.7;white-space:pre-wrap;word-break:break-all">' + highlighted + '</div>';
+      body.appendChild(card);
+    });
   }
 </script>
 
