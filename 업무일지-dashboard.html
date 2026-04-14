@@ -6516,21 +6516,8 @@
 
     // 탭별 접근 범위 결정
     if (_histTab === 'issue') {
-      // 발생 이슈: 관리자(mediacube, developer) → 전체, 음원팀 → 음원팀 전체, 그 외 → 본인만
-      var isSoundMember = HIST_SOUND_USERNAMES.indexOf(_currentUsername) !== -1;
-      if (_isAdmin || _currentUsername === 'developer') {
-        // 전체 공개 — 직원 필터 적용
-        if (empSel) journals = journals.filter(function(j) { return j.user_id === empSel; });
-      } else if (isSoundMember) {
-        // 음원팀끼리 공유
-        journals = journals.filter(function(j) {
-          var u = (ALL_USERS||[]).find(function(u){ return u.id === j.user_id; });
-          return u && HIST_SOUND_USERNAMES.indexOf(u.username) !== -1;
-        });
-      } else {
-        // 그 외: 본인만
-        journals = journals.filter(function(j) { return j.user_id === _userId; });
-      }
+      // 발생 이슈: 전 직원 공유 (직원 필터만 적용)
+      if (empSel) journals = journals.filter(function(j) { return j.user_id === empSel; });
     } else {
       // 익일 계획 / 메모: 관리자 전체, 직원 본인만
       if (!_isAdmin) journals = journals.filter(function(j) { return j.user_id === _userId; });
