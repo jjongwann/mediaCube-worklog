@@ -2067,6 +2067,42 @@
     });
     document.addEventListener('scroll', closeStatusDropdown, true);
 
+    // ── 업무 지시 연동: 일지 항목 '완료' 시 directive 자동 업데이트 ──
+    function updateDirectiveFromJournal(directiveId) {
+      if (!_userId || !directiveId) return;
+      var SB_DEL_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
+      // 1) directive 조회 → assigner 정보 취득
+      fetch(SB_URL + '/rest/v1/task_directives?id=eq.' + encodeURIComponent(directiveId)
+            + '&select=id,title,assigner_id,assigner_name,status',
+        { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } }
+      ).then(function(r){ return r.json(); }).then(function(rows) {
+        if (!Array.isArray(rows) || !rows.length) return;
+        var d = rows[0];
+        if (d.status === 'done') return; // 이미 완료 처리됨
+        var myDisplayName = ((_mcSession && _mcSession._display) ? (_mcSession._display.fullName || _mcSession._display.name || '') : '')
+          || (document.getElementById('doc-author') ? document.getElementById('doc-author').value.trim() : '') || '담당자';
+        // 2) PATCH status → done
+        fetch(SB_URL + '/rest/v1/task_directives?id=eq.' + encodeURIComponent(directiveId), {
+          method: 'PATCH', headers: SB_DEL_HDR, body: JSON.stringify({ status: 'done' })
+        }).then(function(r){ if (!r.ok) r.text().then(function(t){ console.error('dirDone PATCH', r.status, t); }); });
+        // 3) 지시자에게 완료 알림 메시지 전송
+        if (d.assigner_id && d.assigner_id !== _userId) {
+          var msgBody = '📋 업무 지시 상태 변경\n\n【제목】' + d.title + '\n【담당자】' + myDisplayName + '\n【변경 상태】완료\n\n업무 진행 상태가 업데이트되었습니다.';
+          fetch(SB_URL + '/rest/v1/messages', {
+            method: 'POST',
+            headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+            body: JSON.stringify([{ sender_id: _userId, receiver_id: d.assigner_id, sender_name: myDisplayName, body: msgBody, is_read: false, attachments: null }])
+          }).catch(function(e){ console.error('dirDone msg', e); });
+        }
+        // 4) 현재 페이지 토스트
+        var toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed;bottom:28px;right:28px;z-index:99999;background:#0f172a;color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.2);pointer-events:none';
+        toast.textContent = '✅ 업무 지시 완료 처리 · 지시자에게 알림 발송';
+        document.body.appendChild(toast);
+        setTimeout(function(){ toast.style.transition='opacity .3s'; toast.style.opacity='0'; setTimeout(function(){ toast.remove(); }, 300); }, 3000);
+      }).catch(function(e){ console.error('updateDirectiveFromJournal', e); });
+    }
+
     function wireStatus(badge) {
       badge.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -2092,13 +2128,22 @@
           var item = document.createElement('div');
           item.className = 'status-dropdown-item' + (badge.classList.contains(opt.cls) ? ' active' : '');
           item.innerHTML = '<span class="status-dot" style="background:' + opt.dot + '"></span>' + opt.text;
-          item.addEventListener('click', function (e) {
-            e.stopPropagation();
-            badge.className = 'task-status ' + opt.cls;
-            badge.textContent = opt.text;
-            closeStatusDropdown();
-            calcProgress();
-          });
+          item.addEventListener('click', (function(optCls, optText) {
+            return function (e) {
+              e.stopPropagation();
+              badge.className = 'task-status ' + optCls;
+              badge.textContent = optText;
+              closeStatusDropdown();
+              calcProgress();
+              // ── 업무 지시 연동: 완료 시 directive 자동 업데이트
+              if (optCls === 'status-done') {
+                var tr = badge.closest('tr');
+                if (tr && tr.dataset && tr.dataset.directiveId) {
+                  updateDirectiveFromJournal(tr.dataset.directiveId);
+                }
+              }
+            };
+          })(opt.cls, opt.text));
           dropdown.appendChild(item);
         });
 
@@ -2138,6 +2183,7 @@
         var tr = document.createElement('tr');
         tr.className = 'task-item';
         tr.innerHTML = _taskRowHtml(scls, stxt, t.text, t.pct, t.startTime, t.endTime, false);
+        if (t.directive_id) tr.dataset.directiveId = t.directive_id;
         taskList.appendChild(tr);
         var ta = tr.querySelector('textarea');
         ta.value = t.text || '';
@@ -2573,7 +2619,10 @@
         var endTime = (endBtn && endBtn.dataset) ? (endBtn.dataset.val || '') : '';
         var diffMins = calcTaskHrs(startTime, endTime) || 0;
         var hrs = diffMins ? Math.round(diffMins / 60 * 10) / 10 : 0;
-        tasks.push({ text: text, status: taskStatus, done: false, pct: pct, startTime: startTime, endTime: endTime, hrs: hrs });
+        var taskObj = { text: text, status: taskStatus, done: false, pct: pct, startTime: startTime, endTime: endTime, hrs: hrs };
+        var dId = (tr.dataset && tr.dataset.directiveId) || '';
+        if (dId) taskObj.directive_id = dId;
+        tasks.push(taskObj);
       });
 
       var nowDate = date || (function () { var d = new Date(), m = d.getMonth() + 1, day = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' + m : m) + '-' + (day < 10 ? '0' + day : day); })();

@@ -7518,7 +7518,7 @@
       if (!Array.isArray(rows)||rows.length===0) { showToast('오늘 작성된 일지가 없습니다. 먼저 일지를 작성해주세요.'); return; }
       var journal = rows[0];
       var tasks   = Array.isArray(journal.tasks) ? JSON.parse(JSON.stringify(journal.tasks)) : [];
-      tasks.push({ text:title, status:'todo', done:false, pct:0, startTime:'', endTime:'', hrs:0 });
+      tasks.push({ text:title, status:'todo', done:false, pct:0, startTime:'', endTime:'', hrs:0, directive_id:id });
       fetch(SB_URL + '/rest/v1/journals?id=eq.' + journal.id, {
         method:'PATCH', headers:SB_DEL_HDR, body:JSON.stringify({ tasks:tasks })
       }).then(function(r) {
