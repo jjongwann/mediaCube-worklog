@@ -1531,6 +1531,10 @@
       <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
       업무 성과
     </div>
+    <div id="directive-sidebar-btn" class="sidebar-item" style="display:none" onclick="openDirectivePanel()">
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+      업무 지시
+    </div>
   </div>
 
   <!-- 관리자 전용 섹션 -->
@@ -5487,6 +5491,21 @@
           showResolveNotif(resolveTitle, m.sender_name || '알 수 없음', null);
           return;
         }
+        // 업무 지시 메시지이면 전용 배너로 표시
+        if (m.body && m.body.indexOf('📋 업무 지시 상태 변경') === 0) {
+          var stMatch = m.body.match(/【제목】(.+)/);
+          var stStatusMatch = m.body.match(/【변경 상태】(.+)/);
+          var stTitle = stMatch ? stMatch[1].trim() : '업무';
+          var stStatus = stStatusMatch ? stStatusMatch[1].trim() : '변경';
+          if (typeof showTaskStatusNotif === 'function') showTaskStatusNotif(stTitle, m.sender_name || '알 수 없음', stStatus);
+          return;
+        }
+        if (m.body && m.body.indexOf('📋 업무 지시') === 0) {
+          var dtMatch = m.body.match(/【제목】(.+)/);
+          var dtTitle = dtMatch ? dtMatch[1].trim() : '업무';
+          if (typeof showTaskNotif === 'function') showTaskNotif(dtTitle, m.sender_name || '알 수 없음', false);
+          return;
+        }
         showIncomingMsg(m);
       });
 
@@ -7104,6 +7123,343 @@
     renderAchievementPanel();
     showToast('성과 기록이 삭제되었습니다.');
   }
+</script>
+
+<!-- ── 업무 지시 패널 ── -->
+<div id="directive-overlay" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.4);z-index:9991" onclick="if(event.target===this)closeDirectivePanel()">
+  <div style="position:absolute;top:0;right:0;bottom:0;width:560px;max-width:100vw;background:#f8fafc;box-shadow:-8px 0 32px rgba(0,0,0,0.15);display:flex;flex-direction:column;font-family:inherit;animation:soundteamSlideIn 0.25s ease;overflow:hidden">
+    <div style="padding:20px 20px 16px;background:linear-gradient(135deg,#1e40af,#2563eb);flex-shrink:0">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="color:#fff">
+          <div style="font-size:16px;font-weight:800;letter-spacing:-0.3px">업무 지시</div>
+          <div id="dir-subtitle" style="font-size:11px;opacity:0.8;margin-top:2px">업무를 지시하거나 확인합니다</div>
+        </div>
+        <button onclick="closeDirectivePanel()" style="background:rgba(255,255,255,0.15);border:none;border-radius:10px;color:#fff;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1">×</button>
+      </div>
+    </div>
+    <div id="directive-tab-bar" style="flex-shrink:0"></div>
+    <div id="directive-body" style="flex:1;overflow-y:auto;display:flex;flex-direction:column"></div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════
+   업무 지시 패널
+══════════════════════════════════════════ */
+(function() {
+  var DIRECTIVE_GIVERS    = ['mediacube','info','admin','sunlee','developer'];
+  var DIRECTIVE_RECEIVERS = ['soundstore','soundsales','soundsupport','webmaster20','developer'];
+  var _isGiver    = DIRECTIVE_GIVERS.indexOf(_currentUsername) !== -1;
+  var _isReceiver = DIRECTIVE_RECEIVERS.indexOf(_currentUsername) !== -1;
+
+  // 사이드바 버튼 표시
+  if (_userId && (_isGiver || _isReceiver)) {
+    var _sb = document.getElementById('directive-sidebar-btn');
+    if (_sb) _sb.style.display = '';
+  }
+
+  var _directives = [];
+  var _directiveView = _isGiver ? 'giver' : 'receiver';
+
+  var _PRIORITY = {
+    high:   { label: '🔴 높음', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+    medium: { label: '🟡 중간', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+    low:    { label: '🟢 낮음', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' }
+  };
+  var _STATUS = {
+    pending:     { label: '대기',   color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0' },
+    in_progress: { label: '진행중', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+    done:        { label: '완료',   color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' }
+  };
+
+  window.openDirectivePanel = function() {
+    if (_isGiver && _isReceiver) _directiveView = 'giver';
+    document.getElementById('directive-overlay').style.display = 'flex';
+    _fetchDirectives().then(function() { _renderPanel(); });
+  };
+
+  window.closeDirectivePanel = function() {
+    document.getElementById('directive-overlay').style.display = 'none';
+  };
+
+  function _fetchDirectives() {
+    var url;
+    if (_isGiver && _isReceiver) {
+      url = SB_URL + '/rest/v1/task_directives?or=(assigner_id.eq.' + _userId + ',assignee_id.eq.' + _userId + ')&order=created_at.desc';
+    } else if (_isGiver) {
+      url = SB_URL + '/rest/v1/task_directives?assigner_id=eq.' + _userId + '&order=created_at.desc';
+    } else {
+      url = SB_URL + '/rest/v1/task_directives?assignee_id=eq.' + _userId + '&order=created_at.desc';
+    }
+    return fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } })
+      .then(function(r) { return r.json(); })
+      .then(function(rows) { _directives = Array.isArray(rows) ? rows : []; });
+  }
+
+  function _renderPanel() {
+    var tabBar = document.getElementById('directive-tab-bar');
+    var body   = document.getElementById('directive-body');
+    if (!body) return;
+
+    // 탭 (developer 전용)
+    if (_isGiver && _isReceiver) {
+      tabBar.innerHTML = '<div style="display:flex;border-bottom:2px solid #e2e8f0;padding:0 16px;background:#fff;flex-shrink:0">'
+        + '<button onclick="window._setDView(\'giver\')" style="padding:11px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid ' + (_directiveView==='giver'?'#2563eb':'transparent') + ';color:' + (_directiveView==='giver'?'#2563eb':'#64748b') + ';margin-bottom:-2px;transition:color .15s">지시한 업무</button>'
+        + '<button onclick="window._setDView(\'receiver\')" style="padding:11px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid ' + (_directiveView==='receiver'?'#2563eb':'transparent') + ';color:' + (_directiveView==='receiver'?'#2563eb':'#64748b') + ';margin-bottom:-2px;transition:color .15s">받은 업무</button>'
+        + '</div>';
+    } else {
+      tabBar.innerHTML = '';
+    }
+
+    body.innerHTML = '';
+    if (_directiveView === 'giver') _renderGiverView(body);
+    else _renderReceiverView(body);
+  }
+
+  window._setDView = function(v) { _directiveView = v; _renderPanel(); };
+
+  function _renderGiverView(body) {
+    var today = (function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
+    var opts = '<option value="">담당자 선택</option>';
+    DIRECTIVE_RECEIVERS.forEach(function(uname) {
+      var u = (ALL_USERS||[]).find(function(x){ return x.username === uname; });
+      if (u && u.id !== _userId) opts += '<option value="' + u.id + '">' + escHtml(u.fullName) + ' (' + escHtml(u.dept) + ')</option>';
+    });
+
+    var formDiv = document.createElement('div');
+    formDiv.style.cssText = 'background:#fff;padding:16px;border-bottom:1px solid #e2e8f0;flex-shrink:0';
+    formDiv.innerHTML = '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px">새 업무 지시</div>'
+      + '<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">제목 *</label>'
+      + '<input id="dir-title" type="text" placeholder="업무 제목" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;font-family:inherit"></div>'
+      + '<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">상세 내용 *</label>'
+      + '<textarea id="dir-content" placeholder="업무 내용을 자세히 입력해주세요" rows="3" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;outline:none;font-family:inherit"></textarea></div>'
+      + '<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">담당자 *</label>'
+      + '<select id="dir-assignee" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;font-family:inherit">' + opts + '</select></div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
+      + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">마감일 *</label>'
+      + '<input id="dir-due" type="date" min="' + today + '" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;font-family:inherit"></div>'
+      + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">우선순위 *</label>'
+      + '<select id="dir-priority" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;font-family:inherit">'
+      + '<option value="">선택</option><option value="high">🔴 높음</option><option value="medium">🟡 중간</option><option value="low">🟢 낮음</option>'
+      + '</select></div></div>'
+      + '<button onclick="window.submitDirective()" style="width:100%;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;font-family:inherit" onmouseover="this.style.background=\'#1d4ed8\'" onmouseout="this.style.background=\'#2563eb\'">업무 지시하기</button>';
+    body.appendChild(formDiv);
+
+    var listDiv = document.createElement('div');
+    listDiv.style.cssText = 'flex:1;padding:16px;overflow-y:auto';
+    var myList = _directives.filter(function(d){ return d.assigner_id === _userId; });
+    var listHtml = '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px">지시한 업무 <span style="font-size:11px;font-weight:400;color:#94a3b8">(' + myList.length + ')</span></div>';
+    if (!myList.length) listHtml += '<div style="text-align:center;padding:30px 0;color:#94a3b8;font-size:13px">지시한 업무가 없습니다</div>';
+    else myList.forEach(function(d){ listHtml += _cardHtml(d, 'giver'); });
+    listDiv.innerHTML = listHtml;
+    body.appendChild(listDiv);
+  }
+
+  function _renderReceiverView(body) {
+    var listDiv = document.createElement('div');
+    listDiv.style.cssText = 'flex:1;padding:16px;overflow-y:auto';
+    var myList = _directives.filter(function(d){ return d.assignee_id === _userId; });
+    var listHtml = '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px">받은 업무 지시 <span style="font-size:11px;font-weight:400;color:#94a3b8">(' + myList.length + ')</span></div>';
+    if (!myList.length) listHtml += '<div style="text-align:center;padding:30px 0;color:#94a3b8;font-size:13px">받은 업무 지시가 없습니다</div>';
+    else myList.forEach(function(d){ listHtml += _cardHtml(d, 'receiver'); });
+    listDiv.innerHTML = listHtml;
+    body.appendChild(listDiv);
+  }
+
+  function _cardHtml(d, role) {
+    var p = _PRIORITY[d.priority] || _PRIORITY.medium;
+    var s = _STATUS[d.status]   || _STATUS.pending;
+    var todayMs = new Date(); todayMs.setHours(0,0,0,0);
+    var dueMs   = new Date(d.due_date);
+    var overdue = d.status !== 'done' && dueMs < todayMs;
+    var dueLabel = overdue ? '📅 ' + escHtml(d.due_date) + ' <span style="color:#ef4444;font-weight:600">(기한 초과)</span>' : '📅 ' + escHtml(d.due_date);
+
+    var html = '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px;margin-bottom:10px">'
+      + '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">'
+      + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:2px">' + escHtml(d.title) + '</div>'
+      + '<div style="font-size:11px;color:#94a3b8">' + (role==='giver'?'담당: '+escHtml(d.assignee_name):'지시자: '+escHtml(d.assigner_name)) + '</div></div>'
+      + '<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:' + p.bg + ';color:' + p.color + ';border:1px solid ' + p.border + ';flex-shrink:0;white-space:nowrap">' + p.label + '</span>'
+      + '</div>'
+      + '<div style="font-size:12px;color:#374151;line-height:1.5;margin-bottom:8px;background:#f8fafc;padding:8px 10px;border-radius:8px;white-space:pre-wrap;word-break:break-word">' + escHtml(d.content) + '</div>'
+      + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
+      + '<span style="font-size:11px;color:#64748b">' + dueLabel + '</span>'
+      + '<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:' + s.bg + ';color:' + s.color + ';border:1px solid ' + s.border + '">' + s.label + '</span>';
+
+    if (role === 'receiver') {
+      [['pending','대기'],['in_progress','진행중'],['done','완료']].forEach(function(b) {
+        if (b[0] !== d.status) {
+          var sc = _STATUS[b[0]];
+          html += '<button onclick="window.updateDirectiveStatus(\'' + d.id + '\',\'' + b[0] + '\')" style="font-size:11px;padding:2px 8px;background:' + sc.bg + ';border:1px solid ' + sc.border + ';border-radius:20px;cursor:pointer;color:' + sc.color + ';font-weight:600">' + b[1] + '</button>';
+        }
+      });
+      html += '<button onclick="window.importDirectiveToJournal(\'' + d.id + '\',\'' + escHtml(d.title).replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\')" style="font-size:11px;padding:2px 8px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:20px;cursor:pointer;color:#7c3aed;font-weight:600;margin-left:auto">📥 일지로 가져오기</button>';
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  window.submitDirective = function() {
+    var title    = (document.getElementById('dir-title') || {}).value || '';
+    var content  = (document.getElementById('dir-content') || {}).value || '';
+    var assigneeId = (document.getElementById('dir-assignee') || {}).value || '';
+    var dueDate  = (document.getElementById('dir-due') || {}).value || '';
+    var priority = (document.getElementById('dir-priority') || {}).value || '';
+
+    title = title.trim(); content = content.trim();
+    if (!title)      { alert('제목을 입력해주세요.'); return; }
+    if (!content)    { alert('상세 내용을 입력해주세요.'); return; }
+    if (!assigneeId) { alert('담당자를 선택해주세요.'); return; }
+    if (!dueDate)    { alert('마감일을 선택해주세요.'); return; }
+    if (!priority)   { alert('우선순위를 선택해주세요.'); return; }
+
+    var assigneeUser = (ALL_USERS||[]).find(function(u){ return u.id === assigneeId; });
+    var assigneeName = assigneeUser ? assigneeUser.fullName : '담당자';
+    var myUser       = (ALL_USERS||[]).find(function(u){ return u.id === _userId; });
+    var assignerName = myUser ? myUser.fullName : _currentUsername;
+    var priorityLabels = { high:'높음', medium:'중간', low:'낮음' };
+
+    var btn = document.querySelector('[onclick="window.submitDirective()"]');
+    if (btn) { btn.disabled = true; btn.textContent = '전송 중...'; }
+
+    fetch(SB_URL + '/rest/v1/task_directives', {
+      method: 'POST',
+      headers: Object.assign({}, SB_HDR, { 'Prefer': 'return=representation' }),
+      body: JSON.stringify({ title:title, content:content, assigner_id:_userId, assigner_name:assignerName, assignee_id:assigneeId, assignee_name:assigneeName, due_date:dueDate, priority:priority, status:'pending' })
+    }).then(function(r){ return r.json(); }).then(function(rows) {
+      var created = Array.isArray(rows) ? rows[0] : rows;
+      if (created && created.id) _directives.unshift(created);
+
+      var msgBody = '📋 업무 지시\n\n'
+        + '【제목】' + title + '\n'
+        + '【내용】' + content + '\n'
+        + '【마감일】' + dueDate + '\n'
+        + '【우선순위】' + (priorityLabels[priority]||priority) + '\n\n'
+        + '업무 지시를 확인해주세요.';
+      msgFetch('messages', {
+        method:'POST',
+        headers: Object.assign({}, SB_HDR, { 'Prefer':'return=minimal' }),
+        body: JSON.stringify([{ sender_id:_userId, receiver_id:assigneeId, sender_name:assignerName, body:msgBody, is_read:false, attachments:null }])
+      });
+
+      showTaskNotif(title, assigneeName, true);
+      _renderPanel();
+      showToast('업무 지시가 완료되었습니다!');
+    }).catch(function(e){ alert('오류: ' + e.message); }).then(function(){
+      if (btn) { btn.disabled = false; btn.textContent = '업무 지시하기'; }
+    });
+  };
+
+  window.updateDirectiveStatus = function(id, newStatus) {
+    var d = _directives.find(function(x){ return x.id === id; });
+    if (!d) return;
+    d.status = newStatus;
+
+    fetch(SB_URL + '/rest/v1/task_directives?id=eq.' + encodeURIComponent(id), {
+      method:'PATCH', headers:SB_DEL_HDR, body:JSON.stringify({ status:newStatus })
+    }).then(function(r){ if (!r.ok) r.text().then(function(t){ console.error('updateDirectiveStatus', r.status, t); }); });
+
+    var statusLabels = { pending:'대기', in_progress:'진행중', done:'완료' };
+    var myUser   = (ALL_USERS||[]).find(function(u){ return u.id === _userId; });
+    var myName   = myUser ? myUser.fullName : _currentUsername;
+    var msgBody  = '📋 업무 지시 상태 변경\n\n'
+      + '【제목】' + d.title + '\n'
+      + '【담당자】' + myName + '\n'
+      + '【변경 상태】' + (statusLabels[newStatus]||newStatus) + '\n\n'
+      + '업무 진행 상태가 업데이트되었습니다.';
+    msgFetch('messages', {
+      method:'POST',
+      headers: Object.assign({}, SB_HDR, { 'Prefer':'return=minimal' }),
+      body: JSON.stringify([{ sender_id:_userId, receiver_id:d.assigner_id, sender_name:myName, body:msgBody, is_read:false, attachments:null }])
+    });
+
+    showTaskStatusNotif(d.title, myName, statusLabels[newStatus]||newStatus);
+    _renderPanel();
+  };
+
+  window.importDirectiveToJournal = function(id, title) {
+    var today = (function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
+    fetch(SB_URL + '/rest/v1/journals?user_id=eq.' + _userId + '&date=eq.' + today + '&select=id,tasks', {
+      headers: { 'apikey':SB_KEY, 'Authorization':'Bearer '+_sbToken }
+    }).then(function(r){ return r.json(); }).then(function(rows) {
+      if (!Array.isArray(rows)||rows.length===0) { showToast('오늘 작성된 일지가 없습니다. 먼저 일지를 작성해주세요.'); return; }
+      var journal = rows[0];
+      var tasks   = Array.isArray(journal.tasks) ? JSON.parse(JSON.stringify(journal.tasks)) : [];
+      tasks.push({ text:title, status:'todo', done:false, pct:0, startTime:'', endTime:'', hrs:0 });
+      fetch(SB_URL + '/rest/v1/journals?id=eq.' + journal.id, {
+        method:'PATCH', headers:SB_DEL_HDR, body:JSON.stringify({ tasks:tasks })
+      }).then(function(r) {
+        if (r.ok||r.status===204) {
+          var cached = journalCache.find(function(j){ return j.id===journal.id; });
+          if (cached) { cached.tasks=tasks; journalCacheSnapshot=JSON.parse(JSON.stringify(journalCache)); }
+          showToast('오늘 일지에 [' + title + '] 항목이 추가되었습니다!');
+        } else { r.text().then(function(t){ console.error('importDirective',r.status,t); showToast('일지 추가 중 오류가 발생했습니다.'); }); }
+      });
+    });
+  };
+
+  /* ── 업무 지시 알림 배너 ── */
+  var _taskNotifTimer = null;
+
+  function _showBanner(elId, headerText, bodyHtml, icon, iconBg, accentColor, dur, lsKey) {
+    var old = document.getElementById(elId);
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.id = elId;
+    var bottomOffset = document.getElementById('resolve-notif') ? '128px' : '28px';
+    el.style.cssText = 'position:fixed;bottom:' + bottomOffset + ';right:28px;z-index:99999;background:#fff;border:1px solid ' + accentColor + '55;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.14);padding:16px 20px;max-width:320px;display:flex;gap:14px;align-items:flex-start;font-family:inherit;overflow:hidden';
+    var prog = document.createElement('div');
+    prog.style.cssText = 'position:absolute;bottom:0;left:0;height:3px;background:' + accentColor + ';border-radius:0 0 16px 16px;width:100%';
+    el.innerHTML = '<div style="width:36px;height:36px;border-radius:10px;background:' + iconBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">' + icon + '</div>'
+      + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:' + accentColor + ';margin-bottom:4px">' + escHtml(headerText) + '</div>'
+      + '<div style="font-size:12px;color:#374151;line-height:1.5;word-break:break-word">' + bodyHtml + '</div></div>'
+      + '<button onclick="document.getElementById(\'' + elId + '\').remove();try{localStorage.removeItem(\'' + lsKey + '\')}catch(e){}" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:18px;line-height:1;flex-shrink:0;padding:0;margin-top:-2px" onmouseover="this.style.color=\'#374151\'" onmouseout="this.style.color=\'#94a3b8\'">×</button>';
+    el.appendChild(prog);
+    document.body.appendChild(el);
+    var start = Date.now(), rafId;
+    function tick(){ var p=Math.max(0,100-((Date.now()-start)/dur*100)); prog.style.width=p+'%'; if(p>0) rafId=requestAnimationFrame(tick); }
+    rafId = requestAnimationFrame(tick);
+    _taskNotifTimer = setTimeout(function(){
+      cancelAnimationFrame(rafId);
+      try{ localStorage.removeItem(lsKey); }catch(e){}
+      if (el.parentNode){ el.style.transition='opacity .3s,transform .3s'; el.style.opacity='0'; el.style.transform='translateY(10px)'; setTimeout(function(){ if(el.parentNode) el.remove(); },300); }
+    }, dur);
+  }
+
+  window.showTaskNotif = function(title, otherName, isGiver, remainingMs) {
+    var dur = (remainingMs!=null&&remainingMs>500)?remainingMs:10000;
+    try{ localStorage.setItem('_taskNotifPending', JSON.stringify({ type:'assign', title:title, otherName:otherName, isGiver:isGiver, expiresAt:Date.now()+dur })); }catch(e){}
+    var headerText = isGiver ? '업무 지시 완료' : '새 업무 지시 도착';
+    var bodyHtml   = isGiver
+      ? escHtml(otherName) + '님에게 <strong>' + escHtml(title) + '</strong> 지시 완료'
+      : escHtml(otherName) + '님이 <strong>' + escHtml(title) + '</strong> 업무를 지시했습니다';
+    var icon = isGiver ? '📋' : '📥';
+    var bg   = isGiver ? '#eff6ff' : '#f0fdf4';
+    var color= isGiver ? '#2563eb' : '#16a34a';
+    _showBanner('task-notif', headerText, bodyHtml, icon, bg, color, dur, '_taskNotifPending');
+  };
+
+  window.showTaskStatusNotif = function(title, handlerName, statusLabel, remainingMs) {
+    var dur = (remainingMs!=null&&remainingMs>500)?remainingMs:10000;
+    try{ localStorage.setItem('_taskNotifPending', JSON.stringify({ type:'status', title:title, handlerName:handlerName, statusLabel:statusLabel, expiresAt:Date.now()+dur })); }catch(e){}
+    var bodyHtml = escHtml(handlerName) + '님이 <strong>' + escHtml(title) + '</strong> 상태를 <strong>' + escHtml(statusLabel) + '</strong>으로 변경했습니다';
+    _showBanner('task-notif', '업무 상태 변경', bodyHtml, '🔄', '#fefce8', '#d97706', dur, '_taskNotifPending');
+  };
+
+  // 페이지 로드 시 task 알림 복원
+  (function() {
+    try {
+      var raw = localStorage.getItem('_taskNotifPending');
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      var remaining = data.expiresAt - Date.now();
+      if (remaining > 500) {
+        if (data.type === 'assign') window.showTaskNotif(data.title, data.otherName, data.isGiver, remaining);
+        else if (data.type === 'status') window.showTaskStatusNotif(data.title, data.handlerName, data.statusLabel, remaining);
+      } else { localStorage.removeItem('_taskNotifPending'); }
+    } catch(e) { try{ localStorage.removeItem('_taskNotifPending'); }catch(e2){} }
+  })();
+
+})();
 </script>
 </body>
 </html>

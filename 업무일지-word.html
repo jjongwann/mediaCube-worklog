@@ -3180,6 +3180,48 @@
         }, 10000);
       }
 
+      // ── 업무 지시 알림 배너 (word 페이지용)
+      var _taskBannerTimerW = null;
+      function showTaskBannerW(title, senderName, extra, type) {
+        var existing = document.getElementById('task-notif-w');
+        if (existing) existing.remove();
+        if (_taskBannerTimerW) clearTimeout(_taskBannerTimerW);
+        var dur = 10000;
+        var isAssign = type === 'assign';
+        var headerText = isAssign ? '새 업무 지시 도착' : '업무 상태 변경';
+        var bodyHtml = isAssign
+          ? escH(senderName) + '님이 <strong>' + escH(title) + '</strong> 업무를 지시했습니다'
+          : escH(senderName) + '님이 <strong>' + escH(title) + '</strong> 상태를 <strong>' + escH(extra||'') + '</strong>으로 변경했습니다';
+        var icon = isAssign ? '📥' : '🔄';
+        var iconBg = isAssign ? '#f0fdf4' : '#fefce8';
+        var accentColor = isAssign ? '#16a34a' : '#d97706';
+        try {
+          localStorage.setItem('_taskNotifPending', JSON.stringify(
+            isAssign ? { type:'assign', title:title, otherName:senderName, isGiver:false, expiresAt:Date.now()+dur }
+                     : { type:'status', title:title, handlerName:senderName, statusLabel:extra||'', expiresAt:Date.now()+dur }
+          ));
+        } catch(e) {}
+        var el = document.createElement('div');
+        el.id = 'task-notif-w';
+        el.style.cssText = 'position:fixed;bottom:28px;right:28px;z-index:99999;background:#fff;border:1px solid ' + accentColor + '55;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.14);padding:16px 20px;max-width:320px;display:flex;gap:14px;align-items:flex-start;font-family:inherit;overflow:hidden';
+        var prog = document.createElement('div');
+        prog.style.cssText = 'position:absolute;bottom:0;left:0;height:3px;background:' + accentColor + ';border-radius:0 0 16px 16px;width:100%';
+        el.innerHTML = '<div style="width:36px;height:36px;border-radius:10px;background:' + iconBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">' + icon + '</div>'
+          + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:' + accentColor + ';margin-bottom:4px">' + escH(headerText) + '</div>'
+          + '<div style="font-size:12px;color:#374151;line-height:1.5;word-break:break-word">' + bodyHtml + '</div></div>'
+          + '<button onclick="document.getElementById(\'task-notif-w\').remove();try{localStorage.removeItem(\'_taskNotifPending\')}catch(e){}" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:18px;line-height:1;flex-shrink:0;padding:0;margin-top:-2px">×</button>';
+        el.appendChild(prog);
+        document.body.appendChild(el);
+        var start = Date.now(), rafId;
+        function tick(){ var p=Math.max(0,100-((Date.now()-start)/dur*100)); prog.style.width=p+'%'; if(p>0) rafId=requestAnimationFrame(tick); }
+        rafId = requestAnimationFrame(tick);
+        _taskBannerTimerW = setTimeout(function(){
+          cancelAnimationFrame(rafId);
+          try{ localStorage.removeItem('_taskNotifPending'); }catch(e){}
+          if(el.parentNode){ el.style.transition='opacity .3s,transform .3s'; el.style.opacity='0'; el.style.transform='translateY(10px)'; setTimeout(function(){ if(el.parentNode) el.remove(); },300); }
+        }, dur);
+      }
+
       // ── 이슈 해결 완료 배너 (word 페이지용)
       var _resolveNotifTimerW = null;
       function showResolveNotifW(title, senderName, recipientCount, remainingMs) {
@@ -3233,19 +3275,28 @@
         }, dur);
       }
 
-      // 페이지 로드 시 미표시 resolve 알림 복원
+      // 페이지 로드 시 미표시 알림 복원
       (function() {
         try {
           var raw = localStorage.getItem('_resolveNotifPending');
-          if (!raw) return;
-          var data = JSON.parse(raw);
-          var remaining = data.expiresAt - Date.now();
-          if (remaining > 500) {
-            showResolveNotifW(data.title, data.senderName, data.recipientCount, remaining);
-          } else {
-            localStorage.removeItem('_resolveNotifPending');
+          if (raw) {
+            var data = JSON.parse(raw);
+            var remaining = data.expiresAt - Date.now();
+            if (remaining > 500) showResolveNotifW(data.title, data.senderName, data.recipientCount, remaining);
+            else localStorage.removeItem('_resolveNotifPending');
           }
         } catch(e) { try { localStorage.removeItem('_resolveNotifPending'); } catch(e2) {} }
+        try {
+          var raw2 = localStorage.getItem('_taskNotifPending');
+          if (raw2) {
+            var data2 = JSON.parse(raw2);
+            var remaining2 = data2.expiresAt - Date.now();
+            if (remaining2 > 500) {
+              if (data2.type === 'assign') showTaskBannerW(data2.title, data2.otherName, null, 'assign');
+              else if (data2.type === 'status') showTaskBannerW(data2.title, data2.handlerName, data2.statusLabel, 'status');
+            } else { localStorage.removeItem('_taskNotifPending'); }
+          }
+        } catch(e) { try { localStorage.removeItem('_taskNotifPending'); } catch(e2) {} }
       })();
 
       function poll() {
@@ -3262,6 +3313,18 @@
               var titleMatch = m.body.match(/【일지】(.+)/);
               var resolveTitle = titleMatch ? titleMatch[1].trim() : '발생 이슈';
               showResolveNotifW(resolveTitle, m.sender_name || '알 수 없음', null);
+              return;
+            }
+            // 업무 지시 메시지이면 task 배너로 표시
+            if (m.body && m.body.indexOf('📋 업무 지시 상태 변경') === 0) {
+              var stMatch2 = m.body.match(/【제목】(.+)/);
+              var stStatus2Match = m.body.match(/【변경 상태】(.+)/);
+              showTaskBannerW(stMatch2?stMatch2[1].trim():'업무', m.sender_name||'알 수 없음', stStatus2Match?stStatus2Match[1].trim():'변경', 'status');
+              return;
+            }
+            if (m.body && m.body.indexOf('📋 업무 지시') === 0) {
+              var dtMatch2 = m.body.match(/【제목】(.+)/);
+              showTaskBannerW(dtMatch2?dtMatch2[1].trim():'업무', m.sender_name||'알 수 없음', null, 'assign');
               return;
             }
             showNoti(m);
