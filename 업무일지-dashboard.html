@@ -6578,9 +6578,55 @@
     var jLookup = (journalCache || []).find(function(x){ return x.id === journalId; });
     if (!jLookup) { showToast('일지를 찾을 수 없습니다'); return; }
     var title = jLookup.title || '무제';
+    _showResolveConfirm(title, function(notify) {
+      _doResolveIssue(journalId, notify);
+    });
+  }
+
+  // 해결 완료 확인 모달 (알림 보내기 / 알림 없이 / 취소)
+  function _showResolveConfirm(title, onConfirm) {
+    var prev = document.getElementById('resolve-confirm-overlay');
+    if (prev) prev.remove();
+    var ov = document.createElement('div');
+    ov.id = 'resolve-confirm-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#fff;border-radius:14px;max-width:420px;width:100%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3);font-family:inherit';
+    var titleEl = document.createElement('div');
+    titleEl.style.cssText = 'font-size:15px;font-weight:700;color:#0f172a;margin-bottom:8px;word-break:break-word';
+    titleEl.textContent = '[' + title + ']';
+    var msgEl = document.createElement('div');
+    msgEl.style.cssText = 'font-size:13.5px;color:#475569;line-height:1.6;margin-bottom:20px';
+    msgEl.textContent = '발생 이슈를 해결 완료로 처리합니다.\n관련 팀원 전체에게 알림을 보낼까요?';
+    msgEl.style.whiteSpace = 'pre-line';
+    var btnWrap = document.createElement('div');
+    btnWrap.style.cssText = 'display:flex;flex-direction:column;gap:8px';
+    function mkBtn(label, bg, color, border) {
+      var b = document.createElement('button');
+      b.textContent = label;
+      b.style.cssText = 'padding:11px 14px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;background:' + bg + ';color:' + color + ';border:' + (border || 'none');
+      return b;
+    }
+    var bSend = mkBtn('✓ 알림 보내고 완료', '#16a34a', '#fff');
+    var bSilent = mkBtn('알림 없이 완료', '#fff', '#0f172a', '1px solid #cbd5e1');
+    var bCancel = mkBtn('취소', '#f1f5f9', '#475569');
+    btnWrap.appendChild(bSend); btnWrap.appendChild(bSilent); btnWrap.appendChild(bCancel);
+    box.appendChild(titleEl); box.appendChild(msgEl); box.appendChild(btnWrap);
+    ov.appendChild(box);
+    document.body.appendChild(ov);
+    function close() { ov.remove(); }
+    bSend.onclick = function(){ close(); onConfirm(true); };
+    bSilent.onclick = function(){ close(); onConfirm(false); };
+    bCancel.onclick = close;
+    ov.addEventListener('click', function(e){ if (e.target === ov) close(); });
+  }
+
+  function _doResolveIssue(journalId, notify) {
+    var jLookup = (journalCache || []).find(function(x){ return x.id === journalId; });
+    if (!jLookup) return;
+    var title = jLookup.title || '무제';
     var author = jLookup.author || '';
     var issueText = jLookup.issue || '';
-    if (!confirm('[' + title + ']\n발생 이슈를 해결 완료로 처리하고\n관련 팀원 전체에게 알림을 보낼까요?')) return;
 
     // 1) Supabase PATCH — issue 필드 비우기
     fetch(SB_URL + '/rest/v1/journals?id=eq.' + encodeURIComponent(journalId), {
@@ -6593,10 +6639,17 @@
     var j = journalCache.find(function(x){ return x.id === journalId; });
     if (j) { j.issue = ''; journalCacheSnapshot = JSON.parse(JSON.stringify(journalCache)); }
 
-    // 2) 메시지 전송 대상 결정
-    //    - 음원팀 전원 + mediacube + developer (본인 제외)
     var myUser = (ALL_USERS||[]).find(function(u){ return u.id === _userId; });
     var senderName = myUser ? myUser.fullName : _currentUsername;
+
+    if (!notify) {
+      showToast('이슈 해결 처리됨 (알림 미발송)');
+      renderHistList();
+      return;
+    }
+
+    // 2) 메시지 전송 대상 결정
+    //    - 음원팀 전원 + mediacube + developer (본인 제외)
     var targetUsernames = HIST_SOUND_USERNAMES.concat(['mediacube','developer']);
     var recipients = (ALL_USERS||[]).filter(function(u){
       return targetUsernames.indexOf(u.username) !== -1 && u.id !== _userId;
