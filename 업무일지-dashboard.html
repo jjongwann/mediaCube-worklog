@@ -2022,6 +2022,14 @@
         <div class="detail-memo-box" id="d-summary">—</div>
         <div class="detail-memo-lbl" style="margin-top:12px;">메모 / 특이사항</div>
         <div class="detail-memo-box" id="d-note">—</div>
+        <div id="d-issue-wrap" style="display:none">
+          <div class="detail-memo-lbl" style="margin-top:12px;color:#dc2626;">⚠️ 발생 이슈</div>
+          <div class="detail-memo-box" id="d-issue" style="border-color:#fecaca;background:#fef2f2;color:#374151;">—</div>
+        </div>
+        <div id="d-perf-wrap" style="display:none">
+          <div class="detail-memo-lbl" style="margin-top:12px;color:#7c3aed;">🏆 업무 성과</div>
+          <div class="detail-memo-box" id="d-perf" style="border-color:#ddd6fe;background:#f5f3ff;color:#374151;">—</div>
+        </div>
       </div>
     </div>
     <div class="detail-footer">
@@ -3865,6 +3873,24 @@
     document.getElementById('d-bar').style.width = pct + '%';
     document.getElementById('d-summary').textContent = j.summary || j.memo || '—';
     document.getElementById('d-note').textContent = j.note || '—';
+
+    // 발생 이슈
+    var issueWrap = document.getElementById('d-issue-wrap');
+    if (j.issue && j.issue.trim()) {
+      document.getElementById('d-issue').textContent = j.issue;
+      issueWrap.style.display = '';
+    } else {
+      issueWrap.style.display = 'none';
+    }
+
+    // 업무 성과 (risk 필드 재활용)
+    var perfWrap = document.getElementById('d-perf-wrap');
+    if (j.risk && j.risk.trim()) {
+      document.getElementById('d-perf').textContent = j.risk;
+      perfWrap.style.display = '';
+    } else {
+      perfWrap.style.display = 'none';
+    }
 
     // 태스크 목록 렌더링
     var tasksWrap = document.getElementById('d-tasks-wrap');
