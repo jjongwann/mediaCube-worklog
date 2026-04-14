@@ -7029,7 +7029,7 @@
 </div>
 
 <script>
-  var _achSelectedUser = null; // 관리자가 선택한 username (null=본인)
+  var _achSelectedUser = null; // 관리자가 선택한 username (null=전체, 일반직원=본인)
 
   function openAchievementPanel() {
     // 기본 날짜: 이번 달 1일 ~ 오늘
@@ -7040,11 +7040,11 @@
     document.getElementById('ach-date-from').value = yyyy + '-' + mm + '-01';
     document.getElementById('ach-date-to').value   = yyyy + '-' + mm + '-' + dd;
 
-    // 관리자: 직원 탭 렌더
+    // 관리자: 직원 탭 렌더 (기본: 전체 = null)
     var tabsEl = document.getElementById('ach-emp-tabs');
     if (_isAdmin) {
       tabsEl.style.display = 'flex';
-      _achSelectedUser = _achSelectedUser || (ALL_USERS.filter(function(u){return !u.isAdmin;})[0] || {}).username || null;
+      if (typeof _achSelectedUser === 'undefined') _achSelectedUser = null; // 전체 보기 기본값
       _renderAchTabs();
     } else {
       tabsEl.style.display = 'none';
@@ -7069,7 +7069,9 @@
     var tabsEl = document.getElementById('ach-emp-tabs');
     if (!tabsEl) return;
     var users = (ALL_USERS || []).filter(function(u){ return !u.isAdmin; });
-    tabsEl.innerHTML = users.map(function(u) {
+    var allActive = _achSelectedUser === null;
+    var allBtn = '<button onclick="achSelectUser(null)" style="padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,' + (allActive?'0.9':'0.3') + ');background:' + (allActive?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.12)') + ';color:' + (allActive?'#4f46e5':'#fff') + ';font-size:11px;font-weight:' + (allActive?'700':'500') + ';cursor:pointer">전체</button>';
+    tabsEl.innerHTML = allBtn + users.map(function(u) {
       var active = _achSelectedUser === u.username;
       return '<button onclick="achSelectUser(\'' + u.username + '\')" style="padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,' + (active?'0.9':'0.3') + ');background:' + (active?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.12)') + ';color:' + (active?'#4f46e5':'#fff') + ';font-size:11px;font-weight:' + (active?'700':'500') + ';cursor:pointer">'
         + _achEsc(u.fullName)
@@ -7078,7 +7080,7 @@
   }
 
   function achSelectUser(username) {
-    _achSelectedUser = username;
+    _achSelectedUser = username; // null = 전체
     _renderAchTabs();
     renderAchievementPanel();
   }
@@ -7092,17 +7094,19 @@
     var from = document.getElementById('ach-date-from').value;
     var to   = document.getElementById('ach-date-to').value;
 
-    // 대상 결정
+    // 대상 결정 (관리자 + null = 전체)
+    var showAll = _isAdmin && _achSelectedUser === null;
     var targetUsername = _isAdmin ? _achSelectedUser : _currentUsername;
     var targetUser = (ALL_USERS||[]).find(function(u){ return u.username === targetUsername; });
     var targetName = targetUser ? targetUser.fullName : targetUsername;
 
     // subtitle 업데이트
     var sub = document.getElementById('ach-subtitle');
-    if (sub) sub.textContent = _isAdmin ? (targetName + '의 업무 성과') : '나의 업무 성과';
+    if (sub) sub.textContent = showAll ? '전 직원 업무 성과' : (_isAdmin ? (targetName + '의 업무 성과') : '나의 업무 성과');
 
     // 데이터 필터
     var data = loadJournals().filter(function(j) {
+      if (showAll) return true; // 전체
       if (_isAdmin) {
         var u = (ALL_USERS||[]).find(function(u){ return u.username === targetUsername; });
         if (!u) return false;
@@ -7135,9 +7139,13 @@
           + 'style="background:none;border:none;cursor:pointer;color:#c4b5fd;font-size:16px;line-height:1;padding:2px 4px;border-radius:5px;transition:color .15s" '
           + 'onmouseover="this.style.color=\'#ef4444\'" onmouseout="this.style.color=\'#c4b5fd\'">×</button>'
         : '';
+      var authorChip = (showAll && j.author)
+        ? '<span style="font-size:10px;font-weight:600;padding:1px 8px;border-radius:20px;background:#ede9fe;color:#7c3aed;flex-shrink:0">' + _achEsc(j.author) + '</span>'
+        : '';
       card.innerHTML = '<div style="padding:10px 14px;background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-bottom:1px solid #ddd6fe;display:flex;align-items:center;justify-content:space-between;gap:8px">'
         + '<div style="font-size:12px;font-weight:700;color:#4f46e5;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _achEsc(j.title || '무제') + '</div>'
         + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
+          + authorChip
           + '<span style="font-size:11px;color:#7c3aed;font-weight:600">' + (j.date||'').replace(/-/g,'.') + '</span>'
           + delBtn
         + '</div>'
