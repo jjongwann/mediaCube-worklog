@@ -6574,7 +6574,12 @@
   var HIST_SOUND_USERNAMES = ['soundsupport','webmaster20','soundstore','soundsales','marketing','sunlee','admin'];
 
   // 이슈 해결 완료: DB 업데이트 + 관련 전원에게 메시지 전송
-  function resolveIssue(journalId, title, author, issueText) {
+  function resolveIssue(journalId) {
+    var jLookup = (journalCache || []).find(function(x){ return x.id === journalId; });
+    if (!jLookup) { showToast('일지를 찾을 수 없습니다'); return; }
+    var title = jLookup.title || '무제';
+    var author = jLookup.author || '';
+    var issueText = jLookup.issue || '';
     if (!confirm('[' + title + ']\n발생 이슈를 해결 완료로 처리하고\n관련 팀원 전체에게 알림을 보낼까요?')) return;
 
     // 1) Supabase PATCH — issue 필드 비우기
@@ -6718,7 +6723,7 @@
             + 'onmouseover="this.style.color=\'#ef4444\';this.style.background=\'#fef2f2\'" onmouseout="this.style.color=\'#cbd5e1\';this.style.background=\'none\'">×</button>'
           : '';
         if (isMyIssue) {
-          resolveBtn = '<button onclick="resolveIssue(\'' + j.id + '\',\'' + escHtml(j.title||'무제').replace(/'/g,"\\'") + '\',\'' + escHtml(j.author||'').replace(/'/g,"\\'") + '\',\'' + escHtml(j.issue||'').replace(/'/g,"\\'") + '\')" '
+          resolveBtn = '<button onclick="resolveIssue(\'' + j.id + '\')" '
             + 'style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#16a34a;color:#fff;border:none;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;white-space:nowrap;letter-spacing:.2px;box-shadow:0 1px 3px rgba(22,163,74,.3)" '
             + 'onmouseover="this.style.background=\'#15803d\'" onmouseout="this.style.background=\'#16a34a\'">✓ 해결 완료</button>'
             + delIssueBtn;
