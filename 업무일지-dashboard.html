@@ -7167,7 +7167,7 @@
   }
 
   var _directives = [];
-  var _directiveView = _isGiver ? 'giver' : 'receiver';
+  var _directiveView = 'form'; // 'form' | 'given' | 'receiver'
 
   /* ── 읽음 처리 (localStorage로 seen ID 관리) ── */
   function _getSeenIds() {
@@ -7217,12 +7217,10 @@
   };
 
   window.openDirectivePanel = function() {
-    if (_isGiver && _isReceiver) _directiveView = 'giver';
+    _directiveView = 'form'; // 항상 업무 지시 폼으로 시작
     document.getElementById('directive-overlay').style.display = 'flex';
     _fetchDirectives().then(function() {
-      // receiver only 계정은 패널 열면 바로 읽음 처리
-      if (_isReceiver && !_isGiver) { _markAllReceived(); window._updateDirBadge(0); }
-      else { window._updateDirBadge(); }
+      window._updateDirBadge();
       _renderPanel();
     });
   };
@@ -7245,26 +7243,35 @@
       .then(function(rows) { _directives = Array.isArray(rows) ? rows : []; });
   }
 
+  function _tabBtn(view, label) {
+    var active = _directiveView === view;
+    return '<button onclick="window._setDView(\'' + view + '\')" '
+      + 'style="padding:11px 14px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;'
+      + 'border-bottom:2px solid ' + (active ? '#2563eb' : 'transparent') + ';'
+      + 'color:' + (active ? '#2563eb' : '#64748b') + ';margin-bottom:-2px;white-space:nowrap">'
+      + label + '</button>';
+  }
+
   function _renderPanel() {
     var tabBar = document.getElementById('directive-tab-bar');
     var body   = document.getElementById('directive-body');
     if (!body) return;
 
-    // 탭 (developer 전용)
-    if (_isGiver && _isReceiver) {
-      var _unreadCnt = _calcUnread();
-      var _receiverTabLabel = '받은 업무' + (_unreadCnt > 0 ? ' <span style="display:inline-flex;align-items:center;justify-content:center;background:#ef4444;color:#fff;font-size:10px;font-weight:700;border-radius:9px;min-width:17px;height:17px;padding:0 4px;margin-left:3px;vertical-align:middle">' + _unreadCnt + '</span>' : '');
-      tabBar.innerHTML = '<div style="display:flex;border-bottom:2px solid #e2e8f0;padding:0 16px;background:#fff;flex-shrink:0">'
-        + '<button onclick="window._setDView(\'giver\')" style="padding:11px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid ' + (_directiveView==='giver'?'#2563eb':'transparent') + ';color:' + (_directiveView==='giver'?'#2563eb':'#64748b') + ';margin-bottom:-2px;transition:color .15s">지시한 업무</button>'
-        + '<button onclick="window._setDView(\'receiver\')" style="padding:11px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid ' + (_directiveView==='receiver'?'#2563eb':'transparent') + ';color:' + (_directiveView==='receiver'?'#2563eb':'#64748b') + ';margin-bottom:-2px;transition:color .15s">' + _receiverTabLabel + '</button>'
-        + '</div>';
-    } else {
-      tabBar.innerHTML = '';
-    }
+    var _unreadCnt = _calcUnread();
+    var receiverLabel = '받은 업무' + (_unreadCnt > 0
+      ? ' <span style="display:inline-flex;align-items:center;justify-content:center;background:#ef4444;color:#fff;font-size:10px;font-weight:700;border-radius:9px;min-width:17px;height:17px;padding:0 4px;margin-left:3px;vertical-align:middle">' + _unreadCnt + '</span>'
+      : '');
+
+    tabBar.innerHTML = '<div style="display:flex;border-bottom:2px solid #e2e8f0;padding:0 12px;background:#fff;flex-shrink:0;overflow-x:auto">'
+      + _tabBtn('form', '업무 지시')
+      + _tabBtn('given', '지시한 업무')
+      + _tabBtn('receiver', receiverLabel)
+      + '</div>';
 
     body.innerHTML = '';
-    if (_directiveView === 'giver') _renderGiverView(body);
-    else _renderReceiverView(body);
+    if (_directiveView === 'form')     _renderFormView(body);
+    else if (_directiveView === 'given')    _renderGivenView(body);
+    else                               _renderReceiverView(body);
   }
 
   window._setDView = function(v) {
@@ -7273,7 +7280,7 @@
     _renderPanel();
   };
 
-  function _renderGiverView(body) {
+  function _renderFormView(body) {
     var today = (function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
     var assigneeCheckboxes = '';
     DIRECTIVE_RECEIVERS.forEach(function(uname) {
@@ -7292,15 +7299,14 @@
     });
 
     var formDiv = document.createElement('div');
-    formDiv.style.cssText = 'background:#fff;padding:16px;border-bottom:1px solid #e2e8f0;flex-shrink:0';
-    formDiv.innerHTML = '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px">새 업무 지시</div>'
-      + '<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">제목 *</label>'
+    formDiv.style.cssText = 'flex:1;overflow-y:auto;background:#fff;padding:16px';
+    formDiv.innerHTML = '<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">제목 *</label>'
       + '<input id="dir-title" type="text" placeholder="업무 제목" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;font-family:inherit"></div>'
       + '<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">상세 내용 *</label>'
-      + '<textarea id="dir-content" placeholder="업무 내용을 자세히 입력해주세요" rows="3" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;outline:none;font-family:inherit"></textarea></div>'
+      + '<textarea id="dir-content" placeholder="업무 내용을 자세히 입력해주세요" rows="4" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;outline:none;font-family:inherit"></textarea></div>'
       + '<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:6px">담당자 * <span id="dir-assignee-count" style="font-weight:400;color:#94a3b8">(0명 선택)</span></label>'
       + '<div style="border:1px solid #e2e8f0;border-radius:8px;overflow-y:auto;max-height:168px;background:#fff">' + assigneeCheckboxes + '</div></div>'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
       + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">마감일</label>'
       + '<input id="dir-due" type="date" min="' + today + '" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;font-family:inherit"></div>'
       + '<div><label style="font-size:11px;font-weight:600;color:#64748b;display:block;margin-bottom:3px">우선순위 *</label>'
@@ -7310,7 +7316,6 @@
       + '<button onclick="window.submitDirective()" style="width:100%;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;font-family:inherit" onmouseover="this.style.background=\'#1d4ed8\'" onmouseout="this.style.background=\'#2563eb\'">업무 지시하기</button>';
     body.appendChild(formDiv);
 
-    // 체크박스 선택 카운트 업데이트
     formDiv.querySelectorAll('.dir-assignee-cb').forEach(function(cb) {
       cb.addEventListener('change', function() {
         var cnt = formDiv.querySelectorAll('.dir-assignee-cb:checked').length;
@@ -7318,7 +7323,9 @@
         if (countEl) countEl.textContent = '(' + cnt + '명 선택)';
       });
     });
+  }
 
+  function _renderGivenView(body) {
     var listDiv = document.createElement('div');
     listDiv.style.cssText = 'flex:1;padding:16px;overflow-y:auto';
     var myList = _directives.filter(function(d){ return d.assigner_id === _userId; });
@@ -7436,6 +7443,7 @@
 
       var namesStr = assignees.map(function(a){ return a.name; }).join(', ');
       showTaskNotif(title, namesStr, true);
+      _directiveView = 'given'; // 지시 완료 후 '지시한 업무' 탭으로 이동
       _renderPanel();
       showToast(assignees.length + '명에게 업무 지시가 완료되었습니다!');
     }).catch(function(e){ alert('오류: ' + e.message); }).then(function(){
