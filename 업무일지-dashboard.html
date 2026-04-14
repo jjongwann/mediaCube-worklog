@@ -3993,10 +3993,20 @@
 
   /* ── 이슈 해결 완료 알림 배너 (우측 하단, 10초) ── */
   var _resolveNotifTimer = null;
-  function showResolveNotif(title, senderName, recipientCount) {
+  function showResolveNotif(title, senderName, recipientCount, remainingMs) {
     var existing = document.getElementById('resolve-notif');
     if (existing) existing.remove();
     if (_resolveNotifTimer) clearTimeout(_resolveNotifTimer);
+
+    var dur = (remainingMs != null && remainingMs > 500) ? remainingMs : 10000;
+
+    // localStorage에 저장 (페이지 이동 시 복원용)
+    try {
+      localStorage.setItem('_resolveNotifPending', JSON.stringify({
+        title: title, senderName: senderName, recipientCount: recipientCount,
+        expiresAt: Date.now() + dur
+      }));
+    } catch(e) {}
 
     var el = document.createElement('div');
     el.id = 'resolve-notif';
@@ -4019,16 +4029,15 @@
           + escHtml(senderName) + '님이 처리' + (recipientCount != null ? ' · ' + recipientCount + '명에게 알림 발송' : ' 완료')
         + '</div>'
       + '</div>'
-      + '<button onclick="document.getElementById(\'resolve-notif\').remove()" '
+      + '<button onclick="document.getElementById(\'resolve-notif\').remove();try{localStorage.removeItem(\'_resolveNotifPending\')}catch(e){}" '
         + 'style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:18px;line-height:1;flex-shrink:0;padding:0;margin-top:-2px" '
         + 'onmouseover="this.style.color=\'#374151\'" onmouseout="this.style.color=\'#94a3b8\'">×</button>';
 
     el.appendChild(progress);
     document.body.appendChild(el);
 
-    // 10초 타임아웃 + 진행 바 애니메이션
+    // 진행 바 애니메이션
     var start = Date.now();
-    var dur = 10000;
     var rafId;
     function tick() {
       var elapsed = Date.now() - start;
@@ -4040,6 +4049,7 @@
 
     _resolveNotifTimer = setTimeout(function() {
       cancelAnimationFrame(rafId);
+      try { localStorage.removeItem('_resolveNotifPending'); } catch(e) {}
       if (el.parentNode) {
         el.style.transition = 'opacity .3s,transform .3s';
         el.style.opacity = '0';
@@ -4048,6 +4058,21 @@
       }
     }, dur);
   }
+
+  // ── 페이지 로드 시 미표시 resolve 알림 복원
+  (function() {
+    try {
+      var raw = localStorage.getItem('_resolveNotifPending');
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      var remaining = data.expiresAt - Date.now();
+      if (remaining > 500) {
+        showResolveNotif(data.title, data.senderName, data.recipientCount, remaining);
+      } else {
+        localStorage.removeItem('_resolveNotifPending');
+      }
+    } catch(e) { try { localStorage.removeItem('_resolveNotifPending'); } catch(e2) {} }
+  })();
 
   /* ── Keyboard ── */
   document.addEventListener('keydown', function(e) {

@@ -3180,6 +3180,74 @@
         }, 10000);
       }
 
+      // ── 이슈 해결 완료 배너 (word 페이지용)
+      var _resolveNotifTimerW = null;
+      function showResolveNotifW(title, senderName, recipientCount, remainingMs) {
+        var existing = document.getElementById('resolve-notif-w');
+        if (existing) existing.remove();
+        if (_resolveNotifTimerW) clearTimeout(_resolveNotifTimerW);
+        var dur = (remainingMs != null && remainingMs > 500) ? remainingMs : 10000;
+        try {
+          localStorage.setItem('_resolveNotifPending', JSON.stringify({
+            title: title, senderName: senderName, recipientCount: recipientCount,
+            expiresAt: Date.now() + dur
+          }));
+        } catch(e) {}
+        var el = document.createElement('div');
+        el.id = 'resolve-notif-w';
+        el.style.cssText = 'position:fixed;bottom:28px;right:28px;z-index:99999;'
+          + 'background:#fff;border:1px solid #bbf7d0;border-radius:16px;'
+          + 'box-shadow:0 8px 32px rgba(22,163,74,0.18),0 2px 8px rgba(0,0,0,0.08);'
+          + 'padding:16px 20px;max-width:320px;display:flex;gap:14px;align-items:flex-start;font-family:inherit;overflow:hidden';
+        var progress = document.createElement('div');
+        progress.style.cssText = 'position:absolute;bottom:0;left:0;height:3px;background:#16a34a;border-radius:0 0 16px 16px;width:100%';
+        el.innerHTML = '<div style="width:36px;height:36px;border-radius:10px;background:#dcfce7;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">✅</div>'
+          + '<div style="flex:1;min-width:0">'
+            + '<div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:4px">이슈 해결 완료</div>'
+            + '<div style="font-size:12px;color:#374151;line-height:1.5;word-break:break-word">'
+              + '<strong>' + escH(title) + '</strong><br>'
+              + escH(senderName) + '님이 처리' + (recipientCount != null ? ' · ' + recipientCount + '명에게 알림 발송' : ' 완료')
+            + '</div>'
+          + '</div>'
+          + '<button onclick="document.getElementById(\'resolve-notif-w\').remove();try{localStorage.removeItem(\'_resolveNotifPending\')}catch(e){}" '
+            + 'style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:18px;line-height:1;flex-shrink:0;padding:0;margin-top:-2px">×</button>';
+        el.appendChild(progress);
+        document.body.appendChild(el);
+        var start = Date.now();
+        var rafId;
+        function tick() {
+          var elapsed = Date.now() - start;
+          var pct = Math.max(0, 100 - (elapsed / dur * 100));
+          progress.style.width = pct + '%';
+          if (pct > 0) rafId = requestAnimationFrame(tick);
+        }
+        rafId = requestAnimationFrame(tick);
+        _resolveNotifTimerW = setTimeout(function() {
+          cancelAnimationFrame(rafId);
+          try { localStorage.removeItem('_resolveNotifPending'); } catch(e) {}
+          if (el.parentNode) {
+            el.style.transition = 'opacity .3s,transform .3s';
+            el.style.opacity = '0'; el.style.transform = 'translateY(10px)';
+            setTimeout(function(){ if (el.parentNode) el.remove(); }, 300);
+          }
+        }, dur);
+      }
+
+      // 페이지 로드 시 미표시 resolve 알림 복원
+      (function() {
+        try {
+          var raw = localStorage.getItem('_resolveNotifPending');
+          if (!raw) return;
+          var data = JSON.parse(raw);
+          var remaining = data.expiresAt - Date.now();
+          if (remaining > 500) {
+            showResolveNotifW(data.title, data.senderName, data.recipientCount, remaining);
+          } else {
+            localStorage.removeItem('_resolveNotifPending');
+          }
+        } catch(e) { try { localStorage.removeItem('_resolveNotifPending'); } catch(e2) {} }
+      })();
+
       function poll() {
         fetch(SB_URL + '/rest/v1/messages?receiver_id=eq.' + _userId + '&is_read=eq.false&deleted_by_receiver=eq.false&created_at=gt.' + encodeURIComponent(_lastCheck) + '&order=created_at.asc', {
           headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken }
@@ -3189,6 +3257,13 @@
           var chatOpen = document.getElementById('wmd-overlay') && document.getElementById('wmd-overlay').style.display !== 'none';
           msgs.forEach(function (m) {
             if (chatOpen && _wmdOtherId && _wmdOtherId === m.sender_id) return;
+            // 이슈 해결 완료 메시지이면 전용 배너로 표시
+            if (m.body && m.body.indexOf('✅ 발생 이슈 해결 완료') === 0) {
+              var titleMatch = m.body.match(/【일지】(.+)/);
+              var resolveTitle = titleMatch ? titleMatch[1].trim() : '발생 이슈';
+              showResolveNotifW(resolveTitle, m.sender_name || '알 수 없음', null);
+              return;
+            }
             showNoti(m);
           });
         }).catch(function () { });
