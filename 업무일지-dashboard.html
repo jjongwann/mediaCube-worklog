@@ -7357,11 +7357,18 @@
       ? (overdue ? '📅 ' + escHtml(d.due_date) + ' <span style="color:#ef4444;font-weight:600">(기한 초과)</span>' : '📅 ' + escHtml(d.due_date))
       : '<span style="color:#94a3b8">마감일 미정</span>';
 
+    var delBtn = role === 'giver'
+      ? '<button onclick="window.deleteDirective(\'' + d.id + '\')" title="삭제" '
+        + 'style="width:24px;height:24px;padding:0;background:none;border:none;color:#cbd5e1;border-radius:6px;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:color .15s" '
+        + 'onmouseover="this.style.color=\'#ef4444\';this.style.background=\'#fef2f2\'" onmouseout="this.style.color=\'#cbd5e1\';this.style.background=\'none\'">×</button>'
+      : '';
+
     var html = '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px;margin-bottom:10px">'
       + '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">'
       + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:2px">' + escHtml(d.title) + '</div>'
       + '<div style="font-size:11px;color:#94a3b8">' + (role==='giver'?'담당: '+escHtml(d.assignee_name):'지시자: '+escHtml(d.assigner_name)) + '</div></div>'
       + '<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:' + p.bg + ';color:' + p.color + ';border:1px solid ' + p.border + ';flex-shrink:0;white-space:nowrap">' + p.label + '</span>'
+      + delBtn
       + '</div>'
       + '<div style="font-size:12px;color:#374151;line-height:1.5;margin-bottom:8px;background:#f8fafc;padding:8px 10px;border-radius:8px;white-space:pre-wrap;word-break:break-word">' + escHtml(d.content) + '</div>'
       + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
@@ -7476,6 +7483,26 @@
 
     showTaskStatusNotif(d.title, myName, statusLabels[newStatus]||newStatus);
     _renderPanel();
+  };
+
+  window.deleteDirective = function(id) {
+    var d = _directives.find(function(x){ return x.id === id; });
+    if (!d) return;
+    if (!confirm('[' + d.title + ']\n이 업무 지시를 삭제할까요?\n담당자 목록에서도 사라집니다.')) return;
+
+    // 로컬 캐시에서 즉시 제거
+    _directives = _directives.filter(function(x){ return x.id !== id; });
+
+    // Supabase에서 삭제
+    fetch(SB_URL + '/rest/v1/task_directives?id=eq.' + encodeURIComponent(id), {
+      method: 'DELETE',
+      headers: SB_DEL_HDR
+    }).then(function(r) {
+      if (!r.ok) r.text().then(function(t){ console.error('deleteDirective failed', r.status, t); });
+    }).catch(function(e){ console.error('deleteDirective error', e); });
+
+    _renderPanel();
+    showToast('업무 지시가 삭제되었습니다.');
   };
 
   window.importDirectiveToJournal = function(id) {
