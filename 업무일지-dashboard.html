@@ -4016,7 +4016,7 @@
         + '<div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:4px">이슈 해결 완료</div>'
         + '<div style="font-size:12px;color:#374151;line-height:1.5;word-break:break-word">'
           + '<strong>' + escHtml(title) + '</strong><br>'
-          + escHtml(senderName) + '님이 처리 · ' + recipientCount + '명에게 알림 발송'
+          + escHtml(senderName) + '님이 처리' + (recipientCount != null ? ' · ' + recipientCount + '명에게 알림 발송' : ' 완료')
         + '</div>'
       + '</div>'
       + '<button onclick="document.getElementById(\'resolve-notif\').remove()" '
@@ -5455,6 +5455,13 @@
       msgs.forEach(function(m) {
         // 채팅 뷰가 열려 있고 해당 발신자와 대화 중이면 알림·뱃지 모두 생략
         if (chatOpen && _chatOtherId && _chatOtherId === m.sender_id) return;
+        // 이슈 해결 완료 메시지이면 전용 배너로 표시
+        if (m.body && m.body.indexOf('✅ 발생 이슈 해결 완료') === 0) {
+          var titleMatch = m.body.match(/【일지】(.+)/);
+          var resolveTitle = titleMatch ? titleMatch[1].trim() : '발생 이슈';
+          showResolveNotif(resolveTitle, m.sender_name || '알 수 없음', null);
+          return;
+        }
         showIncomingMsg(m);
       });
 
