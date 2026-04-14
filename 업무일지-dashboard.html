@@ -1534,6 +1534,7 @@
     <div id="directive-sidebar-btn" class="sidebar-item" style="display:none" onclick="openDirectivePanel()">
       <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
       업무 지시
+      <span id="directive-badge" style="display:none;margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:700;border-radius:9px;min-width:17px;height:17px;line-height:17px;text-align:center;padding:0 4px"></span>
     </div>
   </div>
 
@@ -5504,6 +5505,12 @@
           var dtMatch = m.body.match(/【제목】(.+)/);
           var dtTitle = dtMatch ? dtMatch[1].trim() : '업무';
           if (typeof showTaskNotif === 'function') showTaskNotif(dtTitle, m.sender_name || '알 수 없음', false);
+          // 사이드바 뱃지 +1
+          if (typeof window._updateDirBadge === 'function') {
+            var _db = document.getElementById('directive-badge');
+            var _cur = _db ? (parseInt(_db.textContent) || 0) : 0;
+            window._updateDirBadge(_cur + 1);
+          }
           return;
         }
         showIncomingMsg(m);
@@ -7162,6 +7169,42 @@
   var _directives = [];
   var _directiveView = _isGiver ? 'giver' : 'receiver';
 
+  /* ── 읽음 처리 (localStorage로 seen ID 관리) ── */
+  function _getSeenIds() {
+    try { return new Set(JSON.parse(localStorage.getItem('_dirSeen_' + _userId) || '[]')); } catch(e) { return new Set(); }
+  }
+  function _saveSeenIds(set) {
+    try { localStorage.setItem('_dirSeen_' + _userId, JSON.stringify([...set])); } catch(e) {}
+  }
+  function _calcUnread() {
+    var seen = _getSeenIds();
+    return _directives.filter(function(d){ return d.assignee_id === _userId && !seen.has(d.id); }).length;
+  }
+  function _markAllReceived() {
+    var seen = _getSeenIds();
+    _directives.filter(function(d){ return d.assignee_id === _userId; }).forEach(function(d){ seen.add(d.id); });
+    _saveSeenIds(seen);
+  }
+  window._updateDirBadge = function(count) {
+    var badge = document.getElementById('directive-badge');
+    if (!badge) return;
+    if (count == null) count = _calcUnread();
+    if (count > 0) { badge.textContent = count; badge.style.display = 'inline-block'; }
+    else { badge.style.display = 'none'; }
+  };
+
+  // 초기 로드: 받은 업무 수 조회해서 뱃지 표시
+  if (_userId) {
+    fetch(SB_URL + '/rest/v1/task_directives?assignee_id=eq.' + _userId + '&select=id', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken }
+    }).then(function(r){ return r.json(); }).then(function(rows) {
+      if (!Array.isArray(rows)) return;
+      var seen = _getSeenIds();
+      var unread = rows.filter(function(d){ return !seen.has(d.id); }).length;
+      window._updateDirBadge(unread);
+    }).catch(function(){});
+  }
+
   var _PRIORITY = {
     high:   { label: '🔴 높음', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
     medium: { label: '🟡 중간', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
@@ -7176,7 +7219,12 @@
   window.openDirectivePanel = function() {
     if (_isGiver && _isReceiver) _directiveView = 'giver';
     document.getElementById('directive-overlay').style.display = 'flex';
-    _fetchDirectives().then(function() { _renderPanel(); });
+    _fetchDirectives().then(function() {
+      // receiver only 계정은 패널 열면 바로 읽음 처리
+      if (_isReceiver && !_isGiver) { _markAllReceived(); window._updateDirBadge(0); }
+      else { window._updateDirBadge(); }
+      _renderPanel();
+    });
   };
 
   window.closeDirectivePanel = function() {
@@ -7204,9 +7252,11 @@
 
     // 탭 (developer 전용)
     if (_isGiver && _isReceiver) {
+      var _unreadCnt = _calcUnread();
+      var _receiverTabLabel = '받은 업무' + (_unreadCnt > 0 ? ' <span style="display:inline-flex;align-items:center;justify-content:center;background:#ef4444;color:#fff;font-size:10px;font-weight:700;border-radius:9px;min-width:17px;height:17px;padding:0 4px;margin-left:3px;vertical-align:middle">' + _unreadCnt + '</span>' : '');
       tabBar.innerHTML = '<div style="display:flex;border-bottom:2px solid #e2e8f0;padding:0 16px;background:#fff;flex-shrink:0">'
         + '<button onclick="window._setDView(\'giver\')" style="padding:11px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid ' + (_directiveView==='giver'?'#2563eb':'transparent') + ';color:' + (_directiveView==='giver'?'#2563eb':'#64748b') + ';margin-bottom:-2px;transition:color .15s">지시한 업무</button>'
-        + '<button onclick="window._setDView(\'receiver\')" style="padding:11px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid ' + (_directiveView==='receiver'?'#2563eb':'transparent') + ';color:' + (_directiveView==='receiver'?'#2563eb':'#64748b') + ';margin-bottom:-2px;transition:color .15s">받은 업무</button>'
+        + '<button onclick="window._setDView(\'receiver\')" style="padding:11px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid ' + (_directiveView==='receiver'?'#2563eb':'transparent') + ';color:' + (_directiveView==='receiver'?'#2563eb':'#64748b') + ';margin-bottom:-2px;transition:color .15s">' + _receiverTabLabel + '</button>'
         + '</div>';
     } else {
       tabBar.innerHTML = '';
@@ -7217,7 +7267,11 @@
     else _renderReceiverView(body);
   }
 
-  window._setDView = function(v) { _directiveView = v; _renderPanel(); };
+  window._setDView = function(v) {
+    _directiveView = v;
+    if (v === 'receiver') { _markAllReceived(); window._updateDirBadge(0); }
+    _renderPanel();
+  };
 
   function _renderGiverView(body) {
     var today = (function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
