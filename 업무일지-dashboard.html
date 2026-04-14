@@ -5500,6 +5500,11 @@
           var stStatusMatch = m.body.match(/【변경 상태】(.+)/);
           var stTitle = stMatch ? stMatch[1].trim() : '업무';
           var stStatus = stStatusMatch ? stStatusMatch[1].trim() : '변경';
+          // 지시자 측: 완료 메시지 수신 시 done 시각 기록 (24h 카운트 즉시 시작)
+          if (stStatus === '완료' && typeof _saveDoneTime === 'function' && typeof _directives !== 'undefined') {
+            var matchDir = _directives.find(function(x){ return x.title === stTitle; });
+            if (matchDir) { matchDir.status = 'done'; _saveDoneTime(matchDir.id); }
+          }
           if (typeof showTaskStatusNotif === 'function') showTaskStatusNotif(stTitle, m.sender_name || '알 수 없음', stStatus);
           return;
         }
@@ -7359,13 +7364,17 @@
     return { active: active, done: done };
   }
 
+  var _DONE_NOTICE = '<div style="font-size:11px;color:#94a3b8;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:7px 11px;margin-bottom:12px;line-height:1.5">'
+    + '✅ 완료된 업무는 회색으로 표시되며 <strong style="color:#64748b">완료 후 24시간이 지나면 자동으로 사라집니다.</strong></div>';
+
   function _renderGivenView(body) {
     var listDiv = document.createElement('div');
     listDiv.style.cssText = 'flex:1;padding:16px;overflow-y:auto';
     var allList = _directives.filter(function(d){ return d.assigner_id === _userId; });
     var split = _splitByDone(allList);
     var total = split.active.length + split.done.length;
-    var listHtml = '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px">지시한 업무 <span style="font-size:11px;font-weight:400;color:#94a3b8">(' + total + ')</span></div>';
+    var listHtml = '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px">지시한 업무 <span style="font-size:11px;font-weight:400;color:#94a3b8">(' + total + ')</span></div>'
+      + _DONE_NOTICE;
     if (!total) listHtml += '<div style="text-align:center;padding:30px 0;color:#94a3b8;font-size:13px">지시한 업무가 없습니다</div>';
     else {
       split.active.forEach(function(d){ listHtml += _cardHtml(d, 'giver', false); });
@@ -7381,7 +7390,8 @@
     var allList = _directives.filter(function(d){ return d.assignee_id === _userId; });
     var split = _splitByDone(allList);
     var total = split.active.length + split.done.length;
-    var listHtml = '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px">받은 업무 지시 <span style="font-size:11px;font-weight:400;color:#94a3b8">(' + total + ')</span></div>';
+    var listHtml = '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px">받은 업무 지시 <span style="font-size:11px;font-weight:400;color:#94a3b8">(' + total + ')</span></div>'
+      + _DONE_NOTICE;
     if (!total) listHtml += '<div style="text-align:center;padding:30px 0;color:#94a3b8;font-size:13px">받은 업무 지시가 없습니다</div>';
     else {
       split.active.forEach(function(d){ listHtml += _cardHtml(d, 'receiver', false); });
