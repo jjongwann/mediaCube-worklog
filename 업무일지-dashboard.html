@@ -3991,6 +3991,64 @@
     toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 2400);
   }
 
+  /* ── 이슈 해결 완료 알림 배너 (우측 하단, 10초) ── */
+  var _resolveNotifTimer = null;
+  function showResolveNotif(title, senderName, recipientCount) {
+    var existing = document.getElementById('resolve-notif');
+    if (existing) existing.remove();
+    if (_resolveNotifTimer) clearTimeout(_resolveNotifTimer);
+
+    var el = document.createElement('div');
+    el.id = 'resolve-notif';
+    el.style.cssText = 'position:fixed;bottom:28px;right:28px;z-index:99999;'
+      + 'background:#fff;border:1px solid #bbf7d0;border-radius:16px;'
+      + 'box-shadow:0 8px 32px rgba(22,163,74,0.18),0 2px 8px rgba(0,0,0,0.08);'
+      + 'padding:16px 20px;max-width:320px;display:flex;gap:14px;align-items:flex-start;'
+      + 'animation:resolveNotifIn .3s cubic-bezier(.22,.61,.36,1)';
+
+    // 진행 바
+    var progress = document.createElement('div');
+    progress.style.cssText = 'position:absolute;bottom:0;left:0;height:3px;background:#16a34a;border-radius:0 0 16px 16px;width:100%;transition:width linear';
+    el.style.position = 'fixed'; // ensure
+
+    el.innerHTML = '<div style="width:36px;height:36px;border-radius:10px;background:#dcfce7;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">✅</div>'
+      + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:4px">이슈 해결 완료</div>'
+        + '<div style="font-size:12px;color:#374151;line-height:1.5;word-break:break-word">'
+          + '<strong>' + escHtml(title) + '</strong><br>'
+          + escHtml(senderName) + '님이 처리 · ' + recipientCount + '명에게 알림 발송'
+        + '</div>'
+      + '</div>'
+      + '<button onclick="document.getElementById(\'resolve-notif\').remove()" '
+        + 'style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:18px;line-height:1;flex-shrink:0;padding:0;margin-top:-2px" '
+        + 'onmouseover="this.style.color=\'#374151\'" onmouseout="this.style.color=\'#94a3b8\'">×</button>';
+
+    el.appendChild(progress);
+    document.body.appendChild(el);
+
+    // 10초 타임아웃 + 진행 바 애니메이션
+    var start = Date.now();
+    var dur = 10000;
+    var rafId;
+    function tick() {
+      var elapsed = Date.now() - start;
+      var pct = Math.max(0, 100 - (elapsed / dur * 100));
+      progress.style.width = pct + '%';
+      if (pct > 0) rafId = requestAnimationFrame(tick);
+    }
+    rafId = requestAnimationFrame(tick);
+
+    _resolveNotifTimer = setTimeout(function() {
+      cancelAnimationFrame(rafId);
+      if (el.parentNode) {
+        el.style.transition = 'opacity .3s,transform .3s';
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(10px)';
+        setTimeout(function(){ if (el.parentNode) el.remove(); }, 300);
+      }
+    }, dur);
+  }
+
   /* ── Keyboard ── */
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
@@ -6464,11 +6522,11 @@
         headers: Object.assign({}, SB_HDR, { 'Prefer': 'return=minimal' }),
         body: JSON.stringify(rows)
       }).then(function(r) {
-        if (r.ok || r.status === 201) showToast('이슈 해결 완료! ' + recipients.length + '명에게 알림을 보냈습니다.');
+        if (r.ok || r.status === 201) showResolveNotif(title, senderName, recipients.length);
         else r.text().then(function(t){ console.error('resolveIssue msg failed', r.status, t); showToast('이슈 처리됨 (알림 전송 실패)'); });
       }).catch(function(e){ console.error('resolveIssue msg error', e); });
     } else {
-      showToast('이슈가 해결 완료 처리되었습니다.');
+      showResolveNotif(title, senderName, 0);
     }
 
     // 3) 패널 재렌더
@@ -6562,12 +6620,12 @@
       if (_histTab === 'issue') {
         var canDeleteIssue = !_isAdmin && j.user_id === _userId;
         var delIssueBtn = canDeleteIssue
-          ? '<button onclick="deleteIssue(\'' + j.id + '\')" title="삭제" '
-            + 'style="padding:3px 8px;background:none;border:1px solid #fca5a5;color:#ef4444;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap" '
-            + 'onmouseover="this.style.background=\'#fef2f2\'" onmouseout="this.style.background=\'none\'">✕ 삭제</button>'
+          ? '<button onclick="deleteIssue(\'' + j.id + '\')" title="이슈 삭제" '
+            + 'style="width:24px;height:24px;padding:0;background:none;border:none;color:#cbd5e1;border-radius:6px;font-size:15px;font-weight:400;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:color .15s" '
+            + 'onmouseover="this.style.color=\'#ef4444\';this.style.background=\'#fef2f2\'" onmouseout="this.style.color=\'#cbd5e1\';this.style.background=\'none\'">×</button>'
           : '';
         resolveBtn = '<button onclick="resolveIssue(\'' + j.id + '\',\'' + escHtml(j.title||'무제').replace(/'/g,"\\'") + '\',\'' + escHtml(j.author||'').replace(/'/g,"\\'") + '\')" '
-          + 'style="padding:3px 10px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;white-space:nowrap" '
+          + 'style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#16a34a;color:#fff;border:none;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;white-space:nowrap;letter-spacing:.2px;box-shadow:0 1px 3px rgba(22,163,74,.3)" '
           + 'onmouseover="this.style.background=\'#15803d\'" onmouseout="this.style.background=\'#16a34a\'">✓ 해결 완료</button>'
           + delIssueBtn;
       }
