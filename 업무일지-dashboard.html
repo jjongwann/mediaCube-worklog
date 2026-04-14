@@ -7171,6 +7171,20 @@
   var _directives = [];
   var _directiveView = 'form'; // 'form' | 'given' | 'receiver'
 
+  /* ── 완료 시각 추적 (localStorage) ── */
+  function _getDoneTimes() {
+    try { return JSON.parse(localStorage.getItem('_dirDoneAt_' + _userId) || '{}'); } catch(e) { return {}; }
+  }
+  function _saveDoneTime(id) {
+    var times = _getDoneTimes();
+    if (!times[id]) { times[id] = Date.now(); try { localStorage.setItem('_dirDoneAt_' + _userId, JSON.stringify(times)); } catch(e) {} }
+  }
+  function _purgeDoneTimes() {
+    var times = _getDoneTimes(); var now = Date.now(); var changed = false;
+    Object.keys(times).forEach(function(k){ if (now - times[k] > 25 * 3600 * 1000) { delete times[k]; changed = true; } });
+    if (changed) try { localStorage.setItem('_dirDoneAt_' + _userId, JSON.stringify(times)); } catch(e) {}
+  }
+
   /* ── 읽음 처리 (localStorage로 seen ID 관리) ── */
   function _getSeenIds() {
     try { return new Set(JSON.parse(localStorage.getItem('_dirSeen_' + _userId) || '[]')); } catch(e) { return new Set(); }
@@ -7242,7 +7256,12 @@
     }
     return fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } })
       .then(function(r) { return r.json(); })
-      .then(function(rows) { _directives = Array.isArray(rows) ? rows : []; });
+      .then(function(rows) {
+        _directives = Array.isArray(rows) ? rows : [];
+        // status=done인 항목의 완료 시각이 없으면 현재 시각으로 등록 (다른 기기에서 완료된 경우)
+        _directives.forEach(function(d){ if (d.status === 'done') _saveDoneTime(d.id); });
+        _purgeDoneTimes();
+      });
   }
 
   function _tabBtn(view, label) {
@@ -7327,13 +7346,31 @@
     });
   }
 
+  function _splitByDone(list) {
+    var doneTimes = _getDoneTimes(); var now = Date.now(); var limit = 24 * 3600 * 1000;
+    var active = [], done = [];
+    list.forEach(function(d) {
+      if (d.status === 'done') {
+        var t = doneTimes[d.id];
+        if (t && now - t > limit) return; // 24시간 초과 → 숨김
+        done.push(d);
+      } else { active.push(d); }
+    });
+    return { active: active, done: done };
+  }
+
   function _renderGivenView(body) {
     var listDiv = document.createElement('div');
     listDiv.style.cssText = 'flex:1;padding:16px;overflow-y:auto';
-    var myList = _directives.filter(function(d){ return d.assigner_id === _userId; });
-    var listHtml = '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px">지시한 업무 <span style="font-size:11px;font-weight:400;color:#94a3b8">(' + myList.length + ')</span></div>';
-    if (!myList.length) listHtml += '<div style="text-align:center;padding:30px 0;color:#94a3b8;font-size:13px">지시한 업무가 없습니다</div>';
-    else myList.forEach(function(d){ listHtml += _cardHtml(d, 'giver'); });
+    var allList = _directives.filter(function(d){ return d.assigner_id === _userId; });
+    var split = _splitByDone(allList);
+    var total = split.active.length + split.done.length;
+    var listHtml = '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px">지시한 업무 <span style="font-size:11px;font-weight:400;color:#94a3b8">(' + total + ')</span></div>';
+    if (!total) listHtml += '<div style="text-align:center;padding:30px 0;color:#94a3b8;font-size:13px">지시한 업무가 없습니다</div>';
+    else {
+      split.active.forEach(function(d){ listHtml += _cardHtml(d, 'giver', false); });
+      split.done.forEach(function(d){ listHtml += _cardHtml(d, 'giver', true); });
+    }
     listDiv.innerHTML = listHtml;
     body.appendChild(listDiv);
   }
@@ -7341,15 +7378,20 @@
   function _renderReceiverView(body) {
     var listDiv = document.createElement('div');
     listDiv.style.cssText = 'flex:1;padding:16px;overflow-y:auto';
-    var myList = _directives.filter(function(d){ return d.assignee_id === _userId; });
-    var listHtml = '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px">받은 업무 지시 <span style="font-size:11px;font-weight:400;color:#94a3b8">(' + myList.length + ')</span></div>';
-    if (!myList.length) listHtml += '<div style="text-align:center;padding:30px 0;color:#94a3b8;font-size:13px">받은 업무 지시가 없습니다</div>';
-    else myList.forEach(function(d){ listHtml += _cardHtml(d, 'receiver'); });
+    var allList = _directives.filter(function(d){ return d.assignee_id === _userId; });
+    var split = _splitByDone(allList);
+    var total = split.active.length + split.done.length;
+    var listHtml = '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:12px">받은 업무 지시 <span style="font-size:11px;font-weight:400;color:#94a3b8">(' + total + ')</span></div>';
+    if (!total) listHtml += '<div style="text-align:center;padding:30px 0;color:#94a3b8;font-size:13px">받은 업무 지시가 없습니다</div>';
+    else {
+      split.active.forEach(function(d){ listHtml += _cardHtml(d, 'receiver', false); });
+      split.done.forEach(function(d){ listHtml += _cardHtml(d, 'receiver', true); });
+    }
     listDiv.innerHTML = listHtml;
     body.appendChild(listDiv);
   }
 
-  function _cardHtml(d, role) {
+  function _cardHtml(d, role, isDone) {
     var p = _PRIORITY[d.priority] || _PRIORITY.medium;
     var s = _STATUS[d.status]   || _STATUS.pending;
     var todayMs = new Date(); todayMs.setHours(0,0,0,0);
@@ -7365,9 +7407,13 @@
         + 'onmouseover="this.style.color=\'#ef4444\';this.style.background=\'#fef2f2\'" onmouseout="this.style.color=\'#cbd5e1\';this.style.background=\'none\'">×</button>'
       : '';
 
-    var html = '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px;margin-bottom:10px">'
+    // 완료 항목: 회색 배경 + 투명도 처리
+    var cardBg  = isDone ? 'background:#f1f5f9;border:1px solid #e2e8f0;opacity:0.72' : 'background:#fff;border:1px solid #e2e8f0';
+    var textMuted = isDone ? 'color:#94a3b8' : 'color:#0f172a';
+
+    var html = '<div style="' + cardBg + ';border-radius:12px;padding:14px;margin-bottom:10px">'
       + '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">'
-      + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:2px">' + escHtml(d.title) + '</div>'
+      + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;' + textMuted + ';margin-bottom:2px">' + (isDone ? '✅ ' : '') + escHtml(d.title) + '</div>'
       + '<div style="font-size:11px;color:#94a3b8">' + (role==='giver'?'담당: '+escHtml(d.assignee_name):'지시자: '+escHtml(d.assigner_name)) + '</div></div>'
       + '<span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;background:' + p.bg + ';color:' + p.color + ';border:1px solid ' + p.border + ';flex-shrink:0;white-space:nowrap">' + p.label + '</span>'
       + delBtn
@@ -7469,6 +7515,7 @@
       method:'PATCH', headers:SB_DEL_HDR, body:JSON.stringify({ status:newStatus })
     }).then(function(r){ if (!r.ok) r.text().then(function(t){ console.error('updateDirectiveStatus', r.status, t); }); });
 
+    if (newStatus === 'done') _saveDoneTime(id);
     var statusLabels = { pending:'대기', in_progress:'진행중', done:'완료' };
     var myUser   = (ALL_USERS||[]).find(function(u){ return u.id === _userId; });
     var myName   = myUser ? myUser.fullName : _currentUsername;
