@@ -6025,6 +6025,15 @@
     if (_cumulChart) renderCumulChart();
   }
 
+  function _toggleCumulDS(idx) {
+    if (!_cumulChart) return;
+    var meta = _cumulChart.getDatasetMeta(idx);
+    meta.hidden = !meta.hidden;
+    _cumulChart.update();
+    var el = document.getElementById(idx===0 ? 'cumul-leg-prev' : 'cumul-leg-cur');
+    if (el) el.style.opacity = meta.hidden ? '0.35' : '1';
+  }
+
   function renderCumulChart() {
     var fromKey = document.getElementById('cumul-from').value;
     var toKey   = document.getElementById('cumul-to').value;
@@ -6047,7 +6056,7 @@
 
     if (!allKeys.length) return;
 
-    // 항목별 누계
+    // 항목별 누계 (현재 기간)
     var totals = {};
     SALES_ITEMS.forEach(function(item){ totals[item.key]=0; });
     var totalReal=0, totalSum=0;
@@ -6058,62 +6067,202 @@
       totalSum  += e._total || 0;
     });
 
-    // X축 = 항목(8개), Y값 = 기간 누적 합산 → 단일 dataset
+    // 전년 동기간 누계
+    var prevTotals = {};
+    SALES_ITEMS.forEach(function(item){ prevTotals[item.key]=0; });
+    var prevTotalReal=0, prevTotalSum=0, hasPrevData=false;
+    var prevKeys = allKeys.map(function(k){
+      var p=k.split('-');
+      return (parseInt(p[0])-1)+'-'+p[1];
+    });
+    prevKeys.forEach(function(pk){
+      var e = salesGetEntry(data, pk);
+      SALES_ITEMS.forEach(function(item){ prevTotals[item.key]+=(e[item.key]||0); });
+      prevTotalReal += e._real  || 0;
+      prevTotalSum  += e._total || 0;
+    });
+    SALES_ITEMS.forEach(function(item){ if(prevTotals[item.key]>0) hasPrevData=true; });
+    if(prevTotalReal>0||prevTotalSum>0) hasPrevData=true;
+
+    // X축 = 항목(8개), Y값 = 기간 누적 합산
     var labels    = SALES_ITEMS.map(function(i){ return i.label; });
     var values    = SALES_ITEMS.map(function(i){ return totals[i.key]; });
+    var prevValues= SALES_ITEMS.map(function(i){ return prevTotals[i.key]; });
     var bgColors  = SALES_ITEMS.map(function(i){ return i.color + (_cumulType==='bar' ? 'cc' : '44'); });
     var bdColors  = SALES_ITEMS.map(function(i){ return i.color; });
     var fp2=fromKey.split('-'), tp2=toKey.split('-');
     var rangeLabel = fp2[0]+'년 '+fp2[1]+'월 ~ '+tp2[0]+'년 '+tp2[1]+'월';
-
-    var dataset = {
-      label: '누계 매출',
-      data: values,
-      backgroundColor: bgColors,
-      borderColor: bdColors,
-      borderWidth: _cumulType==='bar' ? 0 : 2,
-      borderRadius: _cumulType==='bar' ? 6 : 0,
-      maxBarThickness: 60,
-      fill: false,
-      tension: 0.4,
-      pointRadius: _cumulType==='line' ? 5 : 0,
-      pointBackgroundColor: bdColors,
-      pointBorderColor: '#fff',
-      pointBorderWidth: 2
-    };
+    var prevFp2=(parseInt(fp2[0])-1), prevTp2=(parseInt(tp2[0])-1);
+    var prevRangeLabel = prevFp2+'년 '+fp2[1]+'월 ~ '+prevTp2+'년 '+tp2[1]+'월';
 
     var ctx = document.getElementById('cumul-chart').getContext('2d');
     if (_cumulChart) { _cumulChart.destroy(); _cumulChart=null; }
 
-    _cumulChart = new Chart(ctx, {
-      type: _cumulType==='bar' ? 'bar' : 'line',
-      data: { labels: labels, datasets: [dataset] },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#fff', titleColor: '#111827', bodyColor: '#374151',
-            borderColor: '#e2e8f0', borderWidth: 1, padding: 10,
-            callbacks: {
-              title: function(items){ return items[0].label; },
-              label: function(c){ return ' 누계: '+fmtCumul(c.raw||0); }
-            }
-          }
-        },
-        scales: {
-          x: { grid:{display:false}, ticks:{font:{size:11,weight:'600'},color:'#374151',maxRotation:0,minRotation:0} },
-          y: { beginAtZero:true, grid:{color:'#f3f4f6'}, ticks:{font:{size:10},color:'#9ca3af',
-            callback: function(v){
-              if(v>=100000000){ var a=v/100000000; return (a%1===0?a.toFixed(0):a.toFixed(1))+'억'; }
-              if(v>=10000) return Math.round(v/10000)+'만';
-              return v.toLocaleString();
-            }
-          }}
-        }
+    if (_cumulType === 'bar') {
+      var datasets = [{
+        label: rangeLabel,
+        data: values,
+        backgroundColor: bgColors,
+        borderColor: bdColors,
+        borderWidth: 0,
+        borderRadius: 6,
+        maxBarThickness: hasPrevData ? 36 : 60,
+        categoryPercentage: hasPrevData ? 0.7 : 0.6,
+        barPercentage: 0.85
+      }];
+      if (hasPrevData) {
+        datasets.unshift({
+          label: prevRangeLabel,
+          data: prevValues,
+          backgroundColor: SALES_ITEMS.map(function(i){ return i.color+'44'; }),
+          borderColor: SALES_ITEMS.map(function(i){ return i.color+'88'; }),
+          borderWidth: 1,
+          borderRadius: 5,
+          maxBarThickness: 36,
+          categoryPercentage: 0.7,
+          barPercentage: 0.85
+        });
       }
-    });
+      _cumulChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: labels, datasets: datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          layout: { padding: { top: hasPrevData ? 36 : 4 } },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#fff', titleColor: '#111827', bodyColor: '#374151',
+              borderColor: '#e2e8f0', borderWidth: 1, padding: 10,
+              callbacks: {
+                title: function(items){ return items[0].label; },
+                label: function(c){
+                  return ' ' + c.dataset.label + ': ' + fmtCumul(c.raw||0);
+                },
+                afterLabel: function(c) {
+                  if (!hasPrevData) return;
+                  var dsIdx = c.datasetIndex;
+                  if (dsIdx !== 1) return;
+                  if (_cumulChart && (_cumulChart.getDatasetMeta(0).hidden || _cumulChart.getDatasetMeta(1).hidden)) return;
+                  var cur = values[c.dataIndex]||0;
+                  var prev = prevValues[c.dataIndex]||0;
+                  if (!prev) return;
+                  var pct = ((cur - prev) / prev * 100).toFixed(2);
+                  var sign = parseFloat(pct) >= 0 ? '+' : '';
+                  return ' 전년대비: ' + sign + pct + '%';
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid:{display:false}, ticks:{font:{size:11,weight:'600'},color:'#374151',maxRotation:0,minRotation:0} },
+            y: { beginAtZero:true, grid:{color:'#f3f4f6'}, ticks:{font:{size:10},color:'#9ca3af',
+              callback: function(v){
+                if(v>=100000000){ var a=v/100000000; return (a%1===0?a.toFixed(0):a.toFixed(1))+'억'; }
+                if(v>=10000) return Math.round(v/10000)+'만';
+                return v.toLocaleString();
+              }
+            }}
+          }
+        }
+      });
+    } else {
+      // 꺾은선 차트
+      var lineDatasets = [{
+        label: rangeLabel,
+        data: values,
+        borderColor: '#7c3aed',
+        backgroundColor: '#7c3aed22',
+        borderWidth: 2.5,
+        fill: false,
+        tension: 0.4,
+        pointRadius: 5,
+        pointBackgroundColor: '#7c3aed',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2
+      }];
+      if (hasPrevData) {
+        lineDatasets.unshift({
+          label: prevRangeLabel,
+          data: prevValues,
+          borderColor: '#94a3b8',
+          backgroundColor: '#94a3b822',
+          borderWidth: 1.5,
+          borderDash: [5, 4],
+          fill: false,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: '#94a3b8',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
+        });
+      }
+      _cumulChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: labels, datasets: lineDatasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#fff', titleColor: '#111827', bodyColor: '#374151',
+              borderColor: '#e2e8f0', borderWidth: 1, padding: 10,
+              callbacks: {
+                title: function(items){ return items[0].label; },
+                label: function(c){ return ' ' + c.dataset.label + ': ' + fmtCumul(c.raw||0); },
+                afterLabel: function(c) {
+                  if (!hasPrevData) return;
+                  var dsIdx = hasPrevData ? 1 : 0;
+                  if (c.datasetIndex !== dsIdx) return;
+                  var cur = values[c.dataIndex]||0;
+                  var prev = prevValues[c.dataIndex]||0;
+                  if (!prev) return;
+                  var pct = ((cur - prev) / prev * 100).toFixed(2);
+                  var sign = parseFloat(pct) >= 0 ? '+' : '';
+                  return ' 전년대비: ' + sign + pct + '%';
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid:{display:false}, ticks:{font:{size:11,weight:'600'},color:'#374151',maxRotation:0,minRotation:0} },
+            y: { beginAtZero:true, grid:{color:'#f3f4f6'}, ticks:{font:{size:10},color:'#9ca3af',
+              callback: function(v){
+                if(v>=100000000){ var a=v/100000000; return (a%1===0?a.toFixed(0):a.toFixed(1))+'억'; }
+                if(v>=10000) return Math.round(v/10000)+'만';
+                return v.toLocaleString();
+              }
+            }}
+          }
+        }
+      });
+    }
+
+    // 범례 (전년 데이터 있을 때)
+    var legendWrap = document.getElementById('cumul-legend');
+    if (!legendWrap) {
+      var chartContainer = document.getElementById('cumul-chart').parentNode;
+      legendWrap = document.createElement('div');
+      legendWrap.id = 'cumul-legend';
+      legendWrap.style.cssText = 'position:absolute;top:4px;right:4px;display:flex;gap:10px;font-size:11px;font-weight:600';
+      chartContainer.appendChild(legendWrap);
+    }
+    if (hasPrevData) {
+      var prevYearFrom = parseInt(fp2[0])-1, prevYearTo = parseInt(tp2[0])-1;
+      legendWrap.innerHTML =
+        '<span onclick="_toggleCumulDS(0)" style="cursor:pointer;display:flex;align-items:center;gap:4px;padding:3px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;user-select:none" id="cumul-leg-prev">'
+        + '<span style="width:10px;height:10px;border-radius:3px;background:#94a3b8;opacity:0.5;border:1px solid #94a3b8"></span>'
+        + prevYearFrom+'년 '+fp2[1]+'월~'+prevYearTo+'년 '+tp2[1]+'월'
+        + '</span>'
+        + '<span onclick="_toggleCumulDS(1)" style="cursor:pointer;display:flex;align-items:center;gap:4px;padding:3px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;user-select:none" id="cumul-leg-cur">'
+        + '<span style="width:10px;height:10px;border-radius:3px;background:#7c3aed"></span>'
+        + fp2[0]+'년 '+fp2[1]+'월~'+tp2[0]+'년 '+tp2[1]+'월'
+        + '</span>';
+    } else {
+      legendWrap.innerHTML = '';
+    }
 
     function fmtCumul(v) {
       if(v>=100000000) return (v/100000000).toFixed(2)+'억원';
@@ -6122,20 +6271,36 @@
     }
     function fmtOri(v){ return (v||0).toLocaleString()+'원'; }
 
+    // 전년대비 퍼센트 헬퍼
+    function _cPct(cur, prev) {
+      if (!prev) return '';
+      var pct = ((cur - prev) / prev * 100).toFixed(2);
+      var sign = parseFloat(pct) >= 0 ? '+' : '';
+      var color = parseFloat(pct) >= 0 ? '#dc2626' : '#2563eb';
+      return '<span style="font-size:9px;font-weight:700;color:'+color+'"> '+sign+pct+'%</span>';
+    }
+
     // 통계 패널
     var stat = document.getElementById('cumul-stat-panel');
     stat.innerHTML =
       '<div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:4px;padding-bottom:6px;border-bottom:1px solid #e2e8f0">📊 '+rangeLabel+'</div>'
       + '<div style="background:#dbeafe;border-radius:8px;padding:10px 12px">'
         + '<div style="font-size:10px;color:#2563eb;font-weight:700;margin-bottom:3px">실 매출 합계</div>'
-        + '<div style="font-size:16px;font-weight:800;color:#1e40af">'+fmtCumul(totalReal)+'</div>'
+        + '<div style="font-size:16px;font-weight:800;color:#1e40af">'+fmtCumul(totalReal)+_cPct(totalReal,prevTotalReal)+'</div>'
         + '<div style="font-size:10px;color:#64748b;margin-top:2px">'+fmtOri(totalReal)+'</div>'
       + '</div>'
       + '<div style="background:#f0fdf4;border-radius:8px;padding:10px 12px">'
         + '<div style="font-size:10px;color:#16a34a;font-weight:700;margin-bottom:3px">총 매출 합계</div>'
-        + '<div style="font-size:16px;font-weight:800;color:#15803d">'+fmtCumul(totalSum)+'</div>'
+        + '<div style="font-size:16px;font-weight:800;color:#15803d">'+fmtCumul(totalSum)+_cPct(totalSum,prevTotalSum)+'</div>'
         + '<div style="font-size:10px;color:#64748b;margin-top:2px">'+fmtOri(totalSum)+'</div>'
       + '</div>'
+      + (hasPrevData
+        ? '<div style="background:#faf5ff;border-radius:8px;padding:10px 12px">'
+          + '<div style="font-size:10px;color:#7c3aed;font-weight:700;margin-bottom:3px">전년 동기 총 매출</div>'
+          + '<div style="font-size:14px;font-weight:700;color:#6d28d9">'+fmtCumul(prevTotalSum)+'</div>'
+          + '<div style="font-size:10px;color:#64748b;margin-top:2px">'+fmtOri(prevTotalSum)+'</div>'
+        + '</div>'
+        : '')
       + '<div style="border-top:1px solid #e2e8f0;padding-top:8px">'
         + '<div style="font-size:10px;font-weight:700;color:#374151;margin-bottom:6px">항목별 누계</div>'
         + SALES_ITEMS.map(function(item){
@@ -6149,12 +6314,22 @@
         }).join('')
       + '</div>';
 
-    // 항목별 요약 칩
+    // 항목별 요약 칩 (전년대비 포함)
     var summary = document.getElementById('cumul-item-summary');
     summary.innerHTML = SALES_ITEMS.map(function(item){
+      var cur = totals[item.key], prev = prevTotals[item.key];
+      var yoyHtml = '';
+      if (hasPrevData && prev > 0) {
+        var pct = ((cur - prev) / prev * 100).toFixed(2);
+        var sign = parseFloat(pct) >= 0 ? '+' : '';
+        var arrow = parseFloat(pct) >= 0 ? '▲' : '▼';
+        var yoyColor = parseFloat(pct) >= 0 ? '#dc2626' : '#2563eb';
+        yoyHtml = '<div style="font-size:9px;font-weight:700;color:'+yoyColor+';margin-top:2px">'+arrow+sign+pct+'%</div>';
+      }
       return '<div style="background:'+item.bg+';border-radius:8px;padding:8px 10px;text-align:center">'
         + '<div style="font-size:10px;color:'+item.color+';font-weight:700;margin-bottom:3px">'+item.label+'</div>'
-        + '<div style="font-size:13px;font-weight:800;color:#1e293b">'+fmtCumul(totals[item.key])+'</div>'
+        + '<div style="font-size:13px;font-weight:800;color:#1e293b">'+fmtCumul(cur)+'</div>'
+        + yoyHtml
         + '</div>';
     }).join('');
   }
