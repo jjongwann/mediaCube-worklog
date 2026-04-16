@@ -6067,15 +6067,18 @@
       totalSum  += e._total || 0;
     });
 
-    // 전년 동기간 누계
+    // 전년 동기간 누계 (현재 선택 범위와 겹치지 않는 키만)
     var prevTotals = {};
     SALES_ITEMS.forEach(function(item){ prevTotals[item.key]=0; });
     var prevTotalReal=0, prevTotalSum=0, hasPrevData=false;
+    var allKeysSet = {};
+    allKeys.forEach(function(k){ allKeysSet[k]=true; });
     var prevKeys = allKeys.map(function(k){
       var p=k.split('-');
       return (parseInt(p[0])-1)+'-'+p[1];
-    });
+    }).filter(function(pk){ return !allKeysSet[pk]; });
     prevKeys.forEach(function(pk){
+      if (!data[pk]) return;
       var e = salesGetEntry(data, pk);
       SALES_ITEMS.forEach(function(item){ prevTotals[item.key]+=(e[item.key]||0); });
       prevTotalReal += e._real  || 0;
