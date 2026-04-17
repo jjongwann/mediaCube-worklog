@@ -6006,6 +6006,16 @@
     }).join('');
     fromSel.innerHTML = opts;
     toSel.innerHTML   = opts;
+    // 시작 기간 디폴트: 현재 년도 1월
+    var curYear = new Date().getFullYear();
+    var janIdx = keys.indexOf(curYear + '-1');
+    if (janIdx === -1) {
+      // 현재 년도 키가 없으면 가장 가까운 현재 년도 키 찾기
+      for (var ki = 0; ki < keys.length; ki++) {
+        if (parseInt(keys[ki].split('-')[0]) === curYear) { janIdx = ki; break; }
+      }
+    }
+    fromSel.selectedIndex = janIdx >= 0 ? janIdx : 0;
     toSel.selectedIndex = keys.length - 1;
     setCumulType('bar');
     document.getElementById('cumul-overlay').style.display = 'flex';
