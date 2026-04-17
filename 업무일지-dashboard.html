@@ -3886,7 +3886,9 @@
     // 업무 성과 (risk 필드 재활용)
     var perfWrap = document.getElementById('d-perf-wrap');
     if (j.risk && j.risk.trim()) {
-      document.getElementById('d-perf').textContent = j.risk;
+      var _rp = _parseRiskCat(j.risk);
+      var _perfHtml = (_rp.cat ? '<span style="display:inline-block;font-size:10px;font-weight:700;padding:1px 8px;border-radius:20px;margin-right:6px;background:' + (_ACH_CAT_BGS[_rp.cat]||'#f1f5f9') + ';color:' + (_ACH_CAT_COLORS[_rp.cat]||'#64748b') + '">' + _rp.cat + '</span>' : '');
+      document.getElementById('d-perf').innerHTML = _perfHtml + _rp.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
       perfWrap.style.display = '';
     } else {
       perfWrap.style.display = 'none';
@@ -7269,6 +7271,8 @@
         <button onclick="achClearDate()" style="padding:5px 10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:7px;color:#fff;font-size:12px;cursor:pointer">전체</button>
       </div>
     </div>
+    <!-- 구분 카테고리 필터 -->
+    <div id="ach-cat-tabs" style="padding:10px 20px 0;display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap"></div>
     <!-- 바디 -->
     <div id="ach-body" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px"></div>
   </div>
@@ -7276,6 +7280,7 @@
 
 <script>
   var _achSelectedUser = null; // 관리자가 선택한 username (null=전체, 일반직원=본인)
+  var _achSelectedCat = null; // 선택된 구분 카테고리 (null=전체)
 
   function openAchievementPanel() {
     // 기본 날짜: 이번 달 1일 ~ 오늘
@@ -7335,6 +7340,53 @@
     return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
+  // 업무 성과 카테고리 파싱 헬퍼
+  var _ACH_CATS = ['신규고객','기존고객','기타'];
+  var _ACH_CAT_COLORS = { '신규고객':'#2563eb', '기존고객':'#16a34a', '기타':'#f59e0b' };
+  var _ACH_CAT_BGS    = { '신규고객':'#dbeafe', '기존고객':'#dcfce7', '기타':'#fef3c7' };
+
+  function _parseRiskCat(risk) {
+    if (!risk) return { cat: '', text: risk || '' };
+    var m = risk.match(/^\[(신규고객|기존고객|기타)\]/);
+    if (m) return { cat: m[1], text: risk.slice(m[0].length) };
+    return { cat: '', text: risk };
+  }
+
+  function _renderAchCatTabs(items) {
+    var tabsEl = document.getElementById('ach-cat-tabs');
+    if (!tabsEl) return;
+    // 카운트 집계
+    var counts = { '전체': items.length };
+    _ACH_CATS.forEach(function(c){ counts[c] = 0; });
+    var uncatCount = 0;
+    items.forEach(function(j){
+      var p = _parseRiskCat(j.risk);
+      if (p.cat && counts[p.cat] !== undefined) counts[p.cat]++;
+      else uncatCount++;
+    });
+    // 카테고리 데이터가 하나도 없으면 탭 숨기기
+    var hasAnyCat = _ACH_CATS.some(function(c){ return counts[c] > 0; });
+    if (!hasAnyCat) { tabsEl.innerHTML = ''; return; }
+
+    var tabs = [{ key: null, label: '전체', count: counts['전체'] }];
+    _ACH_CATS.forEach(function(c){
+      if (counts[c] > 0) tabs.push({ key: c, label: c, count: counts[c] });
+    });
+    if (uncatCount > 0) tabs.push({ key: '_none', label: '미분류', count: uncatCount });
+
+    tabsEl.innerHTML = tabs.map(function(t){
+      var active = _achSelectedCat === t.key;
+      return '<button onclick="_achSelectCat(' + (t.key === null ? 'null' : "'" + t.key + "'") + ')" style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid '
+        + (active ? '#7c3aed' : '#e2e8f0') + ';background:' + (active ? '#7c3aed' : '#fff') + ';color:' + (active ? '#fff' : '#64748b')
+        + ';transition:all .15s">' + t.label + ' <span style="font-size:10px;opacity:0.7">(' + t.count + ')</span></button>';
+    }).join('');
+  }
+
+  function _achSelectCat(cat) {
+    _achSelectedCat = cat;
+    renderAchievementPanel();
+  }
+
   function renderAchievementPanel() {
     var body = document.getElementById('ach-body');
     var from = document.getElementById('ach-date-from').value;
@@ -7352,7 +7404,7 @@
 
     // 데이터 필터
     var data = loadJournals().filter(function(j) {
-      if (showAll) return true; // 전체
+      if (showAll) return true;
       if (_isAdmin) {
         var u = (ALL_USERS||[]).find(function(u){ return u.username === targetUsername; });
         if (!u) return false;
@@ -7369,6 +7421,18 @@
     // risk 필드가 성과(업무 성과)로 재활용됨
     var items = data.filter(function(j){ return j.risk && j.risk.trim(); });
 
+    // 카테고리 탭 렌더
+    _renderAchCatTabs(items);
+
+    // 카테고리 필터 적용
+    if (_achSelectedCat !== null) {
+      items = items.filter(function(j){
+        var p = _parseRiskCat(j.risk);
+        if (_achSelectedCat === '_none') return !p.cat;
+        return p.cat === _achSelectedCat;
+      });
+    }
+
     if (!items.length) {
       body.innerHTML = '<div style="text-align:center;padding:48px 0;color:#94a3b8;font-size:13px">기간 내 기록된 업무 성과가 없습니다.</div>';
       return;
@@ -7376,6 +7440,7 @@
 
     body.innerHTML = '';
     items.forEach(function(j) {
+      var parsed = _parseRiskCat(j.risk);
       var card = document.createElement('div');
       card.style.cssText = 'background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.05)';
       // 삭제 버튼: 본인 일지만 (관리자 제외)
@@ -7388,15 +7453,21 @@
       var authorChip = (showAll && j.author)
         ? '<span style="font-size:10px;font-weight:600;padding:1px 8px;border-radius:20px;background:#ede9fe;color:#7c3aed;flex-shrink:0">' + _achEsc(j.author) + '</span>'
         : '';
+      var catChip = parsed.cat
+        ? '<span style="font-size:10px;font-weight:700;padding:1px 8px;border-radius:20px;background:' + (_ACH_CAT_BGS[parsed.cat]||'#f1f5f9') + ';color:' + (_ACH_CAT_COLORS[parsed.cat]||'#64748b') + ';flex-shrink:0">' + _achEsc(parsed.cat) + '</span>'
+        : '';
       card.innerHTML = '<div style="padding:10px 14px;background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-bottom:1px solid #ddd6fe;display:flex;align-items:center;justify-content:space-between;gap:8px">'
-        + '<div style="font-size:12px;font-weight:700;color:#4f46e5;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _achEsc(j.title || '무제') + '</div>'
+        + '<div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">'
+          + catChip
+          + '<div style="font-size:12px;font-weight:700;color:#4f46e5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _achEsc(j.title || '무제') + '</div>'
+        + '</div>'
         + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
           + authorChip
           + '<span style="font-size:11px;color:#7c3aed;font-weight:600">' + (j.date||'').replace(/-/g,'.') + '</span>'
           + delBtn
         + '</div>'
         + '</div>'
-        + '<div style="padding:12px 14px;font-size:13px;color:#374151;line-height:1.7;white-space:pre-wrap">' + _achEsc(j.risk) + '</div>';
+        + '<div style="padding:12px 14px;font-size:13px;color:#374151;line-height:1.7;white-space:pre-wrap">' + _achEsc(parsed.text) + '</div>';
       body.appendChild(card);
     });
   }
