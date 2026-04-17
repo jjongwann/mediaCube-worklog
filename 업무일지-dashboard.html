@@ -3887,7 +3887,8 @@
     var perfWrap = document.getElementById('d-perf-wrap');
     if (j.risk && j.risk.trim()) {
       var _rp = _parseRiskCat(j.risk);
-      var _perfHtml = (_rp.cat ? '<span style="display:inline-block;font-size:10px;font-weight:700;padding:1px 8px;border-radius:20px;margin-right:6px;background:' + (_ACH_CAT_BGS[_rp.cat]||'#f1f5f9') + ';color:' + (_ACH_CAT_COLORS[_rp.cat]||'#64748b') + '">' + _rp.cat + '</span>' : '');
+      var _perfCat = _ACH_CAT_MAP[_rp.cat];
+      var _perfHtml = (_rp.cat ? '<span style="display:inline-block;font-size:10px;font-weight:700;padding:1px 8px;border-radius:20px;margin-right:6px;background:' + (_perfCat ? _perfCat.bg : '#f1f5f9') + ';color:' + (_perfCat ? _perfCat.color : '#64748b') + '">' + (_perfCat ? _perfCat.icon + ' ' : '') + _rp.cat + '</span>' : '');
       document.getElementById('d-perf').innerHTML = _perfHtml + _rp.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
       perfWrap.style.display = '';
     } else {
@@ -7341,13 +7342,25 @@
   }
 
   // 업무 성과 카테고리 파싱 헬퍼
-  var _ACH_CATS = ['신규고객','기존고객','기타'];
-  var _ACH_CAT_COLORS = { '신규고객':'#2563eb', '기존고객':'#16a34a', '기타':'#f59e0b' };
-  var _ACH_CAT_BGS    = { '신규고객':'#dbeafe', '기존고객':'#dcfce7', '기타':'#fef3c7' };
+  var _ACH_CATS = [
+    { key: '프로젝트',        icon: '📋', color: '#2563eb', bg: '#dbeafe' },
+    { key: '제작',            icon: '🎨', color: '#7c3aed', bg: '#ede9fe' },
+    { key: '운영/관리',       icon: '⚙️', color: '#0891b2', bg: '#cffafe' },
+    { key: '유지보수',        icon: '🔧', color: '#ca8a04', bg: '#fef9c3' },
+    { key: '버그 수정',       icon: '🐛', color: '#dc2626', bg: '#fee2e2' },
+    { key: '업무 프로세스 개선', icon: '📈', color: '#16a34a', bg: '#dcfce7' },
+    { key: '협업/지원',       icon: '🤝', color: '#9333ea', bg: '#f3e8ff' },
+    { key: '기획/리서치',     icon: '🔍', color: '#0d9488', bg: '#ccfbf1' },
+    { key: '신규고객 확보',   icon: '🌟', color: '#ea580c', bg: '#ffedd5' },
+    { key: '기존고객',        icon: '👥', color: '#4f46e5', bg: '#e0e7ff' },
+    { key: '기타',            icon: '📌', color: '#64748b', bg: '#f1f5f9' }
+  ];
+  var _ACH_CAT_MAP = {};
+  _ACH_CATS.forEach(function(c){ _ACH_CAT_MAP[c.key] = c; });
 
   function _parseRiskCat(risk) {
     if (!risk) return { cat: '', text: risk || '' };
-    var m = risk.match(/^\[(신규고객|기존고객|기타)\]/);
+    var m = risk.match(/^\[([^\]]+)\]/);
     if (m) return { cat: m[1], text: risk.slice(m[0].length) };
     return { cat: '', text: risk };
   }
@@ -7356,34 +7369,55 @@
     var tabsEl = document.getElementById('ach-cat-tabs');
     if (!tabsEl) return;
     // 카운트 집계
-    var counts = { '전체': items.length };
-    _ACH_CATS.forEach(function(c){ counts[c] = 0; });
+    var counts = {};
+    _ACH_CATS.forEach(function(c){ counts[c.key] = 0; });
     var uncatCount = 0;
     items.forEach(function(j){
       var p = _parseRiskCat(j.risk);
       if (p.cat && counts[p.cat] !== undefined) counts[p.cat]++;
       else uncatCount++;
     });
-    // 카테고리 데이터가 하나도 없으면 탭 숨기기
-    var hasAnyCat = _ACH_CATS.some(function(c){ return counts[c] > 0; });
-    if (!hasAnyCat) { tabsEl.innerHTML = ''; return; }
 
-    var tabs = [{ key: null, label: '전체', count: counts['전체'] }];
-    _ACH_CATS.forEach(function(c){
-      if (counts[c] > 0) tabs.push({ key: c, label: c, count: counts[c] });
-    });
-    if (uncatCount > 0) tabs.push({ key: '_none', label: '미분류', count: uncatCount });
+    var curLabel = '전체 (' + items.length + ')';
+    if (_achSelectedCat === '_none') curLabel = '미분류 (' + uncatCount + ')';
+    else if (_achSelectedCat) {
+      var cc = _ACH_CAT_MAP[_achSelectedCat];
+      curLabel = (cc ? cc.icon + ' ' : '') + _achSelectedCat + ' (' + (counts[_achSelectedCat]||0) + ')';
+    }
 
-    tabsEl.innerHTML = tabs.map(function(t){
-      var active = _achSelectedCat === t.key;
-      return '<button onclick="_achSelectCat(' + (t.key === null ? 'null' : "'" + t.key + "'") + ')" style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid '
-        + (active ? '#7c3aed' : '#e2e8f0') + ';background:' + (active ? '#7c3aed' : '#fff') + ';color:' + (active ? '#fff' : '#64748b')
-        + ';transition:all .15s">' + t.label + ' <span style="font-size:10px;opacity:0.7">(' + t.count + ')</span></button>';
-    }).join('');
+    tabsEl.innerHTML = '<div style="position:relative;display:inline-block">'
+      + '<button onclick="_toggleAchCatDrop()" id="ach-cat-drop-btn" style="padding:5px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ' + (_achSelectedCat ? '#7c3aed' : '#e2e8f0') + ';background:' + (_achSelectedCat ? '#f5f3ff' : '#fff') + ';color:' + (_achSelectedCat ? '#7c3aed' : '#374151') + ';display:flex;align-items:center;gap:6px">'
+      + curLabel
+      + ' <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>'
+      + '</button>'
+      + '<div id="ach-cat-dropdown" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);min-width:200px;max-height:320px;overflow-y:auto;z-index:999;padding:4px">'
+      + '<div onclick="_achSelectCat(null)" style="padding:7px 12px;border-radius:7px;font-size:12px;font-weight:' + (!_achSelectedCat ? '700' : '500') + ';color:' + (!_achSelectedCat ? '#7c3aed' : '#374151') + ';cursor:pointer;background:' + (!_achSelectedCat ? '#f5f3ff' : '#fff') + '" onmouseover="this.style.background=\'#f5f3ff\'" onmouseout="this.style.background=\'' + (!_achSelectedCat ? '#f5f3ff' : '#fff') + '\'">전체 (' + items.length + ')</div>'
+      + _ACH_CATS.map(function(c){
+          var active = _achSelectedCat === c.key;
+          var cnt = counts[c.key] || 0;
+          return '<div onclick="_achSelectCat(\'' + c.key + '\')" style="padding:7px 12px;border-radius:7px;font-size:12px;font-weight:' + (active ? '700' : '500') + ';color:' + (active ? c.color : '#374151') + ';cursor:pointer;background:' + (active ? c.bg : '#fff') + ';display:flex;align-items:center;gap:6px" onmouseover="this.style.background=\'' + c.bg + '\'" onmouseout="this.style.background=\'' + (active ? c.bg : '#fff') + '\'">'
+            + '<span>' + c.icon + '</span>'
+            + '<span style="flex:1">' + c.key + '</span>'
+            + '<span style="font-size:10px;color:#94a3b8">' + cnt + '</span>'
+            + '</div>';
+        }).join('')
+      + (uncatCount > 0
+        ? '<div onclick="_achSelectCat(\'_none\')" style="padding:7px 12px;border-radius:7px;font-size:12px;font-weight:' + (_achSelectedCat==='_none' ? '700' : '500') + ';color:' + (_achSelectedCat==='_none' ? '#64748b' : '#374151') + ';cursor:pointer;background:' + (_achSelectedCat==='_none' ? '#f1f5f9' : '#fff') + ';border-top:1px solid #f1f5f9;margin-top:2px" onmouseover="this.style.background=\'#f1f5f9\'" onmouseout="this.style.background=\'' + (_achSelectedCat==='_none' ? '#f1f5f9' : '#fff') + '\'">미분류 (' + uncatCount + ')</div>'
+        : '')
+      + '</div>'
+      + '</div>';
+  }
+
+  var _achCatDropOpen = false;
+  function _toggleAchCatDrop() {
+    _achCatDropOpen = !_achCatDropOpen;
+    var dd = document.getElementById('ach-cat-dropdown');
+    if (dd) dd.style.display = _achCatDropOpen ? 'block' : 'none';
   }
 
   function _achSelectCat(cat) {
     _achSelectedCat = cat;
+    _achCatDropOpen = false;
     renderAchievementPanel();
   }
 
@@ -7454,7 +7488,7 @@
         ? '<span style="font-size:10px;font-weight:600;padding:1px 8px;border-radius:20px;background:#ede9fe;color:#7c3aed;flex-shrink:0">' + _achEsc(j.author) + '</span>'
         : '';
       var catChip = parsed.cat
-        ? '<span style="font-size:10px;font-weight:700;padding:1px 8px;border-radius:20px;background:' + (_ACH_CAT_BGS[parsed.cat]||'#f1f5f9') + ';color:' + (_ACH_CAT_COLORS[parsed.cat]||'#64748b') + ';flex-shrink:0">' + _achEsc(parsed.cat) + '</span>'
+        ? (function(){ var _cc = _ACH_CAT_MAP[parsed.cat]; return '<span style="font-size:10px;font-weight:700;padding:1px 8px;border-radius:20px;background:' + (_cc ? _cc.bg : '#f1f5f9') + ';color:' + (_cc ? _cc.color : '#64748b') + ';flex-shrink:0">' + (_cc ? _cc.icon + ' ' : '') + _achEsc(parsed.cat) + '</span>'; })()
         : '';
       card.innerHTML = '<div style="padding:10px 14px;background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-bottom:1px solid #ddd6fe;display:flex;align-items:center;justify-content:space-between;gap:8px">'
         + '<div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">'
