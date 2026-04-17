@@ -7352,13 +7352,13 @@
     { key: '협업/지원',       icon: '🤝', color: '#9333ea', bg: '#f3e8ff' },
     { key: '기획/리서치',     icon: '🔍', color: '#0d9488', bg: '#ccfbf1' },
     { key: '신규고객 확보',   icon: '🌟', color: '#ea580c', bg: '#ffedd5' },
-    { key: '기존고객관리',    icon: '👥', color: '#4f46e5', bg: '#e0e7ff' },
+    { key: '기존 고객 관리',    icon: '👥', color: '#4f46e5', bg: '#e0e7ff' },
     { key: '트러블 슈팅',     icon: '🚨', color: '#be123c', bg: '#ffe4e6' },
     { key: '기타',            icon: '📌', color: '#64748b', bg: '#f1f5f9' }
   ];
   var _ACH_CAT_MAP = {};
   _ACH_CATS.forEach(function(c){ _ACH_CAT_MAP[c.key] = c; });
-  _ACH_CAT_MAP['기존고객'] = _ACH_CAT_MAP['기존고객관리']; // 하위 호환
+  _ACH_CAT_MAP['기존고객'] = _ACH_CAT_MAP['기존 고객 관리']; // 하위 호환
 
   function _parseRiskCat(risk) {
     if (!risk) return { cat: '', text: risk || '' };
