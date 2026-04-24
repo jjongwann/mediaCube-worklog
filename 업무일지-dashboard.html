@@ -5604,10 +5604,13 @@
       _salesDbKeys = new Set();
       if (Array.isArray(rows)) {
         rows.forEach(function(r) {
+          var cnts = r.item_counts || {};
+          if (typeof cnts === 'string') { try { cnts = JSON.parse(cnts); } catch(e){ cnts = {}; } }
           data[r.month_key] = {
             annual: r.annual||0, needle: r.needle||0, buyout: r.buyout||0,
             custom: r.custom||0, komca: r.komca||0, youtube: r.youtube||0,
-            song: r.song||0, fee: r.fee||0, real: r.real||0
+            song: r.song||0, fee: r.fee||0, real: r.real||0,
+            _counts: cnts
           };
           _salesDbKeys.add(r.month_key);
         });
@@ -5634,7 +5637,8 @@
     var total = (e.annual||0)+(e.needle||0)+(e.buyout||0)+(e.custom||0)+(e.komca||0)+(e.youtube||0)+(e.song||0)+(e.fee||0);
     // 실 매출 = 수동 입력값 (없으면 0)
     var real = e.real !== undefined ? e.real : 0;
-    return Object.assign({}, e, { _real: real, _total: total });
+    var counts = e._counts || {};
+    return Object.assign({}, e, { _real: real, _total: total, _counts: counts });
   }
 
   function salesSaveData() {
@@ -5643,26 +5647,48 @@
     var key   = year + '-' + month;
     var data  = salesLoadData();
     var entry = {};
+    var counts = {};
     SALES_ITEMS.forEach(function(item) {
       var v = document.getElementById('sales-field-' + item.key);
       entry[item.key] = v ? (parseInt(v.value.replace(/,/g,'')) || 0) : 0;
+      var cEl = document.getElementById('sales-cnt-' + item.key);
+      var cn = cEl ? (parseInt(cEl.value.replace(/,/g,'')) || 0) : 0;
+      if (cn > 0) counts[item.key] = cn;
     });
     var realEl = document.getElementById('sales-field-real');
     entry.real = realEl ? (parseInt(realEl.value.replace(/,/g,'')) || 0) : 0;
+    entry._counts = counts; // 로컬 캐시에 건수 보존
     // 캐시 즉시 갱신
     if (!_salesCache) _salesCache = JSON.parse(JSON.stringify(SALES_DEFAULT));
     _salesCache[key] = entry;
     _salesDbKeys.add(key);
 
     // Supabase upsert (Prefer: resolution=merge-duplicates → INSERT OR UPDATE)
-    var row = { month_key: key, annual: entry.annual, needle: entry.needle,
+    var rowBase = { month_key: key, annual: entry.annual, needle: entry.needle,
       buyout: entry.buyout, custom: entry.custom, komca: entry.komca,
       youtube: entry.youtube, song: entry.song, fee: entry.fee,
       real: entry.real, updated_at: new Date().toISOString() };
+    var rowWithCnt = Object.assign({}, rowBase, { item_counts: counts });
+
+    // 1차 시도: item_counts 컬럼 포함 POST
     fetch(SB_URL + '/rest/v1/sales_data', {
-      method: 'POST', headers: SB_HDR, body: JSON.stringify(row)
+      method: 'POST', headers: SB_HDR, body: JSON.stringify(rowWithCnt)
     }).then(function(r) {
-      if (!r.ok) r.text().then(function(t) { console.error('sales save failed', r.status, t); showToast('저장 실패: ' + r.status); });
+      if (r.ok) return;
+      // 컬럼 미존재(PGRST204/42703) 등 스키마 오류 → item_counts 제외하고 재시도
+      r.text().then(function(t) {
+        var isSchemaErr = /item_counts|column|PGRST204|42703/i.test(t);
+        if (isSchemaErr) {
+          console.warn('item_counts 컬럼이 없어 건수 없이 저장합니다. (DB에 item_counts jsonb 컬럼을 추가하면 건수도 저장됩니다)', t);
+          fetch(SB_URL + '/rest/v1/sales_data', {
+            method: 'POST', headers: SB_HDR, body: JSON.stringify(rowBase)
+          }).then(function(r2) {
+            if (!r2.ok) r2.text().then(function(t2){ console.error('sales save retry failed', r2.status, t2); showToast('저장 실패: ' + r2.status); });
+          }).catch(function(e){ console.error('sales save retry error', e); showToast('저장 오류: 네트워크 확인'); });
+        } else {
+          console.error('sales save failed', r.status, t); showToast('저장 실패: ' + r.status);
+        }
+      });
     }).catch(function(e) { console.error('sales save error', e); showToast('저장 오류: 네트워크 확인'); });
 
     closeSalesInput();
@@ -5846,19 +5872,31 @@
     if (!y || !m) return;
     var key = y + '-' + m;
     var existing = salesLoadData()[key] || null;
+    var existingCounts = (existing && existing._counts) ? existing._counts : {};
     var fields = document.getElementById('sales-input-fields');
     if (!fields) return;
     fields.innerHTML = SALES_ITEMS.map(function(item) {
       var val = (existing && existing[item.key]) ? existing[item.key].toLocaleString() : '';
+      var cntVal = (existingCounts[item.key] != null && existingCounts[item.key] !== 0) ? existingCounts[item.key] : '';
       return '<div>'
         + '<label style="font-size:11px;font-weight:600;color:#374151;display:flex;align-items:center;gap:5px;margin-bottom:4px">'
           + '<span style="width:10px;height:10px;border-radius:50%;background:'+item.color+';display:inline-block;flex-shrink:0"></span>'
           + item.label
         + '</label>'
-        + '<input id="sales-field-'+item.key+'" type="text" placeholder="0" value="'+val+'"'
-          + ' style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none"'
-          + ' oninput="this.value=this.value.replace(/[^0-9]/g,\'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g,\',\');salesCalcModalTotal()"'
-          + ' onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#e2e8f0\'">'
+        + '<div style="display:flex;gap:4px">'
+          + '<input id="sales-field-'+item.key+'" type="text" placeholder="금액" value="'+val+'"'
+            + ' style="flex:1;min-width:0;box-sizing:border-box;padding:7px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none"'
+            + ' oninput="this.value=this.value.replace(/[^0-9]/g,\'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g,\',\');salesCalcModalTotal()"'
+            + ' onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#e2e8f0\'">'
+          + '<div style="position:relative;flex-shrink:0">'
+            + '<input id="sales-cnt-'+item.key+'" type="text" placeholder="0" value="'+cntVal+'"'
+              + ' title="건수"'
+              + ' style="width:62px;box-sizing:border-box;padding:7px 18px 7px 8px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none;text-align:right"'
+              + ' oninput="this.value=this.value.replace(/[^0-9]/g,\'\')"'
+              + ' onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#e2e8f0\'">'
+            + '<span style="position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:#94a3b8;pointer-events:none">건</span>'
+          + '</div>'
+        + '</div>'
         + '</div>';
     }).join('');
     // 실매출 채우기
@@ -6619,9 +6657,14 @@
     }
 
     // 요약 카드
+    var curCounts = entry._counts || {};
     document.getElementById('sales-summary').innerHTML = SALES_CHART_ITEMS.map(function(item) {
       var v = entry[item.key] || 0;
       var pv = hasPrev ? (prevEntry[item.key]||0) : 0;
+      var cn = curCounts[item.key] || 0;
+      var cntChip = cn > 0
+        ? '<div style="font-size:9px;font-weight:700;color:'+item.color+';background:#fff;border:1px solid '+item.color+'55;border-radius:10px;padding:1px 6px;display:inline-block;margin-top:3px">'+cn.toLocaleString()+'건</div>'
+        : '';
       var badge = hasPrev && pv ? (function(){
         var pct = ((v-pv)/pv*100).toFixed(2);
         var up = parseFloat(pct) >= 0;
@@ -6630,6 +6673,7 @@
       return '<div style="background:'+item.bg+';border-radius:7px;padding:7px 8px;border:1px solid '+item.color+'33;text-align:center">'
         + '<div style="font-size:9px;color:'+item.color+';font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+item.label+'</div>'
         + '<div style="font-size:12px;font-weight:800;color:#111827;white-space:nowrap">'+fmtW(v)+'</div>'
+        + cntChip
         + badge
         + '</div>';
     }).join('');
