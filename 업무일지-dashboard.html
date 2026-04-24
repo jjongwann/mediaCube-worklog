@@ -6109,11 +6109,16 @@
 
     // 항목별 누계 (현재 기간)
     var totals = {};
-    SALES_ITEMS.forEach(function(item){ totals[item.key]=0; });
+    var cntTotals = {};
+    SALES_ITEMS.forEach(function(item){ totals[item.key]=0; cntTotals[item.key]=0; });
     var totalReal=0, totalSum=0;
     allKeys.forEach(function(k){
       var e = salesGetEntry(data, k);
-      SALES_ITEMS.forEach(function(item){ totals[item.key]+=(e[item.key]||0); });
+      var cs = e._counts || {};
+      SALES_ITEMS.forEach(function(item){
+        totals[item.key]+=(e[item.key]||0);
+        cntTotals[item.key]+=(cs[item.key]||0);
+      });
       totalReal += e._real  || 0;
       totalSum  += e._total || 0;
     });
@@ -6368,10 +6373,14 @@
         }).join('')
       + '</div>';
 
-    // 항목별 요약 칩 (전년대비 포함)
+    // 항목별 요약 칩 (전년대비 + 누적 건수 포함)
     var summary = document.getElementById('cumul-item-summary');
     summary.innerHTML = SALES_ITEMS.map(function(item){
       var cur = totals[item.key], prev = prevTotals[item.key];
+      var cn = cntTotals[item.key] || 0;
+      var cntHtml = cn > 0
+        ? '<div style="display:inline-block;font-size:9px;font-weight:700;color:'+item.color+';background:#fff;border:1px solid '+item.color+'55;border-radius:10px;padding:1px 7px;margin-top:4px">'+cn.toLocaleString()+'건</div>'
+        : '';
       var yoyHtml = '';
       if (hasPrevData && prev > 0) {
         var pct = ((cur - prev) / prev * 100).toFixed(2);
@@ -6383,6 +6392,7 @@
       return '<div style="background:'+item.bg+';border-radius:8px;padding:8px 10px;text-align:center">'
         + '<div style="font-size:10px;color:'+item.color+';font-weight:700;margin-bottom:3px">'+item.label+'</div>'
         + '<div style="font-size:13px;font-weight:800;color:#1e293b">'+fmtCumul(cur)+'</div>'
+        + cntHtml
         + yoyHtml
         + '</div>';
     }).join('');
