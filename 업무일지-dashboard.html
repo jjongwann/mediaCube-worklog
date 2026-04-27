@@ -6676,16 +6676,10 @@
       var cntChip = cn > 0
         ? '<div style="font-size:9px;font-weight:700;color:'+item.color+';background:#fff;border:1px solid '+item.color+'55;border-radius:10px;padding:1px 6px;display:inline-block;margin-top:3px">'+cn.toLocaleString()+'건</div>'
         : '';
-      var badge = hasPrev && pv ? (function(){
-        var pct = ((v-pv)/pv*100).toFixed(2);
-        var up = parseFloat(pct) >= 0;
-        return '<div style="font-size:9px;font-weight:700;color:'+(up?'#16a34a':'#dc2626')+'">'+(up?'▲':'▼')+(up?'+':'')+pct+'%</div>';
-      })() : '';
       return '<div style="background:'+item.bg+';border-radius:7px;padding:7px 8px;border:1px solid '+item.color+'33;text-align:center">'
         + '<div style="font-size:9px;color:'+item.color+';font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+item.label+'</div>'
         + '<div style="font-size:12px;font-weight:800;color:#111827;white-space:nowrap">'+fmtW(v)+'</div>'
         + cntChip
-        + badge
         + '</div>';
     }).join('');
   }
