@@ -8546,11 +8546,12 @@ window.__vendor = (function() {
     var name = (document.getElementById('vendor-add-name').value || '').trim();
     var year = parseInt(document.getElementById('vendor-add-year').value);
     var month = parseInt(document.getElementById('vendor-add-month').value);
-    var amount = parseInt((document.getElementById('vendor-add-amount').value || '').replace(/,/g,''), 10) || 0;
+    var amountRaw = (document.getElementById('vendor-add-amount').value || '').replace(/,/g,'').trim();
+    var amount = parseInt(amountRaw, 10);
+    if (isNaN(amount) || amount < 0) amount = 0;
 
     if (!name) { _toast('거래처명을 입력하세요'); return; }
     if (!year || !month) { _toast('년도/월을 선택하세요'); return; }
-    if (amount <= 0) { _toast('매출액을 입력하세요'); return; }
 
     var monthKey = year + '-' + month;
     var cat = _state.currentCat;
