@@ -8362,8 +8362,17 @@
     <div style="display:flex;flex-direction:column;gap:12px">
       <div>
         <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">거래처명 *</label>
-        <input type="text" id="vendor-add-name" list="vendor-add-namelist" placeholder="예: 방탄유리" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
-        <datalist id="vendor-add-namelist"></datalist>
+        <div style="position:relative">
+          <input type="text" id="vendor-add-name" autocomplete="off" placeholder="기존 거래처 선택 또는 신규 입력"
+            oninput="__vendor._onAddNameInput()"
+            onfocus="__vendor._openAddNameDrop()"
+            onkeydown="__vendor._onAddNameKey(event)"
+            style="width:100%;box-sizing:border-box;padding:8px 36px 8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;transition:border-color .12s">
+          <button type="button" onclick="__vendor._toggleAddNameDrop()" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;color:#94a3b8;display:flex;align-items:center;justify-content:center" tabindex="-1">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div id="vendor-add-name-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);max-height:240px;overflow-y:auto;z-index:100"></div>
+        </div>
       </div>
       <div style="display:flex;gap:10px">
         <div style="flex:1">
@@ -8458,7 +8467,7 @@ window.__vendor = (function() {
     rows: [],          // 모든 vendor_sales 행 (메모리 캐시)
     currentCat: null,  // 'needle' | 'blanket_paid' | 'blanket_free'
     charts: { bar: null, line: null },
-    showAllVendors: false  // true면 비활성 거래처도 표시
+    viewMode: 'active' // 'active' | 'all' | 'inactive'
   };
 
   // 거래처 담당자 목록 (확장 가능)
@@ -8537,13 +8546,8 @@ window.__vendor = (function() {
       if (sr) sr.value = '';
       var mgrSel = document.getElementById('vendor-needle-manager');
       if (mgrSel) mgrSel.value = '';
-      _state.showAllVendors = false;
-      var allBtn = document.getElementById('vendor-needle-allbtn');
-      if (allBtn) {
-        allBtn.style.background = 'rgba(255,255,255,0.18)';
-        allBtn.style.color = '#fff';
-        allBtn.style.borderColor = 'rgba(255,255,255,0.3)';
-      }
+      _state.viewMode = 'active';
+      _updateAllBtnStyle();
       document.getElementById('vendor-needle-overlay').style.display = 'block';
       // 항상 최신 데이터 fetch
       fetchAll().then(function(){ render('needle'); });
@@ -8604,20 +8608,30 @@ window.__vendor = (function() {
   }
 
   function toggleAllVendors() {
-    _state.showAllVendors = !_state.showAllVendors;
-    var btn = document.getElementById('vendor-needle-allbtn');
-    if (btn) {
-      if (_state.showAllVendors) {
-        btn.style.background = '#fff';
-        btn.style.color = '#65a30d';
-        btn.style.borderColor = '#fff';
-      } else {
-        btn.style.background = 'rgba(255,255,255,0.18)';
-        btn.style.color = '#fff';
-        btn.style.borderColor = 'rgba(255,255,255,0.3)';
-      }
-    }
+    // 토글: active → all → active
+    _state.viewMode = (_state.viewMode === 'all') ? 'active' : 'all';
+    _updateAllBtnStyle();
     render('needle');
+  }
+
+  function setViewMode(mode) {
+    _state.viewMode = mode;
+    _updateAllBtnStyle();
+    render('needle');
+  }
+
+  function _updateAllBtnStyle() {
+    var btn = document.getElementById('vendor-needle-allbtn');
+    if (!btn) return;
+    if (_state.viewMode === 'all') {
+      btn.style.background = '#fff';
+      btn.style.color = '#65a30d';
+      btn.style.borderColor = '#fff';
+    } else {
+      btn.style.background = 'rgba(255,255,255,0.18)';
+      btn.style.color = '#fff';
+      btn.style.borderColor = 'rgba(255,255,255,0.3)';
+    }
   }
 
   // 범위 헬퍼: from~to 사이의 month_key 배열 생성, 범위 길이 반환
@@ -8673,20 +8687,95 @@ window.__vendor = (function() {
     document.getElementById('vendor-add-month').value = String(new Date().getMonth()+1);
     document.getElementById('vendor-add-name').value = '';
     document.getElementById('vendor-add-amount').value = '';
+    document.getElementById('vendor-add-name-drop').style.display = 'none';
 
-    // 기존 거래처명 자동완성 datalist
-    var dl = document.getElementById('vendor-add-namelist');
+    // 기존 거래처명 캐시
+    _addNameOptions = [];
     var seen = {};
-    var names = [];
     _state.rows.filter(function(r){ return r.category === _state.currentCat; }).forEach(function(r){
-      if (r.vendor_name && !seen[r.vendor_name]) { seen[r.vendor_name] = true; names.push(r.vendor_name); }
+      if (r.vendor_name && !seen[r.vendor_name]) {
+        seen[r.vendor_name] = true;
+        _addNameOptions.push({ name: r.vendor_name, manager: _getVendorManager(r.vendor_name) });
+      }
     });
-    names.sort();
-    dl.innerHTML = names.map(function(n){ return '<option value="'+_esc(n)+'">'; }).join('');
+    _addNameOptions.sort(function(a,b){ return a.name.localeCompare(b.name, 'ko'); });
 
     document.getElementById('vendor-add-overlay').style.display = 'flex';
     setTimeout(function(){ document.getElementById('vendor-add-name').focus(); }, 80);
   }
+
+  var _addNameOptions = [];
+
+  function _renderAddNameDrop(filterQ) {
+    var drop = document.getElementById('vendor-add-name-drop');
+    if (!drop) return;
+    var q = (filterQ || '').toLowerCase().trim();
+    var list = q
+      ? _addNameOptions.filter(function(o){ return o.name.toLowerCase().indexOf(q) !== -1; })
+      : _addNameOptions;
+    var headerHtml = '';
+    if (q && !_addNameOptions.some(function(o){ return o.name === filterQ.trim(); })) {
+      headerHtml = '<div onclick="__vendor._pickAddName(\'' + _esc(filterQ.trim()).replace(/'/g,"\\'") + '\', true)" style="padding:9px 12px;border-bottom:1px solid #f1f5f9;background:#f7fee7;cursor:pointer;font-size:12px" onmouseover="this.style.background=\'#ecfccb\'" onmouseout="this.style.background=\'#f7fee7\'">'
+        + '<div style="display:flex;align-items:center;gap:6px">'
+          + '<span style="color:#65a30d;font-weight:700">+ 신규 추가</span>'
+          + '<span style="color:#0f172a;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(filterQ.trim()) + '</span>'
+        + '</div></div>';
+    }
+    if (!list.length && !headerHtml) {
+      drop.innerHTML = '<div style="padding:14px 16px;text-align:center;color:#94a3b8;font-size:11px">등록된 거래처가 없습니다</div>';
+      return;
+    }
+    var bodyHtml = list.map(function(o){
+      var mgrChip = o.manager
+        ? '<span style="font-size:9px;color:#65a30d;background:#f7fee7;border:1px solid #d9f99d;border-radius:10px;padding:1px 7px;font-weight:600;flex-shrink:0">' + _esc(o.manager) + '</span>'
+        : '';
+      return '<div onclick="__vendor._pickAddName(\'' + _esc(o.name).replace(/'/g,"\\'") + '\', false)" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f8fafc;display:flex;align-items:center;gap:8px;font-size:12px;transition:background .1s" onmouseover="this.style.background=\'#f7fee7\'" onmouseout="this.style.background=\'#fff\'">'
+        + '<span style="color:#0f172a;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(o.name) + '</span>'
+        + mgrChip
+        + '</div>';
+    }).join('');
+    drop.innerHTML = headerHtml + bodyHtml;
+  }
+
+  function _openAddNameDrop() {
+    _renderAddNameDrop(document.getElementById('vendor-add-name').value || '');
+    document.getElementById('vendor-add-name-drop').style.display = 'block';
+  }
+  function _closeAddNameDrop() {
+    document.getElementById('vendor-add-name-drop').style.display = 'none';
+  }
+  function _toggleAddNameDrop() {
+    var dd = document.getElementById('vendor-add-name-drop');
+    if (dd.style.display === 'block') _closeAddNameDrop();
+    else { document.getElementById('vendor-add-name').focus(); _openAddNameDrop(); }
+  }
+  function _onAddNameInput() {
+    var v = document.getElementById('vendor-add-name').value || '';
+    _renderAddNameDrop(v);
+    document.getElementById('vendor-add-name-drop').style.display = 'block';
+  }
+  function _pickAddName(name, isNew) {
+    document.getElementById('vendor-add-name').value = name;
+    _closeAddNameDrop();
+    document.getElementById('vendor-add-amount').focus();
+  }
+  function _onAddNameKey(e) {
+    if (e.key === 'Escape') { _closeAddNameDrop(); }
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      _closeAddNameDrop();
+      document.getElementById('vendor-add-amount').focus();
+    }
+  }
+  // 외부 클릭 시 드롭다운 닫기
+  document.addEventListener('click', function(e){
+    var dd = document.getElementById('vendor-add-name-drop');
+    var input = document.getElementById('vendor-add-name');
+    if (!dd || !input) return;
+    if (dd.style.display !== 'block') return;
+    if (e.target === input || dd.contains(e.target) || (e.target.closest && e.target.closest('button') && e.target.closest('button').onclick && e.target.closest('button').onclick.toString().indexOf('_toggleAddNameDrop') !== -1)) return;
+    _closeAddNameDrop();
+  });
   function closeAdd() {
     document.getElementById('vendor-add-overlay').style.display = 'none';
   }
@@ -8811,21 +8900,28 @@ window.__vendor = (function() {
     });
 
     // 검색 + 담당자 필터
-    // showAllVendors=false: 기간 내 매출이 있는 거래처만
-    // showAllVendors=true: 전체 거래처 (비활성 포함)
     var allVendorsAfterFilter = Object.keys(byVendor).filter(function(n){
       if (searchQ && n.toLowerCase().indexOf(searchQ) === -1) return false;
       if (mgrFilter && _getVendorManager(n) !== mgrFilter) return false;
       return true;
     });
+    // 활성 = 선택 기간 합계 > 0
+    // 비활성 = 합계 === 0 (0원 입력 또는 미발생 모두 포함)
     var activeNames = allVendorsAfterFilter.filter(function(n){
       var months = byVendor[n].months;
-      return Object.keys(months).some(function(mk){ return rangeKeySet[mk]; });
+      var sum = 0;
+      rangeKeys.forEach(function(k){ sum += (months[k] || 0); });
+      return sum > 0;
     });
     var inactiveNames = allVendorsAfterFilter.filter(function(n){
       return activeNames.indexOf(n) === -1;
     });
-    var vendorNames = _state.showAllVendors ? allVendorsAfterFilter : activeNames;
+    // 표시 모드: 'active' | 'all' | 'inactive'
+    var viewMode = _state.viewMode || 'active';
+    var vendorNames;
+    if (viewMode === 'all') vendorNames = allVendorsAfterFilter;
+    else if (viewMode === 'inactive') vendorNames = inactiveNames;
+    else vendorNames = activeNames;
 
     var vendorStats = vendorNames.map(function(n){
       var months = byVendor[n].months;
@@ -8875,21 +8971,24 @@ window.__vendor = (function() {
     var avgPerMonth = monthsCount > 0 ? Math.round(totalCur / monthsCount) : 0;
 
     var kpi = document.getElementById('vendor-needle-kpi');
+    var inactiveCardActive = (_state.viewMode === 'inactive');
+    var activeCardActive = (_state.viewMode === 'active');
     kpi.innerHTML = ''
-      + _kpiCard('🎯 기간 총 매출', _fmtW(totalCur), _fmtFull(totalCur), rangeLabel, '#65a30d', '#f7fee7')
-      + _kpiCard('📅 월평균 매출', _fmtW(avgPerMonth), _fmtFull(avgPerMonth), monthsCount + '개월 평균', '#0891b2', '#ecfeff')
-      + _kpiCard('👥 활성 거래처', activeVendors + '곳', '', '전체 ' + totalCount + '곳 중', '#7c3aed', '#f5f3ff')
-      + _kpiCard('💤 비활성 거래처', inactiveCount + '곳', '', (totalCount > 0 ? Math.round(inactiveCount/totalCount*100) + '% 미발생' : '데이터 없음'), '#ea580c', '#ffedd5');
+      + _kpiCard('🎯 기간 총 매출', _fmtW(totalCur), _fmtFull(totalCur), rangeLabel, '#65a30d', '#f7fee7', null)
+      + _kpiCard('📅 월평균 매출', _fmtW(avgPerMonth), _fmtFull(avgPerMonth), monthsCount + '개월 평균', '#0891b2', '#ecfeff', null)
+      + _kpiCard('👥 활성 거래처', activeVendors + '곳', '', '전체 ' + totalCount + '곳 중' + (activeCardActive ? ' ✓ 표시중' : ''), '#7c3aed', '#f5f3ff', { onclick: "__vendor.setViewMode('active')", active: activeCardActive })
+      + _kpiCard('💤 비활성 거래처', inactiveCount + '곳', '', (totalCount > 0 ? Math.round(inactiveCount/totalCount*100) + '% 미발생' : '데이터 없음') + (inactiveCardActive ? ' ✓ 표시중' : ''), '#ea580c', '#ffedd5', { onclick: "__vendor.setViewMode('inactive')", active: inactiveCardActive });
 
     // ── 차트 ──
     _renderBarChart(vendorStats);
     _renderRangeLineChart(rowsCat, rangeKeys, rangeLabel);
 
     // ── 테이블 ──
-    document.getElementById('vendor-needle-count').textContent =
-      _state.showAllVendors
-        ? '(전체 ' + vendorStats.length + '곳: 활성 ' + activeVendors + ' / 비활성 ' + inactiveCount + ')'
-        : '(' + vendorStats.length + '곳)';
+    var vmLabel = '';
+    if (viewMode === 'all') vmLabel = '전체 ' + vendorStats.length + '곳: 활성 ' + activeVendors + ' / 비활성 ' + inactiveCount;
+    else if (viewMode === 'inactive') vmLabel = '비활성 ' + vendorStats.length + '곳';
+    else vmLabel = '활성 ' + vendorStats.length + '곳';
+    document.getElementById('vendor-needle-count').textContent = '(' + vmLabel + ')';
     var tbl = document.getElementById('vendor-needle-table');
     if (!vendorStats.length) {
       tbl.innerHTML = '<div style="text-align:center;padding:50px 20px;color:#94a3b8;font-size:13px">' + (searchQ ? '검색 결과가 없습니다.' : rangeLabel + ' 기간에 등록된 거래처가 없습니다.<br><br>우측 상단 \'+ 신규 거래처 추가\' 버튼으로 매출을 입력해주세요.') + '</div>';
@@ -8918,14 +9017,15 @@ window.__vendor = (function() {
       var mgr = _getVendorManager(v.name);
       var mgrChip = mgr ? '<div style="font-size:9px;color:#65a30d;background:#f7fee7;border:1px solid #d9f99d;border-radius:10px;padding:1px 6px;display:inline-block;margin-top:2px;font-weight:600">' + _esc(mgr) + '</div>' : '';
       var isInactive = v.cur === 0;
-      var inactiveChip = (_state.showAllVendors && isInactive)
+      var showInactiveStyle = isInactive && (viewMode === 'all' || viewMode === 'inactive');
+      var inactiveChip = showInactiveStyle
         ? '<span style="font-size:9px;color:#ea580c;background:#ffedd5;border:1px solid #fed7aa;border-radius:10px;padding:1px 6px;font-weight:700;margin-left:6px">비활성</span>'
         : '';
-      var rowBg = (_state.showAllVendors && isInactive) ? '#fafafa' : '';
-      return '<div style="display:grid;grid-template-columns:40px 1.6fr 1.1fr 1.2fr 1fr 1.3fr 36px;gap:10px;padding:11px 16px;border-bottom:1px solid #f1f5f9;font-size:12px;align-items:center;transition:background .12s;background:' + rowBg + (isInactive && _state.showAllVendors ? ';opacity:0.85' : '') + '" onmouseover="this.style.background=\'#fafbfc\'" onmouseout="this.style.background=\'' + rowBg + '\'">'
+      var rowBg = showInactiveStyle ? '#fafafa' : '';
+      return '<div style="display:grid;grid-template-columns:40px 1.6fr 1.1fr 1.2fr 1fr 1.3fr 36px;gap:10px;padding:11px 16px;border-bottom:1px solid #f1f5f9;font-size:12px;align-items:center;transition:background .12s;background:' + rowBg + (showInactiveStyle ? ';opacity:0.85' : '') + '" onmouseover="this.style.background=\'#fafbfc\'" onmouseout="this.style.background=\'' + rowBg + '\'">'
         + '<div style="color:#94a3b8;font-weight:600">' + (idx+1) + '</div>'
         + '<div onclick="__vendor.editVendor(\'' + nameEsc + '\')" title="클릭하여 매출 수정" style="cursor:pointer;min-width:0;overflow:hidden">'
-          + '<div style="font-weight:700;color:' + (isInactive && _state.showAllVendors ? '#475569' : '#0f172a') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .12s" onmouseover="this.style.color=\'#65a30d\'" onmouseout="this.style.color=\'' + (isInactive && _state.showAllVendors ? '#475569' : '#0f172a') + '\'">' + _esc(v.name) + inactiveChip + '</div>'
+          + '<div style="font-weight:700;color:' + (showInactiveStyle ? '#475569' : '#0f172a') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .12s" onmouseover="this.style.color=\'#65a30d\'" onmouseout="this.style.color=\'' + (showInactiveStyle ? '#475569' : '#0f172a') + '\'">' + _esc(v.name) + inactiveChip + '</div>'
           + mgrChip
         + '</div>'
         + '<div style="text-align:right;font-weight:700;color:' + (v.cur > 0 ? '#0f172a' : '#cbd5e1') + '">' + (v.cur > 0 ? v.cur.toLocaleString() : '-') + '</div>'
@@ -8938,17 +9038,23 @@ window.__vendor = (function() {
     tbl.innerHTML = rowsHtml;
   }
 
-  function _kpiCard(label, value, valueExtra, sub, color, bg) {
+  function _kpiCard(label, value, valueExtra, sub, color, bg, opts) {
     var extraHtml = valueExtra
       ? '<span style="font-size:11px;color:#64748b;font-weight:500;margin-left:6px;white-space:nowrap">' + valueExtra + '</span>'
       : '';
-    return '<div style="background:' + bg + ';border:1px solid ' + color + '33;border-radius:10px;padding:12px 14px">'
+    var clickable = opts && opts.onclick;
+    var active = opts && opts.active;
+    var borderClr = active ? color : (color + '33');
+    var borderWidth = active ? '2px' : '1px';
+    var cursorStyle = clickable ? 'cursor:pointer;transition:all .15s' : '';
+    var clickAttr = clickable ? ' onclick="' + opts.onclick + '" onmouseover="this.style.boxShadow=\'0 4px 14px ' + color + '33\';this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.boxShadow=\'\';this.style.transform=\'\'"' : '';
+    return '<div style="background:' + bg + ';border:' + borderWidth + ' solid ' + borderClr + ';border-radius:10px;padding:' + (active ? '11px 13px' : '12px 14px') + ';' + cursorStyle + '"' + clickAttr + '>'
       + '<div style="font-size:10px;font-weight:700;color:' + color + ';margin-bottom:5px;letter-spacing:0.3px">' + label + '</div>'
       + '<div style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap;line-height:1.2">'
         + '<span style="font-size:18px;font-weight:800;color:#0f172a">' + value + '</span>'
         + extraHtml
       + '</div>'
-      + (sub ? '<div style="font-size:10px;color:#64748b;margin-top:3px">' + sub + '</div>' : '')
+      + (sub ? '<div style="font-size:10px;color:' + (active ? color : '#64748b') + ';margin-top:3px;font-weight:' + (active ? '700' : '500') + '">' + sub + '</div>' : '')
       + '</div>';
   }
 
@@ -9253,7 +9359,13 @@ window.__vendor = (function() {
     deleteVendor: deleteVendor,
     setRangePreset: setRangePreset,
     toggleAllVendors: toggleAllVendors,
-    _recomputeEditTotal: _recomputeEditTotal
+    setViewMode: setViewMode,
+    _recomputeEditTotal: _recomputeEditTotal,
+    _onAddNameInput: _onAddNameInput,
+    _openAddNameDrop: _openAddNameDrop,
+    _toggleAddNameDrop: _toggleAddNameDrop,
+    _pickAddName: _pickAddName,
+    _onAddNameKey: _onAddNameKey
   };
 })();
 
