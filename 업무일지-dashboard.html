@@ -8319,11 +8319,11 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px">
         <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px">
           <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px">📊 거래처별 매출 (선택 월 TOP 10)</div>
-          <div style="position:relative;height:180px"><canvas id="vendor-needle-bar"></canvas></div>
+          <div style="position:relative;height:300px"><canvas id="vendor-needle-bar"></canvas></div>
         </div>
         <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px">
           <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px">📈 월별 매출 추이 (선택 년도 합계)</div>
-          <div style="position:relative;height:180px"><canvas id="vendor-needle-line"></canvas></div>
+          <div style="position:relative;height:300px"><canvas id="vendor-needle-line"></canvas></div>
         </div>
       </div>
     </div>
@@ -8377,6 +8377,38 @@
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">
       <button onclick="__vendor.closeAdd()" style="padding:8px 18px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#64748b;font-size:13px;cursor:pointer;font-weight:600">취소</button>
       <button onclick="__vendor.saveAdd()" style="padding:8px 18px;border:none;border-radius:8px;background:#65a30d;color:#fff;font-size:13px;cursor:pointer;font-weight:700">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 거래처 수정 모달 (월별 일괄 수정) -->
+<div id="vendor-edit-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:99998;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)__vendor.closeEdit()">
+  <div style="background:#fff;border-radius:14px;max-width:560px;width:100%;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);font-family:inherit">
+    <div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#65a30d;margin-bottom:3px">거래처 매출 수정</div>
+        <div style="font-size:16px;font-weight:800;color:#0f172a;display:flex;align-items:center;gap:8px">
+          <span id="vendor-edit-name" style="max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+          <span id="vendor-edit-year-badge" style="font-size:11px;font-weight:700;background:#f7fee7;color:#65a30d;padding:2px 10px;border-radius:20px;border:1px solid #d9f99d"></span>
+        </div>
+      </div>
+      <button onclick="__vendor.closeEdit()" style="background:#f1f5f9;border:none;border-radius:7px;color:#475569;font-size:18px;width:30px;height:30px;cursor:pointer">×</button>
+    </div>
+    <div style="padding:16px 24px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:10px;flex-shrink:0;background:#f8fafc">
+      <label style="font-size:11px;font-weight:700;color:#475569">거래처명</label>
+      <input type="text" id="vendor-edit-name-input" placeholder="거래처명" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
+      <button onclick="__vendor.deleteVendor()" style="padding:6px 12px;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">전체 삭제</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:14px 24px">
+      <div style="font-size:11px;color:#64748b;margin-bottom:10px">12개월 매출액을 직접 수정할 수 있습니다. 0원 또는 빈 칸은 미발생으로 처리됩니다.</div>
+      <div id="vendor-edit-months" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+    </div>
+    <div style="padding:14px 24px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:#f8fafc">
+      <div id="vendor-edit-total" style="font-size:12px;color:#475569"></div>
+      <div style="display:flex;gap:8px">
+        <button onclick="__vendor.closeEdit()" style="padding:8px 18px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#64748b;font-size:13px;cursor:pointer;font-weight:600">취소</button>
+        <button onclick="__vendor.saveEdit()" style="padding:8px 22px;border:none;border-radius:8px;background:#65a30d;color:#fff;font-size:13px;cursor:pointer;font-weight:700">저장</button>
+      </div>
     </div>
   </div>
 </div>
@@ -8726,7 +8758,7 @@ window.__vendor = (function() {
         : '';
       return '<div style="display:grid;grid-template-columns:40px 1.6fr 1fr 1fr 1fr 1.3fr 36px;gap:10px;padding:11px 16px;border-bottom:1px solid #f1f5f9;font-size:12px;align-items:center;transition:background .12s" onmouseover="this.style.background=\'#fafbfc\'" onmouseout="this.style.background=\'\'">'
         + '<div style="color:#94a3b8;font-weight:600">' + (idx+1) + '</div>'
-        + '<div style="font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(v.name) + '</div>'
+        + '<div onclick="__vendor.editVendor(\'' + _esc(v.name).replace(/'/g,"\\'") + '\')" title="클릭하여 ' + year + '년 매출 수정" style="font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;transition:color .12s" onmouseover="this.style.color=\'#65a30d\'" onmouseout="this.style.color=\'#0f172a\'">' + _esc(v.name) + '</div>'
         + '<div style="text-align:right;font-weight:700;color:' + (v.cur > 0 ? '#0f172a' : '#cbd5e1') + '">' + (v.cur > 0 ? v.cur.toLocaleString() : '-') + '</div>'
         + '<div style="text-align:right">' + deltaHtml + '</div>'
         + '<div style="text-align:right;font-weight:600;color:#475569">' + (v.ytd > 0 ? v.ytd.toLocaleString() : '-') + '</div>'
@@ -8785,7 +8817,7 @@ window.__vendor = (function() {
           borderColor: '#65a30d',
           borderWidth: 0,
           borderRadius: 4,
-          maxBarThickness: 28
+          maxBarThickness: 22
         }]
       },
       options: {
@@ -8853,6 +8885,164 @@ window.__vendor = (function() {
     });
   }
 
+  // ── 거래처 수정 모달 ──
+  var _editCtx = null; // { vendorName, year, monthRows: { 1: {id, amount}, ... } }
+
+  function _recomputeEditTotal() {
+    var sum = 0;
+    for (var m = 1; m <= 12; m++) {
+      var el = document.getElementById('vedit-m-' + m);
+      if (el) {
+        var v = parseInt((el.value||'').replace(/,/g,''), 10);
+        if (!isNaN(v) && v > 0) sum += v;
+      }
+    }
+    var totEl = document.getElementById('vendor-edit-total');
+    if (totEl) totEl.textContent = '연 합계: ' + sum.toLocaleString() + '원';
+  }
+
+  function editVendor(name) {
+    if (!name) return;
+    var year = parseInt(document.getElementById('vendor-needle-year').value);
+    var cat = _state.currentCat;
+    // 해당 거래처의 해당 년도 모든 행 매핑
+    var monthRows = {};
+    _state.rows.filter(function(r){
+      return r.category === cat && r.vendor_name === name && (r.month_key||'').split('-')[0] == String(year);
+    }).forEach(function(r){
+      var m = parseInt((r.month_key||'').split('-')[1]);
+      // 동일 (vendor, year-m)이 여러 행이면 첫 행만 보존, 나머지는 saveEdit에서 통합 처리하도록 합산
+      if (!monthRows[m]) monthRows[m] = { id: r.id, amount: r.amount || 0, dupIds: [] };
+      else { monthRows[m].amount += (r.amount || 0); monthRows[m].dupIds.push(r.id); }
+    });
+    _editCtx = { vendorName: name, year: year, monthRows: monthRows };
+
+    document.getElementById('vendor-edit-name').textContent = name;
+    document.getElementById('vendor-edit-year-badge').textContent = year + '년';
+    document.getElementById('vendor-edit-name-input').value = name;
+
+    var monthsHtml = '';
+    for (var m = 1; m <= 12; m++) {
+      var existing = monthRows[m];
+      var val = existing ? existing.amount.toLocaleString() : '';
+      monthsHtml += '<div style="display:flex;align-items:center;gap:6px;background:' + (existing ? '#f7fee7' : '#f8fafc') + ';border:1px solid ' + (existing ? '#d9f99d' : '#e2e8f0') + ';border-radius:8px;padding:6px 10px">'
+        + '<div style="font-size:11px;font-weight:700;color:#65a30d;width:30px;flex-shrink:0">' + m + '월</div>'
+        + '<input type="text" id="vedit-m-' + m + '" placeholder="0" value="' + val + '" oninput="this.value=this.value.replace(/[^0-9]/g,\'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g,\',\');window.__vendor._recomputeEditTotal()" style="flex:1;min-width:0;padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;text-align:right;outline:none" onfocus="this.style.borderColor=\'#65a30d\'" onblur="this.style.borderColor=\'#e2e8f0\'">'
+        + '<span style="font-size:10px;color:#94a3b8;flex-shrink:0">원</span>'
+        + '</div>';
+    }
+    document.getElementById('vendor-edit-months').innerHTML = monthsHtml;
+    _recomputeEditTotal();
+    document.getElementById('vendor-edit-overlay').style.display = 'flex';
+  }
+
+  function closeEdit() {
+    document.getElementById('vendor-edit-overlay').style.display = 'none';
+    _editCtx = null;
+  }
+
+  function saveEdit() {
+    if (!_editCtx) return;
+    var ctx = _editCtx;
+    var newName = (document.getElementById('vendor-edit-name-input').value || '').trim();
+    if (!newName) { _toast('거래처명을 입력하세요'); return; }
+
+    var sb = _getSb();
+    var ops = []; // [{type, ...}]
+    for (var m = 1; m <= 12; m++) {
+      var el = document.getElementById('vedit-m-' + m);
+      var raw = el ? (el.value||'').replace(/,/g,'').trim() : '';
+      var newAmt = parseInt(raw, 10);
+      if (isNaN(newAmt)) newAmt = 0;
+      if (newAmt < 0) newAmt = 0;
+      var existing = ctx.monthRows[m];
+      var monthKey = ctx.year + '-' + m;
+
+      if (existing && (existing.dupIds||[]).length) {
+        // 중복 행이 있으면 모두 삭제하고 단일 행으로 정리
+        existing.dupIds.forEach(function(dupId){ ops.push({ type:'delete', id: dupId }); });
+      }
+
+      if (existing) {
+        if (newAmt > 0) {
+          ops.push({ type: 'patch', id: existing.id, body: { amount: newAmt, vendor_name: newName, updated_at: new Date().toISOString() } });
+        } else {
+          ops.push({ type: 'delete', id: existing.id });
+        }
+      } else if (newAmt > 0) {
+        ops.push({ type: 'post', body: { id: _genId(), category: _state.currentCat, vendor_name: newName, month_key: monthKey, amount: newAmt, extra: {}, updated_at: new Date().toISOString() } });
+      }
+    }
+
+    if (!ops.length && newName === ctx.vendorName) { closeEdit(); return; }
+
+    // 거래처명 변경 시: 위 12개월 외 다른 행도 함께 rename
+    if (newName !== ctx.vendorName) {
+      _state.rows.filter(function(r){
+        return r.category === _state.currentCat && r.vendor_name === ctx.vendorName
+          && (r.month_key||'').split('-')[0] != String(ctx.year);
+      }).forEach(function(r){
+        ops.push({ type: 'patch', id: r.id, body: { vendor_name: newName, updated_at: new Date().toISOString() } });
+      });
+    }
+
+    var promises = ops.map(function(op){
+      if (op.type === 'patch') {
+        return fetch(sb.url + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(op.id), {
+          method: 'PATCH', headers: Object.assign({}, sb.hdr, { 'Prefer': 'return=minimal' }), body: JSON.stringify(op.body)
+        });
+      } else if (op.type === 'delete') {
+        return fetch(sb.url + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(op.id), {
+          method: 'DELETE', headers: sb.delHdr
+        });
+      } else if (op.type === 'post') {
+        return fetch(sb.url + '/rest/v1/vendor_sales', {
+          method: 'POST', headers: sb.hdr, body: JSON.stringify(op.body)
+        });
+      }
+      return Promise.resolve({ ok: true });
+    });
+
+    Promise.all(promises).then(function(results){
+      var allOk = results.every(function(r){ return r.ok || r.status === 201 || r.status === 204; });
+      if (!allOk) {
+        console.error('saveEdit partial failure', results);
+        _toast('일부 저장 실패 - 콘솔 확인');
+      } else {
+        _toast('수정 완료');
+      }
+      closeEdit();
+      fetchAll().then(function(){ render(_state.currentCat); });
+    }).catch(function(e){
+      console.error('saveEdit error', e); _toast('저장 오류'); closeEdit();
+    });
+  }
+
+  function deleteVendor() {
+    if (!_editCtx) return;
+    if (!confirm('[' + _editCtx.vendorName + ']\n이 거래처의 ' + _editCtx.year + '년 매출 기록 전체를 삭제할까요?\n(다른 년도 데이터는 유지됩니다)')) return;
+    var sb = _getSb();
+    var ids = [];
+    for (var m = 1; m <= 12; m++) {
+      var existing = _editCtx.monthRows[m];
+      if (existing) {
+        ids.push(existing.id);
+        (existing.dupIds||[]).forEach(function(d){ ids.push(d); });
+      }
+    }
+    if (!ids.length) { closeEdit(); return; }
+    var promises = ids.map(function(id){
+      return fetch(sb.url + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(id), {
+        method: 'DELETE', headers: sb.delHdr
+      });
+    });
+    Promise.all(promises).then(function(){
+      _toast('삭제 완료');
+      closeEdit();
+      fetchAll().then(function(){ render(_state.currentCat); });
+    }).catch(function(e){ console.error(e); _toast('삭제 오류'); });
+  }
+
   return {
     openMenu: openMenu,
     closeMenu: closeMenu,
@@ -8863,7 +9053,12 @@ window.__vendor = (function() {
     openAdd: openAdd,
     closeAdd: closeAdd,
     saveAdd: saveAdd,
-    deleteRow: deleteVendorRow
+    deleteRow: deleteVendorRow,
+    editVendor: editVendor,
+    closeEdit: closeEdit,
+    saveEdit: saveEdit,
+    deleteVendor: deleteVendor,
+    _recomputeEditTotal: _recomputeEditTotal
   };
 })();
 
