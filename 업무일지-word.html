@@ -1692,9 +1692,9 @@
           <textarea class="issue-card-body" rows="3" placeholder="금일 달성한 주요 성과를 기록하세요."></textarea>
         </div>
 
-        <!-- 업무 성과 구분 선택 모달 -->
-        <div id="risk-cat-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:99999;align-items:center;justify-content:center;padding:20px">
-          <div style="background:#fff;border-radius:16px;max-width:520px;width:100%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.25);font-family:inherit">
+        <!-- 업무 성과 구분 선택 모달 (1차) -->
+        <div id="risk-cat-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:99999;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .18s ease">
+          <div id="risk-cat-box" style="background:#fff;border-radius:16px;max-width:520px;width:100%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.25);font-family:inherit;transform:scale(0.96);transition:transform .18s ease">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
               <div style="font-size:15px;font-weight:800;color:#0f172a">업무 성과 구분 선택</div>
               <button onclick="closeRiskCatModal()" style="background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;padding:2px 6px;border-radius:6px" onmouseover="this.style.color='#475569'" onmouseout="this.style.color='#94a3b8'">×</button>
@@ -1703,6 +1703,21 @@
             <div style="margin-top:14px;text-align:center">
               <button onclick="selectRiskCat('')" style="padding:6px 20px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#64748b;font-size:12px;font-weight:600;cursor:pointer">선택 해제</button>
             </div>
+          </div>
+        </div>
+
+        <!-- 업무 성과 구분 선택 모달 (2차 — 하위 카테고리) -->
+        <div id="risk-subcat-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:100000;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .18s ease">
+          <div id="risk-subcat-box" style="background:#fff;border-radius:16px;max-width:520px;width:100%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.25);font-family:inherit;transform:scale(0.96);transition:transform .18s ease">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:8px">
+              <button onclick="backToRiskCatModal()" style="background:#f1f5f9;border:none;color:#475569;cursor:pointer;padding:5px 10px;border-radius:7px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                이전
+              </button>
+              <div id="risk-subcat-title" style="font-size:14px;font-weight:800;color:#0f172a;flex:1;text-align:center"></div>
+              <button onclick="closeRiskSubcatModal()" style="background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;padding:2px 6px;border-radius:6px" onmouseover="this.style.color='#475569'" onmouseout="this.style.color='#94a3b8'">×</button>
+            </div>
+            <div id="risk-subcat-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
           </div>
         </div>
       </div>
@@ -1845,9 +1860,23 @@
       if (issueTas[1]) {
         var _riskRaw = editingEntry.risk || '';
         var _riskMatch = _riskRaw.match(/^\[([^\]]+)\]/);
-        if (_riskMatch && RISK_CATS.some(function(c){ return c.key === _riskMatch[1]; })) {
-          selectRiskCat(_riskMatch[1]);
-          issueTas[1].value = _riskRaw.slice(_riskMatch[0].length);
+        if (_riskMatch) {
+          var _full = _riskMatch[1];
+          var _dashIdx = _full.indexOf(' - ');
+          if (_dashIdx > 0) {
+            var _p = _full.slice(0, _dashIdx), _s = _full.slice(_dashIdx + 3);
+            if (RISK_CATS.some(function(c){ return c.key === _p; })) {
+              selectRiskSubcat(_p, _s);
+              issueTas[1].value = _riskRaw.slice(_riskMatch[0].length);
+            } else {
+              issueTas[1].value = _riskRaw;
+            }
+          } else if (RISK_CATS.some(function(c){ return c.key === _full; })) {
+            selectRiskCat(_full);
+            issueTas[1].value = _riskRaw.slice(_riskMatch[0].length);
+          } else {
+            issueTas[1].value = _riskRaw;
+          }
         } else {
           issueTas[1].value = _riskRaw;
         }
@@ -1899,9 +1928,23 @@
       if (issueTas[1]) {
         var _riskRaw2 = entry.risk || '';
         var _riskMatch2 = _riskRaw2.match(/^\[([^\]]+)\]/);
-        if (_riskMatch2 && RISK_CATS.some(function(c){ return c.key === _riskMatch2[1]; })) {
-          selectRiskCat(_riskMatch2[1]);
-          issueTas[1].value = _riskRaw2.slice(_riskMatch2[0].length);
+        if (_riskMatch2) {
+          var _full2 = _riskMatch2[1];
+          var _dashIdx2 = _full2.indexOf(' - ');
+          if (_dashIdx2 > 0) {
+            var _p2 = _full2.slice(0, _dashIdx2), _s2 = _full2.slice(_dashIdx2 + 3);
+            if (RISK_CATS.some(function(c){ return c.key === _p2; })) {
+              selectRiskSubcat(_p2, _s2);
+              issueTas[1].value = _riskRaw2.slice(_riskMatch2[0].length);
+            } else {
+              issueTas[1].value = _riskRaw2;
+            }
+          } else if (RISK_CATS.some(function(c){ return c.key === _full2; })) {
+            selectRiskCat(_full2);
+            issueTas[1].value = _riskRaw2.slice(_riskMatch2[0].length);
+          } else {
+            issueTas[1].value = _riskRaw2;
+          }
         } else {
           issueTas[1].value = _riskRaw2;
         }
@@ -2584,26 +2627,100 @@
       { key: '협업/지원',       icon: '🤝', color: '#9333ea', bg: '#f3e8ff' },
       { key: '기획/리서치',     icon: '🔍', color: '#0d9488', bg: '#ccfbf1' },
       { key: '신규고객 확보',   icon: '🌟', color: '#ea580c', bg: '#ffedd5' },
-      { key: '기존 고객 관리',    icon: '👥', color: '#4f46e5', bg: '#e0e7ff' },
+      { key: '기존 고객 관리',  icon: '👥', color: '#4f46e5', bg: '#e0e7ff' },
       { key: '트러블 슈팅',     icon: '🚨', color: '#be123c', bg: '#ffe4e6' },
       { key: '기타',            icon: '📌', color: '#64748b', bg: '#f1f5f9' }
     ];
 
+    // 2차 카테고리 구조 (확장 가능)
+    var RISK_SUBCATS = {
+      '신규고객 확보': [
+        { key: '유료 블랭킷',  icon: '💎', desc: '방송사, 광고 녹음실' },
+        { key: '무료 블랭킷',  icon: '🆓', desc: '퍼포밍 목적 활성화' },
+        { key: 'Needle Drop', icon: '🎵', desc: '곡별 매출' }
+      ],
+      '기존 고객 관리': [
+        { key: '무료 블랭킷',  icon: '🆓', desc: '퍼포밍 목적 활성화' },
+        { key: 'Needle Drop', icon: '🎵', desc: '곡별 매출' }
+      ]
+    };
+
+    var _riskParentSel = null; // 2차 모달 진입 시 부모 카테고리
+
+    function _showRiskOverlay(id) {
+      var ov = document.getElementById(id);
+      ov.style.display = 'flex';
+      requestAnimationFrame(function(){
+        ov.style.opacity = '1';
+        var box = ov.querySelector('div');
+        if (box) box.style.transform = 'scale(1)';
+      });
+    }
+    function _hideRiskOverlay(id) {
+      var ov = document.getElementById(id);
+      ov.style.opacity = '0';
+      var box = ov.querySelector('div');
+      if (box) box.style.transform = 'scale(0.96)';
+      setTimeout(function(){ ov.style.display = 'none'; }, 180);
+    }
+
     function openRiskCatModal() {
       var grid = document.getElementById('risk-cat-grid');
       var curVal = document.getElementById('risk-category').value;
+      var curParent = curVal.indexOf(' - ') > 0 ? curVal.split(' - ')[0] : curVal;
       grid.innerHTML = RISK_CATS.map(function(c) {
-        var selected = curVal === c.key;
-        return '<button type="button" onclick="selectRiskCat(\'' + c.key + '\')" style="padding:12px 8px;border-radius:10px;border:2px solid ' + (selected ? c.color : '#e2e8f0') + ';background:' + (selected ? c.bg : '#fff') + ';cursor:pointer;text-align:center;transition:all .15s" onmouseover="this.style.borderColor=\'' + c.color + '\';this.style.background=\'' + c.bg + '\'" onmouseout="if(!' + selected + '){this.style.borderColor=\'#e2e8f0\';this.style.background=\'#fff\'}">'
+        var selected = curParent === c.key;
+        var hasSub = !!RISK_SUBCATS[c.key];
+        var arrow = hasSub ? '<span style="font-size:9px;color:'+c.color+';opacity:0.7;margin-left:2px">▸</span>' : '';
+        return '<button type="button" onclick="onRiskCatPick(\'' + c.key + '\')" style="padding:12px 8px;border-radius:10px;border:2px solid ' + (selected ? c.color : '#e2e8f0') + ';background:' + (selected ? c.bg : '#fff') + ';cursor:pointer;text-align:center;transition:all .15s;position:relative" onmouseover="this.style.borderColor=\'' + c.color + '\';this.style.background=\'' + c.bg + '\'" onmouseout="if(!' + selected + '){this.style.borderColor=\'#e2e8f0\';this.style.background=\'#fff\'}">'
           + '<div style="font-size:20px;margin-bottom:4px">' + c.icon + '</div>'
-          + '<div style="font-size:11px;font-weight:700;color:' + c.color + ';line-height:1.3">' + c.key + '</div>'
+          + '<div style="font-size:11px;font-weight:700;color:' + c.color + ';line-height:1.3">' + c.key + arrow + '</div>'
           + '</button>';
       }).join('');
-      document.getElementById('risk-cat-overlay').style.display = 'flex';
+      _showRiskOverlay('risk-cat-overlay');
     }
 
     function closeRiskCatModal() {
-      document.getElementById('risk-cat-overlay').style.display = 'none';
+      _hideRiskOverlay('risk-cat-overlay');
+    }
+
+    // 1차 카드 클릭: 하위 카테고리 있으면 2차 모달, 아니면 즉시 선택
+    function onRiskCatPick(key) {
+      if (RISK_SUBCATS[key]) {
+        _riskParentSel = key;
+        closeRiskCatModal();
+        setTimeout(function(){ openRiskSubcatModal(key); }, 180);
+      } else {
+        selectRiskCat(key);
+      }
+    }
+
+    function openRiskSubcatModal(parentKey) {
+      var parent = RISK_CATS.find(function(c){ return c.key === parentKey; });
+      if (!parent) return;
+      var subs = RISK_SUBCATS[parentKey] || [];
+      var curVal = document.getElementById('risk-category').value;
+      var curSub = curVal.indexOf(' - ') > 0 && curVal.split(' - ')[0] === parentKey ? curVal.split(' - ')[1] : '';
+      document.getElementById('risk-subcat-title').innerHTML = (parent.icon||'') + ' ' + parent.key;
+      var grid = document.getElementById('risk-subcat-grid');
+      grid.innerHTML = subs.map(function(s) {
+        var selected = curSub === s.key;
+        return '<button type="button" onclick="selectRiskSubcat(\'' + parentKey.replace(/'/g,"\\'") + '\',\'' + s.key.replace(/'/g,"\\'") + '\')" style="padding:14px 10px;border-radius:10px;border:2px solid ' + (selected ? parent.color : '#e2e8f0') + ';background:' + (selected ? parent.bg : '#fff') + ';cursor:pointer;text-align:center;transition:all .15s" onmouseover="this.style.borderColor=\'' + parent.color + '\';this.style.background=\'' + parent.bg + '\'" onmouseout="if(!' + selected + '){this.style.borderColor=\'#e2e8f0\';this.style.background=\'#fff\'}">'
+          + '<div style="font-size:22px;margin-bottom:5px">' + (s.icon || '•') + '</div>'
+          + '<div style="font-size:11px;font-weight:700;color:' + parent.color + ';line-height:1.3;margin-bottom:3px">' + s.key + '</div>'
+          + (s.desc ? '<div style="font-size:9px;color:#94a3b8;line-height:1.3">' + s.desc + '</div>' : '')
+          + '</button>';
+      }).join('');
+      _showRiskOverlay('risk-subcat-overlay');
+    }
+
+    function closeRiskSubcatModal() {
+      _hideRiskOverlay('risk-subcat-overlay');
+    }
+
+    function backToRiskCatModal() {
+      closeRiskSubcatModal();
+      setTimeout(function(){ openRiskCatModal(); }, 180);
     }
 
     function selectRiskCat(key) {
@@ -2623,6 +2740,19 @@
         btn.style.background = '#fff';
       }
       closeRiskCatModal();
+    }
+
+    function selectRiskSubcat(parentKey, subKey) {
+      var fullKey = parentKey + ' - ' + subKey;
+      document.getElementById('risk-category').value = fullKey;
+      var label = document.getElementById('risk-cat-label');
+      var btn = document.getElementById('risk-cat-btn');
+      var cat = RISK_CATS.find(function(c){ return c.key === parentKey; });
+      label.textContent = (cat ? cat.icon + ' ' : '') + parentKey + ' › ' + subKey;
+      btn.style.borderColor = cat ? cat.color : '#bfdbfe';
+      btn.style.color = cat ? cat.color : '#1d4ed8';
+      btn.style.background = cat ? cat.bg : '#fff';
+      closeRiskSubcatModal();
     }
 
     function submitJournal() {
