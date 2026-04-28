@@ -2766,11 +2766,10 @@
     }
 
     // 서브카테고리 → vendor_sales 테이블 카테고리 매핑
-    // (없으면 거래처 선택 모달을 열지 않음)
     var _RISK_SUB_TO_VENDOR_CAT = {
       'Needle Drop': 'needle',
-      '유료 블랭킷': 'blanket_paid'
-      // '무료 블랭킷'은 데이터 없음 — 매핑 안 함
+      '유료 블랭킷': 'blanket_paid',
+      '무료 블랭킷': 'blanket_free'
     };
 
     function selectRiskSubcat(parentKey, subKey) {

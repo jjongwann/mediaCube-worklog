@@ -8356,7 +8356,7 @@
       <button type="button" onclick="__vendor.pickCat('blanket_free')" style="padding:24px 16px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#94a3b8';this.style.background='#f8fafc';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(148,163,184,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
         <div style="font-size:32px;margin-bottom:8px">🆓</div>
         <div style="font-size:13px;font-weight:800;color:#475569;margin-bottom:4px">무료 BLANKET</div>
-        <div style="font-size:10px;color:#64748b;line-height:1.4">퍼포밍 활성화<br>(추후 데이터)</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.4">퍼포밍 활성화<br>거래처별 매출</div>
       </button>
     </div>
   </div>
@@ -8576,7 +8576,7 @@ window.__vendor = (function() {
       scrollTrack: '#cffafe', scrollThumb: '#06b6d4', scrollThumbHover: '#0891b2', scrollThumbActive: '#0e7490', scrollThumbBorder: '#cffafe'
     },
     'blanket_free': {
-      name: '무료 BLANKET 매출 분석', icon: '🆓', subtitle: '퍼포밍 활성화 (추후 데이터)',
+      name: '무료 BLANKET 매출 분석', icon: '🆓', subtitle: '퍼포밍 활성화 거래처별 매출',
       gradFrom: '#64748b', gradTo: '#475569',
       primary: '#64748b', barFill: '#94a3b8cc', barBorder: '#64748b',
       bgLight: '#f8fafc', borderLight: '#e2e8f0',
@@ -8659,10 +8659,8 @@ window.__vendor = (function() {
   function pickCat(cat) {
     closeMenu();
     setTimeout(function(){
-      if (cat === 'needle' || cat === 'blanket_paid') {
+      if (cat === 'needle' || cat === 'blanket_paid' || cat === 'blanket_free') {
         openPanel(cat);
-      } else if (cat === 'blanket_free') {
-        _toast('무료 BLANKET은 현재 데이터가 없습니다.');
       }
     }, 150);
   }
