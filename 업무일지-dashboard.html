@@ -9142,12 +9142,13 @@ window.__vendor = (function() {
     }).sort(function(a,b){ return b.cur - a.cur; });
 
     // ── KPI ──
-    var totalCur = 0, totalAll = 0, activeVendors = 0;
+    var totalCur = 0, totalAll = 0;
     vendorStats.forEach(function(v){
       totalCur += v.cur;
       totalAll += v.allTime;
-      if (v.cur > 0) activeVendors++;
     });
+    // 활성/비활성 카운트는 통일된 판정 결과(activeNames/inactiveNames) 사용
+    var activeVendors = activeNames.length;
     var inactiveCount = inactiveNames.length;
     var totalCount = allVendorsAfterFilter.length;
     var avgPerMonth = monthsCount > 0 ? Math.round(totalCur / monthsCount) : 0;
