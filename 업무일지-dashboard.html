@@ -8503,7 +8503,13 @@
           <span id="vendor-edit-year-badge" style="font-size:11px;font-weight:700;background:#f7fee7;color:#65a30d;padding:2px 10px;border-radius:20px;border:1px solid #d9f99d"></span>
         </div>
       </div>
-      <button onclick="__vendor.closeEdit()" style="background:#f1f5f9;border:none;border-radius:7px;color:#475569;font-size:18px;width:30px;height:30px;cursor:pointer">×</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button id="vendor-edit-active-toggle" onclick="__vendor.toggleEditActive()" type="button" style="display:none;padding:5px 12px;border-radius:20px;border:1px solid #16a34a;background:#dcfce7;color:#16a34a;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s" title="활성/비활성 전환">
+          <span id="vendor-edit-active-dot" style="width:7px;height:7px;border-radius:50%;background:#16a34a;display:inline-block"></span>
+          <span id="vendor-edit-active-label">활성</span>
+        </button>
+        <button onclick="__vendor.closeEdit()" style="background:#f1f5f9;border:none;border-radius:7px;color:#475569;font-size:18px;width:30px;height:30px;cursor:pointer">×</button>
+      </div>
     </div>
     <div style="padding:14px 24px;border-bottom:1px solid #f1f5f9;display:flex;flex-direction:column;gap:8px;flex-shrink:0;background:#f8fafc">
       <div style="display:flex;align-items:center;gap:10px">
@@ -8963,13 +8969,15 @@ window.__vendor = (function() {
         }
       }).catch(function(e){ console.error(e); _toast('네트워크 오류'); });
     } else {
+      var initExtra = {};
+      if (cat === 'blanket_free') initExtra.active = true; // 무료 BLANKET은 기본 활성
       var row = {
         id: _genId(),
         category: cat,
         vendor_name: name,
         month_key: monthKey,
         amount: amount,
-        extra: {},
+        extra: initExtra,
         updated_at: new Date().toISOString()
       };
       fetch(sb.url + '/rest/v1/vendor_sales', {
@@ -9052,9 +9060,21 @@ window.__vendor = (function() {
       if (mgrFilter && _getVendorManager(n) !== mgrFilter) return false;
       return true;
     });
-    // 활성 = 선택 기간 합계 > 0
-    // 비활성 = 합계 === 0 (0원 입력 또는 미발생 모두 포함)
+    // 거래처별 명시적 active 플래그 수집 (extra.active)
+    var vendorActiveFlag = {};
+    rowsCat.forEach(function(r){
+      if (r.extra && typeof r.extra.active === 'boolean') {
+        vendorActiveFlag[r.vendor_name] = r.extra.active;
+      }
+    });
+    // 활성/비활성 판정:
+    //   1) extra.active 명시 시 → 그 값 우선
+    //   2) 무료 BLANKET → 기본 활성 (매출 개념 없음)
+    //   3) 그 외 → 기간 합계 > 0
     var activeNames = allVendorsAfterFilter.filter(function(n){
+      if (vendorActiveFlag[n] === true) return true;
+      if (vendorActiveFlag[n] === false) return false;
+      if (cat === 'blanket_free') return true;
       var months = byVendor[n].months;
       var sum = 0;
       rangeKeys.forEach(function(k){ sum += (months[k] || 0); });
@@ -9362,13 +9382,35 @@ window.__vendor = (function() {
       else { monthRows[m].amount += (r.amount || 0); monthRows[m].dupIds.push(r.id); }
     });
     var curMgr = _getVendorManager(name);
-    _editCtx = { vendorName: name, year: year, monthRows: monthRows, prevManager: curMgr };
+
+    // 현재 active 상태 결정 (extra.active 있으면 그 값, 없으면 카테고리/매출 기반 기본값)
+    var explicitActive = null;
+    _state.rows.filter(function(r){ return r.category === cat && r.vendor_name === name; }).forEach(function(r){
+      if (r.extra && typeof r.extra.active === 'boolean') explicitActive = r.extra.active;
+    });
+    var defaultActive;
+    if (cat === 'blanket_free') defaultActive = true;
+    else {
+      var totalAmt = 0;
+      Object.keys(monthRows).forEach(function(k){ totalAmt += monthRows[k].amount; });
+      defaultActive = totalAmt > 0;
+    }
+    var curActive = (explicitActive !== null) ? explicitActive : defaultActive;
+
+    _editCtx = { vendorName: name, year: year, monthRows: monthRows, prevManager: curMgr, prevActive: explicitActive, curActive: curActive };
 
     document.getElementById('vendor-edit-name').textContent = name;
     document.getElementById('vendor-edit-year-badge').textContent = year + '년';
     document.getElementById('vendor-edit-name-input').value = name;
     _populateManagerSel('vendor-edit-manager', false);
     document.getElementById('vendor-edit-manager').value = curMgr || '';
+
+    // 활성/비활성 토글 표시
+    var toggleBtn = document.getElementById('vendor-edit-active-toggle');
+    if (toggleBtn) {
+      toggleBtn.style.display = 'flex';
+      _updateEditActiveStyle(curActive);
+    }
 
     var monthsHtml = '';
     for (var m = 1; m <= 12; m++) {
@@ -9390,6 +9432,32 @@ window.__vendor = (function() {
     _editCtx = null;
   }
 
+  function _updateEditActiveStyle(active) {
+    var btn = document.getElementById('vendor-edit-active-toggle');
+    var dot = document.getElementById('vendor-edit-active-dot');
+    var label = document.getElementById('vendor-edit-active-label');
+    if (!btn) return;
+    if (active) {
+      btn.style.borderColor = '#16a34a';
+      btn.style.background = '#dcfce7';
+      btn.style.color = '#16a34a';
+      if (dot) dot.style.background = '#16a34a';
+      if (label) label.textContent = '활성';
+    } else {
+      btn.style.borderColor = '#ea580c';
+      btn.style.background = '#ffedd5';
+      btn.style.color = '#ea580c';
+      if (dot) dot.style.background = '#ea580c';
+      if (label) label.textContent = '비활성';
+    }
+  }
+
+  function toggleEditActive() {
+    if (!_editCtx) return;
+    _editCtx.curActive = !_editCtx.curActive;
+    _updateEditActiveStyle(_editCtx.curActive);
+  }
+
   function saveEdit() {
     if (!_editCtx) return;
     var ctx = _editCtx;
@@ -9397,9 +9465,13 @@ window.__vendor = (function() {
     if (!newName) { _toast('거래처명을 입력하세요'); return; }
     var newMgr = (document.getElementById('vendor-edit-manager').value || '').trim();
     var mgrChanged = (newMgr || '') !== (ctx.prevManager || '');
+    var newActive = ctx.curActive;
+    var activeChanged = (ctx.prevActive !== newActive);
 
     var sb = _getSb();
     var ops = []; // [{type, ...}]
+    var hasAnyRow = false; // 거래처에 행이 하나라도 남아있는지 추적
+
     for (var m = 1; m <= 12; m++) {
       var el = document.getElementById('vedit-m-' + m);
       var raw = el ? (el.value||'').replace(/,/g,'').trim() : '';
@@ -9410,25 +9482,35 @@ window.__vendor = (function() {
       var monthKey = ctx.year + '-' + m;
 
       if (existing && (existing.dupIds||[]).length) {
-        // 중복 행이 있으면 모두 삭제하고 단일 행으로 정리
         existing.dupIds.forEach(function(dupId){ ops.push({ type:'delete', id: dupId }); });
+      }
+
+      // 새 extra 빌드 (담당자 + active)
+      function _buildExtra(baseExtra) {
+        var ex = Object.assign({}, baseExtra || {});
+        if (mgrChanged) ex.manager = newMgr;
+        if (activeChanged) ex.active = newActive;
+        return ex;
       }
 
       if (existing) {
         if (newAmt > 0) {
           var patchBody = { amount: newAmt, vendor_name: newName, updated_at: new Date().toISOString() };
-          if (mgrChanged) patchBody.extra = { manager: newMgr };
+          if (mgrChanged || activeChanged) patchBody.extra = _buildExtra({ manager: ctx.prevManager });
           ops.push({ type: 'patch', id: existing.id, body: patchBody });
+          hasAnyRow = true;
         } else {
           ops.push({ type: 'delete', id: existing.id });
         }
       } else if (newAmt > 0) {
-        var newExtra = newMgr ? { manager: newMgr } : {};
+        var newExtra = _buildExtra({});
+        if (newMgr) newExtra.manager = newMgr;
         ops.push({ type: 'post', body: { id: _genId(), category: _state.currentCat, vendor_name: newName, month_key: monthKey, amount: newAmt, extra: newExtra, updated_at: new Date().toISOString() } });
+        hasAnyRow = true;
       }
     }
 
-    // 거래처의 다른 년도 모든 행에 대해 rename 또는 담당자 변경 적용
+    // 거래처의 다른 년도 모든 행에 대해 rename / 담당자 / active 플래그 동기화
     var otherYearRows = _state.rows.filter(function(r){
       return r.category === _state.currentCat && r.vendor_name === ctx.vendorName
         && (r.month_key||'').split('-')[0] != String(ctx.year);
@@ -9437,9 +9519,24 @@ window.__vendor = (function() {
       var body = { updated_at: new Date().toISOString() };
       var changed = false;
       if (newName !== ctx.vendorName) { body.vendor_name = newName; changed = true; }
-      if (mgrChanged) { body.extra = Object.assign({}, r.extra || {}, { manager: newMgr }); changed = true; }
+      if (mgrChanged || activeChanged) {
+        var ex = Object.assign({}, r.extra || {});
+        if (mgrChanged) ex.manager = newMgr;
+        if (activeChanged) ex.active = newActive;
+        body.extra = ex;
+        changed = true;
+      }
       if (changed) ops.push({ type: 'patch', id: r.id, body: body });
+      hasAnyRow = true;
     });
+
+    // 행이 하나도 남지 않는데 active 변경이 필요한 경우 → 자리표시용 0원 행 생성 (1월)
+    if (!hasAnyRow && (activeChanged || mgrChanged)) {
+      var placeholderExtra = {};
+      if (newMgr) placeholderExtra.manager = newMgr;
+      placeholderExtra.active = newActive;
+      ops.push({ type: 'post', body: { id: _genId(), category: _state.currentCat, vendor_name: newName, month_key: ctx.year + '-1', amount: 0, extra: placeholderExtra, updated_at: new Date().toISOString() } });
+    }
 
     if (!ops.length) { closeEdit(); return; }
 
@@ -9518,6 +9615,7 @@ window.__vendor = (function() {
     setRangePreset: setRangePreset,
     toggleAllVendors: toggleAllVendors,
     setViewMode: setViewMode,
+    toggleEditActive: toggleEditActive,
     _recomputeEditTotal: _recomputeEditTotal,
     _onAddNameInput: _onAddNameInput,
     _openAddNameDrop: _openAddNameDrop,

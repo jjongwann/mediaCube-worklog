@@ -3042,7 +3042,7 @@
               vendor_name: name,
               month_key: monthKey,
               amount: amount,
-              extra: {},
+              extra: dbCat === 'blanket_free' ? { active: true } : {},
               updated_at: new Date().toISOString()
             };
             return fetch(SB_URL + '/rest/v1/vendor_sales', {
