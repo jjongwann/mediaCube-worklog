@@ -8409,10 +8409,10 @@
     </div>
     <!-- 차트 + 거래처 목록 (좌우 분할) -->
     <div id="vendor-needle-charts-wrap" style="flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr);gap:14px;padding:0 24px 24px;min-height:0;overflow:hidden">
-      <!-- 좌: 거래처별 매출 막대 차트 (전체 거래처) — HTML/CSS bars -->
-      <div id="vendor-needle-bar-wrap" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 8px 12px 12px;display:flex;flex-direction:column;min-height:0;overflow:hidden">
-        <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px;flex-shrink:0;padding-left:4px">📊 거래처별 매출 (전체)</div>
-        <div id="vendor-needle-bar-scroll" style="flex:1;overflow-y:scroll;overflow-x:hidden;min-height:0;padding-right:4px"></div>
+      <!-- 좌: 거래처별 매출 막대 차트 (전체 거래처) — HTML/CSS bars / position:absolute로 강제 사이즈 확보 -->
+      <div id="vendor-needle-bar-wrap" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;position:relative;min-height:0;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;font-size:11px;font-weight:700;color:#374151;padding:12px 16px 6px 16px;background:#fff;z-index:2;border-bottom:1px solid #f1f5f9">📊 거래처별 매출 (전체)</div>
+        <div id="vendor-needle-bar-scroll" style="position:absolute;top:34px;left:0;right:0;bottom:0;overflow-y:scroll;overflow-x:hidden;padding:8px 4px 8px 12px"></div>
       </div>
       <!-- 우: 거래처 목록 -->
       <div id="vendor-needle-list-wrap" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;display:flex;flex-direction:column;min-height:0;overflow:hidden">
