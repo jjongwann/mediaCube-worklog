@@ -1748,7 +1748,11 @@
                 이전
               </button>
               <div id="risk-newvendor-title" style="font-size:15px;font-weight:800;color:#0f172a;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">+ 신규 거래처 매출 입력</div>
-              <button onclick="closeRiskNewVendorModal()" style="background:#f1f5f9;border:none;border-radius:7px;color:#475569;font-size:18px;width:30px;height:30px;cursor:pointer">×</button>
+              <button id="risk-newvendor-active-toggle" onclick="toggleRiskNewVendorActive()" type="button" style="padding:5px 12px;border-radius:20px;border:1px solid #16a34a;background:#dcfce7;color:#16a34a;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s;flex-shrink:0" title="등록 시 활성/비활성 선택">
+                <span id="risk-newvendor-active-dot" style="width:7px;height:7px;border-radius:50%;background:#16a34a;display:inline-block"></span>
+                <span id="risk-newvendor-active-label">활성</span>
+              </button>
+              <button onclick="closeRiskNewVendorModal()" style="background:#f1f5f9;border:none;border-radius:7px;color:#475569;font-size:18px;width:30px;height:30px;cursor:pointer;flex-shrink:0">×</button>
             </div>
             <div style="padding:18px 24px;display:flex;flex-direction:column;gap:12px">
               <div>
@@ -2985,8 +2989,37 @@
       if (amtWrap) amtWrap.style.display = isFreeBlanket ? 'none' : '';
       if (freeNote) freeNote.style.display = isFreeBlanket ? 'block' : 'none';
 
+      // 활성/비활성 토글 초기화 (기본 활성)
+      _riskNewVendorActive = true;
+      _updateRiskNewVendorActiveStyle(true);
+
       _showRiskOverlay('risk-newvendor-overlay');
       setTimeout(function(){ document.getElementById('risk-newvendor-name').focus(); }, 220);
+    }
+
+    var _riskNewVendorActive = true;
+    function _updateRiskNewVendorActiveStyle(active) {
+      var btn = document.getElementById('risk-newvendor-active-toggle');
+      var dot = document.getElementById('risk-newvendor-active-dot');
+      var label = document.getElementById('risk-newvendor-active-label');
+      if (!btn) return;
+      if (active) {
+        btn.style.borderColor = '#16a34a';
+        btn.style.background = '#dcfce7';
+        btn.style.color = '#16a34a';
+        if (dot) dot.style.background = '#16a34a';
+        if (label) label.textContent = '활성';
+      } else {
+        btn.style.borderColor = '#ea580c';
+        btn.style.background = '#ffedd5';
+        btn.style.color = '#ea580c';
+        if (dot) dot.style.background = '#ea580c';
+        if (label) label.textContent = '비활성';
+      }
+    }
+    function toggleRiskNewVendorActive() {
+      _riskNewVendorActive = !_riskNewVendorActive;
+      _updateRiskNewVendorActiveStyle(_riskNewVendorActive);
     }
 
     function closeRiskNewVendorModal() {
@@ -3025,24 +3058,24 @@
       fetch(qUrl, { headers: SB_HDR })
         .then(function(r){ if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
         .then(function(rows){
+          var activeFlag = _riskNewVendorActive !== false;
           var existing = (Array.isArray(rows) && rows.length > 0) ? rows[0] : null;
           if (existing) {
-            // 기존 행에 합산
             var newAmount = (existing.amount || 0) + amount;
+            var patchExtra = Object.assign({}, existing.extra || {}, { active: activeFlag });
             return fetch(SB_URL + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(existing.id), {
               method: 'PATCH',
               headers: Object.assign({}, SB_HDR, { 'Prefer': 'return=minimal' }),
-              body: JSON.stringify({ amount: newAmount, updated_at: new Date().toISOString() })
+              body: JSON.stringify({ amount: newAmount, extra: patchExtra, updated_at: new Date().toISOString() })
             });
           } else {
-            // 신규 행 생성
             var row = {
               id: _genVendorId(),
               category: dbCat,
               vendor_name: name,
               month_key: monthKey,
               amount: amount,
-              extra: dbCat === 'blanket_free' ? { active: true } : {},
+              extra: { active: activeFlag },
               updated_at: new Date().toISOString()
             };
             return fetch(SB_URL + '/rest/v1/vendor_sales', {

@@ -8442,9 +8442,13 @@
 <!-- 신규 거래처 추가 모달 -->
 <div id="vendor-add-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:99997;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)__vendor.closeAdd()">
   <div style="background:#fff;border-radius:14px;max-width:440px;width:100%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.3);font-family:inherit">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-      <div style="font-size:15px;font-weight:800;color:#0f172a">+ 신규 거래처 매출 입력</div>
-      <button onclick="__vendor.closeAdd()" style="background:#f1f5f9;border:none;border-radius:7px;color:#475569;font-size:18px;width:30px;height:30px;cursor:pointer">×</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:8px">
+      <div style="font-size:15px;font-weight:800;color:#0f172a;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">+ 신규 거래처 매출 입력</div>
+      <button id="vendor-add-active-toggle" onclick="__vendor.toggleAddActive()" type="button" style="padding:5px 12px;border-radius:20px;border:1px solid #16a34a;background:#dcfce7;color:#16a34a;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s;flex-shrink:0" title="등록 시 활성/비활성 선택">
+        <span id="vendor-add-active-dot" style="width:7px;height:7px;border-radius:50%;background:#16a34a;display:inline-block"></span>
+        <span id="vendor-add-active-label">활성</span>
+      </button>
+      <button onclick="__vendor.closeAdd()" style="background:#f1f5f9;border:none;border-radius:7px;color:#475569;font-size:18px;width:30px;height:30px;cursor:pointer;flex-shrink:0">×</button>
     </div>
     <div style="display:flex;flex-direction:column;gap:12px">
       <div>
@@ -8841,6 +8845,10 @@ window.__vendor = (function() {
     if (amtWrap) amtWrap.style.display = isFreeBlanket ? 'none' : '';
     if (freeNote) freeNote.style.display = isFreeBlanket ? 'block' : 'none';
 
+    // 활성/비활성 토글 초기값: 활성 (저장 시 사용자가 토글하여 변경 가능)
+    _state.addActive = true;
+    _updateAddActiveStyle(true);
+
     // 기존 거래처명 캐시
     _addNameOptions = [];
     var seen = {};
@@ -8952,15 +8960,23 @@ window.__vendor = (function() {
     });
 
     var sb = _getSb();
+    var activeFlag = (_state.addActive !== false); // 토글 상태 (기본 true)
+
     if (existing) {
       var newAmount = (existing.amount || 0) + amount;
+      var patchExtra = Object.assign({}, existing.extra || {}, { active: activeFlag });
       fetch(sb.url + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(existing.id), {
         method: 'PATCH',
         headers: Object.assign({}, sb.hdr, { 'Prefer': 'return=minimal' }),
-        body: JSON.stringify({ amount: newAmount, updated_at: new Date().toISOString() })
+        body: JSON.stringify({ amount: newAmount, extra: patchExtra, updated_at: new Date().toISOString() })
       }).then(function(r){
         if (r.ok) {
           existing.amount = newAmount;
+          existing.extra = patchExtra;
+          // 같은 거래처의 다른 행들도 active 동기화
+          _state.rows.filter(function(rr){
+            return rr.category === cat && rr.vendor_name === name && rr.id !== existing.id;
+          }).forEach(function(rr){ rr.extra = Object.assign({}, rr.extra || {}, { active: activeFlag }); });
           closeAdd();
           render(cat);
           _toast('기존 거래처에 합산 저장되었습니다 (' + _fmtW(newAmount) + ')');
@@ -8969,8 +8985,7 @@ window.__vendor = (function() {
         }
       }).catch(function(e){ console.error(e); _toast('네트워크 오류'); });
     } else {
-      var initExtra = {};
-      if (cat === 'blanket_free') initExtra.active = true; // 무료 BLANKET은 기본 활성
+      var initExtra = { active: activeFlag };
       var row = {
         id: _genId(),
         category: cat,
@@ -9432,6 +9447,30 @@ window.__vendor = (function() {
     _editCtx = null;
   }
 
+  function _updateAddActiveStyle(active) {
+    var btn = document.getElementById('vendor-add-active-toggle');
+    var dot = document.getElementById('vendor-add-active-dot');
+    var label = document.getElementById('vendor-add-active-label');
+    if (!btn) return;
+    if (active) {
+      btn.style.borderColor = '#16a34a';
+      btn.style.background = '#dcfce7';
+      btn.style.color = '#16a34a';
+      if (dot) dot.style.background = '#16a34a';
+      if (label) label.textContent = '활성';
+    } else {
+      btn.style.borderColor = '#ea580c';
+      btn.style.background = '#ffedd5';
+      btn.style.color = '#ea580c';
+      if (dot) dot.style.background = '#ea580c';
+      if (label) label.textContent = '비활성';
+    }
+  }
+  function toggleAddActive() {
+    _state.addActive = !_state.addActive;
+    _updateAddActiveStyle(_state.addActive);
+  }
+
   function _updateEditActiveStyle(active) {
     var btn = document.getElementById('vendor-edit-active-toggle');
     var dot = document.getElementById('vendor-edit-active-dot');
@@ -9616,6 +9655,7 @@ window.__vendor = (function() {
     toggleAllVendors: toggleAllVendors,
     setViewMode: setViewMode,
     toggleEditActive: toggleEditActive,
+    toggleAddActive: toggleAddActive,
     _recomputeEditTotal: _recomputeEditTotal,
     _onAddNameInput: _onAddNameInput,
     _openAddNameDrop: _openAddNameDrop,
