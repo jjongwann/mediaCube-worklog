@@ -8409,9 +8409,9 @@
     </div>
     <!-- 차트 + 거래처 목록 (좌우 분할) -->
     <div id="vendor-needle-charts-wrap" style="flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr);gap:14px;padding:0 24px 24px;min-height:0;overflow:hidden">
-      <!-- 좌: 거래처별 매출 막대 차트 (전체 거래처) — HTML/CSS bars / position:absolute로 강제 사이즈 확보 -->
+      <!-- 좌: 거래처별 매출 막대 차트 — HTML/CSS bars / position:absolute로 강제 사이즈 확보 -->
       <div id="vendor-needle-bar-wrap" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;position:relative;min-height:0;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;right:0;font-size:11px;font-weight:700;color:#374151;padding:12px 16px 6px 16px;background:#fff;z-index:2;border-bottom:1px solid #f1f5f9">📊 거래처별 매출 (전체)</div>
+        <div id="vendor-needle-bar-title" style="position:absolute;top:0;left:0;right:0;font-size:11px;font-weight:700;color:#374151;padding:12px 16px 6px 16px;background:#fff;z-index:2;border-bottom:1px solid #f1f5f9">📊 거래처별 매출</div>
         <div id="vendor-needle-bar-scroll" style="position:absolute;top:34px;left:0;right:0;bottom:0;overflow-y:scroll;overflow-x:hidden;padding:8px 4px 8px 12px"></div>
       </div>
       <!-- 우: 거래처 목록 -->
@@ -9307,12 +9307,23 @@ window.__vendor = (function() {
   }
 
   function _renderBarChart(vendorStats) {
-    // 전체 거래처(활성+비활성) 매출 큰 순으로 노출 (HTML/CSS 막대로 렌더링 — 스크롤 동작 안정성 확보)
+    // 매출 큰 순으로 노출 (HTML/CSS 막대로 렌더링)
     var top = vendorStats.slice().sort(function(a,b){ return b.cur - a.cur; });
     var scroll = document.getElementById('vendor-needle-bar-scroll');
     if (!scroll) return;
     // 기존 Chart.js 인스턴스 정리
     if (_state.charts.bar) { try{_state.charts.bar.destroy();}catch(e){} _state.charts.bar = null; }
+
+    // 타이틀 동적 갱신: 뷰 모드에 따라 텍스트 + 카운트 표기
+    var titleEl = document.getElementById('vendor-needle-bar-title');
+    if (titleEl) {
+      var vm = _state.viewMode || 'active';
+      var titleText;
+      if (vm === 'all')      titleText = '📊 거래처별 매출 (전체 ' + top.length + ')';
+      else if (vm === 'inactive') titleText = '📊 거래처별 매출 (비활성 ' + top.length + ')';
+      else                   titleText = '📊 거래처별 매출 (' + top.length + ')';
+      titleEl.textContent = titleText;
+    }
 
     if (!top.length) {
       scroll.innerHTML = '<div style="text-align:center;padding:40px 16px;color:#cbd5e1;font-size:12px">데이터 없음</div>';
