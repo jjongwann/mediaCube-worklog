@@ -9321,16 +9321,18 @@ window.__vendor = (function() {
 
     var meta = _CAT_META[_state.currentCat] || _CAT_META.needle;
     var maxVal = Math.max.apply(null, top.map(function(v){ return v.cur; }).concat([1]));
-    var html = '<div style="display:flex;flex-direction:column;gap:6px;padding:2px 4px">';
-    top.forEach(function(v){
+    // 평면 블록 구조 (flex 래퍼 없이) — overflow:scroll 컨텍스트에서 sizing 안정성 확보
+    var html = '<div style="padding:2px 4px;box-sizing:border-box">';
+    top.forEach(function(v, idx){
       var pct = maxVal > 0 ? (v.cur / maxVal * 100) : 0;
       var displayName = _esc(v.name);
       var displayVal = v.cur > 0 ? _fmtW(v.cur) : '-';
-      html += '<div title="' + _esc(v.name) + ': ' + (v.cur > 0 ? _fmtFull(v.cur) : '0원') + '" style="display:grid;grid-template-columns:90px 1fr 60px;gap:8px;align-items:center;font-size:11px;min-height:24px">'
-        + '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;font-weight:500" title="' + _esc(v.name) + '">' + displayName + '</div>'
+      var marginTop = idx > 0 ? 'margin-top:6px;' : '';
+      html += '<div title="' + _esc(v.name) + ': ' + (v.cur > 0 ? _fmtFull(v.cur) : '0원') + '" style="' + marginTop + 'display:grid;grid-template-columns:90px 1fr 60px;gap:8px;align-items:center;font-size:11px;height:24px;box-sizing:border-box">'
+        + '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;font-weight:500">' + displayName + '</div>'
         + '<div style="position:relative;height:18px;background:#f1f5f9;border-radius:4px;overflow:hidden">'
           + (v.cur > 0
-              ? '<div style="position:absolute;top:0;left:0;height:100%;width:' + pct.toFixed(2) + '%;background:' + meta.barFill + ';border-radius:4px;transition:width .25s"></div>'
+              ? '<div style="position:absolute;top:0;left:0;height:100%;width:' + pct.toFixed(2) + '%;background:' + meta.barFill + ';border-radius:4px"></div>'
               : '')
         + '</div>'
         + '<div style="text-align:right;color:#0f172a;font-weight:600;font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + displayVal + '</div>'
