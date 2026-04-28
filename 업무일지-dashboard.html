@@ -7735,7 +7735,7 @@
     items.forEach(function(j) {
       var parsed = _parseRiskCat(j.risk);
       var card = document.createElement('div');
-      card.style.cssText = 'background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.05)';
+      card.style.cssText = 'background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.05);flex-shrink:0';
       // 삭제 버튼: 본인 일지만 (관리자 제외)
       var canDelete = !_isAdmin && j.user_id === _userId;
       var delBtn = canDelete
@@ -7766,7 +7766,7 @@
           + delBtn
         + '</div>'
         + '</div>'
-        + '<div style="padding:12px 14px;font-size:13px;line-height:1.7;white-space:pre-wrap;' + (parsed.text ? 'color:#374151' : 'color:#94a3b8;font-style:italic') + '">' + (parsed.text ? _achEsc(parsed.text) : (parsed.vendor ? '거래처 등록 (성과 내용 미입력)' : '카테고리만 선택됨')) + '</div>';
+        + '<div style="padding:12px 14px;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;' + (parsed.text ? 'color:#374151' : 'color:#94a3b8;font-style:italic') + '">' + (parsed.text ? _achEsc(parsed.text) : (parsed.vendor ? '거래처 등록 (성과 내용 미입력)' : '카테고리만 선택됨')) + '</div>';
       body.appendChild(card);
     });
   }
