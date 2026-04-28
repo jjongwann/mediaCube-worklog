@@ -8442,12 +8442,12 @@
   #vendor-needle-scroll::-webkit-scrollbar-thumb:hover { background: #65a30d; border-color: #d9f99d; }
   #vendor-needle-scroll::-webkit-scrollbar-thumb:active { background: #4d7c0f; }
   /* NEEDLE 매출 분석 - 거래처별 매출 막대 차트 스크롤바 스타일 (항상 표시) */
-  #vendor-needle-bar-scroll { scrollbar-width: auto; scrollbar-color: #84cc16 #ecfccb; }
+  #vendor-needle-bar-scroll { scrollbar-width: auto; scrollbar-color: #65a30d #f7fee7; }
   #vendor-needle-bar-scroll::-webkit-scrollbar { width: 14px; -webkit-appearance: none; }
-  #vendor-needle-bar-scroll::-webkit-scrollbar-track { background: #ecfccb !important; border-radius: 7px; margin: 4px 0; }
-  #vendor-needle-bar-scroll::-webkit-scrollbar-thumb { background: #84cc16 !important; border-radius: 7px; border: 2px solid #ecfccb; min-height: 40px; }
-  #vendor-needle-bar-scroll::-webkit-scrollbar-thumb:hover { background: #65a30d !important; border-color: #d9f99d; }
-  #vendor-needle-bar-scroll::-webkit-scrollbar-thumb:active { background: #4d7c0f !important; }
+  #vendor-needle-bar-scroll::-webkit-scrollbar-track { background: #f7fee7 !important; border-radius: 7px; margin: 4px 0; border: 1px solid #ecfccb; }
+  #vendor-needle-bar-scroll::-webkit-scrollbar-thumb { background: #65a30d !important; border-radius: 7px; border: 2px solid #f7fee7; min-height: 40px; }
+  #vendor-needle-bar-scroll::-webkit-scrollbar-thumb:hover { background: #4d7c0f !important; }
+  #vendor-needle-bar-scroll::-webkit-scrollbar-thumb:active { background: #365314 !important; }
 </style>
 
 <!-- 신규 거래처 추가 모달 -->
@@ -9316,9 +9316,9 @@ window.__vendor = (function() {
     var ctx = document.getElementById('vendor-needle-bar');
     if (!ctx) return;
     if (_state.charts.bar) { try{_state.charts.bar.destroy();}catch(e){} _state.charts.bar = null; }
-    // 막대 개수에 따라 차트 높이 동적 조정 (최소 240px, 막대당 26px)
+    // 막대 개수에 따라 차트 높이 동적 조정 (막대당 36px로 가독성+스크롤 보장)
     var inner = document.getElementById('vendor-needle-bar-inner');
-    var dynamicH = Math.max(240, top.length * 26 + 40);
+    var dynamicH = Math.max(240, top.length * 36 + 40);
     if (inner) inner.style.height = dynamicH + 'px';
     if (!top.length) {
       var ctx2d = ctx.getContext('2d'); ctx2d.clearRect(0, 0, ctx.width, ctx.height);
