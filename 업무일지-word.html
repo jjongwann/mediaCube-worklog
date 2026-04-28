@@ -1738,6 +1738,52 @@
             <div id="risk-vendor-list" style="flex:1;overflow-y:auto;padding:12px 20px 20px"></div>
           </div>
         </div>
+
+        <!-- 업무 성과 구분 선택 모달 (4차 — 신규 거래처 추가, 신규고객 확보 전용) -->
+        <div id="risk-newvendor-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:100002;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .18s ease">
+          <div id="risk-newvendor-box" style="background:#fff;border-radius:14px;max-width:440px;width:100%;padding:0;box-shadow:0 20px 60px rgba(0,0,0,0.3);font-family:inherit;transform:scale(0.96);transition:transform .18s ease">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid #f1f5f9;gap:8px">
+              <button onclick="backFromRiskNewVendor()" style="background:#f1f5f9;border:none;color:#475569;cursor:pointer;padding:5px 10px;border-radius:7px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                이전
+              </button>
+              <div id="risk-newvendor-title" style="font-size:15px;font-weight:800;color:#0f172a;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">+ 신규 거래처 매출 입력</div>
+              <button onclick="closeRiskNewVendorModal()" style="background:#f1f5f9;border:none;border-radius:7px;color:#475569;font-size:18px;width:30px;height:30px;cursor:pointer">×</button>
+            </div>
+            <div style="padding:18px 24px;display:flex;flex-direction:column;gap:12px">
+              <div>
+                <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">거래처명 *</label>
+                <input type="text" id="risk-newvendor-name" placeholder="예: 스윗 사운드"
+                  style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;transition:border-color .12s"
+                  onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
+              </div>
+              <div style="display:flex;gap:10px">
+                <div style="flex:1">
+                  <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">년도 *</label>
+                  <select id="risk-newvendor-year" style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none"></select>
+                </div>
+                <div style="flex:1">
+                  <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">월 *</label>
+                  <select id="risk-newvendor-month" style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
+                    <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+                    <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+                    <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+                    <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">매출액 (원) *</label>
+                <input type="text" id="risk-newvendor-amount" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-weight:600;transition:border-color .12s" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
+                <div style="font-size:10px;color:#94a3b8;margin-top:4px">매출액 0원으로 저장하면 비활성 거래처로 분류됩니다.</div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 24px 18px">
+              <button onclick="closeRiskNewVendorModal()" style="padding:8px 18px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#64748b;font-size:13px;cursor:pointer;font-weight:600">취소</button>
+              <button onclick="saveRiskNewVendor()" id="risk-newvendor-save-btn" style="padding:8px 18px;border:none;border-radius:8px;background:#65a30d;color:#fff;font-size:13px;cursor:pointer;font-weight:700">저장</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2773,13 +2819,18 @@
     };
 
     function selectRiskSubcat(parentKey, subKey) {
-      // 거래처 데이터가 있는 서브카테고리는 → 3차(거래처 선택) 모달 열기
       var dbCat = _RISK_SUB_TO_VENDOR_CAT[subKey];
       if (dbCat) {
         _riskParentSel = parentKey;
         _riskSubSel = subKey;
+        _riskVendorDbCat = dbCat;
         closeRiskSubcatModal();
-        setTimeout(function(){ openRiskVendorModal(parentKey, subKey, dbCat); }, 180);
+        // 신규고객 확보 → 신규 거래처 추가 모달 / 그 외(기존 고객 관리) → 기존 거래처 선택 모달
+        if (parentKey === '신규고객 확보') {
+          setTimeout(function(){ openRiskNewVendorModal(parentKey, subKey, dbCat); }, 180);
+        } else {
+          setTimeout(function(){ openRiskVendorModal(parentKey, subKey, dbCat); }, 180);
+        }
         return;
       }
       var fullKey = parentKey + ' - ' + subKey;
@@ -2901,6 +2952,111 @@
       var fullKey = parentKey + ' - ' + subKey + ' - ' + vendorName;
       _applyRiskSelection(fullKey, parentKey, subKey, vendorName);
       closeRiskVendorModal();
+    }
+
+    // ── 4차 모달: 신규 거래처 추가 (신규고객 확보 전용) ──
+    function openRiskNewVendorModal(parentKey, subKey, dbCat) {
+      var parent = RISK_CATS.find(function(c){ return c.key === parentKey; });
+      var titleEl = document.getElementById('risk-newvendor-title');
+      titleEl.textContent = '+ ' + (parent ? parent.icon + ' ' : '') + parentKey + ' › ' + subKey + ' 신규 거래처';
+
+      // 년도 셀렉트 초기화 (현재 ±2년)
+      var ySel = document.getElementById('risk-newvendor-year');
+      var now = new Date();
+      var yyyy = now.getFullYear();
+      ySel.innerHTML = '';
+      for (var y = yyyy-2; y <= yyyy+1; y++) {
+        var opt = document.createElement('option');
+        opt.value = y; opt.textContent = y + '년';
+        if (y === yyyy) opt.selected = true;
+        ySel.appendChild(opt);
+      }
+      document.getElementById('risk-newvendor-month').value = String(now.getMonth()+1);
+      document.getElementById('risk-newvendor-name').value = '';
+      document.getElementById('risk-newvendor-amount').value = '';
+
+      _showRiskOverlay('risk-newvendor-overlay');
+      setTimeout(function(){ document.getElementById('risk-newvendor-name').focus(); }, 220);
+    }
+
+    function closeRiskNewVendorModal() {
+      _hideRiskOverlay('risk-newvendor-overlay');
+    }
+
+    function backFromRiskNewVendor() {
+      closeRiskNewVendorModal();
+      setTimeout(function(){ openRiskSubcatModal(_riskParentSel); }, 180);
+    }
+
+    function _genVendorId() {
+      return 'v_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+    }
+
+    function saveRiskNewVendor() {
+      var name = (document.getElementById('risk-newvendor-name').value || '').trim();
+      var year = parseInt(document.getElementById('risk-newvendor-year').value, 10);
+      var month = parseInt(document.getElementById('risk-newvendor-month').value, 10);
+      var amountRaw = (document.getElementById('risk-newvendor-amount').value || '').replace(/,/g,'').trim();
+      var amount = parseInt(amountRaw, 10);
+      if (isNaN(amount) || amount < 0) amount = 0;
+      if (!name) { alert('거래처명을 입력하세요'); return; }
+      if (!year || !month) { alert('년도/월을 선택하세요'); return; }
+
+      var dbCat = _riskVendorDbCat;
+      var monthKey = year + '-' + month;
+      var saveBtn = document.getElementById('risk-newvendor-save-btn');
+      var origBtnText = saveBtn.textContent;
+      saveBtn.disabled = true; saveBtn.textContent = '저장 중...';
+
+      // 동일 (cat, name, monthKey) 행 존재 여부 먼저 조회
+      var qUrl = SB_URL + '/rest/v1/vendor_sales?select=id,amount&category=eq.' + encodeURIComponent(dbCat)
+        + '&vendor_name=eq.' + encodeURIComponent(name)
+        + '&month_key=eq.' + encodeURIComponent(monthKey);
+      fetch(qUrl, { headers: SB_HDR })
+        .then(function(r){ if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+        .then(function(rows){
+          var existing = (Array.isArray(rows) && rows.length > 0) ? rows[0] : null;
+          if (existing) {
+            // 기존 행에 합산
+            var newAmount = (existing.amount || 0) + amount;
+            return fetch(SB_URL + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(existing.id), {
+              method: 'PATCH',
+              headers: Object.assign({}, SB_HDR, { 'Prefer': 'return=minimal' }),
+              body: JSON.stringify({ amount: newAmount, updated_at: new Date().toISOString() })
+            });
+          } else {
+            // 신규 행 생성
+            var row = {
+              id: _genVendorId(),
+              category: dbCat,
+              vendor_name: name,
+              month_key: monthKey,
+              amount: amount,
+              extra: {},
+              updated_at: new Date().toISOString()
+            };
+            return fetch(SB_URL + '/rest/v1/vendor_sales', {
+              method: 'POST', headers: SB_HDR, body: JSON.stringify(row)
+            });
+          }
+        })
+        .then(function(r){
+          if (!r.ok && r.status !== 201 && r.status !== 204) {
+            return r.text().then(function(t){ throw new Error('저장 실패 ' + r.status + ': ' + t); });
+          }
+          // 캐시 무효화 (다음 모달 진입 시 재조회)
+          _riskVendorCache[dbCat] = null;
+          // 일지의 업무 성과 카테고리에 거래처명 반영
+          var fullKey = _riskParentSel + ' - ' + _riskSubSel + ' - ' + name;
+          _applyRiskSelection(fullKey, _riskParentSel, _riskSubSel, name);
+          saveBtn.disabled = false; saveBtn.textContent = origBtnText;
+          closeRiskNewVendorModal();
+        })
+        .catch(function(e){
+          console.error('saveRiskNewVendor error', e);
+          alert('저장 실패: ' + (e.message || '네트워크 오류'));
+          saveBtn.disabled = false; saveBtn.textContent = origBtnText;
+        });
     }
 
     function submitJournal() {
