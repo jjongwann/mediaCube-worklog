@@ -2765,13 +2765,22 @@
       closeRiskCatModal();
     }
 
+    // 서브카테고리 → vendor_sales 테이블 카테고리 매핑
+    // (없으면 거래처 선택 모달을 열지 않음)
+    var _RISK_SUB_TO_VENDOR_CAT = {
+      'Needle Drop': 'needle',
+      '유료 블랭킷': 'blanket_paid'
+      // '무료 블랭킷'은 데이터 없음 — 매핑 안 함
+    };
+
     function selectRiskSubcat(parentKey, subKey) {
-      // Needle Drop 선택 시 → 3차(거래처 선택) 모달 열기
-      if (subKey === 'Needle Drop') {
+      // 거래처 데이터가 있는 서브카테고리는 → 3차(거래처 선택) 모달 열기
+      var dbCat = _RISK_SUB_TO_VENDOR_CAT[subKey];
+      if (dbCat) {
         _riskParentSel = parentKey;
         _riskSubSel = subKey;
         closeRiskSubcatModal();
-        setTimeout(function(){ openRiskVendorModal(parentKey, subKey); }, 180);
+        setTimeout(function(){ openRiskVendorModal(parentKey, subKey, dbCat); }, 180);
         return;
       }
       var fullKey = parentKey + ' - ' + subKey;
@@ -2792,11 +2801,13 @@
       btn.style.background = cat ? cat.bg : '#fff';
     }
 
-    // ── 3차 모달: NEEDLE 거래처 선택 ──
+    // ── 3차 모달: 거래처 선택 (NEEDLE / 유료 블랭킷 공용) ──
     var _riskSubSel = null;
-    var _riskVendorCache = null; // { fetchedAt, rows }
+    var _riskVendorDbCat = null; // 현재 모달에서 조회 중인 DB category
+    var _riskVendorCache = {}; // { 'needle': { fetchedAt, rows }, 'blanket_paid': {...} }
 
-    function openRiskVendorModal(parentKey, subKey) {
+    function openRiskVendorModal(parentKey, subKey, dbCat) {
+      _riskVendorDbCat = dbCat;
       var parent = RISK_CATS.find(function(c){ return c.key === parentKey; });
       document.getElementById('risk-vendor-title').innerHTML = (parent ? parent.icon + ' ' : '') + parentKey + ' › ' + subKey;
       var sr = document.getElementById('risk-vendor-search');
@@ -2805,16 +2816,17 @@
       list.innerHTML = '<div style="text-align:center;padding:50px 20px;color:#94a3b8;font-size:13px">거래처 목록 불러오는 중...</div>';
       _showRiskOverlay('risk-vendor-overlay');
 
-      // 5분 캐시
+      // 5분 캐시 (카테고리별)
       var now = Date.now();
-      if (_riskVendorCache && (now - _riskVendorCache.fetchedAt) < 300000) {
+      var cached = _riskVendorCache[dbCat];
+      if (cached && (now - cached.fetchedAt) < 300000) {
         renderRiskVendorList();
         return;
       }
-      fetch(SB_URL + '/rest/v1/vendor_sales?select=*&category=eq.needle', { headers: SB_HDR })
+      fetch(SB_URL + '/rest/v1/vendor_sales?select=*&category=eq.' + encodeURIComponent(dbCat), { headers: SB_HDR })
         .then(function(r){ if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
         .then(function(rows){
-          _riskVendorCache = { fetchedAt: now, rows: Array.isArray(rows) ? rows : [] };
+          _riskVendorCache[dbCat] = { fetchedAt: now, rows: Array.isArray(rows) ? rows : [] };
           renderRiskVendorList();
         })
         .catch(function(e){
@@ -2833,8 +2845,9 @@
     }
 
     function renderRiskVendorList() {
-      if (!_riskVendorCache) return;
-      var rows = _riskVendorCache.rows;
+      var cached = _riskVendorCache[_riskVendorDbCat];
+      if (!cached) return;
+      var rows = cached.rows;
       var q = (document.getElementById('risk-vendor-search').value || '').trim().toLowerCase();
       // 거래처 집계 (이름별 합계, 최근 활동월)
       var byName = {};
