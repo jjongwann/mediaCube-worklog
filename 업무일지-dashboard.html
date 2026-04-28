@@ -7766,7 +7766,7 @@
           + delBtn
         + '</div>'
         + '</div>'
-        + '<div style="padding:12px 14px;font-size:13px;color:#374151;line-height:1.7;white-space:pre-wrap">' + _achEsc(parsed.text) + '</div>';
+        + '<div style="padding:12px 14px;font-size:13px;line-height:1.7;white-space:pre-wrap;' + (parsed.text ? 'color:#374151' : 'color:#94a3b8;font-style:italic') + '">' + (parsed.text ? _achEsc(parsed.text) : (parsed.vendor ? '거래처 등록 (성과 내용 미입력)' : '카테고리만 선택됨')) + '</div>';
       body.appendChild(card);
     });
   }
