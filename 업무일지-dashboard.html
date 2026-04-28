@@ -8430,20 +8430,25 @@
 </div>
 
 <style>
-  /* NEEDLE 매출 분석 - 거래처 목록 스크롤바 스타일 */
-  #vendor-needle-scroll { scrollbar-width: auto; scrollbar-color: #84cc16 #ecfccb; }
-  #vendor-needle-scroll::-webkit-scrollbar { width: 14px; }
-  #vendor-needle-scroll::-webkit-scrollbar-track { background: #ecfccb; border-radius: 7px; margin: 4px 0; }
-  #vendor-needle-scroll::-webkit-scrollbar-thumb { background: #84cc16; border-radius: 7px; border: 2px solid #ecfccb; min-height: 40px; }
-  #vendor-needle-scroll::-webkit-scrollbar-thumb:hover { background: #65a30d; border-color: #d9f99d; }
-  #vendor-needle-scroll::-webkit-scrollbar-thumb:active { background: #4d7c0f; }
-  /* NEEDLE 매출 분석 - 거래처별 매출 막대 차트 스크롤바 스타일 (항상 표시) */
-  #vendor-needle-bar-scroll { scrollbar-width: auto; scrollbar-color: #65a30d #f7fee7; }
+  /* 거래처별 매출 분석 - 공통 스크롤바 스타일 (카테고리 테마는 _applyCatTheme에서 동적 override) */
+  #vendor-needle-scroll, #vendor-needle-bar-scroll {
+    scrollbar-width: auto;
+    scrollbar-color: #94a3b8 #f1f5f9;
+  }
+  #vendor-needle-scroll::-webkit-scrollbar,
   #vendor-needle-bar-scroll::-webkit-scrollbar { width: 14px; -webkit-appearance: none; }
-  #vendor-needle-bar-scroll::-webkit-scrollbar-track { background: #f7fee7 !important; border-radius: 7px; margin: 4px 0; border: 1px solid #ecfccb; }
-  #vendor-needle-bar-scroll::-webkit-scrollbar-thumb { background: #65a30d !important; border-radius: 7px; border: 2px solid #f7fee7; min-height: 40px; }
-  #vendor-needle-bar-scroll::-webkit-scrollbar-thumb:hover { background: #4d7c0f !important; }
-  #vendor-needle-bar-scroll::-webkit-scrollbar-thumb:active { background: #365314 !important; }
+  #vendor-needle-scroll::-webkit-scrollbar-track,
+  #vendor-needle-bar-scroll::-webkit-scrollbar-track {
+    background: #f1f5f9; border-radius: 7px; margin: 4px 0;
+  }
+  #vendor-needle-scroll::-webkit-scrollbar-thumb,
+  #vendor-needle-bar-scroll::-webkit-scrollbar-thumb {
+    background: #94a3b8; border-radius: 7px; border: 2px solid #f1f5f9; min-height: 40px;
+  }
+  #vendor-needle-scroll::-webkit-scrollbar-thumb:hover,
+  #vendor-needle-bar-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
+  #vendor-needle-scroll::-webkit-scrollbar-thumb:active,
+  #vendor-needle-bar-scroll::-webkit-scrollbar-thumb:active { background: #475569; }
 </style>
 
 <!-- 신규 거래처 추가 모달 -->
@@ -8585,7 +8590,7 @@ window.__vendor = (function() {
       primary: '#65a30d', barFill: '#84cc16cc', barBorder: '#65a30d',
       bgLight: '#f7fee7', borderLight: '#d9f99d',
       lineFill: 'rgba(132,204,22,0.12)',
-      scrollTrack: '#ecfccb', scrollThumb: '#84cc16', scrollThumbHover: '#65a30d', scrollThumbActive: '#4d7c0f', scrollThumbBorder: '#ecfccb'
+      scrollTrack: '#f5f5f4', scrollThumb: '#a8a29e', scrollThumbHover: '#78716c', scrollThumbActive: '#57534e', scrollThumbBorder: '#f5f5f4'
     },
     'blanket_paid': {
       name: '유료 BLANKET 매출 분석', icon: '💎', subtitle: '방송사·광고 녹음실 계약 기반 매출',
@@ -8593,7 +8598,7 @@ window.__vendor = (function() {
       primary: '#0891b2', barFill: '#06b6d4cc', barBorder: '#0891b2',
       bgLight: '#ecfeff', borderLight: '#a5f3fc',
       lineFill: 'rgba(6,182,212,0.12)',
-      scrollTrack: '#cffafe', scrollThumb: '#06b6d4', scrollThumbHover: '#0891b2', scrollThumbActive: '#0e7490', scrollThumbBorder: '#cffafe'
+      scrollTrack: '#f1f5f9', scrollThumb: '#94a3b8', scrollThumbHover: '#64748b', scrollThumbActive: '#475569', scrollThumbBorder: '#f1f5f9'
     },
     'blanket_free': {
       name: '무료 BLANKET 매출 분석', icon: '🆓', subtitle: '퍼포밍 활성화 거래처별 매출',
@@ -8622,12 +8627,13 @@ window.__vendor = (function() {
       styleEl.id = 'vendor-scroll-dynamic-style';
       document.head.appendChild(styleEl);
     }
+    // 두 스크롤바(거래처 목록 + 거래처별 매출 차트) 모두 카테고리 테마 색상 적용
     styleEl.textContent = ''
-      + '#vendor-needle-scroll{scrollbar-color:' + meta.scrollThumb + ' ' + meta.scrollTrack + '}'
-      + '#vendor-needle-scroll::-webkit-scrollbar-track{background:' + meta.scrollTrack + ' !important}'
-      + '#vendor-needle-scroll::-webkit-scrollbar-thumb{background:' + meta.scrollThumb + ' !important;border-color:' + meta.scrollThumbBorder + ' !important}'
-      + '#vendor-needle-scroll::-webkit-scrollbar-thumb:hover{background:' + meta.scrollThumbHover + ' !important;border-color:' + meta.borderLight + ' !important}'
-      + '#vendor-needle-scroll::-webkit-scrollbar-thumb:active{background:' + meta.scrollThumbActive + ' !important}';
+      + '#vendor-needle-scroll, #vendor-needle-bar-scroll {scrollbar-color:' + meta.scrollThumb + ' ' + meta.scrollTrack + ' !important;}'
+      + '#vendor-needle-scroll::-webkit-scrollbar-track, #vendor-needle-bar-scroll::-webkit-scrollbar-track{background:' + meta.scrollTrack + ' !important;border-color:' + meta.scrollThumbBorder + ' !important;}'
+      + '#vendor-needle-scroll::-webkit-scrollbar-thumb, #vendor-needle-bar-scroll::-webkit-scrollbar-thumb{background:' + meta.scrollThumb + ' !important;border-color:' + meta.scrollThumbBorder + ' !important;}'
+      + '#vendor-needle-scroll::-webkit-scrollbar-thumb:hover, #vendor-needle-bar-scroll::-webkit-scrollbar-thumb:hover{background:' + meta.scrollThumbHover + ' !important;border-color:' + meta.borderLight + ' !important;}'
+      + '#vendor-needle-scroll::-webkit-scrollbar-thumb:active, #vendor-needle-bar-scroll::-webkit-scrollbar-thumb:active{background:' + meta.scrollThumbActive + ' !important;}';
   }
 
   // 거래처 담당자 목록 (확장 가능)
