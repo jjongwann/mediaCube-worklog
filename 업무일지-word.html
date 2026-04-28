@@ -2906,21 +2906,33 @@
       if (!cached) return;
       var rows = cached.rows;
       var q = (document.getElementById('risk-vendor-search').value || '').trim().toLowerCase();
-      // 거래처 집계 (이름별 합계, 최근 활동월)
+      var dbCat = _riskVendorDbCat;
+      // 거래처 집계 (이름별 합계, 담당자, active 플래그)
       var byName = {};
       rows.forEach(function(r){
         if (!r.vendor_name) return;
-        if (!byName[r.vendor_name]) byName[r.vendor_name] = { name: r.vendor_name, total: 0, manager: '' };
+        if (!byName[r.vendor_name]) byName[r.vendor_name] = { name: r.vendor_name, total: 0, manager: '', activeFlag: null };
         byName[r.vendor_name].total += (r.amount || 0);
         if (r.extra && r.extra.manager) byName[r.vendor_name].manager = r.extra.manager;
+        if (r.extra && typeof r.extra.active === 'boolean') byName[r.vendor_name].activeFlag = r.extra.active;
       });
-      var names = Object.keys(byName).map(function(n){ return byName[n]; });
+      // 활성/비활성 판정 (대시보드와 동일한 로직):
+      //   1) extra.active 명시 → 그 값 우선
+      //   2) 무료 BLANKET → 기본 활성 (매출 개념 없음)
+      //   3) 그 외 → total > 0
+      var names = Object.keys(byName).map(function(n){
+        var v = byName[n];
+        if (v.activeFlag === true) v.isActive = true;
+        else if (v.activeFlag === false) v.isActive = false;
+        else if (dbCat === 'blanket_free') v.isActive = true;
+        else v.isActive = v.total > 0;
+        return v;
+      });
       if (q) names = names.filter(function(v){ return v.name.toLowerCase().indexOf(q) !== -1; });
-      // 활성(매출>0) 우선 정렬, 그 안에서 매출 큰 순, 그 다음 이름순
+      // 활성 우선 → 매출 큰 순 → 이름 순
       names.sort(function(a,b){
-        var aActive = a.total > 0 ? 1 : 0;
-        var bActive = b.total > 0 ? 1 : 0;
-        if (aActive !== bActive) return bActive - aActive;
+        var aA = a.isActive ? 1 : 0, bA = b.isActive ? 1 : 0;
+        if (aA !== bA) return bA - aA;
         if (a.total !== b.total) return b.total - a.total;
         return a.name.localeCompare(b.name, 'ko');
       });
@@ -2935,7 +2947,7 @@
       var curVendor = (parts.length === 3) ? parts[2] : '';
 
       list.innerHTML = names.map(function(v){
-        var isActive = v.total > 0;
+        var isActive = v.isActive;
         var selected = curVendor === v.name;
         var statusChip = isActive
           ? '<span style="font-size:9px;color:#16a34a;background:#dcfce7;border:1px solid #bbf7d0;border-radius:10px;padding:1px 7px;font-weight:700">활성</span>'
