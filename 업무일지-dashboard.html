@@ -8406,7 +8406,7 @@
     <!-- KPI 카드 + 차트 -->
     <div style="padding:16px 24px 0;flex-shrink:0">
       <div id="vendor-needle-kpi" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px">
+      <div id="vendor-needle-charts-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px">
         <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px">
           <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px">📊 거래처별 매출 (선택 기간 TOP 10)</div>
           <div style="position:relative;height:300px"><canvas id="vendor-needle-bar"></canvas></div>
@@ -8476,10 +8476,13 @@
           </select>
         </div>
       </div>
-      <div>
+      <div id="vendor-add-amount-wrap">
         <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">매출액 (원) *</label>
         <input type="text" id="vendor-add-amount" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-weight:600" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
         <div style="font-size:10px;color:#94a3b8;margin-top:4px">기존 거래처+동일 월 입력 시 매출이 합산됩니다.</div>
+      </div>
+      <div id="vendor-add-freenote" style="display:none;font-size:11px;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px">
+        💡 무료 BLANKET은 매출액 없이 거래처만 등록됩니다 (자동 비활성 분류).
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">
@@ -8825,6 +8828,13 @@ window.__vendor = (function() {
     document.getElementById('vendor-add-amount').value = '';
     document.getElementById('vendor-add-name-drop').style.display = 'none';
 
+    // 무료 BLANKET → 매출액 입력 숨김 (자동 0원 저장)
+    var isFreeBlanket = (_state.currentCat === 'blanket_free');
+    var amtWrap = document.getElementById('vendor-add-amount-wrap');
+    var freeNote = document.getElementById('vendor-add-freenote');
+    if (amtWrap) amtWrap.style.display = isFreeBlanket ? 'none' : '';
+    if (freeNote) freeNote.style.display = isFreeBlanket ? 'block' : 'none';
+
     // 기존 거래처명 캐시
     _addNameOptions = [];
     var seen = {};
@@ -9117,8 +9127,17 @@ window.__vendor = (function() {
       + _kpiCard('💤 비활성 거래처', inactiveCount + '곳', '', (totalCount > 0 ? Math.round(inactiveCount/totalCount*100) + '% 미발생' : '데이터 없음') + (inactiveCardActive ? ' ✓ 표시중' : ''), '#ea580c', '#ffedd5', { onclick: "__vendor.setViewMode('inactive')", active: inactiveCardActive });
 
     // ── 차트 ──
-    _renderBarChart(vendorStats);
-    _renderRangeLineChart(rowsCat, rangeKeys, rangeLabel);
+    // 무료 BLANKET은 매출 0원 고정이라 차트 의미 없음 → 숨김
+    var chartsWrap = document.getElementById('vendor-needle-charts-wrap');
+    if (chartsWrap) chartsWrap.style.display = (cat === 'blanket_free') ? 'none' : 'grid';
+    if (cat !== 'blanket_free') {
+      _renderBarChart(vendorStats);
+      _renderRangeLineChart(rowsCat, rangeKeys, rangeLabel);
+    } else {
+      // 차트 인스턴스 정리
+      if (_state.charts.bar)  { try{_state.charts.bar.destroy();}catch(e){} _state.charts.bar = null; }
+      if (_state.charts.line) { try{_state.charts.line.destroy();}catch(e){} _state.charts.line = null; }
+    }
 
     // ── 테이블 ──
     var vmLabel = '';

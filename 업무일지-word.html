@@ -1772,10 +1772,13 @@
                   </select>
                 </div>
               </div>
-              <div>
+              <div id="risk-newvendor-amount-wrap">
                 <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">매출액 (원) *</label>
                 <input type="text" id="risk-newvendor-amount" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-weight:600;transition:border-color .12s" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
                 <div style="font-size:10px;color:#94a3b8;margin-top:4px">매출액 0원으로 저장하면 비활성 거래처로 분류됩니다.</div>
+              </div>
+              <div id="risk-newvendor-freenote" style="display:none;font-size:11px;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px">
+                💡 무료 블랭킷은 매출액 없이 거래처만 등록됩니다 (자동 비활성 분류).
               </div>
             </div>
             <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 24px 18px">
@@ -2974,6 +2977,13 @@
       document.getElementById('risk-newvendor-month').value = String(now.getMonth()+1);
       document.getElementById('risk-newvendor-name').value = '';
       document.getElementById('risk-newvendor-amount').value = '';
+
+      // 무료 블랭킷 → 매출액 입력 숨김 (자동 0원 저장)
+      var isFreeBlanket = (subKey === '무료 블랭킷');
+      var amtWrap = document.getElementById('risk-newvendor-amount-wrap');
+      var freeNote = document.getElementById('risk-newvendor-freenote');
+      if (amtWrap) amtWrap.style.display = isFreeBlanket ? 'none' : '';
+      if (freeNote) freeNote.style.display = isFreeBlanket ? 'block' : 'none';
 
       _showRiskOverlay('risk-newvendor-overlay');
       setTimeout(function(){ document.getElementById('risk-newvendor-name').focus(); }, 220);
