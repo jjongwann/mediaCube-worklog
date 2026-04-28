@@ -8409,14 +8409,10 @@
     </div>
     <!-- 차트 + 거래처 목록 (좌우 분할) -->
     <div id="vendor-needle-charts-wrap" style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 24px 24px;min-height:0">
-      <!-- 좌: 거래처별 매출 막대 차트 (전체 거래처) -->
+      <!-- 좌: 거래처별 매출 막대 차트 (전체 거래처) — HTML/CSS bars -->
       <div id="vendor-needle-bar-wrap" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 8px 12px 12px;display:flex;flex-direction:column;min-height:0;overflow:hidden">
         <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px;flex-shrink:0;padding-left:4px">📊 거래처별 매출 (전체)</div>
-        <div id="vendor-needle-bar-scroll" style="flex:1;overflow-y:scroll;overflow-x:hidden;min-height:0;padding-right:4px">
-          <div id="vendor-needle-bar-inner" style="position:relative;height:300px">
-            <canvas id="vendor-needle-bar"></canvas>
-          </div>
-        </div>
+        <div id="vendor-needle-bar-scroll" style="flex:1;overflow-y:scroll;overflow-x:hidden;min-height:0;padding-right:4px"></div>
       </div>
       <!-- 우: 거래처 목록 -->
       <div id="vendor-needle-list-wrap" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;display:flex;flex-direction:column;min-height:0;overflow:hidden">
@@ -9311,53 +9307,37 @@ window.__vendor = (function() {
   }
 
   function _renderBarChart(vendorStats) {
-    // 전체 거래처(활성+비활성) 매출 큰 순으로 노출
+    // 전체 거래처(활성+비활성) 매출 큰 순으로 노출 (HTML/CSS 막대로 렌더링 — 스크롤 동작 안정성 확보)
     var top = vendorStats.slice().sort(function(a,b){ return b.cur - a.cur; });
-    var ctx = document.getElementById('vendor-needle-bar');
-    if (!ctx) return;
+    var scroll = document.getElementById('vendor-needle-bar-scroll');
+    if (!scroll) return;
+    // 기존 Chart.js 인스턴스 정리
     if (_state.charts.bar) { try{_state.charts.bar.destroy();}catch(e){} _state.charts.bar = null; }
-    // 막대 개수에 따라 차트 높이 동적 조정 (막대당 36px로 가독성+스크롤 보장)
-    var inner = document.getElementById('vendor-needle-bar-inner');
-    var dynamicH = Math.max(240, top.length * 36 + 40);
-    if (inner) inner.style.height = dynamicH + 'px';
+
     if (!top.length) {
-      var ctx2d = ctx.getContext('2d'); ctx2d.clearRect(0, 0, ctx.width, ctx.height);
-      ctx2d.fillStyle = '#cbd5e1'; ctx2d.font = '12px sans-serif'; ctx2d.textAlign = 'center';
-      ctx2d.fillText('데이터 없음', ctx.width/2, ctx.height/2);
+      scroll.innerHTML = '<div style="text-align:center;padding:40px 16px;color:#cbd5e1;font-size:12px">데이터 없음</div>';
       return;
     }
+
     var meta = _CAT_META[_state.currentCat] || _CAT_META.needle;
-    _state.charts.bar = new Chart(ctx.getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels: top.map(function(v){ return v.name.length > 8 ? v.name.slice(0,8)+'…' : v.name; }),
-        datasets: [{
-          label: '매출',
-          data: top.map(function(v){ return v.cur; }),
-          backgroundColor: meta.barFill,
-          borderColor: meta.barBorder,
-          borderWidth: 0,
-          borderRadius: 4,
-          maxBarThickness: 22
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              title: function(items){ return top[items[0].dataIndex].name; },
-              label: function(c){ return ' ' + _fmtFull(c.raw); }
-            }
-          }
-        },
-        scales: {
-          x: { ticks: { font: { size: 10 }, callback: function(v){ return _fmtW(v); } }, grid: { color: '#f1f5f9' } },
-          y: { ticks: { font: { size: 10 } }, grid: { display: false } }
-        }
-      }
+    var maxVal = Math.max.apply(null, top.map(function(v){ return v.cur; }).concat([1]));
+    var html = '<div style="display:flex;flex-direction:column;gap:6px;padding:2px 4px">';
+    top.forEach(function(v){
+      var pct = maxVal > 0 ? (v.cur / maxVal * 100) : 0;
+      var displayName = _esc(v.name);
+      var displayVal = v.cur > 0 ? _fmtW(v.cur) : '-';
+      html += '<div title="' + _esc(v.name) + ': ' + (v.cur > 0 ? _fmtFull(v.cur) : '0원') + '" style="display:grid;grid-template-columns:90px 1fr 60px;gap:8px;align-items:center;font-size:11px;min-height:24px">'
+        + '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;font-weight:500" title="' + _esc(v.name) + '">' + displayName + '</div>'
+        + '<div style="position:relative;height:18px;background:#f1f5f9;border-radius:4px;overflow:hidden">'
+          + (v.cur > 0
+              ? '<div style="position:absolute;top:0;left:0;height:100%;width:' + pct.toFixed(2) + '%;background:' + meta.barFill + ';border-radius:4px;transition:width .25s"></div>'
+              : '')
+        + '</div>'
+        + '<div style="text-align:right;color:#0f172a;font-weight:600;font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + displayVal + '</div>'
+        + '</div>';
     });
+    html += '</div>';
+    scroll.innerHTML = html;
   }
 
   function _renderRangeLineChart(rowsCat, rangeKeys, rangeLabel) {
