@@ -9233,7 +9233,9 @@ window.__vendor = (function() {
       var nameEsc = _esc(v.name).replace(/'/g,"\\'");
       var mgr = _getVendorManager(v.name);
       var mgrChip = mgr ? '<div style="font-size:9px;color:#65a30d;background:#f7fee7;border:1px solid #d9f99d;border-radius:10px;padding:1px 6px;display:inline-block;margin-top:2px;font-weight:600">' + _esc(mgr) + '</div>' : '';
-      var isInactive = v.cur === 0;
+      // 활성/비활성은 통일된 판정 결과(activeNames/inactiveNames)를 따름
+      // (extra.active 명시 → 그 값 / 무료 BLANKET → 기본 활성 / 그 외 → 매출 합계 > 0)
+      var isInactive = (inactiveNames.indexOf(v.name) !== -1);
       var showInactiveStyle = isInactive && (viewMode === 'all' || viewMode === 'inactive');
       var inactiveChip = showInactiveStyle
         ? '<span style="font-size:9px;color:#ea580c;background:#ffedd5;border:1px solid #fed7aa;border-radius:10px;padding:1px 6px;font-weight:700;margin-left:6px">비활성</span>'
