@@ -3892,7 +3892,9 @@
     if (j.risk && j.risk.trim()) {
       var _rp = _parseRiskCat(j.risk);
       var _perfCat = _ACH_CAT_MAP[_rp.cat];
-      var _perfLabel = _rp.sub ? (_rp.cat + ' › ' + _rp.sub) : _rp.cat;
+      var _perfLabel = _rp.cat;
+      if (_rp.sub) _perfLabel += ' › ' + _rp.sub;
+      if (_rp.vendor) _perfLabel += ' › ' + _rp.vendor;
       var _perfHtml = (_rp.cat ? '<span style="display:inline-block;font-size:10px;font-weight:700;padding:1px 8px;border-radius:20px;margin-right:6px;background:' + (_perfCat ? _perfCat.bg : '#f1f5f9') + ';color:' + (_perfCat ? _perfCat.color : '#64748b') + '">' + (_perfCat ? _perfCat.icon + ' ' : '') + _perfLabel + '</span>' : '');
       document.getElementById('d-perf').innerHTML = _perfHtml + _rp.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
       perfWrap.style.display = '';
@@ -7345,6 +7347,7 @@
   var _achSelectedUser = null; // 관리자가 선택한 username (null=전체, 일반직원=본인)
   var _achSelectedCat = null; // 선택된 1차 카테고리 (null=전체, '_none'=미분류)
   var _achSelectedSub = null; // 선택된 2차 카테고리 (null=전체)
+  var _achSelectedVendor = null; // 선택된 3차 거래처 (null=전체)
   var _achSearchQ = ''; // 검색어
 
   function openAchievementPanel() {
@@ -7367,11 +7370,12 @@
       _achSelectedUser = null;
     }
 
-    // 검색어/2차 카테고리 초기화
+    // 검색어/2차/3차 카테고리 초기화
     var srEl = document.getElementById('ach-search');
     if (srEl) srEl.value = '';
     _achSearchQ = '';
     _achSelectedSub = null;
+    _achSelectedVendor = null;
     var clr = document.getElementById('ach-search-clear');
     if (clr) clr.style.display = 'none';
 
@@ -7446,23 +7450,27 @@
   };
 
   function _parseRiskCat(risk) {
-    if (!risk) return { cat: '', sub: '', full: '', text: risk || '' };
+    if (!risk) return { cat: '', sub: '', vendor: '', full: '', text: risk || '' };
     var m = risk.match(/^\[([^\]]+)\]/);
-    if (!m) return { cat: '', sub: '', full: '', text: risk };
+    if (!m) return { cat: '', sub: '', vendor: '', full: '', text: risk };
     var inner = m[1];
-    var dashIdx = inner.indexOf(' - ');
-    if (dashIdx > 0) {
-      return { cat: inner.slice(0, dashIdx), sub: inner.slice(dashIdx + 3), full: inner, text: risk.slice(m[0].length) };
+    var parts = inner.split(' - ');
+    if (parts.length >= 3) {
+      return { cat: parts[0], sub: parts[1], vendor: parts.slice(2).join(' - '), full: inner, text: risk.slice(m[0].length) };
     }
-    return { cat: inner, sub: '', full: inner, text: risk.slice(m[0].length) };
+    if (parts.length === 2) {
+      return { cat: parts[0], sub: parts[1], vendor: '', full: inner, text: risk.slice(m[0].length) };
+    }
+    return { cat: inner, sub: '', vendor: '', full: inner, text: risk.slice(m[0].length) };
   }
 
   function _renderAchCatTabs(items) {
     var tabsEl = document.getElementById('ach-cat-tabs');
     if (!tabsEl) return;
-    // 1차 카테고리 카운트 + 2차 카운트
+    // 1차/2차/3차(거래처) 카운트
     var counts = {};
     var subCounts = {}; // { parent: { sub: count } }
+    var vendorCounts = {}; // { 'parent::sub': { vendor: count } }
     _ACH_CATS.forEach(function(c){ counts[c.key] = 0; subCounts[c.key] = {}; });
     var uncatCount = 0;
     items.forEach(function(j){
@@ -7470,6 +7478,11 @@
       if (p.cat && counts[p.cat] !== undefined) {
         counts[p.cat]++;
         if (p.sub) subCounts[p.cat][p.sub] = (subCounts[p.cat][p.sub] || 0) + 1;
+        if (p.vendor) {
+          var vk = p.cat + '::' + p.sub;
+          if (!vendorCounts[vk]) vendorCounts[vk] = {};
+          vendorCounts[vk][p.vendor] = (vendorCounts[vk][p.vendor] || 0) + 1;
+        }
       } else {
         uncatCount++;
       }
@@ -7538,37 +7551,93 @@
         + '</div>';
     }
 
-    tabsEl.innerHTML = primaryDrop + subDrop;
+    // 3차(거래처) 드롭다운: 1차/2차 선택됐고 그 조합에 거래처 데이터가 있을 때만
+    var vendorDrop = '';
+    if (_achSelectedCat && _achSelectedSub && _ACH_SUBCATS[_achSelectedCat]) {
+      var vk = _achSelectedCat + '::' + _achSelectedSub;
+      var vMap = vendorCounts[vk] || {};
+      var vNames = Object.keys(vMap).sort(function(a,b){ return (vMap[b]||0) - (vMap[a]||0); });
+      if (vNames.length > 0) {
+        var parentMeta3 = _ACH_CAT_MAP[_achSelectedCat];
+        var vendorTotal = 0; vNames.forEach(function(n){ vendorTotal += vMap[n]; });
+        var vLabel = '거래처 전체 (' + vendorTotal + ')';
+        if (_achSelectedVendor) {
+          vLabel = _achSelectedVendor + ' (' + (vMap[_achSelectedVendor] || 0) + ')';
+        }
+        vendorDrop = '<div style="position:relative;display:inline-block;margin-left:6px">'
+          + '<button onclick="_toggleAchVendorDrop()" style="padding:5px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ' + (_achSelectedVendor ? parentMeta3.color : '#e2e8f0') + ';background:' + (_achSelectedVendor ? parentMeta3.bg : '#fff') + ';color:' + (_achSelectedVendor ? parentMeta3.color : '#374151') + ';display:flex;align-items:center;gap:6px;max-width:220px">'
+          + '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + vLabel + '</span>'
+          + '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>'
+          + '</button>'
+          + '<div id="ach-vendor-dropdown" style="display:none;position:absolute;top:100%;left:0;margin-top:4px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);min-width:220px;max-height:320px;overflow-y:auto;z-index:999;padding:4px">'
+          + '<div onclick="_achSelectVendor(null)" style="padding:7px 12px;border-radius:7px;font-size:12px;font-weight:' + (!_achSelectedVendor ? '700' : '500') + ';color:' + (!_achSelectedVendor ? parentMeta3.color : '#374151') + ';cursor:pointer;background:' + (!_achSelectedVendor ? parentMeta3.bg : '#fff') + '">거래처 전체 (' + vendorTotal + ')</div>'
+          + vNames.map(function(n){
+              var act = _achSelectedVendor === n;
+              return '<div onclick="_achSelectVendor(\'' + _achEsc(n).replace(/'/g,"\\'") + '\')" style="padding:7px 12px;border-radius:7px;font-size:12px;font-weight:' + (act ? '700' : '500') + ';color:' + (act ? parentMeta3.color : '#374151') + ';cursor:pointer;background:' + (act ? parentMeta3.bg : '#fff') + ';display:flex;align-items:center;gap:6px" onmouseover="this.style.background=\'' + parentMeta3.bg + '\'" onmouseout="this.style.background=\'' + (act ? parentMeta3.bg : '#fff') + '\'">'
+                + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _achEsc(n) + '</span>'
+                + '<span style="font-size:10px;color:#94a3b8;flex-shrink:0">' + vMap[n] + '</span>'
+                + '</div>';
+            }).join('')
+          + '</div>'
+          + '</div>';
+      }
+    }
+
+    tabsEl.innerHTML = primaryDrop + subDrop + vendorDrop;
   }
 
   var _achCatDropOpen = false;
   var _achSubDropOpen = false;
+  var _achVendorDropOpen = false;
   function _toggleAchCatDrop() {
     _achCatDropOpen = !_achCatDropOpen;
     _achSubDropOpen = false;
+    _achVendorDropOpen = false;
     var dd = document.getElementById('ach-cat-dropdown');
     if (dd) dd.style.display = _achCatDropOpen ? 'block' : 'none';
     var sdd = document.getElementById('ach-sub-dropdown');
     if (sdd) sdd.style.display = 'none';
+    var vdd = document.getElementById('ach-vendor-dropdown');
+    if (vdd) vdd.style.display = 'none';
   }
   function _toggleAchSubDrop() {
     _achSubDropOpen = !_achSubDropOpen;
     _achCatDropOpen = false;
+    _achVendorDropOpen = false;
     var sdd = document.getElementById('ach-sub-dropdown');
     if (sdd) sdd.style.display = _achSubDropOpen ? 'block' : 'none';
     var dd = document.getElementById('ach-cat-dropdown');
     if (dd) dd.style.display = 'none';
+    var vdd = document.getElementById('ach-vendor-dropdown');
+    if (vdd) vdd.style.display = 'none';
+  }
+  function _toggleAchVendorDrop() {
+    _achVendorDropOpen = !_achVendorDropOpen;
+    _achCatDropOpen = false;
+    _achSubDropOpen = false;
+    var vdd = document.getElementById('ach-vendor-dropdown');
+    if (vdd) vdd.style.display = _achVendorDropOpen ? 'block' : 'none';
+    var dd = document.getElementById('ach-cat-dropdown');
+    if (dd) dd.style.display = 'none';
+    var sdd = document.getElementById('ach-sub-dropdown');
+    if (sdd) sdd.style.display = 'none';
   }
 
   function _achSelectCat(cat) {
-    if (_achSelectedCat !== cat) _achSelectedSub = null; // 1차 변경 시 2차 초기화
+    if (_achSelectedCat !== cat) { _achSelectedSub = null; _achSelectedVendor = null; }
     _achSelectedCat = cat;
     _achCatDropOpen = false;
     renderAchievementPanel();
   }
   function _achSelectSub(sub) {
+    if (_achSelectedSub !== sub) _achSelectedVendor = null;
     _achSelectedSub = sub;
     _achSubDropOpen = false;
+    renderAchievementPanel();
+  }
+  function _achSelectVendor(vendor) {
+    _achSelectedVendor = vendor;
+    _achVendorDropOpen = false;
     renderAchievementPanel();
   }
   function _achOnSearchInput() {
@@ -7637,15 +7706,22 @@
           var p = _parseRiskCat(j.risk);
           return p.sub === _achSelectedSub;
         });
+        // 3차 거래처 필터 적용
+        if (_achSelectedVendor) {
+          items = items.filter(function(j){
+            var p = _parseRiskCat(j.risk);
+            return p.vendor === _achSelectedVendor;
+          });
+        }
       }
     }
 
-    // 검색어 필터 (제목/본문/카테고리 통합 검색)
+    // 검색어 필터 (제목/본문/카테고리/거래처 통합 검색)
     if (_achSearchQ) {
       var q = _achSearchQ.toLowerCase();
       items = items.filter(function(j){
         var p = _parseRiskCat(j.risk);
-        var hay = ((j.title || '') + ' ' + p.full + ' ' + p.text + ' ' + (j.author || '')).toLowerCase();
+        var hay = ((j.title || '') + ' ' + p.full + ' ' + p.vendor + ' ' + p.text + ' ' + (j.author || '')).toLowerCase();
         return hay.indexOf(q) !== -1;
       });
     }
@@ -7673,7 +7749,9 @@
       var catChip = parsed.cat
         ? (function(){
             var _cc = _ACH_CAT_MAP[parsed.cat];
-            var _label = parsed.sub ? (parsed.cat + ' › ' + parsed.sub) : parsed.cat;
+            var _label = parsed.cat;
+            if (parsed.sub) _label += ' › ' + parsed.sub;
+            if (parsed.vendor) _label += ' › ' + parsed.vendor;
             return '<span style="font-size:10px;font-weight:700;padding:1px 8px;border-radius:20px;background:' + (_cc ? _cc.bg : '#f1f5f9') + ';color:' + (_cc ? _cc.color : '#64748b') + ';flex-shrink:0">' + (_cc ? _cc.icon + ' ' : '') + _achEsc(_label) + '</span>';
           })()
         : '';

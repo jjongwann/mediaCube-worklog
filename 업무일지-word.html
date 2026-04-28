@@ -1720,6 +1720,24 @@
             <div id="risk-subcat-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
           </div>
         </div>
+
+        <!-- 업무 성과 구분 선택 모달 (3차 — 거래처 선택) -->
+        <div id="risk-vendor-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:100001;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .18s ease">
+          <div id="risk-vendor-box" style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:88vh;display:flex;flex-direction:column;padding:0;box-shadow:0 20px 60px rgba(0,0,0,0.25);font-family:inherit;transform:scale(0.96);transition:transform .18s ease;overflow:hidden">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid #f1f5f9;flex-shrink:0;gap:8px">
+              <button onclick="backToRiskSubcatModal()" style="background:#f1f5f9;border:none;color:#475569;cursor:pointer;padding:5px 10px;border-radius:7px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                이전
+              </button>
+              <div id="risk-vendor-title" style="font-size:14px;font-weight:800;color:#0f172a;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+              <button onclick="closeRiskVendorModal()" style="background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;padding:2px 6px;border-radius:6px" onmouseover="this.style.color='#475569'" onmouseout="this.style.color='#94a3b8'">×</button>
+            </div>
+            <div style="padding:12px 20px 0;flex-shrink:0">
+              <input type="text" id="risk-vendor-search" placeholder="거래처 검색..." oninput="renderRiskVendorList()" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
+            </div>
+            <div id="risk-vendor-list" style="flex:1;overflow-y:auto;padding:12px 20px 20px"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1862,15 +1880,19 @@
         var _riskMatch = _riskRaw.match(/^\[([^\]]+)\]/);
         if (_riskMatch) {
           var _full = _riskMatch[1];
-          var _dashIdx = _full.indexOf(' - ');
-          if (_dashIdx > 0) {
-            var _p = _full.slice(0, _dashIdx), _s = _full.slice(_dashIdx + 3);
-            if (RISK_CATS.some(function(c){ return c.key === _p; })) {
-              selectRiskSubcat(_p, _s);
-              issueTas[1].value = _riskRaw.slice(_riskMatch[0].length);
-            } else {
-              issueTas[1].value = _riskRaw;
-            }
+          var _parts = _full.split(' - ');
+          if (_parts.length >= 3 && RISK_CATS.some(function(c){ return c.key === _parts[0]; })) {
+            var _vname = _parts.slice(2).join(' - ');
+            _riskParentSel = _parts[0];
+            _riskSubSel = _parts[1];
+            _applyRiskSelection(_full, _parts[0], _parts[1], _vname);
+            issueTas[1].value = _riskRaw.slice(_riskMatch[0].length);
+          } else if (_parts.length === 2 && RISK_CATS.some(function(c){ return c.key === _parts[0]; })) {
+            // 거래처 미지정 (구버전) — 모달 열지 않고 라벨만 표시
+            _riskParentSel = _parts[0];
+            _riskSubSel = _parts[1];
+            _applyRiskSelection(_full, _parts[0], _parts[1], '');
+            issueTas[1].value = _riskRaw.slice(_riskMatch[0].length);
           } else if (RISK_CATS.some(function(c){ return c.key === _full; })) {
             selectRiskCat(_full);
             issueTas[1].value = _riskRaw.slice(_riskMatch[0].length);
@@ -1930,15 +1952,16 @@
         var _riskMatch2 = _riskRaw2.match(/^\[([^\]]+)\]/);
         if (_riskMatch2) {
           var _full2 = _riskMatch2[1];
-          var _dashIdx2 = _full2.indexOf(' - ');
-          if (_dashIdx2 > 0) {
-            var _p2 = _full2.slice(0, _dashIdx2), _s2 = _full2.slice(_dashIdx2 + 3);
-            if (RISK_CATS.some(function(c){ return c.key === _p2; })) {
-              selectRiskSubcat(_p2, _s2);
-              issueTas[1].value = _riskRaw2.slice(_riskMatch2[0].length);
-            } else {
-              issueTas[1].value = _riskRaw2;
-            }
+          var _parts2 = _full2.split(' - ');
+          if (_parts2.length >= 3 && RISK_CATS.some(function(c){ return c.key === _parts2[0]; })) {
+            var _vname2 = _parts2.slice(2).join(' - ');
+            _riskParentSel = _parts2[0]; _riskSubSel = _parts2[1];
+            _applyRiskSelection(_full2, _parts2[0], _parts2[1], _vname2);
+            issueTas[1].value = _riskRaw2.slice(_riskMatch2[0].length);
+          } else if (_parts2.length === 2 && RISK_CATS.some(function(c){ return c.key === _parts2[0]; })) {
+            _riskParentSel = _parts2[0]; _riskSubSel = _parts2[1];
+            _applyRiskSelection(_full2, _parts2[0], _parts2[1], '');
+            issueTas[1].value = _riskRaw2.slice(_riskMatch2[0].length);
           } else if (RISK_CATS.some(function(c){ return c.key === _full2; })) {
             selectRiskCat(_full2);
             issueTas[1].value = _riskRaw2.slice(_riskMatch2[0].length);
@@ -2743,16 +2766,129 @@
     }
 
     function selectRiskSubcat(parentKey, subKey) {
+      // Needle Drop 선택 시 → 3차(거래처 선택) 모달 열기
+      if (subKey === 'Needle Drop') {
+        _riskParentSel = parentKey;
+        _riskSubSel = subKey;
+        closeRiskSubcatModal();
+        setTimeout(function(){ openRiskVendorModal(parentKey, subKey); }, 180);
+        return;
+      }
       var fullKey = parentKey + ' - ' + subKey;
+      _applyRiskSelection(fullKey, parentKey, subKey, '');
+      closeRiskSubcatModal();
+    }
+
+    function _applyRiskSelection(fullKey, parentKey, subKey, vendorName) {
       document.getElementById('risk-category').value = fullKey;
       var label = document.getElementById('risk-cat-label');
       var btn = document.getElementById('risk-cat-btn');
       var cat = RISK_CATS.find(function(c){ return c.key === parentKey; });
-      label.textContent = (cat ? cat.icon + ' ' : '') + parentKey + ' › ' + subKey;
+      var disp = (cat ? cat.icon + ' ' : '') + parentKey + ' › ' + subKey;
+      if (vendorName) disp += ' › ' + vendorName;
+      label.textContent = disp;
       btn.style.borderColor = cat ? cat.color : '#bfdbfe';
       btn.style.color = cat ? cat.color : '#1d4ed8';
       btn.style.background = cat ? cat.bg : '#fff';
-      closeRiskSubcatModal();
+    }
+
+    // ── 3차 모달: NEEDLE 거래처 선택 ──
+    var _riskSubSel = null;
+    var _riskVendorCache = null; // { fetchedAt, rows }
+
+    function openRiskVendorModal(parentKey, subKey) {
+      var parent = RISK_CATS.find(function(c){ return c.key === parentKey; });
+      document.getElementById('risk-vendor-title').innerHTML = (parent ? parent.icon + ' ' : '') + parentKey + ' › ' + subKey;
+      var sr = document.getElementById('risk-vendor-search');
+      if (sr) sr.value = '';
+      var list = document.getElementById('risk-vendor-list');
+      list.innerHTML = '<div style="text-align:center;padding:50px 20px;color:#94a3b8;font-size:13px">거래처 목록 불러오는 중...</div>';
+      _showRiskOverlay('risk-vendor-overlay');
+
+      // 5분 캐시
+      var now = Date.now();
+      if (_riskVendorCache && (now - _riskVendorCache.fetchedAt) < 300000) {
+        renderRiskVendorList();
+        return;
+      }
+      fetch(SB_URL + '/rest/v1/vendor_sales?select=*&category=eq.needle', { headers: SB_HDR })
+        .then(function(r){ if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+        .then(function(rows){
+          _riskVendorCache = { fetchedAt: now, rows: Array.isArray(rows) ? rows : [] };
+          renderRiskVendorList();
+        })
+        .catch(function(e){
+          console.error('vendor list fetch error', e);
+          list.innerHTML = '<div style="text-align:center;padding:50px 20px;color:#ef4444;font-size:12px">거래처 목록 로드 실패<br><span style="color:#94a3b8;font-size:11px">' + (e.message || '') + '</span></div>';
+        });
+    }
+
+    function closeRiskVendorModal() {
+      _hideRiskOverlay('risk-vendor-overlay');
+    }
+
+    function backToRiskSubcatModal() {
+      closeRiskVendorModal();
+      setTimeout(function(){ openRiskSubcatModal(_riskParentSel); }, 180);
+    }
+
+    function renderRiskVendorList() {
+      if (!_riskVendorCache) return;
+      var rows = _riskVendorCache.rows;
+      var q = (document.getElementById('risk-vendor-search').value || '').trim().toLowerCase();
+      // 거래처 집계 (이름별 합계, 최근 활동월)
+      var byName = {};
+      rows.forEach(function(r){
+        if (!r.vendor_name) return;
+        if (!byName[r.vendor_name]) byName[r.vendor_name] = { name: r.vendor_name, total: 0, manager: '' };
+        byName[r.vendor_name].total += (r.amount || 0);
+        if (r.extra && r.extra.manager) byName[r.vendor_name].manager = r.extra.manager;
+      });
+      var names = Object.keys(byName).map(function(n){ return byName[n]; });
+      if (q) names = names.filter(function(v){ return v.name.toLowerCase().indexOf(q) !== -1; });
+      // 활성(매출>0) 우선 정렬, 그 안에서 매출 큰 순, 그 다음 이름순
+      names.sort(function(a,b){
+        var aActive = a.total > 0 ? 1 : 0;
+        var bActive = b.total > 0 ? 1 : 0;
+        if (aActive !== bActive) return bActive - aActive;
+        if (a.total !== b.total) return b.total - a.total;
+        return a.name.localeCompare(b.name, 'ko');
+      });
+
+      var list = document.getElementById('risk-vendor-list');
+      if (!names.length) {
+        list.innerHTML = '<div style="text-align:center;padding:50px 20px;color:#94a3b8;font-size:13px">' + (q ? '검색 결과가 없습니다.' : '등록된 거래처가 없습니다.') + '</div>';
+        return;
+      }
+      var curVal = document.getElementById('risk-category').value;
+      var parts = curVal.split(' - ');
+      var curVendor = (parts.length === 3) ? parts[2] : '';
+
+      list.innerHTML = names.map(function(v){
+        var isActive = v.total > 0;
+        var selected = curVendor === v.name;
+        var statusChip = isActive
+          ? '<span style="font-size:9px;color:#16a34a;background:#dcfce7;border:1px solid #bbf7d0;border-radius:10px;padding:1px 7px;font-weight:700">활성</span>'
+          : '<span style="font-size:9px;color:#ea580c;background:#ffedd5;border:1px solid #fed7aa;border-radius:10px;padding:1px 7px;font-weight:700">비활성</span>';
+        var mgrChip = v.manager
+          ? '<span style="font-size:9px;color:#65a30d;background:#f7fee7;border:1px solid #d9f99d;border-radius:10px;padding:1px 7px;font-weight:600">' + _escHtml(v.manager) + '</span>'
+          : '';
+        return '<div onclick="selectRiskVendor(\'' + v.name.replace(/'/g,"\\'").replace(/&/g,'&amp;') + '\')" style="padding:10px 14px;margin-bottom:6px;border:1px solid ' + (selected ? '#65a30d' : '#e2e8f0') + ';background:' + (selected ? '#f7fee7' : '#fff') + ';border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .12s" onmouseover="this.style.borderColor=\'#65a30d\';this.style.background=\'#f7fee7\'" onmouseout="this.style.borderColor=\'' + (selected ? '#65a30d' : '#e2e8f0') + '\';this.style.background=\'' + (selected ? '#f7fee7' : '#fff') + '\'">'
+          + '<div style="font-size:13px;font-weight:700;color:#0f172a;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _escHtml(v.name) + '</div>'
+          + statusChip
+          + mgrChip
+          + '</div>';
+      }).join('');
+    }
+
+    function _escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function selectRiskVendor(vendorName) {
+      var parentKey = _riskParentSel;
+      var subKey = _riskSubSel;
+      var fullKey = parentKey + ' - ' + subKey + ' - ' + vendorName;
+      _applyRiskSelection(fullKey, parentKey, subKey, vendorName);
+      closeRiskVendorModal();
     }
 
     function submitJournal() {
