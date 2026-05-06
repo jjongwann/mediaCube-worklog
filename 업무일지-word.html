@@ -2067,28 +2067,38 @@
           tr.innerHTML = _taskRowHtml(scls, stxt, t.text, t.pct, t.startTime, t.endTime, true);
           taskList.appendChild(tr);
         });
-        // readonly 모드: entry.tasks에서 직접 총 시간 계산 (중복 구간 union)
-        var roIntervals = [];
-        entry.tasks.forEach(function (t) {
-          if (t.startTime && t.endTime) {
-            var sp = t.startTime.split(':'), ep = t.endTime.split(':');
-            if (sp.length >= 2 && ep.length >= 2) {
-              var s = parseInt(sp[0]) * 60 + parseInt(sp[1]);
-              var e = parseInt(ep[0]) * 60 + parseInt(ep[1]);
-              if (e > s) roIntervals.push([s, e]);
+        // readonly 모드: 총 작업 시간 계산
+        // - calcUnionMins / fmtDuration 은 LUNCH_START·LUNCH_END (이 IIFE 이후 줄에서 var 초기화)
+        //   에 의존하므로, 즉시 호출하면 undefined 로 NaN 이 발생 → metric-time '—' 폴백 버그.
+        // - setTimeout(0) 으로 스크립트 파싱 종료 후 실행하여 호이스팅 문제를 회피.
+        calcProgress(); // 완료/진행/이슈/보류 카운트는 동기 갱신 (DOM 만 사용)
+        (function (tasks) {
+          setTimeout(function () {
+            try {
+              var roIntervals = [];
+              tasks.forEach(function (t) {
+                if (t.startTime && t.endTime) {
+                  var sp = t.startTime.split(':'), ep = t.endTime.split(':');
+                  if (sp.length >= 2 && ep.length >= 2) {
+                    var s = parseInt(sp[0]) * 60 + parseInt(sp[1]);
+                    var e = parseInt(ep[0]) * 60 + parseInt(ep[1]);
+                    if (e > s) roIntervals.push([s, e]);
+                  }
+                }
+              });
+              var totalMins = roIntervals.length > 0 ? calcUnionMins(roIntervals) : 0;
+              if (!totalMins) {
+                tasks.forEach(function (t) {
+                  if (!t.startTime && t.hrs) totalMins += Math.round(parseFloat(t.hrs) * 60);
+                });
+              }
+              var metricTime = document.getElementById('metric-time');
+              if (metricTime) metricTime.value = (totalMins > 0) ? fmtDuration(totalMins) : '—';
+            } catch (err) {
+              console.warn('view metric-time calc failed', err);
             }
-          }
-        });
-        var totalMins = roIntervals.length > 0 ? calcUnionMins(roIntervals) : 0;
-        // fallback: startTime 없는 항목은 hrs로 보정 (union에 포함 안 된 경우)
-        if (!totalMins) {
-          entry.tasks.forEach(function (t) {
-            if (!t.startTime && t.hrs) totalMins += Math.round(parseFloat(t.hrs) * 60);
-          });
-        }
-        calcProgress(); // calcTotalTaskHrs가 내부 호출되어 '—'로 덮어쓰므로 아래에서 재설정
-        var metricTime = document.getElementById('metric-time');
-        if (metricTime) metricTime.value = totalMins > 0 ? fmtDuration(totalMins) : '—';
+          }, 0);
+        })(entry.tasks);
       }
 
       // Toolbar
