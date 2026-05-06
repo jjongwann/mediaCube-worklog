@@ -9578,11 +9578,12 @@ window.__vendor = (function() {
       var catChip = '<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:' + catMeta.bg + ';color:' + catMeta.color + ';border:1px solid ' + catMeta.border + '">' + catMeta.label + '</span>';
 
       var nameEsc = _esc(v.name).replace(/'/g, "\\'");
+      var catEsc = (v.category || '').replace(/'/g, "\\'");
       var mgrChip = v.manager ? '<div style="font-size:9px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:1px 6px;display:inline-block;margin-top:2px;font-weight:600">' + _esc(v.manager) + '</div>' : '';
 
       return '<div style="display:grid;grid-template-columns:32px 1.4fr 0.9fr 1fr 1fr 28px;gap:8px;padding:11px 14px;border-bottom:1px solid #f1f5f9;font-size:12px;align-items:center;background:#fffef5;transition:background .12s" onmouseover="this.style.background=\'#fffbeb\'" onmouseout="this.style.background=\'#fffef5\'">'
         + '<div style="color:#94a3b8;font-weight:600">' + (idx + 1) + '</div>'
-        + '<div onclick="__vendor.editVendor(\'' + nameEsc + '\')" title="클릭하여 매출 수정" style="cursor:pointer;min-width:0;overflow:hidden">'
+        + '<div onclick="__vendor.editVendor(\'' + nameEsc + '\', \'' + catEsc + '\')" title="클릭하여 매출 수정" style="cursor:pointer;min-width:0;overflow:hidden">'
           + '<div style="font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(v.name) + '</div>'
           + mgrChip
         + '</div>'
@@ -9591,7 +9592,7 @@ window.__vendor = (function() {
         + '<div style="text-align:right">'
           + '<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:' + dDayBg + ';color:' + dDayColor + '">' + dDayText + '</span>'
         + '</div>'
-        + '<div style="text-align:center"><button onclick="__vendor.editVendor(\'' + nameEsc + '\')" title="수정" style="background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:5px" onmouseover="this.style.color=\'#d97706\';this.style.background=\'#fffbeb\'" onmouseout="this.style.color=\'#cbd5e1\';this.style.background=\'none\'">✎</button></div>'
+        + '<div style="text-align:center"><button onclick="__vendor.editVendor(\'' + nameEsc + '\', \'' + catEsc + '\')" title="수정" style="background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:5px" onmouseover="this.style.color=\'#d97706\';this.style.background=\'#fffbeb\'" onmouseout="this.style.color=\'#cbd5e1\';this.style.background=\'none\'">✎</button></div>'
         + '</div>';
     }).join('');
 
@@ -9715,10 +9716,12 @@ window.__vendor = (function() {
     if (totEl) totEl.textContent = '연 합계: ' + sum.toLocaleString() + '원';
   }
 
-  function editVendor(name) {
+  function editVendor(name, catOverride) {
     if (!name) return;
     var year = parseInt(document.getElementById('vendor-needle-to-year').value);
-    var cat = _state.currentCat;
+    // 신규 고객 패널에서는 _state.currentCat = 'new_customer' (가상 카테고리) 라
+    // 실제 DB 카테고리(needle/blanket_paid/blanket_free)를 catOverride 로 받아야 함
+    var cat = catOverride || _state.currentCat;
     // 해당 거래처의 해당 년도 모든 행 매핑
     var monthRows = {};
     _state.rows.filter(function(r){
@@ -9745,7 +9748,7 @@ window.__vendor = (function() {
     }
     var curActive = (explicitActive !== null) ? explicitActive : defaultActive;
 
-    _editCtx = { vendorName: name, year: year, monthRows: monthRows, prevManager: curMgr, prevActive: explicitActive, curActive: curActive };
+    _editCtx = { vendorName: name, year: year, category: cat, monthRows: monthRows, prevManager: curMgr, prevActive: explicitActive, curActive: curActive };
 
     document.getElementById('vendor-edit-name').textContent = name;
     document.getElementById('vendor-edit-year-badge').textContent = year + '년';
@@ -9877,14 +9880,14 @@ window.__vendor = (function() {
       } else if (newAmt > 0) {
         var newExtra = _buildExtra({});
         if (newMgr) newExtra.manager = newMgr;
-        ops.push({ type: 'post', body: { id: _genId(), category: _state.currentCat, vendor_name: newName, month_key: monthKey, amount: newAmt, extra: newExtra, updated_at: new Date().toISOString() } });
+        ops.push({ type: 'post', body: { id: _genId(), category: ctx.category, vendor_name: newName, month_key: monthKey, amount: newAmt, extra: newExtra, updated_at: new Date().toISOString() } });
         hasAnyRow = true;
       }
     }
 
     // 거래처의 다른 년도 모든 행에 대해 rename / 담당자 / active 플래그 동기화
     var otherYearRows = _state.rows.filter(function(r){
-      return r.category === _state.currentCat && r.vendor_name === ctx.vendorName
+      return r.category === ctx.category && r.vendor_name === ctx.vendorName
         && (r.month_key||'').split('-')[0] != String(ctx.year);
     });
     otherYearRows.forEach(function(r){
@@ -9907,7 +9910,7 @@ window.__vendor = (function() {
       var placeholderExtra = {};
       if (newMgr) placeholderExtra.manager = newMgr;
       placeholderExtra.active = newActive;
-      ops.push({ type: 'post', body: { id: _genId(), category: _state.currentCat, vendor_name: newName, month_key: ctx.year + '-1', amount: 0, extra: placeholderExtra, updated_at: new Date().toISOString() } });
+      ops.push({ type: 'post', body: { id: _genId(), category: ctx.category, vendor_name: newName, month_key: ctx.year + '-1', amount: 0, extra: placeholderExtra, updated_at: new Date().toISOString() } });
     }
 
     if (!ops.length) { closeEdit(); return; }
