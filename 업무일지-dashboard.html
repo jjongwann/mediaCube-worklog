@@ -1645,19 +1645,6 @@
       </div>
     </div>
 
-    <!-- Admin: Employee Comparison (관리자 전용) - stats 바로 아래 -->
-    <div id="admin-emp-section" style="display:none; margin-bottom:20px;">
-      <div class="admin-section-header">
-        <span class="admin-section-title">직원별 현황</span>
-      </div>
-      <div class="admin-emp-row" id="admin-emp-row"></div>
-    </div>
-
-    <!-- 직원별 업무 시간 차트 (관리자 전용) -->
-    <div id="emp-task-time-section" style="display:none; margin-bottom:20px; background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px 24px;">
-      <div id="emp-tts-content"></div>
-    </div>
-
     <!-- 업무별 누적 시간 차트 섹션 -->
     <div id="task-time-section" style="display:none">
       <div class="tts-header">
@@ -3005,19 +2992,32 @@
 
   var _empPanelOpen = false;
 
+  // 직원별 현황: 모달 토글
   function toggleEmpPanel() {
-    _empPanelOpen = !_empPanelOpen;
-    var section = document.getElementById('admin-emp-section');
+    if (_empPanelOpen) { closeEmpPanel(); return; }
+    var ov = document.getElementById('emp-overlay');
     var btn = document.getElementById('sidebar-emp-btn');
-    if (section) section.style.display = _empPanelOpen ? '' : 'none';
-    if (btn) btn.classList.toggle('active', _empPanelOpen);
-    if (_empPanelOpen) {
-      renderAdminStats();
-    } else {
-      adminEmpFilter = '';
-      document.getElementById('emp-task-time-section').style.display = 'none';
-      renderList();
-    }
+    if (!ov) return;
+    _empPanelOpen = true;
+    ov.style.display = 'flex';
+    if (btn) btn.classList.add('active');
+    // 본문 스크롤 잠금 (배경 페이지 스크롤 방지)
+    document.body.style.overflow = 'hidden';
+    renderAdminStats();
+  }
+
+  function closeEmpPanel() {
+    var ov = document.getElementById('emp-overlay');
+    var btn = document.getElementById('sidebar-emp-btn');
+    if (ov) ov.style.display = 'none';
+    if (btn) btn.classList.remove('active');
+    _empPanelOpen = false;
+    document.body.style.overflow = '';
+    // 모달 닫을 때 직원 필터 해제 + 차트 숨김 + 메인 리스트 갱신 (기존 동작 보존)
+    adminEmpFilter = '';
+    var ttSec = document.getElementById('emp-task-time-section');
+    if (ttSec) ttSec.style.display = 'none';
+    if (typeof renderList === 'function') renderList();
   }
 
   /* ── Admin: 직원별 현황 카드 ── */
@@ -6701,6 +6701,31 @@
 </style>
 
 <!-- ── 직원별 권한 패널 (관리자 전용) ── -->
+<!-- ── 직원별 현황 모달 (관리자 / 권한 부여 직원) ── -->
+<div id="emp-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9990;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto" onclick="if(event.target===this)closeEmpPanel()">
+  <div style="width:100%;max-width:1180px;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.25);display:flex;flex-direction:column;font-family:inherit;margin:auto">
+    <!-- 헤더 -->
+    <div style="padding:18px 22px;border-bottom:1px solid #f1f5f9;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#7c3aed,#5b21b6);border-radius:14px 14px 0 0">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#fff">직원별 현황</div>
+        <div style="font-size:11px;color:#ddd6fe;margin-top:2px">카드 클릭 시 해당 직원의 일지 목록과 업무 시간 차트를 함께 확인합니다.</div>
+      </div>
+      <button onclick="closeEmpPanel()" style="background:rgba(255,255,255,0.18);border:none;cursor:pointer;font-size:18px;color:#fff;line-height:1;padding:4px 10px;border-radius:6px">×</button>
+    </div>
+    <!-- 본문 -->
+    <div style="padding:20px 22px;flex:1;overflow:auto">
+      <!-- 직원 카드 그리드 -->
+      <div id="admin-emp-section" style="margin-bottom:20px">
+        <div class="admin-emp-row" id="admin-emp-row"></div>
+      </div>
+      <!-- 선택된 직원의 업무 시간 차트 -->
+      <div id="emp-task-time-section" style="display:none;background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px 24px">
+        <div id="emp-tts-content"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="permission-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9990;align-items:center;justify-content:center;padding:24px" onclick="if(event.target===this)closePermissionPanel()">
   <div style="width:100%;max-width:1100px;max-height:90vh;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.25);display:flex;flex-direction:column;font-family:inherit">
     <!-- 헤더 -->
