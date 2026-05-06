@@ -2232,7 +2232,10 @@
       document.getElementById('metric-wip').value = cnt.wip;
       document.getElementById('metric-issue').value = cnt.issue;
       document.getElementById('metric-hold').value = cnt.hold;
-      document.getElementById('chip-progress').value = total === 0 ? '' : Math.round(cnt.done / total * 100);
+      // 진행률 계산: '보류'는 분모/분자에서 모두 제외 (사용자 요청)
+      // 레거시 '이슈' 항목은 분모에 포함 유지 (기존 동작 보존)
+      var effectiveTotal = total - cnt.hold;
+      document.getElementById('chip-progress').value = effectiveTotal <= 0 ? '' : Math.round(cnt.done / effectiveTotal * 100);
       calcTotalTaskHrs();
     }
 
@@ -2299,8 +2302,8 @@
         labelEl.textContent = '상태 선택';
         dropdown.appendChild(labelEl);
 
+        // '이슈' 옵션은 제거 (사용자 요청). status-issue 클래스는 레거시 데이터 표시용으로 유지
         var options = [
-          { cls: 'status-issue', text: '이슈', dot: '#9333ea' },
           { cls: 'status-wip', text: '진행 중', dot: '#2563eb' },
           { cls: 'status-hold', text: '보류', dot: '#d97706' },
           { cls: 'status-todo', text: '예정', dot: '#9ca3af' },
