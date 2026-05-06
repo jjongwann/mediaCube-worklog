@@ -1555,6 +1555,10 @@
         <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></span>
         월별 팀 리포트
       </div>
+      <div class="sidebar-item" id="sidebar-perm-btn" onclick="openPermissionPanel()" style="display:none">
+        <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+        직원별 권한
+      </div>
     </div>
   </div>
 
@@ -2778,6 +2782,248 @@
     setFilter('all');
   }
 
+  /* ─────────────────────────────────────────────────────────────
+     직원별 권한 (관리자 부여 / 직원 가시 범위)
+     - 테이블: employee_permissions(viewer_id text PK, allowed_user_ids jsonb)
+     - 기본 정책: 관리자=항상 전체 / 권한 row 없는 직원=전체 보임 (하위 호환)
+     - row 존재 시: 해당 viewer_id 직원은 allowed_user_ids 와 본인만 보임
+     ─────────────────────────────────────────────────────────────*/
+  var _PERM_CACHE_KEY = 'mc_emp_perms_v1';
+  var _permMap = {};            // { viewer_id: [allowed_user_ids,...] }
+  var _permLoaded = false;
+  var _permDraft = null;        // 권한 모달 편집 중 임시 상태
+
+  // localStorage 캐시 → 즉시 적용 (네트워크 응답 전)
+  try {
+    var _cached = JSON.parse(localStorage.getItem(_PERM_CACHE_KEY) || 'null');
+    if (_cached && typeof _cached === 'object') _permMap = _cached;
+  } catch(e) {}
+
+  // 현재 직원이 볼 수 있는 user_id 집합 (관리자 또는 권한 미설정 시 null = 무제한)
+  function _allowedUserIdSet() {
+    if (_isAdmin) return null;
+    if (!_userId) return null;
+    var allowed = _permMap[_userId];
+    if (!allowed || !Array.isArray(allowed)) return null;
+    var set = {};
+    allowed.forEach(function(id){ set[id] = true; });
+    set[_userId] = true; // 본인은 항상 포함
+    return set;
+  }
+
+  // ALL_USERS 중에서 현재 직원이 볼 수 있는 직원 리스트
+  function _getVisibleUsers() {
+    var set = _allowedUserIdSet();
+    if (!set) return ALL_USERS.slice();
+    return ALL_USERS.filter(function(u){ return set[u.id]; });
+  }
+
+  // 특정 user_id 가 현재 직원에게 가시적인지
+  function _canSeeUserId(uid) {
+    if (!uid) return true;
+    var set = _allowedUserIdSet();
+    if (!set) return true;
+    return !!set[uid];
+  }
+
+  // DB 에서 권한 전체 로드 (관리자=모달용 / 직원=본인 행만 사용)
+  function _loadPermissions(opts) {
+    opts = opts || {};
+    var url = SB_URL + '/rest/v1/employee_permissions?select=viewer_id,allowed_user_ids';
+    return fetch(url, { headers: SB_HDR })
+      .then(function(r){ if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(rows){
+        var map = {};
+        (rows||[]).forEach(function(row){
+          var arr = row.allowed_user_ids;
+          if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch(e) { arr = []; } }
+          if (!Array.isArray(arr)) arr = [];
+          map[row.viewer_id] = arr;
+        });
+        _permMap = map;
+        _permLoaded = true;
+        try { localStorage.setItem(_PERM_CACHE_KEY, JSON.stringify(map)); } catch(e){}
+        return map;
+      })
+      .catch(function(e){
+        // 테이블 미존재(404/PGRST205) 등은 조용히 패스 → 기존 동작 유지
+        console.warn('employee_permissions load failed (테이블이 아직 없을 수 있습니다):', e.message);
+        return _permMap;
+      });
+  }
+
+  // 권한 데이터 변경 후 영향받는 패널 리렌더
+  function _refreshAfterPermChange() {
+    _applySidebarPermVisibility();
+    if (_empPanelOpen) renderAdminStats();
+    var histOv = document.getElementById('history-overlay');
+    if (histOv && histOv.style.display !== 'none') openHistoryPanel();
+    var achOv = document.getElementById('ach-overlay');
+    if (achOv && achOv.style.display !== 'none' && typeof _renderAchTabs === 'function') {
+      _renderAchTabs();
+      if (typeof renderAchievementPanel === 'function') renderAchievementPanel();
+    }
+    if (typeof renderList === 'function') renderList();
+  }
+
+  // 사이드바 가시성: 관리자=admin-sidebar-section 전체 표시 + 권한 메뉴 표시
+  //                  비관리자=권한이 부여된 경우 직원별 현황 메뉴만 노출
+  function _applySidebarPermVisibility() {
+    var section = document.getElementById('admin-sidebar-section');
+    var permBtn = document.getElementById('sidebar-perm-btn');
+    var empBtn  = document.getElementById('sidebar-emp-btn');
+    var monthlyReportBtn = section ? section.querySelector('.sidebar-item[onclick*="showMonthlyReport"]') : null;
+    if (_isAdmin) {
+      if (section) section.style.display = '';
+      if (permBtn) permBtn.style.display = '';
+      if (empBtn)  empBtn.style.display  = '';
+      if (monthlyReportBtn) monthlyReportBtn.style.display = '';
+      return;
+    }
+    var hasPerm = _userId && Array.isArray(_permMap[_userId]) && _permMap[_userId].length > 0;
+    if (hasPerm) {
+      if (section) section.style.display = '';
+      if (empBtn)  empBtn.style.display  = '';
+      if (permBtn) permBtn.style.display = 'none';
+      if (monthlyReportBtn) monthlyReportBtn.style.display = 'none';
+    } else {
+      if (section) section.style.display = 'none';
+    }
+  }
+
+  /* ── 권한 모달 ── */
+  function openPermissionPanel() {
+    if (!_isAdmin) { showToast('관리자만 사용 가능합니다'); return; }
+    var ov = document.getElementById('permission-overlay');
+    if (!ov) return;
+    ov.style.display = 'flex';
+    document.getElementById('perm-status').textContent = '불러오는 중...';
+    _loadPermissions().then(function(){
+      _permDraft = {};
+      ALL_USERS.forEach(function(u){
+        if (u.isAdmin) return;
+        _permDraft[u.id] = (Array.isArray(_permMap[u.id]) ? _permMap[u.id].slice() : []);
+      });
+      document.getElementById('perm-status').textContent = '';
+      _renderPermissionRows();
+    });
+  }
+  function closePermissionPanel() {
+    var ov = document.getElementById('permission-overlay');
+    if (ov) ov.style.display = 'none';
+    _permDraft = null;
+  }
+  function _renderPermissionRows() {
+    var body = document.getElementById('perm-body');
+    if (!body || !_permDraft) return;
+    var viewers = ALL_USERS.filter(function(u){ return !u.isAdmin; });
+    var html = '<div style="padding:14px 18px">';
+    html += '<div style="display:grid;grid-template-columns:200px 1fr;gap:0;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">'
+          + '<div style="padding:10px 14px;background:#f8fafc;font-size:11px;font-weight:700;color:#475569;border-bottom:1px solid #e2e8f0;border-right:1px solid #e2e8f0">대상 직원</div>'
+          + '<div style="padding:10px 14px;background:#f8fafc;font-size:11px;font-weight:700;color:#475569;border-bottom:1px solid #e2e8f0">접근 가능 직원 (체크)</div>'
+          + '</div>';
+    html += '<div style="border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;overflow:hidden">';
+    viewers.forEach(function(viewer, idx){
+      var isLast = idx === viewers.length - 1;
+      var assigned = _permDraft[viewer.id] || [];
+      var assignedSet = {}; assigned.forEach(function(id){ assignedSet[id] = true; });
+      var grants = '';
+      ALL_USERS.forEach(function(target){
+        if (target.id === viewer.id) return; // 본인은 자동 포함이라 노출하지 않음
+        if (target.isAdmin) return;          // 관리자는 노출 제외
+        var checked = !!assignedSet[target.id];
+        grants += '<label style="display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid '
+              + (checked ? '#a78bfa' : '#e2e8f0')
+              + ';border-radius:8px;background:' + (checked ? '#f5f3ff' : '#fff')
+              + ';font-size:11px;cursor:pointer;transition:all .12s">'
+              + '<input type="checkbox" ' + (checked?'checked':'') + ' onchange="_togglePermission(\'' + viewer.id + '\',\'' + target.id + '\',this.checked)" style="margin:0;cursor:pointer;accent-color:#7c3aed">'
+              + '<span style="color:#0f172a;font-weight:' + (checked?'700':'500') + '">' + escHtml(target.fullName) + '</span>'
+              + '<span style="color:#94a3b8;font-size:10px">' + escHtml(target.dept) + '</span>'
+              + '</label>';
+      });
+      var bulkBtns = '<div style="display:flex;gap:6px;margin-bottom:8px">'
+          + '<button onclick="_permSelectAll(\'' + viewer.id + '\')" style="padding:3px 9px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;font-size:10.5px;color:#475569;cursor:pointer;font-weight:600">모두 선택</button>'
+          + '<button onclick="_permClearAll(\'' + viewer.id + '\')" style="padding:3px 9px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;font-size:10.5px;color:#475569;cursor:pointer;font-weight:600">모두 해제</button>'
+          + '<span style="margin-left:auto;font-size:10.5px;color:#7c3aed;font-weight:700;align-self:center">' + assigned.length + '명 부여</span>'
+          + '</div>';
+      html += '<div style="display:grid;grid-template-columns:200px 1fr;gap:0;background:' + (idx%2?'#fafbfc':'#fff') + (isLast?'':';border-bottom:1px solid #f1f5f9') + '">'
+            + '<div style="padding:14px;border-right:1px solid #f1f5f9;display:flex;align-items:center;gap:10px">'
+              + (viewer.img
+                ? '<img src="' + viewer.img + '" style="width:34px;height:34px;border-radius:8px;object-fit:cover">'
+                : '<div style="width:34px;height:34px;border-radius:8px;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#475569">' + viewer.fullName.charAt(0) + '</div>')
+              + '<div style="min-width:0">'
+                + '<div style="font-size:12.5px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(viewer.fullName) + '</div>'
+                + '<div style="font-size:10.5px;color:#94a3b8;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(viewer.dept) + '</div>'
+              + '</div>'
+            + '</div>'
+            + '<div style="padding:12px 14px">'
+              + bulkBtns
+              + '<div style="display:flex;flex-wrap:wrap;gap:6px">' + (grants || '<span style="font-size:11px;color:#cbd5e1">대상 직원이 없습니다</span>') + '</div>'
+            + '</div>'
+          + '</div>';
+    });
+    html += '</div></div>';
+    body.innerHTML = html;
+  }
+  function _togglePermission(viewerId, targetId, checked) {
+    if (!_permDraft) return;
+    var arr = _permDraft[viewerId] || [];
+    var idx = arr.indexOf(targetId);
+    if (checked && idx === -1) arr.push(targetId);
+    if (!checked && idx !== -1) arr.splice(idx, 1);
+    _permDraft[viewerId] = arr;
+    _renderPermissionRows();
+  }
+  function _permSelectAll(viewerId) {
+    if (!_permDraft) return;
+    _permDraft[viewerId] = ALL_USERS
+      .filter(function(u){ return !u.isAdmin && u.id !== viewerId; })
+      .map(function(u){ return u.id; });
+    _renderPermissionRows();
+  }
+  function _permClearAll(viewerId) {
+    if (!_permDraft) return;
+    _permDraft[viewerId] = [];
+    _renderPermissionRows();
+  }
+  function savePermissions() {
+    if (!_permDraft) return;
+    var btn = document.getElementById('perm-save-btn');
+    var status = document.getElementById('perm-status');
+    btn.disabled = true; btn.textContent = '저장 중...';
+    status.textContent = '저장 중...';
+    var rows = Object.keys(_permDraft).map(function(viewerId){
+      return {
+        viewer_id: viewerId,
+        allowed_user_ids: _permDraft[viewerId] || [],
+        updated_at: new Date().toISOString()
+      };
+    });
+    var hdr = Object.assign({}, SB_HDR, { 'Prefer': 'resolution=merge-duplicates,return=minimal' });
+    fetch(SB_URL + '/rest/v1/employee_permissions?on_conflict=viewer_id', {
+      method: 'POST', headers: hdr, body: JSON.stringify(rows)
+    }).then(function(r){
+      if (!r.ok && r.status !== 201 && r.status !== 204) {
+        return r.text().then(function(t){ throw new Error('HTTP '+r.status+' '+t); });
+      }
+      // 캐시 동기화
+      var newMap = {};
+      rows.forEach(function(row){ newMap[row.viewer_id] = row.allowed_user_ids; });
+      _permMap = newMap;
+      try { localStorage.setItem(_PERM_CACHE_KEY, JSON.stringify(newMap)); } catch(e){}
+      btn.disabled = false; btn.textContent = '저장';
+      status.textContent = '저장됨';
+      showToast('권한이 저장되었습니다');
+      closePermissionPanel();
+      _refreshAfterPermChange();
+    }).catch(function(e){
+      console.error('savePermissions error', e);
+      btn.disabled = false; btn.textContent = '저장';
+      status.textContent = '저장 실패';
+      alert('저장 실패: ' + (e.message || '네트워크 오류') + '\n\nSupabase에 employee_permissions 테이블이 생성되어 있는지 확인하세요.');
+    });
+  }
+
   var _empPanelOpen = false;
 
   function toggleEmpPanel() {
@@ -2804,7 +3050,7 @@
     var now = new Date();
     var monthStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
 
-    var html = ALL_USERS.map(function(u) {
+    var html = _getVisibleUsers().map(function(u) {
       var uJournals = all.filter(function(j) { return j.user_id === u.id; });
       var monthCnt  = uJournals.filter(function(j) { return (j.date || '').startsWith(monthStr); }).length;
       var avg = uJournals.length === 0 ? 0 : Math.round(
@@ -4603,6 +4849,11 @@
     renderList();
     document.getElementById('sc-total').classList.add('chart-active');
     renderCharts();
+    // 권한 데이터 로드 후 사이드바 가시성 결정
+    _loadPermissions().then(function(){
+      _applySidebarPermVisibility();
+      _refreshAfterPermChange();
+    });
     if (_isAdmin) {
       var adminSb = document.getElementById('admin-sidebar-section');
       if (adminSb) adminSb.style.display = '';
@@ -6722,6 +6973,32 @@
   }
 </style>
 
+<!-- ── 직원별 권한 패널 (관리자 전용) ── -->
+<div id="permission-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9990;align-items:center;justify-content:center;padding:24px" onclick="if(event.target===this)closePermissionPanel()">
+  <div style="width:100%;max-width:1100px;max-height:90vh;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.25);display:flex;flex-direction:column;font-family:inherit">
+    <!-- 헤더 -->
+    <div style="padding:18px 22px;border-bottom:1px solid #f1f5f9;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#7c3aed,#5b21b6);border-radius:14px 14px 0 0">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#fff">직원별 권한 설정</div>
+        <div style="font-size:11px;color:#ddd6fe;margin-top:2px">왼쪽 직원이 오른쪽 체크된 직원의 업무 성과 · 히스토리 · 직원별 현황을 볼 수 있습니다.</div>
+      </div>
+      <button onclick="closePermissionPanel()" style="background:rgba(255,255,255,0.18);border:none;cursor:pointer;font-size:18px;color:#fff;line-height:1;padding:4px 10px;border-radius:6px">×</button>
+    </div>
+    <!-- 본문 -->
+    <div id="perm-body" style="flex:1;overflow:auto;padding:0">
+      <!-- _renderPermissionRows()가 채움 -->
+    </div>
+    <!-- 푸터 -->
+    <div style="padding:14px 22px;border-top:1px solid #f1f5f9;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border-radius:0 0 14px 14px">
+      <div id="perm-status" style="font-size:11px;color:#64748b"></div>
+      <div style="display:flex;gap:8px">
+        <button onclick="closePermissionPanel()" style="padding:8px 18px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#475569;font-size:13px;cursor:pointer;font-weight:600">취소</button>
+        <button id="perm-save-btn" onclick="savePermissions()" style="padding:8px 18px;border:none;border-radius:8px;background:#7c3aed;color:#fff;font-size:13px;cursor:pointer;font-weight:700">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ── 업무 히스토리 패널 ── -->
 <div id="history-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9990;align-items:flex-start;justify-content:flex-end" onclick="if(event.target===this)closeHistoryPanel()">
   <div style="width:520px;height:100vh;background:#fff;box-shadow:-8px 0 32px rgba(0,0,0,0.15);display:flex;flex-direction:column;font-family:inherit;animation:historySlideIn 0.25s ease">
@@ -6793,15 +7070,22 @@
     document.getElementById('hist-search').value = '';
     document.getElementById('hist-date-from').value = '';
     document.getElementById('hist-date-to').value = '';
-    // 관리자 또는 developer: 직원 필터 표시 + 옵션 채우기
-    if (_isAdmin || _currentUsername === 'developer') {
+    // 직원 필터 표시 조건:
+    //  - 관리자 / developer / 권한이 부여된 직원
+    var hasGrantedPerm = !_isAdmin && _userId && Array.isArray(_permMap[_userId]) && _permMap[_userId].length > 0;
+    var canEmpFilter = _isAdmin || _currentUsername === 'developer' || hasGrantedPerm;
+    if (canEmpFilter) {
       var empFilter = document.getElementById('hist-emp-filter');
       var empSelect = document.getElementById('hist-emp-select');
       empFilter.style.display = '';
+      var visibleUsers = _getVisibleUsers().filter(function(u){ return !u.isAdmin; });
       empSelect.innerHTML = '<option value="">전체 직원</option>'
-        + (ALL_USERS || []).filter(function(u) { return !u.isAdmin; }).map(function(u) {
+        + visibleUsers.map(function(u) {
             return '<option value="' + u.id + '">' + escHtml(u.fullName) + ' (' + escHtml(u.dept) + ')</option>';
           }).join('');
+    } else {
+      var empFilter2 = document.getElementById('hist-emp-filter');
+      if (empFilter2) empFilter2.style.display = 'none';
     }
     renderHistList();
   }
@@ -6964,18 +7248,28 @@
     var q      = (document.getElementById('hist-search').value || '').trim().toLowerCase();
     var dFrom  = document.getElementById('hist-date-from').value || '';
     var dTo    = document.getElementById('hist-date-to').value   || '';
-    var _canEmpFilter = _isAdmin || _currentUsername === 'developer';
+    var _hasGrant = !_isAdmin && _userId && Array.isArray(_permMap[_userId]) && _permMap[_userId].length > 0;
+    var _canEmpFilter = _isAdmin || _currentUsername === 'developer' || _hasGrant;
     var empSel = _canEmpFilter ? (document.getElementById('hist-emp-select') || {}).value || '' : '';
     var journals = loadJournals();
 
     // 탭별 접근 범위 결정
     if (_histTab === 'issue') {
-      // 발생 이슈: 전 직원 공유, 직원 필터 적용 (관리자·developer)
+      // 발생 이슈: 전 직원 공유, 직원 필터 적용 (관리자·developer / 권한 부여된 직원)
       if (empSel) journals = journals.filter(function(j) { return j.user_id === empSel; });
+      else if (_hasGrant) {
+        // 권한 부여 직원: 전체 옵션 선택 시 본인 + 가시 직원만
+        journals = journals.filter(function(j) { return _canSeeUserId(j.user_id); });
+      }
     } else {
-      // 익일 계획 / 메모: 관리자·developer 전체, 직원 본인만
-      if (!_canEmpFilter) journals = journals.filter(function(j) { return j.user_id === _userId; });
-      if (_canEmpFilter && empSel) journals = journals.filter(function(j) { return j.user_id === empSel; });
+      // 익일 계획 / 메모: 관리자·developer / 권한자
+      if (!_canEmpFilter) {
+        journals = journals.filter(function(j) { return j.user_id === _userId; });
+      } else if (empSel) {
+        journals = journals.filter(function(j) { return j.user_id === empSel; });
+      } else if (_hasGrant) {
+        journals = journals.filter(function(j) { return _canSeeUserId(j.user_id); });
+      }
     }
 
     var tabLabel = _histTab === 'plan' ? '익일 계획' : _histTab === 'note' ? '메모 / 특이사항' : '발생 이슈';
@@ -7359,11 +7653,12 @@
     document.getElementById('ach-date-from').value = yyyy + '-' + mm + '-01';
     document.getElementById('ach-date-to').value   = yyyy + '-' + mm + '-' + dd;
 
-    // 관리자: 직원 탭 렌더 (기본: 전체 = null)
+    // 관리자 또는 권한 부여된 직원: 직원 탭 렌더 (기본: 전체 = null)
     var tabsEl = document.getElementById('ach-emp-tabs');
-    if (_isAdmin) {
+    var _achGrant = !_isAdmin && _userId && Array.isArray(_permMap[_userId]) && _permMap[_userId].length > 0;
+    if (_isAdmin || _achGrant) {
       tabsEl.style.display = 'flex';
-      if (typeof _achSelectedUser === 'undefined') _achSelectedUser = null; // 전체 보기 기본값
+      if (typeof _achSelectedUser === 'undefined') _achSelectedUser = null;
       _renderAchTabs();
     } else {
       tabsEl.style.display = 'none';
@@ -7396,7 +7691,7 @@
   function _renderAchTabs() {
     var tabsEl = document.getElementById('ach-emp-tabs');
     if (!tabsEl) return;
-    var users = (ALL_USERS || []).filter(function(u){ return !u.isAdmin; });
+    var users = _getVisibleUsers().filter(function(u){ return !u.isAdmin; });
     var allActive = _achSelectedUser === null;
     var allBtn = '<button onclick="achSelectUser(null)" style="padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,' + (allActive?'0.9':'0.3') + ');background:' + (allActive?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.12)') + ';color:' + (allActive?'#4f46e5':'#fff') + ';font-size:11px;font-weight:' + (allActive?'700':'500') + ';cursor:pointer">전체</button>';
     tabsEl.innerHTML = allBtn + users.map(function(u) {
@@ -7661,22 +7956,40 @@
     var from = document.getElementById('ach-date-from').value;
     var to   = document.getElementById('ach-date-to').value;
 
-    // 대상 결정 (관리자 + null = 전체)
-    var showAll = _isAdmin && _achSelectedUser === null;
-    var targetUsername = _isAdmin ? _achSelectedUser : _currentUsername;
+    // 권한 부여 직원: 가시 범위 내에서 다른 직원 탭 선택 가능
+    var _achHasGrant = !_isAdmin && _userId && Array.isArray(_permMap[_userId]) && _permMap[_userId].length > 0;
+    // 대상 결정
+    //   관리자: 전체(null) 또는 특정 직원
+    //   권한 부여 직원: 전체(null) = 가시 직원 + 본인, 특정 = 가시 직원
+    //   일반 직원: 본인만
+    var showAll = (_isAdmin || _achHasGrant) && _achSelectedUser === null;
+    var targetUsername;
+    if (_isAdmin) targetUsername = _achSelectedUser;
+    else if (_achHasGrant) targetUsername = _achSelectedUser; // null = 전체(가시 범위)
+    else targetUsername = _currentUsername;
     var targetUser = (ALL_USERS||[]).find(function(u){ return u.username === targetUsername; });
     var targetName = targetUser ? targetUser.fullName : targetUsername;
 
     // subtitle 업데이트
     var sub = document.getElementById('ach-subtitle');
-    if (sub) sub.textContent = showAll ? '전 직원 업무 성과' : (_isAdmin ? (targetName + '의 업무 성과') : '나의 업무 성과');
+    if (sub) {
+      if (showAll) sub.textContent = (_isAdmin ? '전 직원' : '접근 가능 직원') + ' 업무 성과';
+      else if (_isAdmin || _achHasGrant) sub.textContent = (targetName || '') + '의 업무 성과';
+      else sub.textContent = '나의 업무 성과';
+    }
 
     // 데이터 필터
     var data = loadJournals().filter(function(j) {
-      if (showAll) return true;
-      if (_isAdmin) {
+      if (showAll) {
+        // 관리자 = 전체, 권한 부여 직원 = 가시 범위만
+        if (_isAdmin) return true;
+        return _canSeeUserId(j.user_id);
+      }
+      if (_isAdmin || _achHasGrant) {
         var u = (ALL_USERS||[]).find(function(u){ return u.username === targetUsername; });
         if (!u) return false;
+        // 권한 부여 직원은 가시 범위 외의 사용자 데이터를 볼 수 없음 (방어)
+        if (_achHasGrant && !_canSeeUserId(u.id)) return false;
         return j.user_id === u.id || (j.author || '').trim() === (u.fullName || '').trim();
       } else {
         return j.user_id === _userId || (j.author || '').trim() === ((targetUser && targetUser.fullName) || '').trim();
