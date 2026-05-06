@@ -6761,10 +6761,11 @@
         <button onclick="closeHistoryPanel()" style="background:none;border:none;cursor:pointer;font-size:20px;color:#94a3b8;line-height:1;padding:2px 6px">×</button>
       </div>
       <!-- 탭 -->
-      <div style="display:flex;gap:0;border-bottom:2px solid #f1f5f9;margin:0 -20px;padding:0 20px">
-        <button id="hist-tab-plan"  onclick="switchHistTab('plan')"  style="padding:8px 16px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:700;color:#2563eb;border-bottom:2px solid #2563eb;margin-bottom:-2px">익일 계획</button>
-        <button id="hist-tab-note"  onclick="switchHistTab('note')"  style="padding:8px 16px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:#94a3b8;border-bottom:2px solid transparent;margin-bottom:-2px">메모 / 특이사항</button>
-        <button id="hist-tab-issue" onclick="switchHistTab('issue')" style="padding:8px 16px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:#94a3b8;border-bottom:2px solid transparent;margin-bottom:-2px">발생 이슈</button>
+      <div style="display:flex;gap:0;border-bottom:2px solid #f1f5f9;margin:0 -20px;padding:0 20px;flex-wrap:wrap">
+        <button id="hist-tab-plan"  onclick="switchHistTab('plan')"  style="padding:8px 14px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:700;color:#2563eb;border-bottom:2px solid #2563eb;margin-bottom:-2px">익일 계획</button>
+        <button id="hist-tab-note"  onclick="switchHistTab('note')"  style="padding:8px 14px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:#94a3b8;border-bottom:2px solid transparent;margin-bottom:-2px">메모 / 특이사항</button>
+        <button id="hist-tab-issue" onclick="switchHistTab('issue')" style="padding:8px 14px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:#94a3b8;border-bottom:2px solid transparent;margin-bottom:-2px">발생 이슈</button>
+        <button id="hist-tab-wp"    onclick="switchHistTab('wp')"    style="padding:8px 14px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:#94a3b8;border-bottom:2px solid transparent;margin-bottom:-2px">업무 추진현황</button>
       </div>
     </div>
     <!-- 검색 + 날짜 필터 + 직원 필터 -->
@@ -6983,7 +6984,7 @@
 
   function switchHistTab(tab) {
     _histTab = tab;
-    ['plan','note','issue'].forEach(function(t) {
+    ['plan','note','issue','wp'].forEach(function(t) {
       var btn = document.getElementById('hist-tab-' + t);
       if (!btn) return;
       var active = t === tab;
@@ -7014,7 +7015,7 @@
         journals = journals.filter(function(j) { return _canSeeUserId(j.user_id); });
       }
     } else {
-      // 익일 계획 / 메모: 관리자·developer / 권한자
+      // 익일 계획 / 메모 / 업무 추진현황: 관리자·developer / 권한자
       if (!_canEmpFilter) {
         journals = journals.filter(function(j) { return j.user_id === _userId; });
       } else if (empSel) {
@@ -7022,6 +7023,12 @@
       } else if (_hasGrant) {
         journals = journals.filter(function(j) { return _canSeeUserId(j.user_id); });
       }
+    }
+
+    // 업무 추진현황 탭은 별도 렌더 (work_progress 배열을 항목별 카드로 표시)
+    if (_histTab === 'wp') {
+      _renderHistWorkProgress(journals, q, dFrom, dTo);
+      return;
     }
 
     var tabLabel = _histTab === 'plan' ? '익일 계획' : _histTab === 'note' ? '메모 / 특이사항' : '발생 이슈';
@@ -7084,6 +7091,109 @@
         + '<div style="font-size:13px;color:#374151;line-height:1.7;white-space:pre-wrap;word-break:break-all">' + highlighted + '</div>';
       body.appendChild(card);
     });
+  }
+
+  // 업무 히스토리 - 업무 추진현황 탭 렌더
+  // - 일지의 workProgress 배열을 카드 안 항목별 진행률 바로 표시
+  // - 검색: 항목 이름/요약 + 일지 제목 매칭
+  // - 권한/직원 필터는 renderHistList 에서 이미 적용된 journals 를 받음
+  function _renderHistWorkProgress(journals, q, dFrom, dTo) {
+    var body = document.getElementById('hist-list-body');
+    var accentColor = '#0891b2'; // 청록 (다른 탭들과 시각적 구분)
+    var cardBorder  = '#a5f3fc';
+    var cardBg      = '#ecfeff';
+
+    function _matchQ(text) {
+      if (!q) return true;
+      return (text || '').toLowerCase().indexOf(q) !== -1;
+    }
+    function _highlight(text) {
+      var safe = escHtml(text || '');
+      if (!q) return safe;
+      try {
+        return safe.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi'),
+          '<mark style="background:#fef08a;border-radius:2px">$1</mark>');
+      } catch(e) { return safe; }
+    }
+
+    // 일지 단위 필터링
+    var items = journals.filter(function(j) {
+      var wp = j.workProgress || j.work_progress;
+      if (!Array.isArray(wp) || wp.length === 0) return false;
+      // 유효한 항목(이름/요약)이 하나라도 있어야 함
+      var validWp = wp.filter(function(p) {
+        return ((p && p.name) || '').toString().trim() || ((p && p.summary) || '').toString().trim();
+      });
+      if (!validWp.length) return false;
+      if (dFrom && (j.date || '') < dFrom) return false;
+      if (dTo   && (j.date || '') > dTo)   return false;
+      if (q) {
+        var titleMatch = _matchQ(j.title);
+        var anyItemMatch = validWp.some(function(p) {
+          return _matchQ(p.name) || _matchQ(p.summary);
+        });
+        if (!titleMatch && !anyItemMatch) return false;
+      }
+      return true;
+    }).sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+
+    if (!items.length) {
+      body.innerHTML = '<div style="text-align:center;padding:40px 0;color:#94a3b8;font-size:13px">업무 추진현황 내용이 없습니다.</div>';
+      return;
+    }
+
+    var showAuthor = _isAdmin || _hasGrantForHist();
+    body.innerHTML = '';
+    items.forEach(function(j) {
+      var wp = (j.workProgress || j.work_progress || []).filter(function(p) {
+        return ((p && p.name) || '').toString().trim() || ((p && p.summary) || '').toString().trim();
+      });
+      var dateStr = j.date ? j.date.replace(/-/g, '.') : '';
+      var card = document.createElement('div');
+      card.style.cssText = 'background:' + cardBg + ';border:1px solid ' + cardBorder + ';border-radius:12px;padding:14px 16px';
+
+      var rowsHtml = wp.map(function(p) {
+        var pctNum = parseInt(p.pct, 10);
+        if (isNaN(pctNum)) pctNum = 0;
+        if (pctNum < 0) pctNum = 0;
+        if (pctNum > 100) pctNum = 100;
+        var nameHl = _highlight(p.name);
+        var sumHl  = _highlight(p.summary);
+        var barColor = pctNum >= 100 ? '#16a34a' : (pctNum >= 50 ? accentColor : '#64748b');
+        return '<div style="background:#fff;border:1px solid #e0f2fe;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px">'
+          + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+            + '<span style="font-size:13px;font-weight:700;color:#0f172a;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (nameHl || '<span style="color:#cbd5e1;font-weight:500">(이름 없음)</span>') + '</span>'
+            + '<span style="font-size:12px;font-weight:700;color:' + barColor + ';flex-shrink:0;min-width:40px;text-align:right">' + pctNum + '%</span>'
+          + '</div>'
+          + (sumHl ? '<div style="font-size:12px;color:#475569;line-height:1.5;white-space:pre-wrap;word-break:break-word">' + sumHl + '</div>' : '')
+          + '<div style="height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden">'
+            + '<div style="width:' + pctNum + '%;height:100%;background:' + barColor + ';border-radius:3px;transition:width .3s"></div>'
+          + '</div>'
+        + '</div>';
+      }).join('');
+
+      // 평균 진행률
+      var avgPct = wp.length
+        ? Math.round(wp.reduce(function(s, p) {
+            var n = parseInt(p.pct, 10);
+            return s + (isNaN(n) ? 0 : n);
+          }, 0) / wp.length)
+        : 0;
+
+      card.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
+          + '<span style="font-size:11px;font-weight:700;color:#fff;background:' + accentColor + ';border-radius:5px;padding:2px 8px">' + dateStr + '</span>'
+          + (showAuthor ? '<span style="font-size:11px;color:#64748b;font-weight:600">' + escHtml(j.author || '') + '</span>' : '')
+          + '<span style="font-size:11px;color:#0891b2;font-weight:700;background:#cffafe;border:1px solid #a5f3fc;border-radius:10px;padding:1px 8px">평균 ' + avgPct + '%</span>'
+          + '<span style="font-size:12px;color:#64748b;margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px">' + escHtml(j.title || '') + '</span>'
+        + '</div>'
+        + '<div style="display:flex;flex-direction:column;gap:6px">' + rowsHtml + '</div>';
+      body.appendChild(card);
+    });
+  }
+
+  // 권한 부여 여부 헬퍼 (작성자 표시 결정용)
+  function _hasGrantForHist() {
+    return !_isAdmin && _userId && Array.isArray(_permMap[_userId]) && _permMap[_userId].length > 0;
   }
 </script>
 
