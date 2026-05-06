@@ -1645,7 +1645,13 @@
           </tr>
         </tbody>
       </table>
-      <button class="add-btn" onclick="addProgressRow()">+ 업무 현황 추가</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <button class="add-btn" onclick="addProgressRow()">+ 업무 현황 추가</button>
+        <button class="add-btn" id="import-prev-wp-btn" onclick="importPrevWorkProgress()" style="background:#f0fdf4;color:#16a34a;border-color:#bbf7d0">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+          직전일 업무현황 가져오기
+        </button>
+      </div>
     </div>
 
     <!-- Summary -->
@@ -2712,6 +2718,106 @@
         + '<td class="col-pct"><div class="pct-wrap"><input type="number" class="p-pct" min="0" max="100" placeholder="0"><span class="pct-suffix">%</span></div></td>'
         + '<td class="col-del"><button class="progress-row-del" onclick="delProgressRow(this)" title="삭제">×</button></td>';
       tbody.appendChild(tr);
+    }
+
+    // 직전 영업일의 '업무 추진 현황' 그대로 가져오기
+    // - 직전일 일지에 work_progress 항목이 모두 100%면 가져오지 않음 (사용자 요구사항)
+    // - 100% 미만 항목이 하나라도 있으면 모든 항목을 그대로 추가
+    // - 비어있는 기존 행은 제거, 사용자가 입력한 행은 보존
+    async function importPrevWorkProgress() {
+      var btn = document.getElementById('import-prev-wp-btn');
+      var dateEl = document.getElementById('doc-date');
+      var baseDate = dateEl && dateEl.value ? new Date(dateEl.value + 'T00:00:00') : new Date();
+      var prev = new Date(baseDate);
+      prev.setDate(prev.getDate() - 1);
+      // 주말 건너뜀 (일→금, 토→금)
+      while (prev.getDay() === 0 || prev.getDay() === 6) prev.setDate(prev.getDate() - 1);
+      var yyyy = prev.getFullYear();
+      var mm = String(prev.getMonth() + 1).padStart(2, '0');
+      var dd = String(prev.getDate()).padStart(2, '0');
+      var prevDateStr = yyyy + '-' + mm + '-' + dd;
+
+      var origText = btn.innerHTML;
+      var origBg = btn.style.background;
+      btn.disabled = true;
+      btn.textContent = '불러오는 중...';
+
+      try {
+        var url = SB_URL + '/rest/v1/journals?select=work_progress&date=eq.' + prevDateStr
+          + (_userId ? '&user_id=eq.' + _userId : '')
+          + '&order=created_at.desc&limit=5';
+        var res = await fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } });
+        var rows = await res.json();
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+          alert(prevDateStr + ' 날짜의 일지가 없습니다.');
+          return;
+        }
+
+        // 모든 일지의 work_progress 합산
+        var allWp = [];
+        rows.forEach(function(r) {
+          if (Array.isArray(r.work_progress)) allWp = allWp.concat(r.work_progress);
+        });
+
+        // 이름 또는 요약이 있는 유효 항목만
+        var validWp = allWp.filter(function(p) {
+          return ((p && p.name) || '').toString().trim() || ((p && p.summary) || '').toString().trim();
+        });
+
+        if (validWp.length === 0) {
+          alert(prevDateStr + ' 날짜에 업무 추진 현황 항목이 없습니다.');
+          return;
+        }
+
+        // 100% 미만 항목 존재 여부 확인 (모두 완료된 경우 가져오지 않음)
+        var hasIncomplete = validWp.some(function(p) {
+          var pct = parseInt(p.pct, 10);
+          return isNaN(pct) || pct < 100;
+        });
+        if (!hasIncomplete) {
+          alert(prevDateStr + ' 직전일 업무 추진 현황이 모두 100% 완료되었습니다.\n가져올 항목이 없습니다.');
+          return;
+        }
+
+        var tbody = document.getElementById('progress-tbody');
+        // 비어있는 기존 행만 제거 (사용자가 입력한 행은 보존)
+        Array.prototype.slice.call(tbody.querySelectorAll('tr')).forEach(function(tr) {
+          var n = (tr.querySelector('.p-name') || {}).value || '';
+          var s = (tr.querySelector('.p-summary') || {}).value || '';
+          var p = (tr.querySelector('.p-pct') || {}).value || '';
+          if (!n.trim() && !s.trim() && (!p || p === '0' || p === '')) tr.remove();
+        });
+
+        // 직전일 work_progress 그대로 추가
+        validWp.forEach(function(p) {
+          var safeName = (p.name || '').toString().replace(/"/g, '&quot;');
+          var safeSum  = (p.summary || '').toString().replace(/"/g, '&quot;');
+          var pctNum   = parseInt(p.pct, 10);
+          var safePct  = isNaN(pctNum) ? 0 : pctNum;
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td class="col-name"><input type="text" class="p-name" value="' + safeName + '" placeholder="업무명"></td>'
+            + '<td class="col-sum"><input type="text" class="p-summary" value="' + safeSum + '" placeholder="진행 내용 요약"></td>'
+            + '<td class="col-pct"><div class="pct-wrap"><input type="number" class="p-pct" min="0" max="100" value="' + safePct + '" placeholder="0"><span class="pct-suffix">%</span></div></td>'
+            + '<td class="col-del"><button class="progress-row-del" onclick="delProgressRow(this)" title="삭제">×</button></td>';
+          tbody.appendChild(tr);
+        });
+
+        btn.style.background = '#dcfce7';
+        btn.textContent = validWp.length + '건 가져옴 ✓';
+        setTimeout(function() {
+          btn.innerHTML = origText;
+          btn.style.background = origBg || '#f0fdf4';
+          btn.disabled = false;
+        }, 2000);
+        return;
+      } catch (e) {
+        console.error('importPrevWorkProgress error', e);
+        alert('데이터를 불러오는 중 오류가 발생했습니다.');
+      }
+      btn.innerHTML = origText;
+      btn.style.background = origBg || '#f0fdf4';
+      btn.disabled = false;
     }
 
     function delProgressRow(btn) {
