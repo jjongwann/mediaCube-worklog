@@ -8547,6 +8547,16 @@
           <div id="vendor-add-name-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);max-height:240px;overflow-y:auto;z-index:100"></div>
         </div>
       </div>
+      <div id="vendor-add-cat-wrap" style="display:none">
+        <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">거래처 구분 *</label>
+        <select id="vendor-add-cat" onchange="__vendor._onAddCatChange()" style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;background:#fff">
+          <option value="">선택해주세요...</option>
+          <option value="needle">🎵 NEEDLE drop</option>
+          <option value="blanket_paid">💎 유료 BLANKET</option>
+          <option value="blanket_free">🆓 무료 BLANKET</option>
+        </select>
+        <div style="font-size:10px;color:#94a3b8;margin-top:4px">선택한 카테고리에 신규 거래처가 등록됩니다.</div>
+      </div>
       <div style="display:flex;gap:10px">
         <div style="flex:1">
           <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">년도 *</label>
@@ -8914,6 +8924,11 @@ window.__vendor = (function() {
   }
 
   // ── 신규 추가 모달 ──
+  // _state.currentCat 가 'new_customer' 인 경우 (신규 고객 패널에서 진입):
+  //   - 거래처 구분 드롭다운 노출 → 사용자가 needle / blanket_paid / blanket_free 선택
+  //   - 선택 카테고리 기준으로 매출액 표시/자동완성 동적 갱신
+  // 그 외 (needle / blanket_paid / blanket_free 패널 진입):
+  //   - 드롭다운 숨김, 기존 동작 그대로
   function openAdd() {
     var addYearSel = document.getElementById('vendor-add-year');
     var now = new Date().getFullYear();
@@ -8929,30 +8944,64 @@ window.__vendor = (function() {
     document.getElementById('vendor-add-amount').value = '';
     document.getElementById('vendor-add-name-drop').style.display = 'none';
 
-    // 무료 BLANKET → 매출액 입력 숨김 (자동 0원 저장)
-    var isFreeBlanket = (_state.currentCat === 'blanket_free');
-    var amtWrap = document.getElementById('vendor-add-amount-wrap');
-    var freeNote = document.getElementById('vendor-add-freenote');
-    if (amtWrap) amtWrap.style.display = isFreeBlanket ? 'none' : '';
-    if (freeNote) freeNote.style.display = isFreeBlanket ? 'block' : 'none';
+    // 신규 고객 모드: 카테고리 드롭다운 노출
+    var isNewCustomerMode = (_state.currentCat === 'new_customer');
+    var catWrap = document.getElementById('vendor-add-cat-wrap');
+    var catSel  = document.getElementById('vendor-add-cat');
+    if (catWrap) catWrap.style.display = isNewCustomerMode ? '' : 'none';
+    if (catSel) catSel.value = '';
+
+    // 매출액·자동완성 초기 상태 결정 (신규 고객 모드에서는 카테고리 미선택 상태)
+    _refreshAddModalForCat(isNewCustomerMode ? '' : _state.currentCat);
 
     // 활성/비활성 토글 초기값: 활성 (저장 시 사용자가 토글하여 변경 가능)
     _state.addActive = true;
     _updateAddActiveStyle(true);
 
-    // 기존 거래처명 캐시
+    document.getElementById('vendor-add-overlay').style.display = 'flex';
+    setTimeout(function(){
+      var focusEl = isNewCustomerMode ? document.getElementById('vendor-add-cat')
+                                       : document.getElementById('vendor-add-name');
+      if (focusEl) focusEl.focus();
+    }, 80);
+  }
+
+  // 카테고리 변경 시 모달 UI 동기화 (매출액 표시 / 자동완성 옵션 갱신)
+  function _refreshAddModalForCat(cat) {
+    var isFreeBlanket = (cat === 'blanket_free');
+    var amtWrap  = document.getElementById('vendor-add-amount-wrap');
+    var freeNote = document.getElementById('vendor-add-freenote');
+    if (amtWrap)  amtWrap.style.display  = isFreeBlanket ? 'none' : '';
+    if (freeNote) freeNote.style.display = isFreeBlanket ? 'block' : 'none';
+
+    // 기존 거래처명 캐시 — 선택된 cat 기준 (신규 고객 모드에서 cat='' 이면 빈 리스트)
     _addNameOptions = [];
     var seen = {};
-    _state.rows.filter(function(r){ return r.category === _state.currentCat; }).forEach(function(r){
-      if (r.vendor_name && !seen[r.vendor_name]) {
-        seen[r.vendor_name] = true;
-        _addNameOptions.push({ name: r.vendor_name, manager: _getVendorManager(r.vendor_name) });
-      }
-    });
-    _addNameOptions.sort(function(a,b){ return a.name.localeCompare(b.name, 'ko'); });
+    if (cat) {
+      _state.rows.filter(function(r){ return r.category === cat; }).forEach(function(r){
+        if (r.vendor_name && !seen[r.vendor_name]) {
+          seen[r.vendor_name] = true;
+          _addNameOptions.push({ name: r.vendor_name, manager: _getVendorManager(r.vendor_name) });
+        }
+      });
+      _addNameOptions.sort(function(a,b){ return a.name.localeCompare(b.name, 'ko'); });
+    }
 
-    document.getElementById('vendor-add-overlay').style.display = 'flex';
-    setTimeout(function(){ document.getElementById('vendor-add-name').focus(); }, 80);
+    // 자동완성 드롭다운이 열려 있다면 즉시 재렌더
+    var dropEl = document.getElementById('vendor-add-name-drop');
+    if (dropEl && dropEl.style.display !== 'none') {
+      _renderAddNameDrop(document.getElementById('vendor-add-name').value || '');
+    }
+  }
+
+  // 사용자가 카테고리 드롭다운 변경 시
+  function _onAddCatChange() {
+    var sel = document.getElementById('vendor-add-cat');
+    var cat = sel ? sel.value : '';
+    _refreshAddModalForCat(cat);
+    // 카테고리 바뀌면 거래처명도 초기화 (기존 카테고리 자동완성 잔여 표시 방지)
+    var nameEl = document.getElementById('vendor-add-name');
+    if (nameEl) nameEl.value = '';
   }
 
   var _addNameOptions = [];
@@ -9039,11 +9088,21 @@ window.__vendor = (function() {
     var amount = parseInt(amountRaw, 10);
     if (isNaN(amount) || amount < 0) amount = 0;
 
+    // 신규 고객 모드: 드롭다운에서 실제 카테고리(needle/blanket_paid/blanket_free) 결정
+    var viewCat = _state.currentCat; // 저장 후 리렌더할 패널 (신규 고객 패널 유지용)
+    var cat;
+    if (viewCat === 'new_customer') {
+      var catSel = document.getElementById('vendor-add-cat');
+      cat = catSel ? catSel.value : '';
+      if (!cat) { _toast('거래처 구분을 선택하세요'); return; }
+    } else {
+      cat = viewCat;
+    }
+
     if (!name) { _toast('거래처명을 입력하세요'); return; }
     if (!year || !month) { _toast('년도/월을 선택하세요'); return; }
 
     var monthKey = year + '-' + month;
-    var cat = _state.currentCat;
 
     // 기존 동일 (cat, name, monthKey) 행이 있으면 합산
     var existing = _state.rows.find(function(r){
@@ -9069,7 +9128,7 @@ window.__vendor = (function() {
             return rr.category === cat && rr.vendor_name === name && rr.id !== existing.id;
           }).forEach(function(rr){ rr.extra = Object.assign({}, rr.extra || {}, { active: activeFlag }); });
           closeAdd();
-          render(cat);
+          render(viewCat); // 신규 고객 패널 진입 시에는 그대로 머물러 새 거래처 카드 즉시 표시
           _toast('기존 거래처에 합산 저장되었습니다 (' + _fmtW(newAmount) + ')');
         } else {
           r.text().then(function(t){ console.error('vendor patch failed', r.status, t); _toast('저장 실패: ' + r.status); });
@@ -9092,7 +9151,7 @@ window.__vendor = (function() {
         if (r.ok || r.status === 201) {
           _state.rows.push(row);
           closeAdd();
-          render(cat);
+          render(viewCat); // 신규 고객 패널 진입 시에는 그대로 머물러 새 거래처 카드 즉시 표시
           _toast('신규 거래처 매출이 저장되었습니다');
         } else {
           r.text().then(function(t){ console.error('vendor save failed', r.status, t); _toast('저장 실패: ' + r.status + ' (테이블 권한 확인)'); });
@@ -9935,7 +9994,8 @@ window.__vendor = (function() {
     _openAddNameDrop: _openAddNameDrop,
     _toggleAddNameDrop: _toggleAddNameDrop,
     _pickAddName: _pickAddName,
-    _onAddNameKey: _onAddNameKey
+    _onAddNameKey: _onAddNameKey,
+    _onAddCatChange: _onAddCatChange
   };
 })();
 
