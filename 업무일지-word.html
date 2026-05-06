@@ -3103,7 +3103,7 @@
               vendor_name: name,
               month_key: monthKey,
               amount: amount,
-              extra: { active: activeFlag },
+              extra: { active: activeFlag, created_at: new Date().toISOString() },
               updated_at: new Date().toISOString()
             };
             return fetch(SB_URL + '/rest/v1/vendor_sales', {
