@@ -1632,16 +1632,16 @@
         <div class="stat-value" id="s-done-rate">0%</div>
         <div class="stat-sub">전체 일지 평균 진행률</div>
       </div>
-      <div class="stat-card stat-card-link" id="sc-tasktime" onclick="setChartMode('tasktime')" title="업무별 누적 시간 보기">
+      <div class="stat-card stat-card-link" id="sc-bmat" onclick="bmatToggleSection()" title="BMAT 모니터링 통계 보기">
         <div class="stat-card-top">
-          <span class="stat-label">업무별 누적 시간</span>
-          <span class="stat-icon-box amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+          <span class="stat-label">BMAT 모니터링 통계</span>
+          <span class="stat-icon-box amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-5"/></svg></span>
         </div>
         <div class="stat-value" style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#d97706">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
           차트 보기
         </div>
-        <div class="stat-sub">눌러서 업무별 시간 확인</div>
+        <div class="stat-sub">눌러서 채널별 점유율 확인</div>
       </div>
     </div>
 
@@ -1695,6 +1695,110 @@
           <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#d97706"></span>보류</span>
           <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#9ca3af"></span>예정</span>
           <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#16a34a"></span>완료</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ BMAT 모니터링 통계 위젯 (기본 숨김, BMAT 카드 클릭 시 표시) ══ -->
+    <div id="bmat-widget" style="display:none;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px 20px;margin-bottom:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:13px;font-weight:700;color:#111827">BMAT 모니터링 통계</span>
+          <select id="bmat-month-sel" onchange="renderBmatWidget()" style="padding:5px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:600;color:#374151;background:#f8fafc;cursor:pointer;outline:none"></select>
+          <span style="font-size:11px;color:#94a3b8">단위: 카운트/모수</span>
+          <button onclick="openBmatCumul()" style="display:flex;align-items:center;gap:6px;padding:5px 13px;background:#0891b2;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:filter .15s" onmouseover="this.style.filter='brightness(0.9)'" onmouseout="this.style.filter=''">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            월별 누계 통계
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;border:1px solid #e2e8f0;border-radius:7px;overflow:hidden;font-size:11px">
+            <button id="bmat-btn-bar"  onclick="bmatSetType('bar')"  style="padding:4px 14px;border:none;background:#0891b2;color:#fff;cursor:pointer;font-weight:600">막대</button>
+            <button id="bmat-btn-line" onclick="bmatSetType('line')" style="padding:4px 14px;border:none;background:#f8fafc;color:#64748b;cursor:pointer;font-weight:600">꺾은선</button>
+          </div>
+          <button onclick="openBmatInput()" style="display:flex;align-items:center;gap:5px;padding:5px 13px;background:#0891b2;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            데이터 입력
+          </button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 250px;gap:16px;align-items:stretch">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="position:relative;flex:1;min-height:200px">
+            <canvas id="bmat-chart"></canvas>
+          </div>
+          <div id="bmat-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px"></div>
+        </div>
+        <div id="bmat-stat-panel" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;font-size:12px"></div>
+      </div>
+    </div>
+
+    <!-- BMAT 데이터 입력 모달 -->
+    <div id="bmat-input-overlay" onclick="if(event.target===this)closeBmatInput()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:10005;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:16px;width:560px;max-width:96vw;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.22);font-family:inherit">
+        <div style="display:flex;align-items:center;padding:16px 20px;background:linear-gradient(135deg,#0891b2,#0369a1);color:#fff;border-radius:16px 16px 0 0;flex-shrink:0">
+          <span style="font-size:14px;font-weight:700;flex:1">BMAT 모니터링 데이터 입력</span>
+          <button onclick="closeBmatInput()" style="background:rgba(255,255,255,0.18);border:none;color:#fff;cursor:pointer;font-size:18px;width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center">×</button>
+        </div>
+        <div style="padding:18px 22px;flex:1;overflow-y:auto">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <select id="bmat-input-year" style="padding:7px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#374151;outline:none;background:#f8fafc;font-weight:600"></select>
+            <select id="bmat-input-month" style="padding:7px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#374151;outline:none;background:#f8fafc;font-weight:600">
+              <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+              <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+              <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+              <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+            </select>
+          </div>
+          <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 32px;gap:8px;padding:8px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">
+            <div>채널</div>
+            <div style="text-align:right">카운트 수</div>
+            <div style="text-align:right">모수</div>
+            <div style="text-align:right">점유율</div>
+            <div></div>
+          </div>
+          <div id="bmat-input-rows" style="display:flex;flex-direction:column;gap:6px"></div>
+          <button id="bmat-add-channel-btn" onclick="bmatAddChannelRow()" style="margin-top:10px;width:100%;padding:8px;background:#ecfeff;border:1px dashed #67e8f9;border-radius:8px;color:#0891b2;font-size:12px;font-weight:700;cursor:pointer">+ 채널 추가</button>
+        </div>
+        <div style="padding:14px 20px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;gap:8px;background:#f8fafc;flex-shrink:0">
+          <button onclick="closeBmatInput()" style="padding:8px 18px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#475569;font-size:13px;font-weight:600;cursor:pointer">취소</button>
+          <button id="bmat-save-btn" onclick="bmatSaveData()" style="padding:8px 18px;border:none;border-radius:8px;background:#0891b2;color:#fff;font-size:13px;font-weight:700;cursor:pointer">저장</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BMAT 월별 누계 통계 모달 -->
+    <div id="bmat-cumul-overlay" onclick="if(event.target===this)closeBmatCumul()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10007;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:20px;width:1060px;max-width:97vw;max-height:92vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,0.24);font-family:inherit">
+        <div style="display:flex;align-items:center;gap:12px;padding:18px 24px;border-radius:20px 20px 0 0;background:linear-gradient(135deg,#0891b2,#0369a1);color:#fff">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span style="font-size:15px;font-weight:700;flex:1;letter-spacing:-0.3px">BMAT 월별 누계 통계</span>
+          <button onclick="closeBmatCumul()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center">×</button>
+        </div>
+        <div style="padding:14px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#ecfeff;border-bottom:1px solid #cffafe">
+          <span style="font-size:12px;font-weight:700;color:#0891b2">기간 선택</span>
+          <select id="bmat-cumul-from" style="padding:7px 12px;border:1px solid #a5f3fc;border-radius:8px;font-size:12px;color:#374151;background:#fff;outline:none;font-weight:500"></select>
+          <span style="font-size:13px;color:#22d3ee;font-weight:600">~</span>
+          <select id="bmat-cumul-to" style="padding:7px 12px;border:1px solid #a5f3fc;border-radius:8px;font-size:12px;color:#374151;background:#fff;outline:none;font-weight:500"></select>
+          <div style="display:flex;border:1px solid #a5f3fc;border-radius:8px;overflow:hidden;font-size:11px">
+            <button id="bmat-cumul-btn-bar"  onclick="setBmatCumulType('bar')"  style="padding:6px 16px;border:none;background:#0891b2;color:#fff;cursor:pointer;font-weight:700">막대</button>
+            <button id="bmat-cumul-btn-line" onclick="setBmatCumulType('line')" style="padding:6px 16px;border:none;background:#fff;color:#0891b2;cursor:pointer;font-weight:600">꺾은선</button>
+          </div>
+          <div style="display:flex;border:1px solid #a5f3fc;border-radius:8px;overflow:hidden;font-size:11px;margin-left:auto">
+            <button id="bmat-cmp-none" onclick="setBmatCmpMode('')"    style="padding:6px 12px;border:none;background:#0891b2;color:#fff;cursor:pointer;font-weight:700">기본</button>
+            <button id="bmat-cmp-yoy"  onclick="setBmatCmpMode('yoy')" style="padding:6px 12px;border:none;background:#fff;color:#0891b2;cursor:pointer;font-weight:600">전년 대비</button>
+            <button id="bmat-cmp-mom"  onclick="setBmatCmpMode('mom')" style="padding:6px 12px;border:none;background:#fff;color:#0891b2;cursor:pointer;font-weight:600">전월 대비</button>
+          </div>
+          <button onclick="renderBmatCumulChart()" style="padding:7px 20px;background:#0891b2;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(8,145,178,0.25)">조회</button>
+        </div>
+        <div style="padding:20px 24px;display:grid;grid-template-columns:1fr 240px;gap:20px;align-items:start">
+          <div>
+            <div style="position:relative;height:300px">
+              <canvas id="bmat-cumul-chart"></canvas>
+            </div>
+            <div id="bmat-cumul-channel-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:18px"></div>
+          </div>
+          <div id="bmat-cumul-stat-panel" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:16px;font-size:12px;display:flex;flex-direction:column;gap:10px"></div>
         </div>
       </div>
     </div>
@@ -6688,6 +6792,620 @@
 
   // 초기 렌더 (로그인 여부 무관)
   salesInit();
+
+  /* ═══════════════════════════════════════════════════════════════
+     BMAT 모니터링 통계 (sales 모듈과 완전 분리, 전용 DB 테이블 bmat_data)
+     - row 단위: { id, month_key, channel, count_val, population }
+     - 점유율 = count_val / population * 100 (계산 필드)
+     ═══════════════════════════════════════════════════════════════*/
+
+  var BMAT_DEFAULT_CHANNELS = ['EBS', 'KBS1', 'KBS2', 'SBS', 'MBC'];
+  var BMAT_COLOR_PALETTE = ['#0891b2','#7c3aed','#dc2626','#16a34a','#d97706','#0ea5e9','#ec4899','#6366f1','#84cc16','#f59e0b','#06b6d4','#8b5cf6'];
+
+  var _bmatRows = [];          // [{id, month_key, channel, count_val, population, updated_at}]
+  var _bmatChart = null;
+  var _bmatCumulChart = null;
+  var _bmatType = 'bar';       // 메인 위젯 차트 타입
+  var _bmatCumulType = 'bar';
+  var _bmatCmpMode = '';       // '' | 'yoy' | 'mom'
+  var _bmatLoaded = false;
+  var _bmatChannelTmpId = 0;   // 입력 모달 임시 행 id
+
+  function _bmatGenId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+  function _bmatFmtN(n) {
+    n = parseInt(n, 10) || 0;
+    return n.toLocaleString();
+  }
+  function _bmatColorFor(channel, idx) {
+    return BMAT_COLOR_PALETTE[idx % BMAT_COLOR_PALETTE.length];
+  }
+  function _bmatChannelsForMonth(monthKey) {
+    var seen = {};
+    var list = [];
+    _bmatRows.forEach(function(r){
+      if (r.month_key === monthKey && !seen[r.channel]) { seen[r.channel] = true; list.push(r.channel); }
+    });
+    // default 채널 우선 + 입력된 채널 추가
+    var ordered = [];
+    BMAT_DEFAULT_CHANNELS.forEach(function(c){ if (seen[c]) { ordered.push(c); seen[c] = false; } });
+    list.forEach(function(c){ if (seen[c] !== false && BMAT_DEFAULT_CHANNELS.indexOf(c) === -1) ordered.push(c); });
+    return ordered;
+  }
+  function _bmatAllChannels() {
+    var seen = {};
+    BMAT_DEFAULT_CHANNELS.forEach(function(c){ seen[c] = true; });
+    _bmatRows.forEach(function(r){ if (r.channel) seen[r.channel] = true; });
+    var arr = Object.keys(seen);
+    arr.sort(function(a, b){
+      var ai = BMAT_DEFAULT_CHANNELS.indexOf(a); var bi = BMAT_DEFAULT_CHANNELS.indexOf(b);
+      if (ai !== -1 && bi !== -1) return ai - bi;
+      if (ai !== -1) return -1;
+      if (bi !== -1) return 1;
+      return a.localeCompare(b);
+    });
+    return arr;
+  }
+  function _bmatRowFor(monthKey, channel) {
+    return _bmatRows.find(function(r){ return r.month_key === monthKey && r.channel === channel; });
+  }
+  function _bmatMonthKeyList() {
+    var seen = {};
+    _bmatRows.forEach(function(r){ if (r.month_key) seen[r.month_key] = true; });
+    var now = new Date();
+    var curKey = now.getFullYear() + '-' + (now.getMonth() + 1);
+    seen[curKey] = true;
+    var arr = Object.keys(seen);
+    arr.sort(function(a,b){
+      var pa = a.split('-').map(Number); var pb = b.split('-').map(Number);
+      if (pa[0] !== pb[0]) return pb[0] - pa[0];
+      return pb[1] - pa[1];
+    });
+    return arr;
+  }
+  function _bmatPrevMonthKey(mk) {
+    var p = mk.split('-').map(Number);
+    var y = p[0], m = p[1] - 1;
+    if (m < 1) { y--; m = 12; }
+    return y + '-' + m;
+  }
+  function _bmatPrevYearKey(mk) {
+    var p = mk.split('-').map(Number);
+    return (p[0]-1) + '-' + p[1];
+  }
+  function _bmatFmtMonthLabel(mk) {
+    var p = mk.split('-').map(Number);
+    return p[0] + '년 ' + p[1] + '월';
+  }
+
+  // ── DB 조회 ──
+  function bmatFetchFromDB() {
+    return fetch(SB_URL + '/rest/v1/bmat_data?select=id,month_key,channel,count_val,population,updated_at',
+      { headers: SB_HDR }
+    ).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function(rows) {
+      _bmatRows = Array.isArray(rows) ? rows : [];
+      _bmatLoaded = true;
+    }).catch(function(e) {
+      console.warn('bmat fetch failed (테이블 미생성 가능):', e.message);
+      _bmatRows = [];
+      _bmatLoaded = false;
+    });
+  }
+
+  // ── 메인 위젯 토글 ──
+  function bmatToggleSection() {
+    var w = document.getElementById('bmat-widget');
+    if (!w) return;
+    var willShow = w.style.display === 'none' || !w.style.display;
+    if (willShow) {
+      w.style.display = '';
+      // 데이터 로드 후 렌더
+      bmatFetchFromDB().then(function() { _bmatPopulateMonthSel(); renderBmatWidget(); });
+    } else {
+      w.style.display = 'none';
+    }
+  }
+
+  function _bmatPopulateMonthSel() {
+    var sel = document.getElementById('bmat-month-sel');
+    if (!sel) return;
+    var keys = _bmatMonthKeyList();
+    var prev = sel.value;
+    sel.innerHTML = keys.map(function(k){
+      return '<option value="' + k + '">' + _bmatFmtMonthLabel(k) + '</option>';
+    }).join('');
+    if (prev && keys.indexOf(prev) !== -1) sel.value = prev;
+    else sel.value = keys[0] || '';
+  }
+
+  function bmatSetType(t) {
+    _bmatType = (t === 'line') ? 'line' : 'bar';
+    document.getElementById('bmat-btn-bar').style.background  = _bmatType === 'bar'  ? '#0891b2' : '#f8fafc';
+    document.getElementById('bmat-btn-bar').style.color       = _bmatType === 'bar'  ? '#fff' : '#64748b';
+    document.getElementById('bmat-btn-line').style.background = _bmatType === 'line' ? '#0891b2' : '#f8fafc';
+    document.getElementById('bmat-btn-line').style.color      = _bmatType === 'line' ? '#fff' : '#64748b';
+    renderBmatWidget();
+  }
+
+  function renderBmatWidget() {
+    var sel = document.getElementById('bmat-month-sel');
+    if (!sel || !sel.value) {
+      _bmatPopulateMonthSel();
+      if (!sel || !sel.value) return;
+    }
+    var mk = sel.value;
+    var channels = _bmatChannelsForMonth(mk);
+    if (channels.length === 0) channels = BMAT_DEFAULT_CHANNELS.slice();
+
+    var labels = channels;
+    var counts = channels.map(function(c){ var r = _bmatRowFor(mk, c); return r ? (r.count_val || 0) : 0; });
+    var pops   = channels.map(function(c){ var r = _bmatRowFor(mk, c); return r ? (r.population || 0) : 0; });
+    var shares = channels.map(function(_, i){ return pops[i] > 0 ? (counts[i] / pops[i] * 100) : 0; });
+
+    // 차트
+    var ctx = document.getElementById('bmat-chart').getContext('2d');
+    if (_bmatChart) { try{_bmatChart.destroy();}catch(e){} _bmatChart = null; }
+    var bgColors = channels.map(function(c, i){ return _bmatColorFor(c, i) + '99'; });
+    var borderColors = channels.map(function(c, i){ return _bmatColorFor(c, i); });
+
+    var datasets;
+    if (_bmatType === 'line') {
+      datasets = [{ label: '점유율 (%)', data: shares, borderColor: '#0891b2', backgroundColor: 'rgba(8,145,178,0.15)', tension: 0.3, fill: true, pointRadius: 5, pointBackgroundColor: '#0891b2' }];
+    } else {
+      datasets = [
+        { label: '카운트 수', data: counts, backgroundColor: bgColors, borderColor: borderColors, borderWidth: 1, yAxisID: 'y' },
+        { label: '점유율 (%)', data: shares, type: 'line', borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,0.1)', tension: 0.3, yAxisID: 'y1', pointRadius: 4, pointBackgroundColor: '#dc2626' }
+      ];
+    }
+
+    _bmatChart = new Chart(ctx, {
+      type: _bmatType === 'line' ? 'line' : 'bar',
+      data: { labels: labels, datasets: datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'top', labels: { font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                var idx = ctx.dataIndex;
+                if (ctx.dataset.label === '카운트 수') {
+                  return '카운트: ' + _bmatFmtN(counts[idx]) + ' / 모수: ' + _bmatFmtN(pops[idx]);
+                }
+                return '점유율: ' + (shares[idx] || 0).toFixed(2) + '%';
+              }
+            }
+          }
+        },
+        scales: _bmatType === 'line'
+          ? { y: { beginAtZero: true, ticks: { callback: function(v){ return v + '%'; } } } }
+          : {
+              y:  { beginAtZero: true, position: 'left',  title: { display: true, text: '카운트' } },
+              y1: { beginAtZero: true, position: 'right', title: { display: true, text: '점유율 (%)' }, grid: { drawOnChartArea: false }, ticks: { callback: function(v){ return v + '%'; } } }
+            }
+      }
+    });
+
+    // 요약 카드
+    var sum = document.getElementById('bmat-summary');
+    if (sum) {
+      sum.innerHTML = channels.map(function(c, i){
+        var color = _bmatColorFor(c, i);
+        return '<div style="background:' + color + '15;border:1px solid ' + color + '50;border-radius:8px;padding:8px 10px;text-align:center">'
+          + '<div style="font-size:10px;font-weight:700;color:' + color + ';margin-bottom:3px">' + escHtml(c) + '</div>'
+          + '<div style="font-size:13px;font-weight:800;color:#0f172a">' + _bmatFmtN(counts[i]) + '</div>'
+          + '<div style="font-size:9px;color:#64748b">모수 ' + _bmatFmtN(pops[i]) + '</div>'
+          + '<div style="font-size:11px;font-weight:700;color:' + color + ';margin-top:2px">' + (shares[i] || 0).toFixed(1) + '%</div>'
+          + '</div>';
+      }).join('');
+    }
+
+    // 통계 패널
+    var totalCount = counts.reduce(function(a,b){ return a+b; }, 0);
+    var totalPop = pops.reduce(function(a,b){ return a+b; }, 0);
+    var avgShare = totalPop > 0 ? (totalCount / totalPop * 100) : 0;
+    var topIdx = 0; for (var i = 1; i < shares.length; i++) if (shares[i] > shares[topIdx]) topIdx = i;
+
+    var panel = document.getElementById('bmat-stat-panel');
+    if (panel) {
+      panel.innerHTML = '<div style="font-size:11px;font-weight:700;color:#0891b2;letter-spacing:0.5px">' + _bmatFmtMonthLabel(mk) + ' 통계</div>'
+        + '<div style="height:1px;background:#bae6fd;margin:2px 0 6px"></div>'
+        + '<div style="background:#fff;border:1px solid #e0f2fe;border-radius:8px;padding:10px 12px"><div style="font-size:10.5px;color:#64748b;font-weight:600">총 카운트</div><div style="font-size:16px;font-weight:800;color:#0891b2;margin-top:2px">' + _bmatFmtN(totalCount) + '</div></div>'
+        + '<div style="background:#fff;border:1px solid #e0f2fe;border-radius:8px;padding:10px 12px"><div style="font-size:10.5px;color:#64748b;font-weight:600">총 모수</div><div style="font-size:16px;font-weight:800;color:#0f172a;margin-top:2px">' + _bmatFmtN(totalPop) + '</div></div>'
+        + '<div style="background:#fff;border:1px solid #e0f2fe;border-radius:8px;padding:10px 12px"><div style="font-size:10.5px;color:#64748b;font-weight:600">평균 점유율</div><div style="font-size:16px;font-weight:800;color:#dc2626;margin-top:2px">' + avgShare.toFixed(2) + '%</div></div>'
+        + (channels[topIdx] ? '<div style="background:#fef9c3;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;margin-top:4px"><div style="font-size:10.5px;color:#78350f;font-weight:600">🏆 최상위 채널</div><div style="font-size:13px;font-weight:800;color:#92400e;margin-top:2px">' + escHtml(channels[topIdx]) + ' · ' + (shares[topIdx]||0).toFixed(2) + '%</div></div>' : '');
+    }
+  }
+
+  // ── 입력 모달 ──
+  function openBmatInput() {
+    if (!_bmatLoaded) {
+      bmatFetchFromDB().then(function(){ openBmatInput(); });
+      return;
+    }
+    var ySel = document.getElementById('bmat-input-year');
+    var now = new Date();
+    var curY = now.getFullYear();
+    ySel.innerHTML = '';
+    for (var y = curY - 2; y <= curY + 1; y++) {
+      var opt = document.createElement('option');
+      opt.value = y; opt.textContent = y + '년';
+      if (y === curY) opt.selected = true;
+      ySel.appendChild(opt);
+    }
+    // 현재 위젯에서 보고 있는 월로 초기 세팅
+    var widgetSel = document.getElementById('bmat-month-sel');
+    if (widgetSel && widgetSel.value) {
+      var p = widgetSel.value.split('-');
+      ySel.value = p[0];
+      document.getElementById('bmat-input-month').value = p[1];
+    } else {
+      document.getElementById('bmat-input-month').value = String(now.getMonth() + 1);
+    }
+    _bmatRebuildInputRows();
+    document.getElementById('bmat-input-overlay').style.display = 'flex';
+    // 년/월 변경 시 행 다시 빌드
+    ySel.onchange = _bmatRebuildInputRows;
+    document.getElementById('bmat-input-month').onchange = _bmatRebuildInputRows;
+  }
+
+  function _bmatRebuildInputRows() {
+    var y = parseInt(document.getElementById('bmat-input-year').value, 10);
+    var m = parseInt(document.getElementById('bmat-input-month').value, 10);
+    var mk = y + '-' + m;
+    var channels = _bmatAllChannels(); // 모든 알려진 채널 (이번 월에 데이터 없어도 행은 표시)
+    var rowsHost = document.getElementById('bmat-input-rows');
+    rowsHost.innerHTML = '';
+    channels.forEach(function(c){
+      var r = _bmatRowFor(mk, c);
+      _bmatAppendInputRow(c, r ? r.count_val : '', r ? r.population : '', r ? r.id : '');
+    });
+  }
+
+  function _bmatAppendInputRow(channel, count, pop, rowId) {
+    var rowsHost = document.getElementById('bmat-input-rows');
+    var tmpId = 'bmrow_' + (++_bmatChannelTmpId);
+    var div = document.createElement('div');
+    div.id = tmpId;
+    div.dataset.rowid = rowId || '';
+    div.style.cssText = 'display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 32px;gap:8px;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px';
+    var safe = (channel || '').replace(/"/g, '&quot;');
+    div.innerHTML = ''
+      + '<input type="text" class="bm-row-channel" placeholder="채널명" value="' + safe + '" style="padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:12.5px;font-weight:600;outline:none;background:#fff">'
+      + '<input type="text" class="bm-row-count"   placeholder="0"     value="' + (count || count === 0 ? count : '') + '" oninput="_bmatOnNumInput(this)" style="padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:12.5px;outline:none;text-align:right;background:#fff">'
+      + '<input type="text" class="bm-row-pop"     placeholder="0"     value="' + (pop || pop === 0 ? pop : '')   + '" oninput="_bmatOnNumInput(this)" style="padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:12.5px;outline:none;text-align:right;background:#fff">'
+      + '<div   class="bm-row-share" style="font-size:12px;font-weight:700;color:#0891b2;text-align:right">—</div>'
+      + '<button type="button" onclick="bmatRemoveChannelRow(this)" title="삭제" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px">×</button>';
+    rowsHost.appendChild(div);
+    _bmatRecalcShare(div);
+    div.querySelector('.bm-row-count').addEventListener('input', function(){ _bmatRecalcShare(div); });
+    div.querySelector('.bm-row-pop').addEventListener('input',   function(){ _bmatRecalcShare(div); });
+  }
+
+  function _bmatOnNumInput(el) {
+    var v = (el.value || '').replace(/[^0-9]/g, '');
+    el.value = v ? parseInt(v, 10).toLocaleString() : '';
+  }
+
+  function _bmatRecalcShare(rowEl) {
+    var c = parseInt(((rowEl.querySelector('.bm-row-count')||{}).value || '0').replace(/,/g, ''), 10) || 0;
+    var p = parseInt(((rowEl.querySelector('.bm-row-pop')||{}).value   || '0').replace(/,/g, ''), 10) || 0;
+    var s = p > 0 ? (c / p * 100) : 0;
+    var el = rowEl.querySelector('.bm-row-share');
+    if (el) el.textContent = p > 0 ? s.toFixed(2) + '%' : '—';
+  }
+
+  function bmatAddChannelRow() {
+    _bmatAppendInputRow('', '', '', '');
+  }
+  function bmatRemoveChannelRow(btn) {
+    var row = btn.closest('div[id^="bmrow_"]');
+    if (row) row.remove();
+  }
+
+  function closeBmatInput() {
+    document.getElementById('bmat-input-overlay').style.display = 'none';
+  }
+
+  function bmatSaveData() {
+    var y = parseInt(document.getElementById('bmat-input-year').value, 10);
+    var m = parseInt(document.getElementById('bmat-input-month').value, 10);
+    if (!y || !m) { showToast('년/월을 선택하세요'); return; }
+    var mk = y + '-' + m;
+    var rowsToUpsert = [];
+    var seenChannels = {};
+    var error = null;
+    document.querySelectorAll('#bmat-input-rows > div').forEach(function(div){
+      if (error) return;
+      var ch = (div.querySelector('.bm-row-channel').value || '').trim();
+      var cv = (div.querySelector('.bm-row-count').value   || '').replace(/,/g, '').trim();
+      var pv = (div.querySelector('.bm-row-pop').value     || '').replace(/,/g, '').trim();
+      if (!ch && !cv && !pv) return; // 빈 행 무시
+      if (!ch) { error = '채널명을 입력하세요'; return; }
+      if (seenChannels[ch]) { error = '중복된 채널: ' + ch; return; }
+      seenChannels[ch] = true;
+      var existingId = (div.dataset.rowid || '').trim();
+      rowsToUpsert.push({
+        id: existingId || _bmatGenId(),
+        month_key: mk,
+        channel: ch,
+        count_val: parseInt(cv, 10) || 0,
+        population: parseInt(pv, 10) || 0,
+        updated_at: new Date().toISOString()
+      });
+    });
+    if (error) { alert(error); return; }
+
+    // 기존 (mk, channel) row 중 입력에 포함되지 않은 것은 삭제 (사용자가 행을 지운 경우)
+    var keepKeys = {};
+    rowsToUpsert.forEach(function(r){ keepKeys[r.month_key + '|' + r.channel] = true; });
+    var toDelete = _bmatRows.filter(function(r){
+      return r.month_key === mk && !keepKeys[r.month_key + '|' + r.channel];
+    });
+
+    var btn = document.getElementById('bmat-save-btn');
+    var origText = btn.textContent;
+    btn.disabled = true; btn.textContent = '저장 중...';
+
+    var hdr = Object.assign({}, SB_HDR, { 'Prefer': 'resolution=merge-duplicates,return=minimal' });
+    var ops = [];
+    if (rowsToUpsert.length) {
+      ops.push(fetch(SB_URL + '/rest/v1/bmat_data?on_conflict=month_key,channel', {
+        method: 'POST', headers: hdr, body: JSON.stringify(rowsToUpsert)
+      }));
+    }
+    toDelete.forEach(function(r){
+      ops.push(fetch(SB_URL + '/rest/v1/bmat_data?id=eq.' + encodeURIComponent(r.id), {
+        method: 'DELETE', headers: Object.assign({}, SB_HDR, { 'Prefer': 'return=minimal' })
+      }));
+    });
+
+    Promise.all(ops).then(function(results){
+      var allOk = results.every(function(r){ return r.ok || r.status === 201 || r.status === 204; });
+      if (!allOk) {
+        console.error('bmat save partial fail', results);
+        showToast('일부 저장 실패 - 콘솔 확인');
+      } else {
+        showToast('BMAT 데이터 저장 완료');
+      }
+      closeBmatInput();
+      bmatFetchFromDB().then(function(){
+        _bmatPopulateMonthSel();
+        var sel = document.getElementById('bmat-month-sel');
+        if (sel) sel.value = mk;
+        renderBmatWidget();
+      });
+      btn.disabled = false; btn.textContent = origText;
+    }).catch(function(e){
+      console.error('bmat save error', e);
+      alert('저장 실패: ' + (e.message || '네트워크 오류') + '\n\nbmat_data 테이블이 Supabase 에 생성되어 있는지 확인하세요.');
+      btn.disabled = false; btn.textContent = origText;
+    });
+  }
+
+  // ── 누계 통계 모달 ──
+  function openBmatCumul() {
+    if (!_bmatLoaded) {
+      bmatFetchFromDB().then(openBmatCumul);
+      return;
+    }
+    var keys = _bmatMonthKeyList().slice().reverse(); // 오래된→최신
+    var fromSel = document.getElementById('bmat-cumul-from');
+    var toSel   = document.getElementById('bmat-cumul-to');
+    var opts = keys.map(function(k){ return '<option value="' + k + '">' + _bmatFmtMonthLabel(k) + '</option>'; }).join('');
+    fromSel.innerHTML = opts;
+    toSel.innerHTML   = opts;
+    fromSel.value = keys[0] || '';
+    toSel.value   = keys[keys.length - 1] || '';
+    document.getElementById('bmat-cumul-overlay').style.display = 'flex';
+    setBmatCumulType('bar');
+    setBmatCmpMode('');
+    renderBmatCumulChart();
+  }
+
+  function closeBmatCumul() {
+    document.getElementById('bmat-cumul-overlay').style.display = 'none';
+  }
+
+  function setBmatCumulType(t) {
+    _bmatCumulType = (t === 'line') ? 'line' : 'bar';
+    document.getElementById('bmat-cumul-btn-bar').style.background  = _bmatCumulType === 'bar'  ? '#0891b2' : '#fff';
+    document.getElementById('bmat-cumul-btn-bar').style.color       = _bmatCumulType === 'bar'  ? '#fff' : '#0891b2';
+    document.getElementById('bmat-cumul-btn-bar').style.fontWeight  = _bmatCumulType === 'bar'  ? '700' : '600';
+    document.getElementById('bmat-cumul-btn-line').style.background = _bmatCumulType === 'line' ? '#0891b2' : '#fff';
+    document.getElementById('bmat-cumul-btn-line').style.color      = _bmatCumulType === 'line' ? '#fff' : '#0891b2';
+    document.getElementById('bmat-cumul-btn-line').style.fontWeight = _bmatCumulType === 'line' ? '700' : '600';
+    if (document.getElementById('bmat-cumul-overlay').style.display !== 'none') renderBmatCumulChart();
+  }
+
+  function setBmatCmpMode(mode) {
+    _bmatCmpMode = (mode === 'yoy' || mode === 'mom') ? mode : '';
+    [['bmat-cmp-none', ''], ['bmat-cmp-yoy', 'yoy'], ['bmat-cmp-mom', 'mom']].forEach(function(pair){
+      var b = document.getElementById(pair[0]);
+      if (!b) return;
+      var act = pair[1] === _bmatCmpMode;
+      b.style.background = act ? '#0891b2' : '#fff';
+      b.style.color      = act ? '#fff' : '#0891b2';
+      b.style.fontWeight = act ? '700' : '600';
+    });
+    if (document.getElementById('bmat-cumul-overlay').style.display !== 'none') renderBmatCumulChart();
+  }
+
+  function _bmatBuildKeyRange(fromKey, toKey) {
+    var fp = fromKey.split('-').map(Number); var tp = toKey.split('-').map(Number);
+    var keys = [];
+    var y = fp[0], m = fp[1];
+    var safety = 0;
+    while ((y < tp[0] || (y === tp[0] && m <= tp[1])) && safety < 240) {
+      keys.push(y + '-' + m);
+      m++; if (m > 12) { m = 1; y++; }
+      safety++;
+    }
+    return keys;
+  }
+
+  function _bmatAggregate(keys) {
+    // returns { byChannel: {ch: {count, pop, share}}, totalCount, totalPop }
+    var byChannel = {};
+    var totalCount = 0, totalPop = 0;
+    keys.forEach(function(k){
+      _bmatRows.forEach(function(r){
+        if (r.month_key !== k) return;
+        if (!byChannel[r.channel]) byChannel[r.channel] = { count: 0, pop: 0 };
+        byChannel[r.channel].count += (r.count_val || 0);
+        byChannel[r.channel].pop   += (r.population || 0);
+        totalCount += (r.count_val || 0);
+        totalPop   += (r.population || 0);
+      });
+    });
+    Object.keys(byChannel).forEach(function(c){
+      var x = byChannel[c];
+      x.share = x.pop > 0 ? (x.count / x.pop * 100) : 0;
+    });
+    return { byChannel: byChannel, totalCount: totalCount, totalPop: totalPop };
+  }
+
+  function renderBmatCumulChart() {
+    var fromKey = document.getElementById('bmat-cumul-from').value;
+    var toKey   = document.getElementById('bmat-cumul-to').value;
+    if (!fromKey || !toKey) return;
+    // from > to 면 swap
+    var fp = fromKey.split('-').map(Number); var tp = toKey.split('-').map(Number);
+    if (fp[0] * 100 + fp[1] > tp[0] * 100 + tp[1]) { var s = fromKey; fromKey = toKey; toKey = s; }
+
+    var keys = _bmatBuildKeyRange(fromKey, toKey);
+    var cur = _bmatAggregate(keys);
+    var channels = Object.keys(cur.byChannel);
+    if (!channels.length) channels = BMAT_DEFAULT_CHANNELS.slice();
+    channels.sort(function(a,b){
+      var ai = BMAT_DEFAULT_CHANNELS.indexOf(a); var bi = BMAT_DEFAULT_CHANNELS.indexOf(b);
+      if (ai !== -1 && bi !== -1) return ai - bi;
+      if (ai !== -1) return -1;
+      if (bi !== -1) return 1;
+      return a.localeCompare(b);
+    });
+
+    // 비교 데이터 (전년 / 전월 = 직전 동일 길이 기간)
+    var cmpAgg = null;
+    var cmpLabel = '';
+    if (_bmatCmpMode === 'yoy') {
+      var cmpKeys = keys.map(_bmatPrevYearKey);
+      cmpAgg = _bmatAggregate(cmpKeys);
+      cmpLabel = '전년 동기';
+    } else if (_bmatCmpMode === 'mom') {
+      // 동일 길이의 직전 기간 (예: 2026-1~2026-3 → 2025-10~2025-12)
+      var cmpKeys2 = [];
+      var firstKey = keys[0]; var pf = firstKey.split('-').map(Number);
+      var startY = pf[0], startM = pf[1] - keys.length;
+      while (startM < 1) { startM += 12; startY--; }
+      var yy = startY, mm = startM;
+      for (var i = 0; i < keys.length; i++) {
+        cmpKeys2.push(yy + '-' + mm);
+        mm++; if (mm > 12) { mm = 1; yy++; }
+      }
+      cmpAgg = _bmatAggregate(cmpKeys2);
+      cmpLabel = '직전 ' + keys.length + '개월';
+    }
+
+    // 차트 데이터
+    var counts = channels.map(function(c){ return cur.byChannel[c] ? cur.byChannel[c].count : 0; });
+    var pops   = channels.map(function(c){ return cur.byChannel[c] ? cur.byChannel[c].pop   : 0; });
+    var shares = channels.map(function(c){ return cur.byChannel[c] ? cur.byChannel[c].share : 0; });
+
+    var ctx = document.getElementById('bmat-cumul-chart').getContext('2d');
+    if (_bmatCumulChart) { try{_bmatCumulChart.destroy();}catch(e){} _bmatCumulChart = null; }
+
+    var datasets = [{ label: '점유율 (%)', data: shares, backgroundColor: channels.map(function(c,i){ return _bmatColorFor(c, i) + 'cc'; }), borderColor: channels.map(function(c,i){ return _bmatColorFor(c, i); }), borderWidth: 1 }];
+    if (cmpAgg) {
+      var cmpShares = channels.map(function(c){ return cmpAgg.byChannel[c] ? cmpAgg.byChannel[c].share : 0; });
+      datasets.push({ label: cmpLabel + ' 점유율 (%)', data: cmpShares, backgroundColor: channels.map(function(c,i){ return _bmatColorFor(c, i) + '40'; }), borderColor: channels.map(function(c,i){ return _bmatColorFor(c, i) + '80'; }), borderWidth: 1, borderDash: [4,4] });
+    }
+
+    _bmatCumulChart = new Chart(ctx, {
+      type: _bmatCumulType === 'line' ? 'line' : 'bar',
+      data: { labels: channels, datasets: datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'top', labels: { font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              afterLabel: function(ctx) {
+                if (ctx.datasetIndex !== 0) return '';
+                var c = channels[ctx.dataIndex];
+                var x = cur.byChannel[c];
+                if (!x) return '';
+                var line = '카운트: ' + _bmatFmtN(x.count) + ' / 모수: ' + _bmatFmtN(x.pop);
+                if (cmpAgg) {
+                  var cmp = cmpAgg.byChannel[c];
+                  if (cmp) {
+                    var diff = x.share - cmp.share;
+                    line += '\n' + cmpLabel + ' 차이: ' + (diff >= 0 ? '+' : '') + diff.toFixed(2) + '%p';
+                  }
+                }
+                return line;
+              }
+            }
+          }
+        },
+        scales: { y: { beginAtZero: true, ticks: { callback: function(v){ return v + '%'; } } } }
+      }
+    });
+
+    // 채널별 요약 칩
+    var summaryEl = document.getElementById('bmat-cumul-channel-summary');
+    if (summaryEl) {
+      summaryEl.innerHTML = channels.map(function(c, i){
+        var x = cur.byChannel[c] || { count: 0, pop: 0, share: 0 };
+        var color = _bmatColorFor(c, i);
+        var diffHtml = '';
+        if (cmpAgg && cmpAgg.byChannel[c]) {
+          var d = x.share - cmpAgg.byChannel[c].share;
+          var dColor = d >= 0 ? '#16a34a' : '#dc2626';
+          diffHtml = '<div style="font-size:10px;color:' + dColor + ';font-weight:700;margin-top:2px">' + (d >= 0 ? '▲ +' : '▼ ') + Math.abs(d).toFixed(2) + '%p</div>';
+        }
+        return '<div style="background:' + color + '15;border:1px solid ' + color + '50;border-radius:8px;padding:9px 12px">'
+          + '<div style="font-size:10.5px;font-weight:700;color:' + color + '">' + escHtml(c) + '</div>'
+          + '<div style="font-size:14px;font-weight:800;color:#0f172a;margin-top:1px">' + x.share.toFixed(2) + '%</div>'
+          + '<div style="font-size:9.5px;color:#64748b">' + _bmatFmtN(x.count) + ' / ' + _bmatFmtN(x.pop) + '</div>'
+          + diffHtml
+          + '</div>';
+      }).join('');
+    }
+
+    // KPI 통계 패널
+    var avgShare = cur.totalPop > 0 ? (cur.totalCount / cur.totalPop * 100) : 0;
+    var statHtml = ''
+      + '<div style="font-size:11px;font-weight:700;color:#0891b2">' + _bmatFmtMonthLabel(fromKey) + ' ~ ' + _bmatFmtMonthLabel(toKey) + '</div>'
+      + '<div style="height:1px;background:#bae6fd;margin:2px 0 4px"></div>'
+      + '<div style="background:#fff;border:1px solid #e0f2fe;border-radius:10px;padding:11px 13px"><div style="font-size:10.5px;color:#64748b;font-weight:600">총 카운트 합계</div><div style="font-size:17px;font-weight:800;color:#0891b2;margin-top:2px">' + _bmatFmtN(cur.totalCount) + '</div></div>'
+      + '<div style="background:#fff;border:1px solid #e0f2fe;border-radius:10px;padding:11px 13px"><div style="font-size:10.5px;color:#64748b;font-weight:600">총 모수 합계</div><div style="font-size:17px;font-weight:800;color:#0f172a;margin-top:2px">' + _bmatFmtN(cur.totalPop) + '</div></div>'
+      + '<div style="background:#fff;border:1px solid #fecaca;border-radius:10px;padding:11px 13px"><div style="font-size:10.5px;color:#64748b;font-weight:600">평균 점유율</div><div style="font-size:17px;font-weight:800;color:#dc2626;margin-top:2px">' + avgShare.toFixed(2) + '%</div></div>';
+    if (cmpAgg) {
+      var cmpAvg = cmpAgg.totalPop > 0 ? (cmpAgg.totalCount / cmpAgg.totalPop * 100) : 0;
+      var diffPp = avgShare - cmpAvg;
+      statHtml += '<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:11px 13px;margin-top:2px">'
+        + '<div style="font-size:10.5px;color:#92400e;font-weight:700">' + cmpLabel + ' 비교</div>'
+        + '<div style="font-size:13px;font-weight:800;color:#78350f;margin-top:3px">평균 ' + cmpAvg.toFixed(2) + '%</div>'
+        + '<div style="font-size:11.5px;font-weight:700;color:' + (diffPp >= 0 ? '#16a34a' : '#dc2626') + ';margin-top:2px">' + (diffPp >= 0 ? '▲ +' : '▼ ') + Math.abs(diffPp).toFixed(2) + '%p</div>'
+        + '</div>';
+    }
+    document.getElementById('bmat-cumul-stat-panel').innerHTML = statHtml;
+  }
+
+  // ESC 키로 BMAT 모달 닫기
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    var inp = document.getElementById('bmat-input-overlay');
+    if (inp && inp.style.display !== 'none' && inp.style.display !== '') { closeBmatInput(); return; }
+    var cm = document.getElementById('bmat-cumul-overlay');
+    if (cm && cm.style.display !== 'none' && cm.style.display !== '') { closeBmatCumul(); }
+  });
 </script>
 <style>
   @keyframes msgSlideIn {
