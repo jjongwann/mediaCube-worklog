@@ -1734,14 +1734,38 @@
     </div>
 
     <!-- BMAT 데이터 입력 모달 -->
+    <style>
+      .bmat-input-grid {
+        display:grid;
+        grid-template-columns: minmax(110px,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax(70px,1fr) 36px;
+        gap:8px;
+        align-items:center;
+      }
+      .bmat-input-grid > * { min-width: 0; }
+      .bmat-input-grid input.bm-cell {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 7px 10px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 12.5px;
+        outline: none;
+        background: #fff;
+        min-width: 0;
+      }
+      .bmat-input-grid input.bm-cell:focus { border-color: #0891b2; }
+      .bmat-input-grid input.bm-row-count,
+      .bmat-input-grid input.bm-row-pop { text-align: right; }
+      .bmat-input-grid input.bm-row-channel { font-weight: 600; }
+    </style>
     <div id="bmat-input-overlay" onclick="if(event.target===this)closeBmatInput()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:10005;align-items:center;justify-content:center">
-      <div style="background:#fff;border-radius:16px;width:560px;max-width:96vw;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.22);font-family:inherit">
+      <div style="background:#fff;border-radius:16px;width:640px;max-width:96vw;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.22);font-family:inherit">
         <div style="display:flex;align-items:center;padding:16px 20px;background:linear-gradient(135deg,#0891b2,#0369a1);color:#fff;border-radius:16px 16px 0 0;flex-shrink:0">
           <span style="font-size:14px;font-weight:700;flex:1">BMAT 모니터링 데이터 입력</span>
           <button onclick="closeBmatInput()" style="background:rgba(255,255,255,0.18);border:none;color:#fff;cursor:pointer;font-size:18px;width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center">×</button>
         </div>
         <div style="padding:18px 22px;flex:1;overflow-y:auto">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
             <select id="bmat-input-year" style="padding:7px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#374151;outline:none;background:#f8fafc;font-weight:600"></select>
             <select id="bmat-input-month" style="padding:7px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#374151;outline:none;background:#f8fafc;font-weight:600">
               <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
@@ -1749,8 +1773,10 @@
               <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
               <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
             </select>
+            <span style="margin-left:auto;font-size:11px;color:#94a3b8">점유율 = 카운트 ÷ 모수 × 100</span>
           </div>
-          <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 32px;gap:8px;padding:8px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">
+          <!-- 헤더 (행과 동일 grid 사용) -->
+          <div class="bmat-input-grid" style="padding:9px 12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;font-size:11px;font-weight:700;color:#475569;margin-bottom:6px">
             <div>채널</div>
             <div style="text-align:right">카운트 수</div>
             <div style="text-align:right">모수</div>
@@ -1758,7 +1784,7 @@
             <div></div>
           </div>
           <div id="bmat-input-rows" style="display:flex;flex-direction:column;gap:6px"></div>
-          <button id="bmat-add-channel-btn" onclick="bmatAddChannelRow()" style="margin-top:10px;width:100%;padding:8px;background:#ecfeff;border:1px dashed #67e8f9;border-radius:8px;color:#0891b2;font-size:12px;font-weight:700;cursor:pointer">+ 채널 추가</button>
+          <button id="bmat-add-channel-btn" onclick="bmatAddChannelRow()" style="margin-top:12px;width:100%;padding:9px;background:#ecfeff;border:1px dashed #67e8f9;border-radius:8px;color:#0891b2;font-size:12.5px;font-weight:700;cursor:pointer">+ 채널 추가</button>
         </div>
         <div style="padding:14px 20px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;gap:8px;background:#f8fafc;flex-shrink:0">
           <button onclick="closeBmatInput()" style="padding:8px 18px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#475569;font-size:13px;font-weight:600;cursor:pointer">취소</button>
@@ -7071,15 +7097,18 @@
     var tmpId = 'bmrow_' + (++_bmatChannelTmpId);
     var div = document.createElement('div');
     div.id = tmpId;
+    div.className = 'bmat-input-grid';
     div.dataset.rowid = rowId || '';
-    div.style.cssText = 'display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 32px;gap:8px;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px';
+    div.style.cssText = 'background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:7px 12px';
     var safe = (channel || '').replace(/"/g, '&quot;');
+    var countVal = (count || count === 0) ? String(count) : '';
+    var popVal   = (pop   || pop   === 0) ? String(pop)   : '';
     div.innerHTML = ''
-      + '<input type="text" class="bm-row-channel" placeholder="채널명" value="' + safe + '" style="padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:12.5px;font-weight:600;outline:none;background:#fff">'
-      + '<input type="text" class="bm-row-count"   placeholder="0"     value="' + (count || count === 0 ? count : '') + '" oninput="_bmatOnNumInput(this)" style="padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:12.5px;outline:none;text-align:right;background:#fff">'
-      + '<input type="text" class="bm-row-pop"     placeholder="0"     value="' + (pop || pop === 0 ? pop : '')   + '" oninput="_bmatOnNumInput(this)" style="padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:12.5px;outline:none;text-align:right;background:#fff">'
-      + '<div   class="bm-row-share" style="font-size:12px;font-weight:700;color:#0891b2;text-align:right">—</div>'
-      + '<button type="button" onclick="bmatRemoveChannelRow(this)" title="삭제" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px">×</button>';
+      + '<input type="text" class="bm-cell bm-row-channel" placeholder="채널명" value="' + safe + '">'
+      + '<input type="text" class="bm-cell bm-row-count"   placeholder="0"     value="' + countVal + '" oninput="_bmatOnNumInput(this)">'
+      + '<input type="text" class="bm-cell bm-row-pop"     placeholder="0"     value="' + popVal   + '" oninput="_bmatOnNumInput(this)">'
+      + '<div class="bm-row-share" style="font-size:12.5px;font-weight:700;color:#0891b2;text-align:right;padding:0 2px">—</div>'
+      + '<button type="button" onclick="bmatRemoveChannelRow(this)" title="삭제" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;width:32px;height:32px;cursor:pointer;font-size:15px;padding:0;display:flex;align-items:center;justify-content:center">×</button>';
     rowsHost.appendChild(div);
     _bmatRecalcShare(div);
     div.querySelector('.bm-row-count').addEventListener('input', function(){ _bmatRecalcShare(div); });
