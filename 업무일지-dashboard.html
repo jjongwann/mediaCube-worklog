@@ -314,6 +314,11 @@
     border-color: #2563eb;
     box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
   }
+  #sc-bmat.active {
+    border-color: #0891b2;
+    box-shadow: 0 0 0 2px rgba(8,145,178,0.18);
+    background: linear-gradient(180deg, #f0f9ff 0%, #fff 100%);
+  }
   .stat-card-top {
     display: flex;
     align-items: center;
@@ -6921,17 +6926,21 @@
     });
   }
 
-  // ── 메인 위젯 토글 ──
+  // ── 메인 위젯 토글 (한 번 클릭 → 표시, 다시 클릭 → 숨김) ──
   function bmatToggleSection() {
     var w = document.getElementById('bmat-widget');
+    var card = document.getElementById('sc-bmat');
     if (!w) return;
-    var willShow = w.style.display === 'none' || !w.style.display;
-    if (willShow) {
-      w.style.display = '';
-      // 데이터 로드 후 렌더
+    // 'none' 또는 비어있으면 숨김 상태로 간주. 명시적으로 'block' 으로 토글하여
+    // 두 번째 클릭 시 정상적으로 숨겨지게 함.
+    var isHidden = (w.style.display === 'none' || w.style.display === '');
+    if (isHidden) {
+      w.style.display = 'block';
+      if (card) card.classList.add('active');
       bmatFetchFromDB().then(function() { _bmatPopulateMonthSel(); renderBmatWidget(); });
     } else {
       w.style.display = 'none';
+      if (card) card.classList.remove('active');
     }
   }
 
