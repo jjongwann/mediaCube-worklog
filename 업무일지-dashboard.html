@@ -192,15 +192,10 @@
     overflow: hidden;
   }
 
-  /* Top bar — stats-row 와 동일한 mesh gradient 로 시각적 연속성 확보 */
+  /* Top bar */
   .topbar {
-    background:
-      radial-gradient(ellipse 60% 140% at 10% 50%, rgba(99, 102, 241, 0.10) 0%, transparent 55%),
-      radial-gradient(ellipse 60% 140% at 50% 50%, rgba(124, 58, 237, 0.07) 0%, transparent 55%),
-      radial-gradient(ellipse 60% 140% at 90% 50%, rgba(217, 70, 239, 0.08) 0%, transparent 55%),
-      linear-gradient(180deg, #f5f3ff 0%, #faf5ff 100%);
-    border-bottom: 1px solid rgba(99, 102, 241, 0.10);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset;
+    background: #fff;
+    border-bottom: 1px solid var(--border);
     padding: 0 24px;
     height: 57px;
     display: flex;
@@ -229,14 +224,12 @@
     margin-left: auto;
     display: flex;
     align-items: center;
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    border: 1.5px solid rgba(99, 102, 241, 0.18);
+    background: var(--bg);
+    border: 1.5px solid var(--border);
     border-radius: 8px;
     padding: 6px 13px;
     gap: 7px;
-    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
   .search-box:focus-within { border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
   .search-icon { font-size: 13px; color: var(--text-muted); }
@@ -293,28 +286,27 @@
     background: #4b5563;
   }
 
-  /* Stats Row */
+  /* Stats Row — content 의 padding 영역(24px top, 28px 좌우)까지 그라데이션이 확장되도록
+     음수 마진을 content padding 과 동일하게 설정. 내부 padding 으로 다시 여백 복원 */
   .stats-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 14px;
-    margin: -4px -16px 24px;
-    padding: 18px 16px 22px;
+    margin: -24px -28px 24px;
+    padding: 24px 28px 28px;
     position: relative;
-    border-radius: 16px;
     background:
-      radial-gradient(ellipse 60% 80% at 10% 0%, rgba(99, 102, 241, 0.10) 0%, transparent 55%),
-      radial-gradient(ellipse 60% 80% at 50% 0%, rgba(124, 58, 237, 0.07) 0%, transparent 55%),
-      radial-gradient(ellipse 60% 80% at 90% 0%, rgba(217, 70, 239, 0.08) 0%, transparent 55%),
-      linear-gradient(180deg, #f5f3ff 0%, #faf5ff 40%, #fdfcff 100%);
+      radial-gradient(ellipse 50% 100% at 10% 0%, rgba(99, 102, 241, 0.11) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 100% at 50% 0%, rgba(124, 58, 237, 0.08) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 100% at 90% 0%, rgba(217, 70, 239, 0.09) 0%, transparent 55%),
+      linear-gradient(180deg, #f5f3ff 0%, #faf5ff 50%, #fdfcff 100%);
     box-shadow: 0 1px 0 rgba(99, 102, 241, 0.08) inset;
   }
   .stats-row::after {
     content: '';
     position: absolute;
-    inset: 0;
-    border-radius: 16px;
-    background: linear-gradient(180deg, transparent 60%, rgba(255,255,255,0.4) 100%);
+    left: 0; right: 0; bottom: 0; height: 28px;
+    background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.5) 100%);
     pointer-events: none;
   }
   .stats-row > .stat-card {
