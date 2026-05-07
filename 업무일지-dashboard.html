@@ -194,7 +194,10 @@
 
   /* Top bar — height matches sidebar logo section (padding 22+16 + 30px icon = 68px + 1px border) */
   .topbar {
-    background: #fff;
+    background:
+      radial-gradient(ellipse 80% 100% at 0% 0%, rgba(99, 102, 241, 0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 100% at 100% 0%, rgba(217, 70, 239, 0.05) 0%, transparent 60%),
+      linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     border-bottom: 1px solid var(--border);
     padding: 0 24px;
     height: 57px;
@@ -203,6 +206,7 @@
     gap: 10px;
     flex-shrink: 0;
     z-index: 5;
+    position: relative;
   }
   .topbar-title {
     font-size: 15px;
@@ -290,7 +294,37 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 14px;
-    margin-bottom: 28px;
+    margin: -4px -16px 24px;
+    padding: 18px 16px 22px;
+    position: relative;
+    border-radius: 16px;
+    background:
+      radial-gradient(ellipse 60% 80% at 10% 0%, rgba(99, 102, 241, 0.10) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 80% at 50% 0%, rgba(124, 58, 237, 0.07) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 80% at 90% 0%, rgba(217, 70, 239, 0.08) 0%, transparent 55%),
+      linear-gradient(180deg, #f5f3ff 0%, #faf5ff 40%, #fdfcff 100%);
+    box-shadow: 0 1px 0 rgba(99, 102, 241, 0.08) inset;
+  }
+  .stats-row::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    background: linear-gradient(180deg, transparent 60%, rgba(255,255,255,0.4) 100%);
+    pointer-events: none;
+  }
+  .stats-row > .stat-card {
+    position: relative;
+    z-index: 1;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.06);
+    transition: transform .15s, box-shadow .15s, border-color .15s;
+  }
+  .stats-row > .stat-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.10), 0 1px 3px rgba(15, 23, 42, 0.06);
   }
   .stat-card {
     background: var(--bg-card);
