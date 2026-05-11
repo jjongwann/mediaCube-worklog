@@ -7267,13 +7267,32 @@
       return;
     }
     var keys = _bmatMonthKeyList().slice().reverse(); // 오래된→최신
+
+    // 기본 from = 해당 연도 1월. 데이터에 없어도 옵션에 강제 포함.
+    var curYear = new Date().getFullYear();
+    var defaultFromKey = curYear + '-1';
+    if (keys.indexOf(defaultFromKey) === -1) {
+      // 정렬 위치 찾기 (월키를 YYYYMM 숫자로 비교)
+      var dfNum = curYear * 100 + 1;
+      var inserted = false;
+      for (var i = 0; i < keys.length; i++) {
+        var p = keys[i].split('-').map(Number);
+        if (p[0] * 100 + p[1] > dfNum) {
+          keys.splice(i, 0, defaultFromKey);
+          inserted = true;
+          break;
+        }
+      }
+      if (!inserted) keys.push(defaultFromKey);
+    }
+
     var fromSel = document.getElementById('bmat-cumul-from');
     var toSel   = document.getElementById('bmat-cumul-to');
     var opts = keys.map(function(k){ return '<option value="' + k + '">' + _bmatFmtMonthLabel(k) + '</option>'; }).join('');
     fromSel.innerHTML = opts;
     toSel.innerHTML   = opts;
-    fromSel.value = keys[0] || '';
-    toSel.value   = keys[keys.length - 1] || '';
+    fromSel.value = defaultFromKey;
+    toSel.value   = keys[keys.length - 1] || defaultFromKey;
 
     // 채널 드롭다운 채우기
     var chSel = document.getElementById('bmat-cumul-channel');
