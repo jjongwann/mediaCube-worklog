@@ -7416,7 +7416,7 @@
                   var cmp = cmpAgg.byChannel[c];
                   if (cmp) {
                     var diff = x.share - cmp.share;
-                    line += '\n' + cmpLabel + ' 차이: ' + (diff >= 0 ? '+' : '') + diff.toFixed(2) + '%';
+                    line += '\n' + cmpLabel + ' 차이: ' + (diff >= 0 ? '+' : '') + diff.toFixed(2) + '%p';
                   }
                 }
                 return line;
@@ -7438,7 +7438,7 @@
         if (cmpAgg && cmpAgg.byChannel[c]) {
           var d = x.share - cmpAgg.byChannel[c].share;
           var dColor = d >= 0 ? '#16a34a' : '#dc2626';
-          diffHtml = '<div style="font-size:10px;color:' + dColor + ';font-weight:700;margin-top:2px">' + (d >= 0 ? '▲ +' : '▼ ') + Math.abs(d).toFixed(2) + '%</div>';
+          diffHtml = '<div style="font-size:10px;color:' + dColor + ';font-weight:700;margin-top:2px">' + (d >= 0 ? '▲ +' : '▼ ') + Math.abs(d).toFixed(2) + '%p</div>';
         }
         return '<div style="background:' + color + '15;border:1px solid ' + color + '50;border-radius:8px;padding:9px 12px">'
           + '<div style="font-size:10.5px;font-weight:700;color:' + color + '">' + escHtml(c) + '</div>'
@@ -7463,7 +7463,7 @@
       statHtml += '<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:11px 13px;margin-top:2px">'
         + '<div style="font-size:10.5px;color:#92400e;font-weight:700">' + cmpLabel + ' 비교</div>'
         + '<div style="font-size:13px;font-weight:800;color:#78350f;margin-top:3px">평균 ' + cmpAvg.toFixed(2) + '%</div>'
-        + '<div style="font-size:11.5px;font-weight:700;color:' + (diffPp >= 0 ? '#16a34a' : '#dc2626') + ';margin-top:2px">' + (diffPp >= 0 ? '▲ +' : '▼ ') + Math.abs(diffPp).toFixed(2) + '%</div>'
+        + '<div style="font-size:11.5px;font-weight:700;color:' + (diffPp >= 0 ? '#16a34a' : '#dc2626') + ';margin-top:2px">' + (diffPp >= 0 ? '▲ +' : '▼ ') + Math.abs(diffPp).toFixed(2) + '%p</div>'
         + '</div>';
     }
     document.getElementById('bmat-cumul-stat-panel').innerHTML = statHtml;
