@@ -290,7 +290,7 @@
      음수 마진을 content padding 과 동일하게 설정. 내부 padding 으로 다시 여백 복원 */
   .stats-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 14px;
     margin: -24px -28px 24px;
     padding: 24px 28px 28px;
@@ -344,11 +344,14 @@
     border-color: #2563eb;
     box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
   }
-  #sc-bmat.active {
-    border-color: #0891b2;
-    box-shadow: 0 0 0 2px rgba(8,145,178,0.18);
-    background: linear-gradient(180deg, #f0f9ff 0%, #fff 100%);
+  /* BMAT 사이드바 메뉴 활성 상태 — setFilter 의 일반 .active 토글과 격리하기 위해
+     별도 클래스 사용. 청록 테마. */
+  .sidebar-item.bmat-active {
+    background: #ecfeff;
+    color: #0891b2;
+    font-weight: 600;
   }
+  .sidebar-item.bmat-active .sidebar-item-icon { opacity: 1; }
   .stat-card-top {
     display: flex;
     align-items: center;
@@ -1575,6 +1578,10 @@
       <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v4H3z"/><path d="M5 7v13h14V7"/><path d="M9 11h6"/><path d="M9 15h6"/></svg></span>
       거래처별 매출 분석
     </div>
+    <div class="sidebar-item" id="sidebar-bmat-btn" onclick="bmatToggleSection()" title="BMAT 모니터링 통계 보기">
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-5"/></svg></span>
+      BMAT 모니터링 통계
+    </div>
   </div>
 
   <!-- 관리자 전용 섹션 -->
@@ -1666,17 +1673,6 @@
         </div>
         <div class="stat-value" id="s-done-rate">0%</div>
         <div class="stat-sub">전체 일지 평균 진행률</div>
-      </div>
-      <div class="stat-card stat-card-link" id="sc-bmat" onclick="bmatToggleSection()" title="BMAT 모니터링 통계 보기">
-        <div class="stat-card-top">
-          <span class="stat-label">BMAT 모니터링 통계</span>
-          <span class="stat-icon-box amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-5"/></svg></span>
-        </div>
-        <div class="stat-value" style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#d97706">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
-          차트 보기
-        </div>
-        <div class="stat-sub">눌러서 채널별 점유율 확인</div>
       </div>
     </div>
 
@@ -6957,20 +6953,22 @@
   }
 
   // ── 메인 위젯 토글 (한 번 클릭 → 표시, 다시 클릭 → 숨김) ──
+  // 사이드바 'BMAT 모니터링 통계' 메뉴 (#sidebar-bmat-btn) 에서 호출됨.
+  // (stat 카드는 제거되어 더 이상 존재하지 않음)
   function bmatToggleSection() {
     var w = document.getElementById('bmat-widget');
-    var card = document.getElementById('sc-bmat');
+    var btn = document.getElementById('sidebar-bmat-btn');
     if (!w) return;
-    // 'none' 또는 비어있으면 숨김 상태로 간주. 명시적으로 'block' 으로 토글하여
-    // 두 번째 클릭 시 정상적으로 숨겨지게 함.
     var isHidden = (w.style.display === 'none' || w.style.display === '');
     if (isHidden) {
       w.style.display = 'block';
-      if (card) card.classList.add('active');
+      if (btn) btn.classList.add('bmat-active');
       bmatFetchFromDB().then(function() { _bmatPopulateMonthSel(); renderBmatWidget(); });
+      // 위젯 위치로 스무스 스크롤 (사이드바 클릭이라 메인 화면이 안 보일 수 있음)
+      setTimeout(function(){ try { w.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(e){} }, 60);
     } else {
       w.style.display = 'none';
-      if (card) card.classList.remove('active');
+      if (btn) btn.classList.remove('bmat-active');
     }
   }
 
