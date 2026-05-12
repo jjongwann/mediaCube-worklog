@@ -6797,19 +6797,12 @@
         + '</div>';
     }
 
-    // 요약 카드
-    var curCounts = entry._counts || {};
+    // 요약 카드 — 건수 칩은 제거 (월별 누계 통계 모달에서 확인 가능)
     document.getElementById('sales-summary').innerHTML = SALES_CHART_ITEMS.map(function(item) {
       var v = entry[item.key] || 0;
-      var pv = hasPrev ? (prevEntry[item.key]||0) : 0;
-      var cn = curCounts[item.key] || 0;
-      var cntChip = cn > 0
-        ? '<div style="font-size:9px;font-weight:700;color:'+item.color+';background:#fff;border:1px solid '+item.color+'55;border-radius:10px;padding:1px 6px;display:inline-block;margin-top:3px">'+cn.toLocaleString()+'건</div>'
-        : '';
-      return '<div style="background:'+item.bg+';border-radius:7px;padding:7px 8px;border:1px solid '+item.color+'33;text-align:center">'
-        + '<div style="font-size:9px;color:'+item.color+';font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+item.label+'</div>'
-        + '<div style="font-size:12px;font-weight:800;color:#111827;white-space:nowrap">'+fmtW(v)+'</div>'
-        + cntChip
+      return '<div style="background:'+item.bg+';border-radius:8px;padding:10px 8px;border:1px solid '+item.color+'33;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:4px;min-height:54px">'
+        + '<div style="font-size:10px;color:'+item.color+';font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+item.label+'</div>'
+        + '<div style="font-size:13px;font-weight:800;color:#111827;white-space:nowrap;letter-spacing:-0.2px">'+fmtW(v)+'</div>'
         + '</div>';
     }).join('');
   }
