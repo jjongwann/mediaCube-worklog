@@ -7430,15 +7430,15 @@
       cmpHeaderLabel = _bmatFmtMonthLabel(cmpKeys[0]) + ' ~ ' + _bmatFmtMonthLabel(cmpKeys[cmpKeys.length - 1]);
     }
 
-    // 차트 데이터
+    // 차트 데이터 — Y축은 카운트 수 (점유율은 툴팁/요약카드/KPI 에 표시)
     var labels = keys.map(function(k){ var p = k.split('-'); return p[0] + '.' + p[1] + '월'; });
-    var shares = cur.map(function(d){ return d.share; });
+    var counts = cur.map(function(d){ return d.count; });
     var color = _bmatColorFor(channel, Math.max(0, BMAT_DEFAULT_CHANNELS.indexOf(channel)));
     var cmpColor = '#94a3b8';
 
     var datasets = [{
-      label: escHtml(channel) + ' 점유율 (%)',
-      data: shares,
+      label: escHtml(channel) + ' 카운트 수',
+      data: counts,
       backgroundColor: _bmatCumulType === 'line' ? color + '20' : color + 'cc',
       borderColor: color,
       borderWidth: _bmatCumulType === 'line' ? 2.5 : 1,
@@ -7448,10 +7448,10 @@
       pointBackgroundColor: color
     }];
     if (cmp) {
-      var cmpShares = cmp.map(function(d){ return d.share; });
+      var cmpCounts = cmp.map(function(d){ return d.count; });
       datasets.push({
-        label: cmpLabel + ' 점유율 (%)',
-        data: cmpShares,
+        label: cmpLabel + ' 카운트 수',
+        data: cmpCounts,
         backgroundColor: _bmatCumulType === 'line' ? 'transparent' : cmpColor + '50',
         borderColor: cmpColor,
         borderWidth: 1.5,
@@ -7474,26 +7474,36 @@
           legend: { display: true, position: 'top', labels: { font: { size: 11 } } },
           tooltip: {
             callbacks: {
+              label: function(c) {
+                // 기본 라벨을 카운트 수 표기로 커스터마이즈
+                return c.dataset.label + ': ' + _bmatFmtN(c.parsed.y);
+              },
               afterLabel: function(c) {
                 var idx = c.dataIndex;
                 if (c.datasetIndex === 0) {
                   var d = cur[idx];
-                  var line = '카운트: ' + _bmatFmtN(d.count) + ' / 모수: ' + _bmatFmtN(d.pop);
+                  var line = '모수: ' + _bmatFmtN(d.pop) + ' / 점유율: ' + d.share.toFixed(2) + '%';
                   if (cmp) {
                     var diff = d.share - cmp[idx].share;
-                    line += '\n' + cmpLabel + ' 차이: ' + (diff >= 0 ? '+' : '') + diff.toFixed(2) + '%p';
+                    line += '\n' + cmpLabel + ' 점유율 차이: ' + (diff >= 0 ? '+' : '') + diff.toFixed(2) + '%p';
                   }
                   return line;
                 } else if (cmp) {
                   var dc = cmp[idx];
-                  return '카운트: ' + _bmatFmtN(dc.count) + ' / 모수: ' + _bmatFmtN(dc.pop);
+                  return '모수: ' + _bmatFmtN(dc.pop) + ' / 점유율: ' + dc.share.toFixed(2) + '%';
                 }
                 return '';
               }
             }
           }
         },
-        scales: { y: { beginAtZero: true, ticks: { callback: function(v){ return v + '%'; } } } }
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: '카운트 수', font: { size: 11 } },
+            ticks: { callback: function(v){ return _bmatFmtN(v); } }
+          }
+        }
       }
     });
 
