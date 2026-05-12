@@ -1897,7 +1897,7 @@
       <div style="display:grid;grid-template-columns:1fr 250px;gap:16px;align-items:stretch">
         <!-- 왼쪽: 차트 + 요약 카드 -->
         <div style="display:flex;flex-direction:column;gap:10px">
-          <div style="position:relative;flex:1;min-height:160px">
+          <div style="position:relative;flex:1;min-height:200px">
             <div id="sales-chart-legend" style="position:absolute;top:6px;right:6px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;z-index:10;pointer-events:auto"></div>
             <canvas id="sales-chart"></canvas>
           </div>
@@ -7057,8 +7057,6 @@
     var totalCount = counts.reduce(function(a,b){ return a+b; }, 0);
     var totalPop = pops.reduce(function(a,b){ return a+b; }, 0);
     var avgShare = totalPop > 0 ? (totalCount / totalPop * 100) : 0;
-    var topIdx = 0; for (var i = 1; i < shares.length; i++) if (shares[i] > shares[topIdx]) topIdx = i;
-
     var panel = document.getElementById('bmat-stat-panel');
     if (panel) {
       panel.innerHTML = '<div style="font-size:11px;font-weight:700;color:#0891b2;letter-spacing:0.5px">' + _bmatFmtMonthLabel(mk) + ' 통계</div>'
@@ -7066,7 +7064,7 @@
         + '<div style="background:#fff;border:1px solid #e0f2fe;border-radius:8px;padding:10px 12px"><div style="font-size:10.5px;color:#64748b;font-weight:600">총 카운트</div><div style="font-size:16px;font-weight:800;color:#0891b2;margin-top:2px">' + _bmatFmtN(totalCount) + '</div></div>'
         + '<div style="background:#fff;border:1px solid #e0f2fe;border-radius:8px;padding:10px 12px"><div style="font-size:10.5px;color:#64748b;font-weight:600">총 모수</div><div style="font-size:16px;font-weight:800;color:#0f172a;margin-top:2px">' + _bmatFmtN(totalPop) + '</div></div>'
         + '<div style="background:#fff;border:1px solid #e0f2fe;border-radius:8px;padding:10px 12px"><div style="font-size:10.5px;color:#64748b;font-weight:600">평균 점유율</div><div style="font-size:16px;font-weight:800;color:#dc2626;margin-top:2px">' + avgShare.toFixed(2) + '%</div></div>'
-        + (channels[topIdx] ? '<div style="background:#fef9c3;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;margin-top:4px"><div style="font-size:10.5px;color:#78350f;font-weight:600">🏆 최상위 채널</div><div style="font-size:13px;font-weight:800;color:#92400e;margin-top:2px">' + escHtml(channels[topIdx]) + ' · ' + (shares[topIdx]||0).toFixed(2) + '%</div></div>' : '');
+        ;
     }
   }
 
