@@ -290,7 +290,7 @@
      음수 마진을 content padding 과 동일하게 설정. 내부 padding 으로 다시 여백 복원 */
   .stats-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 14px;
     margin: -24px -28px 10px;
     padding: 24px 28px 14px;
@@ -363,10 +363,11 @@
     width: 36px; height: 36px; border-radius: 9px;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
-  .stat-icon-box.blue   { background: #eff6ff; color: #2563eb; }
-  .stat-icon-box.indigo { background: #eef2ff; color: #4338ca; }
-  .stat-icon-box.green  { background: #f0fdf4; color: #16a34a; }
-  .stat-icon-box.amber  { background: #fffbeb; color: #d97706; }
+  .stat-icon-box.blue    { background: #eff6ff; color: #2563eb; }
+  .stat-icon-box.indigo  { background: #eef2ff; color: #4338ca; }
+  .stat-icon-box.green   { background: #f0fdf4; color: #16a34a; }
+  .stat-icon-box.amber   { background: #fffbeb; color: #d97706; }
+  .stat-icon-box.emerald { background: #ecfdf5; color: #059669; }
   .stat-value { font-size: 26px; font-weight: 700; color: var(--text-primary); line-height: 1; letter-spacing: -0.5px; }
   .stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
   .stat-delta { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; }
@@ -1666,6 +1667,14 @@
         <div class="stat-value" id="s-wip">0</div>
         <div class="stat-sub">미완료 일지 수</div>
       </div>
+      <div class="stat-card" id="sc-done">
+        <div class="stat-card-top">
+          <span class="stat-label">완료</span>
+          <span class="stat-icon-box emerald"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        </div>
+        <div class="stat-value" id="s-done">0</div>
+        <div class="stat-sub">100% 완료 일지 수</div>
+      </div>
       <div class="stat-card">
         <div class="stat-card-top">
           <span class="stat-label">평균 진행률</span>
@@ -2850,6 +2859,7 @@
     document.getElementById('s-total').textContent = total;
     document.getElementById('s-done-rate').textContent = avgProgress + '%';
     document.getElementById('s-wip').textContent = wipCnt;
+    var sDone = document.getElementById('s-done'); if (sDone) sDone.textContent = doneCnt;
 
     // sidebar counts
     document.getElementById('cnt-all').textContent = total;
