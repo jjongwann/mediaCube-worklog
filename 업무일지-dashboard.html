@@ -1577,6 +1577,10 @@
       <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
       음원팀 업무 현황
     </div>
+    <div id="systemteam-sidebar-btn" class="sidebar-item" style="display:none" onclick="openSystemTeamPanel()">
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+      시스템팀 업무 현황
+    </div>
     <div class="sidebar-item" onclick="openAchievementPanel()">
       <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
       업무 성과
@@ -2924,9 +2928,15 @@
     }
     // 거래처별 매출 분석: 시스템 사업부 사용자(비관리자)에게는 숨김
     // 관리자는 사업부 뷰와 상관없이 항상 사용 가능 (음원/시스템 거래처 모두 확인 가능해야 하므로)
+    var isSystemUser = !_isAdmin && _userDeptKey(_userId) === 'system';
     if (vendorBtn) {
-      var isSystemUser = !_isAdmin && _userDeptKey(_userId) === 'system';
       vendorBtn.style.display = isSystemUser ? 'none' : '';
+    }
+    // 시스템팀 업무 현황: 시스템 사업부 사용자(비관리자)에게만 노출
+    // (음원팀 버튼이 사운드 사업부 사용자에게만 노출되는 패턴과 대칭)
+    var systemTeamBtn = document.getElementById('systemteam-sidebar-btn');
+    if (systemTeamBtn) {
+      systemTeamBtn.style.display = isSystemUser ? '' : 'none';
     }
   }
 
@@ -9173,6 +9183,240 @@
 
       if (!_stVisibleMap[uname]) _stVisibleMap[uname] = ST_PAGE_SIZE;
       var card = _stRenderCard(uname, taskEntries, _stVisibleMap[uname]);
+      if (card) { wrapper.appendChild(card); hasAny = true; }
+    });
+
+    if (!hasAny) {
+      var empty = document.createElement('div');
+      empty.style.cssText = 'text-align:center;padding:40px 0;color:#94a3b8;font-size:13px';
+      empty.textContent = '불러올 데이터가 없습니다.';
+      wrapper.appendChild(empty);
+    }
+
+    body.innerHTML = '';
+    body.appendChild(wrapper);
+  }
+</script>
+
+<!-- ── 시스템팀 업무 현황 패널 ──
+     음원팀 패널과 완전히 분리된 namespace.
+     - DB: 읽기 전용 (journals 테이블 SELECT 만). 스키마/데이터 변경 없음.
+     - 캐시: _systemTeamCache (음원팀 _soundTeamCache 와 별개)
+     - 가시성: _applyDeptVisibility 에서 시스템 사업부 비관리자에게만 노출
+-->
+<div id="systemteam-overlay" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.4);z-index:9990" onclick="if(event.target===this)closeSystemTeamPanel()">
+  <div style="position:absolute;top:0;right:0;bottom:0;width:480px;max-width:100vw;background:#fff;box-shadow:-8px 0 32px rgba(0,0,0,0.15);display:flex;flex-direction:column;font-family:inherit;animation:soundteamSlideIn 0.25s ease;overflow:hidden">
+    <!-- 헤더 (고정) — 시스템 사업부 톤(indigo) -->
+    <div style="padding:20px 20px 16px;background:linear-gradient(135deg,#6366f1,#4338ca);flex-shrink:0">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;background:rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:#fff">시스템팀 업무 현황</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.75);margin-top:1px">시스템 사업부</div>
+          </div>
+        </div>
+        <button onclick="closeSystemTeamPanel()" style="background:rgba(255,255,255,0.15);border:none;cursor:pointer;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;line-height:1;flex-shrink:0" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">×</button>
+      </div>
+      <!-- 날짜 필터 -->
+      <div style="margin-top:14px;display:flex;align-items:center;gap:8px">
+        <input type="date" id="systemteam-date-from" onchange="if(_systemTeamCache.length>0)renderSystemTeamPanel()" style="flex:1;padding:6px 10px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:12px;background:rgba(255,255,255,0.15);color:#fff;outline:none;min-width:0;font-family:inherit">
+        <span style="color:rgba(255,255,255,0.6);font-size:12px;flex-shrink:0">—</span>
+        <input type="date" id="systemteam-date-to" onchange="if(_systemTeamCache.length>0)renderSystemTeamPanel()" style="flex:1;padding:6px 10px;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:12px;background:rgba(255,255,255,0.15);color:#fff;outline:none;min-width:0;font-family:inherit">
+        <button onclick="systemteamClearDate()" style="padding:6px 10px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:#fff;font-size:11px;cursor:pointer;white-space:nowrap;font-family:inherit;flex-shrink:0" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">초기화</button>
+      </div>
+    </div>
+    <!-- 스크롤 본문 (음원팀 스크롤바 스타일 재사용) -->
+    <div id="systemteam-body" class="soundteam-scroll" style="flex:1;overflow-y:scroll;overflow-x:hidden;background:#f8fafc;padding:0"></div>
+  </div>
+</div>
+<script>
+  // 음원팀 모듈의 _stEsc / ST_STATUS_* / _stTaskRowHtml 헬퍼는 read-only 유틸이므로 재사용
+  var _systemTeamCache = [];
+  var _systemTeamVisibleMap = {}; // username → 현재 표시 개수
+  var SYS_TEAM_PAGE_SIZE = 10;
+
+  async function openSystemTeamPanel() {
+    var today = new Date();
+    var yyyy = today.getFullYear();
+    var mm = String(today.getMonth() + 1).padStart(2, '0');
+    var dd = String(today.getDate()).padStart(2, '0');
+    var todayStr = yyyy + '-' + mm + '-' + dd;
+    var firstOfMonth = yyyy + '-' + mm + '-01';
+    document.getElementById('systemteam-date-from').value = firstOfMonth;
+    document.getElementById('systemteam-date-to').value = todayStr;
+    _systemTeamVisibleMap = {};
+    document.getElementById('systemteam-overlay').style.display = 'flex';
+    document.getElementById('systemteam-body').innerHTML = '<div style="text-align:center;padding:40px 0;color:#94a3b8;font-size:13px">불러오는 중...</div>';
+    await _fetchSystemTeamJournals();
+    renderSystemTeamPanel();
+  }
+
+  async function _fetchSystemTeamJournals() {
+    var SYSTEM_NAMES = ['김세준 차장', '권영재 차장'];
+    // PostgREST or 필터: author 이름이 시스템팀 직원과 일치하는 행만 조회 (read-only)
+    var orParts = SYSTEM_NAMES.map(function(n) {
+      return 'author.eq.' + encodeURIComponent(n);
+    }).join(',');
+    var url = SB_URL + '/rest/v1/journals?select=*&or=(' + orParts + ')&order=date.desc,created_at.desc';
+    try {
+      // 1차: 현재 사용자 JWT
+      var res = await fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } });
+      var rows = await res.json();
+      if (Array.isArray(rows) && rows.length > 0) {
+        _systemTeamCache = rows.map(dbToLocal);
+        return;
+      }
+    } catch(e) {}
+    try {
+      // 2차: anon key (RLS 가 anon 허용하는 경우 폴백)
+      var res2 = await fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } });
+      var rows2 = await res2.json();
+      if (Array.isArray(rows2) && rows2.length > 0) {
+        _systemTeamCache = rows2.map(dbToLocal);
+        return;
+      }
+    } catch(e) {}
+    // 3차: 로컬 journalCache 폴백
+    _systemTeamCache = loadJournals().filter(function(j) {
+      var a = (j.author || '').trim();
+      return SYSTEM_NAMES.indexOf(a) !== -1;
+    });
+  }
+
+  function closeSystemTeamPanel() {
+    document.getElementById('systemteam-overlay').style.display = 'none';
+  }
+
+  async function systemteamClearDate() {
+    document.getElementById('systemteam-date-from').value = '';
+    document.getElementById('systemteam-date-to').value = '';
+    if (_systemTeamCache.length === 0) await _fetchSystemTeamJournals();
+    renderSystemTeamPanel();
+  }
+
+  function _systemTeamRenderCard(uname, taskEntries, visibleCount) {
+    var user = (ALL_USERS || []).find(function(u) { return u.username === uname; });
+    if (!user) return null;
+
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06)';
+
+    // avsystem/engineer2 는 PROFILE_IMG 에 없음 → 이니셜 아바타 fallback (indigo)
+    var imgSrc = (PROFILE_IMG && PROFILE_IMG[uname]) ? PROFILE_IMG[uname] : null;
+    var avatarHtml = imgSrc
+      ? '<img src="' + imgSrc + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #e0e7ff;flex-shrink:0">'
+      : '<div style="width:36px;height:36px;border-radius:50%;background:#6366f1;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0">' + (user.fullName || '?').charAt(0) + '</div>';
+
+    card.innerHTML = '<div style="padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f1f5f9">'
+      + avatarHtml
+      + '<div style="min-width:0">'
+        + '<div style="font-size:13px;font-weight:700;color:#1e293b">' + _stEsc(user.fullName) + '</div>'
+        + '<div style="font-size:11px;color:#94a3b8;margin-top:1px">' + _stEsc(user.dept) + '</div>'
+      + '</div>'
+      + '<div style="margin-left:auto;font-size:11px;color:#64748b;background:#f1f5f9;padding:3px 8px;border-radius:10px;white-space:nowrap">'
+        + (taskEntries.length > 0 ? taskEntries.length + '개 업무' : '업무 없음')
+      + '</div>'
+      + '</div>';
+
+    if (taskEntries.length === 0) {
+      var empty = document.createElement('div');
+      empty.style.cssText = 'padding:20px 14px;text-align:center;color:#94a3b8;font-size:12px';
+      empty.textContent = '해당 기간에 업무 내역이 없습니다.';
+      card.appendChild(empty);
+      return card;
+    }
+
+    var listDiv = document.createElement('div');
+    listDiv.style.cssText = 'padding:10px 14px 4px;display:flex;flex-direction:column;gap:6px';
+
+    var shown = Math.min(visibleCount, taskEntries.length);
+    for (var i = 0; i < shown; i++) {
+      var row = document.createElement('div');
+      row.innerHTML = _stTaskRowHtml(taskEntries[i]);
+      listDiv.appendChild(row.firstChild);
+    }
+    card.appendChild(listDiv);
+
+    var remaining = taskEntries.length - shown;
+    var btnWrap = document.createElement('div');
+    btnWrap.style.cssText = 'padding:6px 14px 12px';
+
+    if (taskEntries.length > SYS_TEAM_PAGE_SIZE) {
+      var btn = document.createElement('button');
+      btn.style.cssText = 'width:100%;padding:7px 0;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:600;cursor:pointer;color:#64748b;font-family:inherit;transition:background 0.15s';
+      btn.onmouseover = function() { this.style.background = '#f1f5f9'; };
+      btn.onmouseout  = function() { this.style.background = '#f8fafc'; };
+
+      if (remaining > 0) {
+        btn.textContent = '더 보기 (' + remaining + '개 남음)';
+        btn.onclick = function() {
+          _systemTeamVisibleMap[uname] = (_systemTeamVisibleMap[uname] || SYS_TEAM_PAGE_SIZE) + SYS_TEAM_PAGE_SIZE;
+          renderSystemTeamPanel();
+        };
+      } else {
+        btn.textContent = '접기';
+        btn.style.color = '#94a3b8';
+        btn.onclick = function() {
+          _systemTeamVisibleMap[uname] = SYS_TEAM_PAGE_SIZE;
+          renderSystemTeamPanel();
+        };
+      }
+      btnWrap.appendChild(btn);
+    } else {
+      btnWrap.style.paddingTop = '2px';
+      btnWrap.style.paddingBottom = '8px';
+    }
+    card.appendChild(btnWrap);
+    return card;
+  }
+
+  function renderSystemTeamPanel() {
+    var body = document.getElementById('systemteam-body');
+    var dFrom = document.getElementById('systemteam-date-from').value || '';
+    var dTo   = document.getElementById('systemteam-date-to').value   || '';
+    var journals = _systemTeamCache;
+
+    var wrapper = document.createElement('div');
+    wrapper.style.cssText = 'padding:16px 16px 32px;display:flex;flex-direction:column;gap:12px';
+
+    // SYSTEM_DEPT_USERNAMES (전역) 와 동일 — avsystem, engineer2
+    var SYSTEM_USERNAMES_PANEL = (typeof SYSTEM_DEPT_USERNAMES !== 'undefined') ? SYSTEM_DEPT_USERNAMES : ['avsystem','engineer2'];
+    var hasAny = false;
+
+    SYSTEM_USERNAMES_PANEL.forEach(function(uname) {
+      var user = (ALL_USERS || []).find(function(u) { return u.username === uname; });
+      if (!user) return;
+      var uid = user.id;
+
+      var uJournals = journals.filter(function(j) {
+        var matchById = uid && j.user_id === uid;
+        var matchByName = user.fullName && (j.author || '').trim() === user.fullName.trim();
+        if (!matchById && !matchByName) return false;
+        if (dFrom && (j.date || '') < dFrom) return false;
+        if (dTo   && (j.date || '') > dTo)   return false;
+        return true;
+      }).sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
+
+      // 동일 task.text 를 묶고 발생 일자 수 집계 (음원팀 로직 동일)
+      var taskMap = {};
+      uJournals.forEach(function(j) {
+        (j.tasks || []).forEach(function(t) {
+          var txt = (t.text || '').trim();
+          if (!txt) return;
+          if (!taskMap[txt]) taskMap[txt] = { status: t.status || 'todo', dates: [] };
+          if (j.date && taskMap[txt].dates.indexOf(j.date) === -1) taskMap[txt].dates.push(j.date);
+        });
+      });
+
+      var taskEntries = Object.keys(taskMap).map(function(txt) {
+        return { text: txt, status: taskMap[txt].status, count: taskMap[txt].dates.length };
+      });
+
+      if (!_systemTeamVisibleMap[uname]) _systemTeamVisibleMap[uname] = SYS_TEAM_PAGE_SIZE;
+      var card = _systemTeamRenderCard(uname, taskEntries, _systemTeamVisibleMap[uname]);
       if (card) { wrapper.appendChild(card); hasAny = true; }
     });
 
