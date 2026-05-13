@@ -7331,51 +7331,38 @@
     if (!fromY || !toY) return;
     if (fromY > toY) { var t = fromY; fromY = toY; toY = t; }
 
-    // 연도 배열
+    // 연도 배열 (X축 라벨)
     var years = []; for (var y = fromY; y <= toY; y++) years.push(y);
-
-    // 각 항목별, 각 연도의 값
-    var labels = SYS_SALES_ITEMS.map(function(it){ return it.label; });
-    var colors = SYS_SALES_ITEMS.map(function(it){ return it.color; });
-
-    // 현재 기간 합계 (선택 연도 전체 합)
-    var totals = {}; SYS_SALES_ITEMS.forEach(function(it){ totals[it.key] = 0; });
-    years.forEach(function(y){
-      SYS_SALES_ITEMS.forEach(function(it){ totals[it.key] += _sysYearTotal(y, it.key); });
-    });
-
-    // 전년 대비: 같은 항목, 같은 길이의 직전 연도 범위 합계
-    var prevTotals = null;
-    if (_sysCumulCmpMode === 'yoy') {
-      prevTotals = {}; SYS_SALES_ITEMS.forEach(function(it){ prevTotals[it.key] = 0; });
-      years.forEach(function(y){
-        SYS_SALES_ITEMS.forEach(function(it){ prevTotals[it.key] += _sysYearTotal(y - 1, it.key); });
-      });
-    }
-
-    var data     = SYS_SALES_ITEMS.map(function(it){ return totals[it.key]; });
-    var prevData = prevTotals ? SYS_SALES_ITEMS.map(function(it){ return prevTotals[it.key]; }) : null;
+    var labels = years.map(function(y){ return y + '년'; });
 
     var ctx = document.getElementById('sys-cumul-chart').getContext('2d');
     if (_sysCumulChart) { try{_sysCumulChart.destroy();}catch(e){} _sysCumulChart = null; }
 
-    var periodLabel = (fromY === toY) ? (fromY + '년') : (fromY + '~' + toY + '년');
-    var datasets = [{
-      label: periodLabel + ' 합계',
-      data: data,
-      backgroundColor: colors.map(function(c){ return c + 'cc'; }),
-      borderColor: colors,
-      borderWidth: 1
-    }];
-    if (prevData) {
-      var prevPeriodLabel = ((fromY - 1) === (toY - 1)) ? ((fromY - 1) + '년') : ((fromY - 1) + '~' + (toY - 1) + '년');
-      datasets.push({
-        label: prevPeriodLabel + ' (전년)',
-        data: prevData,
-        backgroundColor: colors.map(function(c){ return c + '40'; }),
-        borderColor: colors.map(function(c){ return c + '80'; }),
+    // 6개 항목 = 6개 dataset. 각 dataset 의 data = [year1 값, year2 값, ...]
+    //   X축: 연도, Y축: 금액. 같은 연도 그룹 안에 6개 항목 색상으로 막대 나란히 표시.
+    var datasets = SYS_SALES_ITEMS.map(function(it){
+      return {
+        label: it.label,
+        data: years.map(function(y){ return _sysYearTotal(y, it.key); }),
+        backgroundColor: it.color + 'cc',
+        borderColor: it.color,
         borderWidth: 1,
-        borderDash: [4, 4]
+        stack: 'cur'
+      };
+    });
+
+    // 전년 대비: 각 연도 옆에 'year-1' 데이터를 별도 dataset 으로 추가 (옅은 점선)
+    if (_sysCumulCmpMode === 'yoy') {
+      SYS_SALES_ITEMS.forEach(function(it){
+        datasets.push({
+          label: it.label + ' (전년)',
+          data: years.map(function(y){ return _sysYearTotal(y - 1, it.key); }),
+          backgroundColor: it.color + '40',
+          borderColor: it.color + '80',
+          borderWidth: 1,
+          borderDash: [4, 4],
+          stack: 'prev'
+        });
       });
     }
 
@@ -7385,26 +7372,37 @@
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend: { display: !!prevData, position: 'top', labels: { font: { size: 11 } } },
+          legend: { display: true, position: 'top', labels: { font: { size: 11 }, boxWidth: 12, padding: 8 } },
           tooltip: { callbacks: { label: function(c){ return c.dataset.label + ': ' + _sysFmtW(c.parsed.y); } } }
         },
         scales: {
-          x: { ticks: { maxRotation: 0, minRotation: 0, autoSkip: false, font: { size: 11 } } },
-          y: { beginAtZero: true, ticks: { callback: function(v){ return _sysFmtW(v); } } }
+          x: { stacked: true, ticks: { maxRotation: 0, font: { size: 11.5, weight: '600' } } },
+          y: { beginAtZero: true, stacked: true, ticks: { callback: function(v){ return _sysFmtW(v); }, font: { size: 11 } } }
         }
       }
     });
 
-    // 항목별 카드 + 총 합계
+    // 항목별 카드 (선택 기간 합계) + 총 합계
+    var periodLabel = (fromY === toY) ? (fromY + '년') : (fromY + '~' + toY + '년');
+    var totals = {}; var prevTotals = {};
+    SYS_SALES_ITEMS.forEach(function(it){
+      totals[it.key] = years.reduce(function(s, y){ return s + _sysYearTotal(y, it.key); }, 0);
+      if (_sysCumulCmpMode === 'yoy') {
+        prevTotals[it.key] = years.reduce(function(s, y){ return s + _sysYearTotal(y - 1, it.key); }, 0);
+      }
+    });
+    var grandTotal = SYS_SALES_ITEMS.reduce(function(s, it){ return s + totals[it.key]; }, 0);
+    var prevGrand  = _sysCumulCmpMode === 'yoy'
+      ? SYS_SALES_ITEMS.reduce(function(s, it){ return s + prevTotals[it.key]; }, 0)
+      : 0;
+
     var summary = document.getElementById('sys-cumul-summary');
-    var grandTotal = data.reduce(function(a,b){ return a+b; }, 0);
-    var prevGrand = prevData ? prevData.reduce(function(a,b){ return a+b; }, 0) : 0;
-    summary.innerHTML = SYS_SALES_ITEMS.map(function(it, i){
-      var v = data[i];
+    summary.innerHTML = SYS_SALES_ITEMS.map(function(it){
+      var v = totals[it.key];
       var pct = grandTotal > 0 ? Math.round(v / grandTotal * 100) : 0;
       var diffHtml = '';
-      if (prevData) {
-        var pv = prevData[i];
+      if (_sysCumulCmpMode === 'yoy') {
+        var pv = prevTotals[it.key];
         var diff = v - pv;
         var diffPct = pv > 0 ? Math.round(diff / pv * 100) : (v > 0 ? 100 : 0);
         var dColor = diff >= 0 ? '#16a34a' : '#dc2626';
@@ -7418,9 +7416,8 @@
         + '</div>';
     }).join('');
 
-    // 총 합계 카드
     var grandDiffHtml = '';
-    if (prevData) {
+    if (_sysCumulCmpMode === 'yoy') {
       var gDiff = grandTotal - prevGrand;
       var gDiffPct = prevGrand > 0 ? Math.round(gDiff / prevGrand * 100) : (grandTotal > 0 ? 100 : 0);
       grandDiffHtml = '<div style="font-size:11px;font-weight:700;margin-top:3px;color:' + (gDiff >= 0 ? '#bbf7d0' : '#fecaca') + '">' + (gDiff >= 0 ? '▲ +' : '▼ ') + Math.abs(gDiffPct) + '% (전년: ' + _sysFmtW(prevGrand) + ')</div>';
