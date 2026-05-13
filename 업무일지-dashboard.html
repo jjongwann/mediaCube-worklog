@@ -7095,12 +7095,23 @@
     // 기존: 단일 연도 선택 — 이제는 사용 안 함. 호환을 위해 빈 함수 유지.
   }
 
-  // 표시할 연도 범위 (현재 연도 기준 최근 5년)
+  // 표시할 연도 범위
+  //  - 기본: 최근 6년 (현재년 - 5 ~ 현재년) → 2026년 기준 2021~2026
+  //  - DB 에 더 오래된 연도 데이터가 있으면 자동으로 포함 (오름차순)
   function _sysDisplayYears() {
     var cy = new Date().getFullYear();
-    var years = [];
-    for (var y = cy - 4; y <= cy; y++) years.push(y);
-    return years;
+    var baseStart = cy - 5;
+    var seen = {};
+    for (var y = baseStart; y <= cy; y++) seen[y] = true;
+    // DB 의 모든 연도(month_key 첫 토큰) 합쳐서 가장 오래된 것까지 표시
+    _sysSalesRows.forEach(function(r){
+      var t = (r.month_key || '').split('-')[0];
+      if (/^\d{4}$/.test(t)) {
+        var yi = parseInt(t, 10);
+        if (yi <= cy) seen[yi] = true;
+      }
+    });
+    return Object.keys(seen).map(Number).sort(function(a,b){ return a - b; });
   }
 
   // 특정 연도의 항목 합계
