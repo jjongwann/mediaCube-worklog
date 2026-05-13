@@ -1961,6 +1961,7 @@
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
             <span style="font-size:12px;font-weight:700;color:#475569">연도</span>
             <select id="sys-sales-input-year" style="padding:7px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#374151;outline:none;background:#f8fafc;font-weight:600"></select>
+            <button onclick="_sysAddInputYear()" type="button" title="새 연도 추가" style="padding:6px 10px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:3px" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">+ 연도 추가</button>
             <span style="font-size:11px;color:#94a3b8;margin-left:auto">한 해 전체 합계를 입력</span>
           </div>
           <div id="sys-sales-fields" style="display:flex;flex-direction:column;gap:10px"></div>
@@ -7164,12 +7165,12 @@
     var baseStart = cy - 5;
     var seen = {};
     for (var y = baseStart; y <= cy; y++) seen[y] = true;
-    // DB 의 모든 연도(month_key 첫 토큰) 합쳐서 가장 오래된 것까지 표시
+    // DB 의 모든 연도(month_key 첫 토큰) 합쳐서 가장 오래된~가장 미래 연도까지 표시
+    // (사용자가 "+ 연도 추가" 로 미래 연도 데이터를 저장한 경우에도 드롭다운에 노출되어야 함)
     _sysSalesRows.forEach(function(r){
       var t = (r.month_key || '').split('-')[0];
       if (/^\d{4}$/.test(t)) {
-        var yi = parseInt(t, 10);
-        if (yi <= cy) seen[yi] = true;
+        seen[parseInt(t, 10)] = true;
       }
     });
     return Object.keys(seen).map(Number).sort(function(a,b){ return a - b; });
@@ -7415,20 +7416,57 @@
     if (!_sysSalesLoaded) { sysSalesFetch().then(openSysSalesInput); return; }
     var ySel = document.getElementById('sys-sales-input-year');
     var now = new Date(); var curY = now.getFullYear();
+    // 기본 범위: 현재 - 5 ~ 현재 + 1, + DB 에 이미 존재하는 모든 연도 (오름차순 정렬)
+    var seen = {};
+    for (var y = curY - 5; y <= curY + 1; y++) seen[y] = true;
+    _sysSalesRows.forEach(function(r){
+      var t = (r.month_key || '').split('-')[0];
+      if (/^\d{4}$/.test(t)) seen[parseInt(t, 10)] = true;
+    });
+    var years = Object.keys(seen).map(Number).sort(function(a,b){ return a - b; });
     ySel.innerHTML = '';
-    // 2021 년 부터 입력 가능 (현재 년도 - 5 부터 +1 까지)
-    for (var y = curY - 5; y <= curY + 1; y++) {
+    years.forEach(function(yy){
       var opt = document.createElement('option');
-      opt.value = y; opt.textContent = y + '년';
-      if (y === curY) opt.selected = true;
+      opt.value = yy; opt.textContent = yy + '년';
+      if (yy === curY) opt.selected = true;
       ySel.appendChild(opt);
-    }
+    });
     _sysRefillFields();
     ySel.onchange = _sysRefillFields;
     document.getElementById('sys-sales-input-overlay').style.display = 'flex';
   }
   function closeSysSalesInput() {
     document.getElementById('sys-sales-input-overlay').style.display = 'none';
+  }
+  // 입력 모달 — 새 연도 추가 (prompt 로 입력 받아 드롭다운에 삽입 후 선택)
+  function _sysAddInputYear() {
+    var defaultY = new Date().getFullYear() + 2;
+    var input = window.prompt('추가할 연도를 입력하세요 (예: ' + defaultY + ')', String(defaultY));
+    if (input === null) return; // 취소
+    var y = parseInt(String(input).trim(), 10);
+    if (!y || y < 1900 || y > 9999) { alert('올바른 연도(1900~9999)를 입력하세요.'); return; }
+    var ySel = document.getElementById('sys-sales-input-year');
+    if (!ySel) return;
+    // 이미 존재하면 그대로 선택
+    var exists = false;
+    for (var i = 0; i < ySel.options.length; i++) {
+      if (parseInt(ySel.options[i].value, 10) === y) { exists = true; break; }
+    }
+    if (!exists) {
+      // 오름차순 정렬을 유지하며 옵션 삽입
+      var inserted = false;
+      var opt = document.createElement('option');
+      opt.value = y; opt.textContent = y + '년';
+      for (var j = 0; j < ySel.options.length; j++) {
+        if (parseInt(ySel.options[j].value, 10) > y) {
+          ySel.insertBefore(opt, ySel.options[j]);
+          inserted = true; break;
+        }
+      }
+      if (!inserted) ySel.appendChild(opt);
+    }
+    ySel.value = String(y);
+    _sysRefillFields();
   }
   function _sysRefillFields() {
     var y = parseInt(document.getElementById('sys-sales-input-year').value, 10);
@@ -7523,15 +7561,17 @@
     var fromSel = document.getElementById('sys-cumul-from-year');
     var toSel   = document.getElementById('sys-cumul-to-year');
     var curYear = new Date().getFullYear();
-    var minYear = curYear - 5;
-    var maxYear = curYear;
+    // 범위: 항상 2021 ~ 현재년 포함 + DB 에 존재하는 모든 연도 (과거·미래 포함)
+    var dbYears = _sysDisplayYears();
+    var minYear = Math.min(2021, dbYears.length > 0 ? dbYears[0] : 2021, curYear);
+    var maxYear = Math.max(curYear, dbYears.length > 0 ? dbYears[dbYears.length - 1] : curYear);
     var opts = [];
     for (var y = minYear; y <= maxYear; y++) {
       opts.push('<option value="' + y + '">' + y + '년</option>');
     }
     fromSel.innerHTML = opts.join('');
     toSel.innerHTML   = opts.join('');
-    fromSel.value = String(curYear - 4); // 기본: 최근 5년
+    fromSel.value = '2021';            // 기본 시작 = 2021 (사업 시작 연도)
     toSel.value   = String(curYear);
     document.getElementById('sys-sales-cumul-overlay').style.display = 'flex';
     setSysCumulCmp('');
