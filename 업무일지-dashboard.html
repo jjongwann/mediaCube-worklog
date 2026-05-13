@@ -1586,7 +1586,7 @@
       업무 지시
       <span id="directive-badge" style="display:none;margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:700;border-radius:9px;min-width:17px;height:17px;line-height:17px;text-align:center;padding:0 4px"></span>
     </div>
-    <div class="sidebar-item" onclick="openVendorMenu()">
+    <div class="sidebar-item" id="sidebar-vendor-btn" onclick="openVendorMenu()">
       <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v4H3z"/><path d="M5 7v13h14V7"/><path d="M9 11h6"/><path d="M9 15h6"/></svg></span>
       거래처별 매출 분석
     </div>
@@ -2911,6 +2911,7 @@
     var systemWidget = document.getElementById('system-sales-widget');
     var bmatBtn      = document.getElementById('sidebar-bmat-btn');
     var bmatWidget   = document.getElementById('bmat-widget');
+    var vendorBtn    = document.getElementById('sidebar-vendor-btn');
     if (_viewDeptKey === 'system') {
       if (soundWidget)  soundWidget.style.display  = 'none';
       if (systemWidget) systemWidget.style.display = '';
@@ -2920,6 +2921,12 @@
       if (soundWidget)  soundWidget.style.display  = '';
       if (systemWidget) systemWidget.style.display = 'none';
       if (bmatBtn)      bmatBtn.style.display      = '';
+    }
+    // 거래처별 매출 분석: 시스템 사업부 사용자(비관리자)에게는 숨김
+    // 관리자는 사업부 뷰와 상관없이 항상 사용 가능 (음원/시스템 거래처 모두 확인 가능해야 하므로)
+    if (vendorBtn) {
+      var isSystemUser = !_isAdmin && _userDeptKey(_userId) === 'system';
+      vendorBtn.style.display = isSystemUser ? 'none' : '';
     }
   }
 
