@@ -12,6 +12,9 @@ const ACCOUNTS = [
   { username: 'soundstore',   email: 'soundstore@mediacube.com',   password: 'media3042' },
   { username: 'soundsales',   email: 'soundsales@mediacube.com',   password: 'media1285' },
   { username: 'developer',    email: 'developer@mediacube.com',    password: 'mediacube8408' },
+  // 시스템 사업부
+  { username: 'avsystem',     email: 'avsystem@mediacube.com',     password: 'cube8408' },
+  { username: 'engineer2',    email: 'engineer2@mediacube.com',    password: 'cube3940' },
 ];
 
 async function createUser(svcKey, account) {
