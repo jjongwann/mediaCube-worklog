@@ -292,7 +292,7 @@
 <div class="hero">
   <div class="hero-badge">User Guide · 2026</div>
   <h1>업무일지 <span>사용설명서</span></h1>
-  <p>미디어큐브 사운드콘텐츠사업부 업무일지 시스템의 모든 기능을 쉽게 알아보세요.</p>
+  <p>미디어큐브 사운드콘텐츠사업부 · 시스템 사업부 업무일지 시스템의 모든 기능을 쉽게 알아보세요.</p>
   <div class="hero-chips">
     <span class="hero-chip">🔐 로그인</span>
     <span class="hero-chip">📊 대시보드</span>
@@ -309,6 +309,13 @@
     <span class="hero-chip">🏆 업무 성과</span>
     <span class="hero-chip">⚠️ 발생 이슈</span>
     <span class="hero-chip">📋 업무 지시</span>
+    <div style="flex-basis:100%;height:0"></div>
+    <span class="hero-chip">🏢 시스템 사업부</span>
+    <span class="hero-chip">💼 시스템 매출 분석</span>
+    <span class="hero-chip">👨‍💻 시스템팀 현황</span>
+    <span class="hero-chip">📡 BMAT 모니터링</span>
+    <span class="hero-chip">🏪 거래처별 매출</span>
+    <span class="hero-chip">🔑 직원별 권한</span>
   </div>
 </div>
 
@@ -319,7 +326,7 @@
     <div class="toc-title">목차</div>
     <div class="toc-grid">
       <a href="#s1"  class="toc-item"><span class="toc-num">1</span> 로그인</a>
-      <a href="#s2"  class="toc-item"><span class="toc-num">2</span> 대시보드 · 음원팀 현황</a>
+      <a href="#s2"  class="toc-item"><span class="toc-num">2</span> 대시보드 · 팀 업무 현황</a>
       <a href="#s3"  class="toc-item"><span class="toc-num">3</span> 일지 작성 · 미완료 가져오기</a>
       <a href="#s4"  class="toc-item"><span class="toc-num">4</span> 상태 관리</a>
       <a href="#s5"  class="toc-item"><span class="toc-num">5</span> 자동완성</a>
@@ -333,6 +340,13 @@
       <a href="#s13" class="toc-item"><span class="toc-num">13</span> 업무 성과</a>
       <a href="#s14" class="toc-item"><span class="toc-num">14</span> 발생 이슈 조회 · 해결 알림</a>
       <a href="#s15" class="toc-item"><span class="toc-num">15</span> 업무 지시</a>
+      <a href="#s16" class="toc-item"><span class="toc-num">16</span> 시스템 사업부 · 부서 보기 토글</a>
+      <a href="#s17" class="toc-item"><span class="toc-num">17</span> 시스템 매출 분석</a>
+      <a href="#s18" class="toc-item"><span class="toc-num">18</span> 시스템 매출 연간 누계 통계</a>
+      <a href="#s19" class="toc-item"><span class="toc-num">19</span> 시스템팀 업무 현황</a>
+      <a href="#s20" class="toc-item"><span class="toc-num">20</span> BMAT 모니터링 통계</a>
+      <a href="#s21" class="toc-item"><span class="toc-num">21</span> 거래처별 매출 분석</a>
+      <a href="#s22" class="toc-item"><span class="toc-num">22</span> 직원별 권한</a>
     </div>
   </div>
 
@@ -394,8 +408,8 @@
     </div>
 
     <div class="card">
-      <div class="card-title"><span class="card-title-dot"></span>상단 통계 카드 (4개)</div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">주요 지표를 한눈에 확인하고, 클릭하면 차트 모드가 전환됩니다.</p>
+      <div class="card-title"><span class="card-title-dot"></span>상단 통계 카드 (4개) <span class="upd-badge">UPDATED</span></div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">주요 지표를 한눈에 확인하고, <strong>전체 일지</strong> 카드를 클릭하면 월별 추이 차트가 펼쳐집니다.</p>
       <div class="stat-demo">
         <div class="stat-demo-card active">
           <div class="stat-demo-label">전체 일지</div>
@@ -408,14 +422,14 @@
           <div class="stat-demo-sub">미완료 일지 수</div>
         </div>
         <div class="stat-demo-card">
+          <div class="stat-demo-label">완료</div>
+          <div class="stat-demo-val">23</div>
+          <div class="stat-demo-sub">100% 완료 일지 수</div>
+        </div>
+        <div class="stat-demo-card">
           <div class="stat-demo-label">평균 진행률</div>
           <div class="stat-demo-val">92%</div>
           <div class="stat-demo-sub">전체 일지 평균</div>
-        </div>
-        <div class="stat-demo-card">
-          <div class="stat-demo-label">업무별 누적 시간</div>
-          <div class="stat-demo-val"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><rect x="3" y="3" width="4" height="18" rx="1"/><rect x="10" y="8" width="4" height="13" rx="1"/><rect x="17" y="12" width="4" height="9" rx="1"/></svg></div>
-          <div class="stat-demo-sub">클릭 시 업무별 차트</div>
         </div>
       </div>
     </div>
@@ -457,8 +471,18 @@
     </div>
 
     <div class="card" style="margin-top:16px;">
-      <div class="card-title"><span class="card-title-dot" style="background:#0ea5e9;"></span>음원팀 업무 현황 패널 <span class="new-badge">NEW</span></div>
-      <p style="font-size:13.5px;color:var(--muted);">사이드바 하단 <strong style="color:var(--text)">음원팀 업무 현황</strong> 버튼을 클릭하면 사운드콘텐츠사업부 팀원 전체의 오늘 업무 내역을 슬라이드 패널로 한눈에 확인할 수 있습니다. 같은 팀 내 업무가 서로 겹치지 않도록 조율하고, 팀 전체의 진행 상황을 파악해 협업에 활용하세요.</p>
+      <div class="card-title"><span class="card-title-dot" style="background:#0ea5e9;"></span>음원팀 업무 현황 패널</div>
+      <p style="font-size:13.5px;color:var(--muted);">사운드 사업부 계정으로 로그인하면 사이드바에 <strong style="color:var(--text)">음원팀 업무 현황</strong> 버튼이 표시됩니다. 클릭하면 사운드콘텐츠사업부 팀원 전체의 업무 내역을 슬라이드 패널로 한눈에 확인할 수 있습니다. 같은 팀 내 업무가 서로 겹치지 않도록 조율하고, 팀 전체의 진행 상황을 파악해 협업에 활용하세요.</p>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title"><span class="card-title-dot" style="background:#6366f1;"></span>시스템팀 업무 현황 패널 <span class="new-badge">NEW</span></div>
+      <p style="font-size:13.5px;color:var(--muted);">시스템 사업부 계정(<strong>avsystem · engineer2</strong>)으로 로그인하면 사이드바에 <strong style="color:var(--text)">시스템팀 업무 현황</strong> 버튼이 표시됩니다. 사운드팀과 시스템팀 패널은 부서별로 완전히 분리되어 서로의 데이터가 섞이지 않습니다. 자세한 내용은 <a href="#s19" style="color:#6366f1;font-weight:600">19. 시스템팀 업무 현황</a> 섹션을 참고하세요.</p>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title"><span class="card-title-dot" style="background:#9ca3af;"></span>사이드바 컴팩트 스페이싱 <span class="new-badge">NEW</span></div>
+      <p style="font-size:13.5px;color:var(--muted);">사이드바의 여백을 정교하게 조정하여 일반 노트북·데스크탑 해상도에서 메인·상태·바로가기·사업부 보기·관리자 메뉴와 푸터까지 <strong style="color:var(--text)">스크롤 없이 한 화면에</strong> 들어오도록 정리했습니다.</p>
     </div>
   </div>
 
@@ -1254,6 +1278,18 @@
             <td>사운드콘텐츠사업부</td>
             <td><span class="role-badge role-user">일반</span></td>
           </tr>
+          <tr>
+            <td>avsystem <span class="new-badge">NEW</span></td>
+            <td>김세준 차장</td>
+            <td>시스템 사업부</td>
+            <td><span class="role-badge role-user">일반</span></td>
+          </tr>
+          <tr>
+            <td>engineer2 <span class="new-badge">NEW</span></td>
+            <td>권영재 차장</td>
+            <td>시스템 사업부</td>
+            <td><span class="role-badge role-user">일반</span></td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -1343,7 +1379,22 @@
 
     <div class="callout callout-red" style="margin-bottom:20px;">
       <span class="callout-icon">📌</span>
-      <span>업무 히스토리 패널의 <strong>발생 이슈</strong> 탭에서 음원팀 전 직원의 이슈 기록을 한눈에 조회하고, 이슈 해결 시 팀 전체에 알림을 발송할 수 있습니다.</span>
+      <span>업무 히스토리 패널의 <strong>발생 이슈</strong> 탭에서 같은 부서 직원의 이슈 기록을 한눈에 조회하고, 이슈 해결 시 부서 전원에게 알림을 발송할 수 있습니다.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#dc2626;"></span>부서 단위 격리 <span class="new-badge">NEW</span></div>
+      <p style="font-size:13.5px;color:var(--muted);margin-bottom:14px;">발생 이슈 탭의 가시 범위는 <strong style="color:var(--text)">부서 단위로 분리</strong>되어 있습니다. 부서가 다른 팀의 이슈는 노출되지 않습니다.</p>
+      <ul class="tip-list">
+        <li><strong>사운드콘텐츠사업부 직원</strong> — 사운드팀 이슈만 조회 가능 (시스템팀 이슈는 비노출)</li>
+        <li><strong>시스템 사업부 직원</strong> (avsystem · engineer2) — 시스템팀 이슈만 조회 가능 (사운드팀 이슈는 비노출)</li>
+        <li><strong>관리자(mediacube) · developer</strong> — 모든 부서 이슈 가시 (운영·디버깅 목적)</li>
+        <li><strong>권한 부여(직원별 권한)</strong>를 받은 직원 — 허용된 직원의 이슈만 조회</li>
+      </ul>
+      <div class="callout callout-amber" style="margin-top:14px;">
+        <span class="callout-icon">🔔</span>
+        <span>이슈 해결 알림도 <strong>이슈 작성자의 부서</strong> 기준으로 전송됩니다. 사운드 이슈는 사운드팀 + 관리자 + developer에게, 시스템 이슈는 시스템팀(avsystem·engineer2) + 관리자 + developer에게 알림이 도달합니다.</span>
+      </div>
     </div>
 
     <div class="card">
@@ -1532,12 +1583,499 @@
     </div>
   </div>
 
+  <hr class="divider">
+
+  <!-- ══════════════════════════════ 16. 시스템 사업부 · 부서 보기 토글 ══════════════════════════════ -->
+  <a id="s16" class="section-anchor"></a>
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#eef2ff;">🏢</div>
+      <div class="section-meta">
+        <div class="section-num">Section 16</div>
+        <div class="section-title">시스템 사업부 · 부서 보기 토글 <span class="new-badge">NEW</span></div>
+      </div>
+    </div>
+
+    <div class="callout callout-blue" style="margin-bottom:20px;">
+      <span class="callout-icon">📌</span>
+      <span>시스템 사업부가 신설되어 미디어큐브 업무일지 시스템은 <strong>사운드콘텐츠사업부</strong>와 <strong>시스템 사업부</strong> 두 부서로 운영됩니다. 각 부서는 별도의 매출 분석·팀 현황·이슈 영역을 가지며, 관리자(mediacube)는 사이드바 토글로 두 부서 모두 조회할 수 있습니다.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#4338ca;"></span>부서 구조</div>
+      <div class="feat-grid">
+        <div class="feat-card" style="border-color:#bfdbfe;background:#eff6ff;">
+          <div class="feat-icon" style="background:#dbeafe;">🎵</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#1d4ed8;">사운드콘텐츠사업부</div>
+            <div class="feat-desc">soundsupport · webmaster20 · soundstore · soundsales · marketing · sunlee · admin · developer 등 음원 콘텐츠 관련 업무를 담당하는 팀.</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#c7d2fe;background:#eef2ff;">
+          <div class="feat-icon" style="background:#e0e7ff;">🖥️</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#4338ca;">시스템 사업부</div>
+            <div class="feat-desc"><strong>avsystem (김세준 차장)</strong>, <strong>engineer2 (권영재 차장)</strong> — AV Archiving, Restoration / Forensic, Broadcast / Pro AV Product, Acoustic Engineering, Dolby Production Services 등 시스템 솔루션 관련 업무 담당.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#4338ca;"></span>관리자 · 사업부 보기 토글</div>
+      <p style="font-size:13.5px;color:var(--muted);margin-bottom:14px;">관리자(mediacube) 계정 사이드바 하단의 <strong style="color:var(--text)">사업부 보기</strong> 섹션에서 <strong>🎵 사운드 컨텐츠 사업부</strong> / <strong>🖥️ 시스템 사업부</strong>를 토글하면, 대시보드 전체(통계·차트·일지 목록·매출 분석 위젯)가 해당 부서 데이터로 즉시 전환됩니다.</p>
+      <div class="callout callout-purple">
+        <span class="callout-icon">🔄</span>
+        <span>비관리자 직원은 본인 부서의 데이터만 볼 수 있고 토글이 노출되지 않습니다. 시스템팀 직원은 시스템 사업부 뷰로 자동 진입합니다.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#4338ca;"></span>부서별 사이드바 가시성 차이</div>
+      <ul class="tip-list">
+        <li><strong>BMAT 모니터링 통계</strong> — 사운드 사업부 뷰에서만 표시 (시스템 사업부 토글 시 자동 숨김)</li>
+        <li><strong>거래처별 매출 분석</strong> — 시스템 사업부 직원에게는 숨김 (관리자는 양 부서 뷰 모두 노출)</li>
+        <li><strong>음원팀 / 시스템팀 업무 현황</strong> — 본인 부서 패널만 노출 (음원팀은 시스템팀 패널 비노출, 반대도 동일)</li>
+        <li><strong>매출 분석 위젯</strong> — 사운드 뷰 = 음원 매출 분석 / 시스템 뷰 = 시스템 매출 분석으로 자동 전환</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ══════════════════════════════ 17. 시스템 매출 분석 ══════════════════════════════ -->
+  <a id="s17" class="section-anchor"></a>
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#eff6ff;">💼</div>
+      <div class="section-meta">
+        <div class="section-num">Section 17</div>
+        <div class="section-title">시스템 매출 분석 <span class="new-badge">NEW</span></div>
+      </div>
+    </div>
+
+    <div class="callout callout-blue" style="margin-bottom:20px;">
+      <span class="callout-icon">📌</span>
+      <span>시스템 사업부 뷰의 대시보드에 표시되는 <strong>시스템 매출 분석</strong> 위젯은 6개 시스템 매출 항목을 연도별로 입력·차트·표·KPI로 시각화합니다. 음원 매출 분석과 완전히 분리된 별도 위젯·별도 DB 테이블(<code>system_sales_data</code>)을 사용합니다.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#2563eb;"></span>6개 매출 항목</div>
+      <div class="feat-grid">
+        <div class="feat-card" style="border-color:#bfdbfe;background:#eff6ff;">
+          <div class="feat-icon" style="background:#dbeafe;color:#2563eb;font-weight:700;font-size:13px">AV</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#2563eb;">AV Archiving</div>
+            <div class="feat-desc">오디오·비디오 아카이빙 매출</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#ddd6fe;background:#f5f3ff;">
+          <div class="feat-icon" style="background:#ede9fe;color:#7c3aed;font-weight:700;font-size:13px">AV</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#7c3aed;">AV Restoration / Forensic</div>
+            <div class="feat-desc">복원 · 디지털 포렌식 매출</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#bbf7d0;background:#f0fdf4;">
+          <div class="feat-icon" style="background:#dcfce7;color:#16a34a;font-weight:700;font-size:13px">BR</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#16a34a;">Broadcast / Pro AV Product</div>
+            <div class="feat-desc">방송 · 프로 AV 제품 매출</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#e5e7eb;background:#f3f4f6;">
+          <div class="feat-icon" style="background:#e5e7eb;color:#4b5563;font-weight:700;font-size:13px">A/S</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#4b5563;">기타 A/S</div>
+            <div class="feat-desc">분류 외 A/S 매출</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#fde68a;background:#fffbeb;">
+          <div class="feat-icon" style="background:#fef9c3;color:#ca8a04;font-weight:700;font-size:13px">AE</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#ca8a04;">Acoustic / AV Engineering</div>
+            <div class="feat-desc">어쿠스틱 · AV 엔지니어링 매출</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#fed7aa;background:#fff7ed;">
+          <div class="feat-icon" style="background:#fed7aa;color:#ea580c;font-weight:700;font-size:13px">D</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#ea580c;">Dolby Production Services</div>
+            <div class="feat-desc">돌비 프로덕션 서비스 매출</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#2563eb;"></span>차트 · 표 뷰 토글</div>
+      <div class="feat-grid">
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#eff6ff;">📊</div>
+          <div class="feat-body">
+            <div class="feat-title">차트 보기 (기본)</div>
+            <div class="feat-desc">선택 연도의 6개 항목 매출을 막대 차트로 표시합니다. 우측에는 <strong>KPI 요약 패널</strong>(총 매출 / 평균 매출 / 전년 대비)이 같은 높이로 정렬됩니다. 차트 아래에는 6개 항목 카드와 합계 카드가 차트 X축에 정확히 정렬됩니다.</div>
+          </div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#eff6ff;">📋</div>
+          <div class="feat-body">
+            <div class="feat-title">표 보기</div>
+            <div class="feat-desc">6개 항목 × N개 연도 컬럼 + 연도별·항목별 합계가 포함된 표가 표시됩니다. DB에 데이터가 있는 모든 연도를 자동 포함합니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#2563eb;"></span>연도 선택 · 조회</div>
+      <p style="font-size:13.5px;color:var(--muted);margin-bottom:6px;">차트 보기 모드에서 상단의 <strong>연도</strong> 드롭다운으로 조회할 연도를 선택하고 <strong>조회</strong> 버튼을 클릭합니다. 기본값은 <strong>전년도</strong>입니다. 드롭다운에는 DB에 입력된 모든 연도가 자동으로 포함됩니다(과거·미래 모두).</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#2563eb;"></span>항목별 요약 카드 · YoY 칩</div>
+      <ul class="tip-list">
+        <li>각 항목 카드에 <strong>포맷 금액(억원)</strong>과 <strong>상세 금액(원)</strong>이 함께 표시됩니다 (숫자 폭은 tabular-nums로 정렬).</li>
+        <li>전년 대비 증감률을 색상 칩(▲ 녹색 / ▼ 빨강 / – 변화 없음)으로 표시합니다.</li>
+        <li>매출이 0이고 전년도도 0인 항목은 카드가 <strong>페이드(opacity 0.55)</strong> 처리되어 데이터가 있는 항목이 한눈에 들어옵니다.</li>
+        <li>카드에 마우스를 올리면 살짝 떠오르며 그림자가 진해지는 호버 효과가 적용됩니다.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#2563eb;"></span>매출 데이터 입력 (연도별)</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-label">+ 데이터 입력 버튼 클릭</div>
+            <div class="step-desc">위젯 우측 상단의 <strong>+ 데이터 입력</strong> 버튼을 클릭하면 연도 단위 입력 모달이 열립니다.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-label">연도 선택</div>
+            <div class="step-desc">기본 범위 <strong>현재년 - 5 ~ 현재년 + 1</strong>과 DB에 이미 존재하는 모든 연도가 드롭다운에 표시됩니다.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-label">+ 연도 추가 <span class="new-badge">NEW</span></div>
+            <div class="step-desc">드롭다운에 없는 연도를 입력하려면 <strong>+ 연도 추가</strong> 버튼을 클릭합니다. 프롬프트에 1900~9999 사이 연도를 입력하면 드롭다운에 오름차순으로 삽입되고 자동 선택됩니다. 저장하면 차트 모드·누계 통계 모달 드롭다운에도 즉시 노출됩니다.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-label">6개 항목 금액 입력 후 저장</div>
+            <div class="step-desc">각 항목별 한 해 전체 합계를 천 단위 콤마 자동 포맷으로 입력합니다. 합계는 실시간으로 계산되며 저장 시 해당 연도의 월별 row가 정리되고 단일 연도 row(<code>month_key=YYYY</code>)로 저장됩니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#2563eb;"></span>2025년 합계 카드</div>
+      <p style="font-size:13.5px;color:var(--muted);">차트 아래 우측에 표시되는 진한 파란 그라데이션 카드. 선택 연도의 전체 매출 합계(억원·원)를 표시하며 KPI 패널과 정확히 동일한 가로 위치·너비로 정렬됩니다.</p>
+    </div>
+
+    <div class="callout callout-amber">
+      <span class="callout-icon">🔒</span>
+      <span>시스템 매출 데이터 테이블은 <strong>RLS(Row Level Security)</strong>로 시스템 사업부 직원과 관리자만 접근 가능합니다. 사운드 사업부 데이터(<code>sales_data</code>)와는 완전히 분리되어 절대 섞이지 않습니다.</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ══════════════════════════════ 18. 시스템 매출 연간 누계 통계 ══════════════════════════════ -->
+  <a id="s18" class="section-anchor"></a>
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#f5f3ff;">📈</div>
+      <div class="section-meta">
+        <div class="section-num">Section 18</div>
+        <div class="section-title">시스템 매출 연간 누계 통계 <span class="new-badge">NEW</span></div>
+      </div>
+    </div>
+
+    <div class="callout callout-purple" style="margin-bottom:20px;">
+      <span class="callout-icon">📌</span>
+      <span>시스템 매출 분석 위젯의 <strong>연간 누계 통계</strong> 버튼을 클릭하면 여러 연도의 시스템 매출을 비교 · 누적해 한눈에 분석할 수 있는 모달이 열립니다.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#7c3aed;"></span>기본 모드</div>
+      <ul class="tip-list">
+        <li><strong>연도 선택</strong> — 시작 연도 ~ 종료 연도 드롭다운으로 기간을 지정합니다. 기본값 <strong>시작 = 2021년</strong>, <strong>종료 = 현재년</strong>.</li>
+        <li><strong>차트</strong> — X축 = 6개 시스템 매출 항목, 같은 항목 그룹 내에서 선택한 각 연도의 막대가 나란히 표시됩니다.</li>
+        <li><strong>색상</strong> — 가장 최신 연도는 보라(<span style="color:#7c3aed;font-weight:700">#7c3aed</span>)로 강조, 이전 연도들은 점점 옅은 회색 톤으로 표시됩니다.</li>
+        <li><strong>6개 항목 카드</strong> — 차트 X축에 정확히 정렬된 6개 카드로 항목별 누계 금액·점유율·상세금액이 표시됩니다.</li>
+        <li><strong>총 합계 카드</strong> — 카드 아래 줄 우측에 단일 카드의 <strong>2배 폭</strong>으로 배치. 라벨·기간 / 큰 금액·상세금액 2단 가로 레이아웃.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#7c3aed;"></span>전년 대비 모드</div>
+      <p style="font-size:13.5px;color:var(--muted);margin-bottom:14px;">모달 상단의 <strong>전년 대비</strong> 버튼을 클릭하면 각 연도의 막대 옆에 <strong>그 전년</strong>의 매출이 옅은 점선 막대(<code>borderDash:[4,4]</code>)로 함께 표시됩니다.</p>
+      <ul class="tip-list">
+        <li><strong>항목 카드</strong> — 누계 금액 + 전년 대비 증감률(▲/▼ %p) + 점유율 바를 함께 표시</li>
+        <li><strong>총 합계 카드</strong> — 라벨·기간 | 큰 금액·상세금액 | <strong>전년 동기 + 증감률</strong> 3단 가로 레이아웃 (구분선 포함)</li>
+      </ul>
+      <div class="callout callout-purple" style="margin-top:14px;">
+        <span class="callout-icon">💡</span>
+        <span>전년 대비 모드는 단일 연도뿐 아니라 다년도 비교에서도 작동합니다. 예: 2022~2026 선택 시 2021~2025의 전년 동기 합산이 비교 대상이 됩니다.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#7c3aed;"></span>차트 정렬</div>
+      <p style="font-size:13.5px;color:var(--muted);">Chart.js의 Y축 너비를 60px로 고정하고 우측 padding을 8px로 설정하여 6개 항목 카드 그리드가 차트의 6개 X축 항목 그룹과 정확히 정렬되도록 설계되어 있습니다. 카드와 막대가 일직선상에 위치해 시각적 비교가 직관적입니다.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ══════════════════════════════ 19. 시스템팀 업무 현황 ══════════════════════════════ -->
+  <a id="s19" class="section-anchor"></a>
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#eef2ff;">👨‍💻</div>
+      <div class="section-meta">
+        <div class="section-num">Section 19</div>
+        <div class="section-title">시스템팀 업무 현황 <span class="new-badge">NEW</span></div>
+      </div>
+    </div>
+
+    <div class="callout callout-blue" style="margin-bottom:20px;">
+      <span class="callout-icon">📌</span>
+      <span>시스템 사업부 계정(<strong>avsystem · engineer2</strong>)으로 로그인하면 사이드바에 <strong>시스템팀 업무 현황</strong> 버튼이 표시됩니다. 음원팀 패널과 동일한 사용성으로 시스템팀 팀원의 업무 내역을 한눈에 확인합니다.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#6366f1;"></span>패널 구성</div>
+      <div class="feat-grid">
+        <div class="feat-card" style="border-color:#c7d2fe;background:#eef2ff;">
+          <div class="feat-icon" style="background:#e0e7ff;">📅</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#4338ca;">날짜 필터</div>
+            <div class="feat-desc">기본 <strong>이번 달 1일 ~ 오늘</strong> 범위로 자동 설정되며, 시작일·종료일을 변경하거나 <strong>초기화</strong>로 전체 기간을 볼 수 있습니다.</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#c7d2fe;background:#eef2ff;">
+          <div class="feat-icon" style="background:#e0e7ff;">👤</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#4338ca;">팀원 카드</div>
+            <div class="feat-desc"><strong>김세준 차장</strong>(avsystem), <strong>권영재 차장</strong>(engineer2)의 카드가 표시됩니다. 각 카드에 해당 기간의 업무 항목이 상태 칩과 함께 묶여 보입니다.</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#c7d2fe;background:#eef2ff;">
+          <div class="feat-icon" style="background:#e0e7ff;">🔢</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#4338ca;">업무 묶음 · 발생 일자</div>
+            <div class="feat-desc">동일한 업무명은 자동으로 묶이고, 여러 일자에 걸쳐 진행됐다면 우측에 <strong>N일</strong>로 발생 일자 수가 표시됩니다.</div>
+          </div>
+        </div>
+        <div class="feat-card" style="border-color:#c7d2fe;background:#eef2ff;">
+          <div class="feat-icon" style="background:#e0e7ff;">📃</div>
+          <div class="feat-body">
+            <div class="feat-title" style="color:#4338ca;">페이지네이션</div>
+            <div class="feat-desc">팀원당 기본 <strong>10개</strong>씩 표시되며 <strong>더 보기</strong> 버튼으로 10개씩 추가, <strong>접기</strong>로 다시 줄일 수 있습니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-purple">
+      <span class="callout-icon">🔒</span>
+      <span>시스템팀 패널의 데이터는 <strong>journals 테이블에서 READ-ONLY</strong>로만 조회되며, 음원팀 패널의 캐시(<code>_soundTeamCache</code>)와 완전히 분리된 별도 캐시(<code>_systemTeamCache</code>)에 보관됩니다. 두 부서 패널의 데이터가 서로 섞이지 않도록 설계되어 있습니다.</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ══════════════════════════════ 20. BMAT 모니터링 통계 ══════════════════════════════ -->
+  <a id="s20" class="section-anchor"></a>
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#ecfeff;">📡</div>
+      <div class="section-meta">
+        <div class="section-num">Section 20</div>
+        <div class="section-title">BMAT 모니터링 통계 <span class="new-badge">NEW</span></div>
+      </div>
+    </div>
+
+    <div class="callout callout-blue" style="margin-bottom:20px;">
+      <span class="callout-icon">📌</span>
+      <span>사운드콘텐츠사업부 사이드바의 <strong>BMAT 모니터링 통계</strong> 메뉴에서 채널별 모니터링 결과(콘텐츠 카운트 · 모집단 · 점유율)를 입력·조회·통계 분석할 수 있습니다. 음원 매출 분석과 무관한 별도 모듈입니다.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#0891b2;"></span>데이터 구조</div>
+      <ul class="tip-list">
+        <li><strong>채널</strong> — EBS · KBS1 · KBS2 · SBS · MBC 외 채널을 자유롭게 추가</li>
+        <li><strong>모니터링 카운트(count_val)</strong> — 해당 월 채널에서 모니터링된 콘텐츠 건수</li>
+        <li><strong>모집단(population)</strong> — 해당 채널 전체 모집단 (검사 대상 총량)</li>
+        <li><strong>점유율</strong> — <code>count_val / population × 100</code>으로 자동 계산</li>
+        <li>월 단위(<code>month_key='YYYY-MM'</code>)로 채널별 row를 별도 테이블(<code>bmat_data</code>)에 저장</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#0891b2;"></span>주요 기능</div>
+      <div class="feat-grid">
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#ecfeff;">📊</div>
+          <div class="feat-body">
+            <div class="feat-title">월별 채널 차트</div>
+            <div class="feat-desc">선택한 월에 입력된 채널들의 카운트 / 모집단 / 점유율을 막대 또는 꺾은선 차트로 표시합니다.</div>
+          </div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#ecfeff;">📈</div>
+          <div class="feat-body">
+            <div class="feat-title">누계 통계</div>
+            <div class="feat-desc">기간 선택 후 채널별 추이(월별 추이)를 채널 색상별로 나란히 표시합니다. 채널을 선택하면 단일 채널의 월별 추이 차트로 전환됩니다.</div>
+          </div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#ecfeff;">⊕</div>
+          <div class="feat-body">
+            <div class="feat-title">전년 대비 / 전월 대비</div>
+            <div class="feat-desc">누계 통계에서 <strong>기본 / YoY / MoM</strong> 비교 모드를 토글할 수 있습니다.</div>
+          </div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#ecfeff;">✏️</div>
+          <div class="feat-body">
+            <div class="feat-title">데이터 입력 모달</div>
+            <div class="feat-desc">월 선택 후 채널을 동적으로 추가·삭제하고 각 채널의 카운트·모집단을 입력합니다. 기존 데이터는 자동 pre-fill 됩니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-amber">
+      <span class="callout-icon">🏢</span>
+      <span>BMAT 모니터링 통계는 <strong>사운드 사업부 전용</strong> 기능입니다. 시스템 사업부 뷰로 토글하거나 시스템팀 계정으로 로그인하면 BMAT 메뉴·위젯이 자동으로 숨겨집니다.</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ══════════════════════════════ 21. 거래처별 매출 분석 ══════════════════════════════ -->
+  <a id="s21" class="section-anchor"></a>
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#fef9c3;">🏪</div>
+      <div class="section-meta">
+        <div class="section-num">Section 21</div>
+        <div class="section-title">거래처별 매출 분석 <span class="new-badge">NEW</span></div>
+      </div>
+    </div>
+
+    <div class="callout callout-amber" style="margin-bottom:20px;">
+      <span class="callout-icon">📌</span>
+      <span>사이드바의 <strong>거래처별 매출 분석</strong> 메뉴에서 카테고리별(Annual / Needle drop / Buyout 등)로 거래처를 등록하고 거래처별 매출 추이·집계를 분석할 수 있습니다.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#ca8a04;"></span>주요 기능</div>
+      <ul class="tip-list">
+        <li><strong>카테고리 메뉴</strong> — 음원 매출 항목과 매핑되는 카테고리에서 거래처 목록을 관리합니다.</li>
+        <li><strong>거래처 등록</strong> — 거래처명·담당자·연락처 등을 입력하고 매출 데이터를 거래처 단위로 누적합니다.</li>
+        <li><strong>리스크 거래처</strong> — 일지의 <strong>이슈 및 리스크</strong> 섹션에서 등록된 거래처가 자동으로 연동되어 표시됩니다 (<code>extra.source_journal_id</code>로 원본 일지와 연결).</li>
+        <li><strong>거래처별 매출 차트</strong> — 거래처별 월별 매출 추이를 차트와 표로 시각화합니다.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#ca8a04;"></span>가시성 정책 <span class="new-badge">NEW</span></div>
+      <ul class="tip-list">
+        <li><strong>사운드 사업부 직원 / 관리자(mediacube) / developer</strong> — 메뉴 노출 ✓</li>
+        <li><strong>시스템 사업부 직원</strong> (avsystem · engineer2) — 메뉴 자동 숨김 (관련 데이터는 음원 매출 거래처용이므로)</li>
+        <li><strong>관리자</strong>는 사업부 뷰 토글과 무관하게 항상 메뉴에 접근할 수 있습니다.</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ══════════════════════════════ 22. 직원별 권한 ══════════════════════════════ -->
+  <a id="s22" class="section-anchor"></a>
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#fef3c7;">🔑</div>
+      <div class="section-meta">
+        <div class="section-num">Section 22</div>
+        <div class="section-title">직원별 권한 <span class="new-badge">NEW</span></div>
+      </div>
+    </div>
+
+    <div class="callout callout-amber" style="margin-bottom:20px;">
+      <span class="callout-icon">👑</span>
+      <span>관리자(mediacube) 사이드바의 <strong>직원별 권한</strong> 메뉴에서 각 직원이 다른 직원의 일지·성과·히스토리를 조회할 수 있는 범위를 세밀하게 설정할 수 있습니다.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#92400e;"></span>기본 정책</div>
+      <ul class="tip-list">
+        <li><strong>관리자(mediacube)</strong> — 항상 전체 가시 (권한 설정 불필요)</li>
+        <li><strong>권한 row가 없는 직원</strong> — 본인 데이터만 가시 (default deny)</li>
+        <li><strong>권한 row가 있는 직원</strong> — <code>allowed_user_ids</code>에 포함된 직원 + 본인의 데이터만 가시</li>
+        <li><strong>developer</strong> — 운영·디버깅 목적으로 전체 가시</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#92400e;"></span>권한 설정 방법</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-label">사이드바 → 직원별 권한 클릭 (관리자)</div>
+            <div class="step-desc">권한 설정 모달이 열립니다. 좌측에 직원 목록이 표시됩니다.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-label">직원 선택</div>
+            <div class="step-desc">권한을 부여할 직원(viewer)을 클릭하면 우측에 다른 직원 목록과 체크박스가 표시됩니다.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-label">허용할 직원 체크 후 저장</div>
+            <div class="step-desc">선택한 viewer가 볼 수 있도록 허용할 직원들을 체크하고 저장하면 <code>employee_permissions</code> 테이블에 row가 upsert됩니다. 본인은 항상 포함되므로 별도 체크 불필요.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="card-title-dot" style="background:#92400e;"></span>영향 받는 화면</div>
+      <ul class="tip-list">
+        <li><strong>일지 목록 · 직원 필터</strong> — 권한 부여된 viewer 계정의 사이드바에 다른 직원 메뉴 노출</li>
+        <li><strong>업무 히스토리</strong> (익일 계획 / 메모 / 발생 이슈 / 업무 추진현황) — 허용된 직원의 기록만 조회</li>
+        <li><strong>업무 성과</strong> — 허용된 직원의 성과만 가시</li>
+        <li><strong>업무 지시</strong> — 담당자 선택 목록에 허용된 직원만 표시</li>
+      </ul>
+      <div class="callout callout-blue" style="margin-top:14px;">
+        <span class="callout-icon">💡</span>
+        <span>권한 설정은 즉시 적용됩니다. 권한 변경 후 영향을 받는 모든 패널(업무 히스토리·성과 등)은 자동으로 리렌더됩니다.</span>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- Footer -->
 <div class="footer">
-  <strong>미디어큐브 업무일지</strong> 사용설명서 · v2026.04<br>
-  © 2026 미디어큐브 · 사운드콘텐츠사업부
+  <strong>미디어큐브 업무일지</strong> 사용설명서 · v2026.05<br>
+  © 2026 미디어큐브 · 사운드콘텐츠사업부 · 시스템 사업부
 </div>
 
 </body>
