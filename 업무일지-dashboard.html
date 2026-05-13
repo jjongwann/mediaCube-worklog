@@ -1982,11 +1982,15 @@
           </div>
           <button onclick="renderSysSalesCumul()" style="padding:7px 20px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-left:auto">조회</button>
         </div>
-        <div style="padding:20px 26px">
-          <div style="position:relative;height:380px">
+        <div style="padding:18px 24px">
+          <div style="position:relative;height:300px">
             <canvas id="sys-cumul-chart"></canvas>
           </div>
-          <div id="sys-cumul-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin-top:22px"></div>
+          <!-- 6개 항목 카드 (좌) + 총 합계 카드 (우, 큰 단일 컬럼) -->
+          <div style="display:grid;grid-template-columns:1fr 280px;gap:14px;margin-top:18px;align-items:stretch">
+            <div id="sys-cumul-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px"></div>
+            <div id="sys-cumul-grand"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -7599,21 +7603,32 @@
         + '</div>';
     }).join('');
 
-    var grandDiffHtml = '';
-    if (_sysCumulCmpMode === 'yoy') {
-      var gDiff = grandTotal - prevGrand;
-      var gDiffPct = prevGrand > 0 ? Math.round(gDiff / prevGrand * 100) : (grandTotal > 0 ? 100 : 0);
-      grandDiffHtml = '<div style="font-size:12px;font-weight:700;margin-top:5px;color:' + (gDiff >= 0 ? '#bbf7d0' : '#fecaca') + '">' + (gDiff >= 0 ? '▲ +' : '▼ ') + Math.abs(gDiffPct) + '% (전년: ' + _sysFmtW(prevGrand) + ')</div>';
-    }
-    summary.innerHTML += '<div style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-radius:10px;padding:13px 15px">'
-      + '<div style="font-size:12px;font-weight:700;line-height:1.35;min-height:34px">총 합계</div>'
-      + '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:6px;flex-wrap:nowrap">'
-        + '<div style="font-size:17px;font-weight:800;white-space:nowrap">' + _sysFmtW(grandTotal) + '</div>'
-        + '<div style="font-size:11.5px;opacity:0.9;font-weight:600;white-space:nowrap;text-align:right">' + grandTotal.toLocaleString() + '원</div>'
-      + '</div>'
-      + '<div style="font-size:11px;opacity:0.85;margin-top:4px">' + years.length + '개년 · ' + periodLabel + '</div>'
-      + grandDiffHtml
+    // 총 합계 카드 — 별도 우측 컬럼 (큰 크기로 강조 표시)
+    var grandEl = document.getElementById('sys-cumul-grand');
+    if (grandEl) {
+      var grandDiffHtml = '';
+      if (_sysCumulCmpMode === 'yoy') {
+        var gDiff = grandTotal - prevGrand;
+        var gDiffPct = prevGrand > 0 ? Math.round(gDiff / prevGrand * 100) : (grandTotal > 0 ? 100 : 0);
+        var gArrow = gDiff >= 0 ? '▲' : '▼';
+        var gSign  = gDiff >= 0 ? '+' : '-';
+        grandDiffHtml = '<div style="border-top:1px solid rgba(255,255,255,0.25);margin-top:10px;padding-top:10px">'
+          + '<div style="font-size:11.5px;opacity:0.9;font-weight:600">전년 동기 (' + ((years[0] || 0) - 1) + '~' + ((years[years.length - 1] || 0) - 1) + '년)</div>'
+          + '<div style="font-size:14px;font-weight:700;margin-top:2px">' + _sysFmtW(prevGrand) + '</div>'
+          + '<div style="font-size:14px;font-weight:800;margin-top:6px;color:' + (gDiff >= 0 ? '#bbf7d0' : '#fecaca') + '">' + gArrow + ' ' + gSign + Math.abs(gDiffPct) + '%</div>'
+          + '<div style="font-size:11.5px;opacity:0.85;margin-top:2px;font-weight:600">' + gSign + _sysFmtW(Math.abs(gDiff)) + '</div>'
+        + '</div>';
+      }
+      grandEl.innerHTML = '<div style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-radius:12px;padding:18px 20px;height:100%;display:flex;flex-direction:column;box-sizing:border-box">'
+        + '<div style="font-size:13px;font-weight:700;letter-spacing:0.3px">총 합계</div>'
+        + '<div style="font-size:12px;opacity:0.85;margin-top:3px">' + years.length + '개년 · ' + periodLabel + '</div>'
+        + '<div style="margin-top:14px">'
+          + '<div style="font-size:28px;font-weight:800;letter-spacing:-0.5px;line-height:1.15">' + _sysFmtW(grandTotal) + '</div>'
+          + '<div style="font-size:12.5px;opacity:0.9;margin-top:4px;font-weight:600">' + grandTotal.toLocaleString() + '원</div>'
+        + '</div>'
+        + grandDiffHtml
       + '</div>';
+    }
   }
 
   // 초기 로드
