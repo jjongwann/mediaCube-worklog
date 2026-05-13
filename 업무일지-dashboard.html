@@ -1894,6 +1894,17 @@
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-size:13px;font-weight:700;color:#111827">시스템 매출 분석</span>
           <span style="font-size:11px;color:#94a3b8">단위: 원 · 연도별 합계</span>
+          <!-- 차트/표 토글 -->
+          <div style="display:flex;border:1px solid #e2e8f0;border-radius:7px;overflow:hidden;font-size:11px">
+            <button id="sys-view-chart" onclick="setSysViewMode('chart')" style="padding:5px 14px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:700">차트</button>
+            <button id="sys-view-table" onclick="setSysViewMode('table')" style="padding:5px 14px;border:none;background:#f8fafc;color:#64748b;cursor:pointer;font-weight:600">표</button>
+          </div>
+          <!-- 연도 선택 + 조회 (차트 모드에서만 보임) -->
+          <div id="sys-year-picker-wrap" style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:11px;font-weight:700;color:#475569">연도</span>
+            <select id="sys-view-year-sel" style="padding:5px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;font-weight:600;color:#374151;background:#f8fafc;outline:none"></select>
+            <button onclick="renderSystemSalesWidget()" style="padding:5px 12px;background:#2563eb;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">조회</button>
+          </div>
           <button onclick="openSysSalesCumul()" style="display:flex;align-items:center;gap:6px;padding:5px 13px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             연간 누계 통계
@@ -1906,8 +1917,14 @@
           </button>
         </div>
       </div>
-      <!-- 연도별 테이블 (캡쳐와 동일 구조) -->
-      <div style="overflow-x:auto">
+      <!-- 차트 보기 (기본) -->
+      <div id="sys-chart-view" style="position:relative;height:360px">
+        <canvas id="sys-year-chart"></canvas>
+      </div>
+      <!-- 차트 보기 - 항목별 요약 카드 -->
+      <div id="sys-chart-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:16px"></div>
+      <!-- 표 보기 (토글 시 표시) -->
+      <div id="sys-table-view" style="display:none;overflow-x:auto">
         <table id="sys-sales-table" style="width:100%;border-collapse:collapse;font-size:13px;min-width:760px">
           <thead>
             <tr id="sys-sales-thead-row" style="background:linear-gradient(180deg,#f8fafc,#f1f5f9)"></tr>
@@ -7058,6 +7075,8 @@
   var _sysSalesRows = []; // [{month_key, archiving, restoration, ...}]
   var _sysSalesLoaded = false;
   var _sysCumulChart  = null;
+  var _sysYearChart   = null;
+  var _sysViewMode    = 'chart'; // 'chart' | 'table' (메인 위젯 보기 모드)
 
   function _sysFmtW(n) {
     n = parseInt(n, 10) || 0;
@@ -7137,8 +7156,113 @@
     return sum;
   }
 
-  // 메인 위젯 — 6개 항목 × N개 연도 컬럼 + 합계 (캡쳐 화면과 동일 구조)
+  // 차트 모드용 연도 드롭다운 채우기
+  function _sysPopulateViewYearSel() {
+    var sel = document.getElementById('sys-view-year-sel');
+    if (!sel) return;
+    var years = _sysDisplayYears().slice().sort(function(a,b){ return b - a; }); // 최신 → 오래된
+    var prev = sel.value;
+    sel.innerHTML = years.map(function(y){ return '<option value="' + y + '">' + y + '년</option>'; }).join('');
+    if (prev && years.indexOf(parseInt(prev, 10)) !== -1) {
+      sel.value = prev;
+    } else {
+      // 기본값: 현재 연도 - 1 (작년)
+      var defY = new Date().getFullYear() - 1;
+      sel.value = years.indexOf(defY) !== -1 ? String(defY) : String(years[0]);
+    }
+  }
+
+  // 차트/표 토글
+  function setSysViewMode(mode) {
+    _sysViewMode = (mode === 'table') ? 'table' : 'chart';
+    var btnC = document.getElementById('sys-view-chart');
+    var btnT = document.getElementById('sys-view-table');
+    if (btnC) { btnC.style.background = _sysViewMode === 'chart' ? '#2563eb' : '#f8fafc'; btnC.style.color = _sysViewMode === 'chart' ? '#fff' : '#64748b'; btnC.style.fontWeight = _sysViewMode === 'chart' ? '700' : '600'; }
+    if (btnT) { btnT.style.background = _sysViewMode === 'table' ? '#2563eb' : '#f8fafc'; btnT.style.color = _sysViewMode === 'table' ? '#fff' : '#64748b'; btnT.style.fontWeight = _sysViewMode === 'table' ? '700' : '600'; }
+    // 컨테이너 표시/숨김
+    var chartView = document.getElementById('sys-chart-view');
+    var chartSum  = document.getElementById('sys-chart-summary');
+    var tableView = document.getElementById('sys-table-view');
+    var yrPicker  = document.getElementById('sys-year-picker-wrap');
+    if (_sysViewMode === 'chart') {
+      if (chartView) chartView.style.display = '';
+      if (chartSum)  chartSum.style.display  = 'grid';
+      if (tableView) tableView.style.display = 'none';
+      if (yrPicker)  yrPicker.style.display  = 'flex';
+    } else {
+      if (chartView) chartView.style.display = 'none';
+      if (chartSum)  chartSum.style.display  = 'none';
+      if (tableView) tableView.style.display = 'block';
+      if (yrPicker)  yrPicker.style.display  = 'none';
+    }
+    renderSystemSalesWidget();
+  }
+
+  // 메인 위젯 렌더 (모드에 따라 분기)
   function renderSystemSalesWidget() {
+    _sysPopulateViewYearSel();
+    if (_sysViewMode === 'chart') _sysRenderChartView();
+    else _sysRenderTableView();
+  }
+
+  // 차트 보기 — 선택된 연도의 6개 항목을 색상별 막대로 표시
+  function _sysRenderChartView() {
+    var sel = document.getElementById('sys-view-year-sel');
+    var year = sel && sel.value ? parseInt(sel.value, 10) : (new Date().getFullYear() - 1);
+    if (isNaN(year)) year = new Date().getFullYear() - 1;
+
+    var labels = SYS_SALES_ITEMS.map(function(it){ return it.label; });
+    var data   = SYS_SALES_ITEMS.map(function(it){ return _sysYearTotal(year, it.key); });
+    var colors = SYS_SALES_ITEMS.map(function(it){ return it.color; });
+
+    var ctx = document.getElementById('sys-year-chart').getContext('2d');
+    if (_sysYearChart) { try{_sysYearChart.destroy();}catch(e){} _sysYearChart = null; }
+    _sysYearChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: year + '년 매출',
+          data: data,
+          backgroundColor: colors.map(function(c){ return c + 'cc'; }),
+          borderColor: colors,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function(c){ return _sysFmtW(c.parsed.y); } } }
+        },
+        scales: {
+          x: { ticks: { maxRotation: 0, autoSkip: false, font: { size: 10.5 } } },
+          y: { beginAtZero: true, ticks: { callback: function(v){ return _sysFmtW(v); } } }
+        }
+      }
+    });
+
+    // 항목별 요약 카드 + 총 합계
+    var grandTotal = data.reduce(function(a,b){ return a+b; }, 0);
+    var summary = document.getElementById('sys-chart-summary');
+    summary.innerHTML = SYS_SALES_ITEMS.map(function(it, i){
+      var v = data[i];
+      var pct = grandTotal > 0 ? Math.round(v / grandTotal * 100) : 0;
+      return '<div style="background:' + it.bg + ';border:1px solid ' + it.color + '40;border-radius:8px;padding:9px 11px">'
+        + '<div style="font-size:10.5px;font-weight:700;color:' + it.color + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(it.label) + '</div>'
+        + '<div style="font-size:13px;font-weight:800;color:#0f172a;margin-top:2px">' + _sysFmtW(v) + '</div>'
+        + '<div style="font-size:10px;color:#64748b;margin-top:1px">' + pct + '% · ' + v.toLocaleString() + '원</div>'
+        + '</div>';
+    }).join('')
+    + '<div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border-radius:8px;padding:9px 11px">'
+    + '<div style="font-size:10.5px;font-weight:700">' + year + '년 합계</div>'
+    + '<div style="font-size:14px;font-weight:800;margin-top:2px">' + _sysFmtW(grandTotal) + '</div>'
+    + '<div style="font-size:10px;opacity:0.85;margin-top:1px">' + grandTotal.toLocaleString() + '원</div>'
+    + '</div>';
+  }
+
+  // 표 보기 — 6개 항목 × N개 연도 컬럼 + 합계 (이전 구조)
+  function _sysRenderTableView() {
     var years = _sysDisplayYears();
 
     // 헤더 (항목 | YYYY ~ YYYY | 합계)
