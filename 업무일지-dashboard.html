@@ -1917,9 +1917,12 @@
           </button>
         </div>
       </div>
-      <!-- 차트 보기 (기본) -->
-      <div id="sys-chart-view" style="position:relative;height:360px">
-        <canvas id="sys-year-chart"></canvas>
+      <!-- 차트 보기 (기본) — 차트 + 우측 KPI 패널 -->
+      <div id="sys-chart-wrap" style="display:grid;grid-template-columns:1fr 240px;gap:16px;align-items:stretch">
+        <div id="sys-chart-view" style="position:relative;height:340px">
+          <canvas id="sys-year-chart"></canvas>
+        </div>
+        <div id="sys-kpi-panel" style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;font-size:12px"></div>
       </div>
       <!-- 차트 보기 - 항목별 요약 카드 -->
       <div id="sys-chart-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:16px"></div>
@@ -7180,17 +7183,17 @@
     if (btnC) { btnC.style.background = _sysViewMode === 'chart' ? '#2563eb' : '#f8fafc'; btnC.style.color = _sysViewMode === 'chart' ? '#fff' : '#64748b'; btnC.style.fontWeight = _sysViewMode === 'chart' ? '700' : '600'; }
     if (btnT) { btnT.style.background = _sysViewMode === 'table' ? '#2563eb' : '#f8fafc'; btnT.style.color = _sysViewMode === 'table' ? '#fff' : '#64748b'; btnT.style.fontWeight = _sysViewMode === 'table' ? '700' : '600'; }
     // 컨테이너 표시/숨김
-    var chartView = document.getElementById('sys-chart-view');
+    var chartWrap = document.getElementById('sys-chart-wrap');
     var chartSum  = document.getElementById('sys-chart-summary');
     var tableView = document.getElementById('sys-table-view');
     var yrPicker  = document.getElementById('sys-year-picker-wrap');
     if (_sysViewMode === 'chart') {
-      if (chartView) chartView.style.display = '';
+      if (chartWrap) chartWrap.style.display = 'grid';
       if (chartSum)  chartSum.style.display  = 'grid';
       if (tableView) tableView.style.display = 'none';
       if (yrPicker)  yrPicker.style.display  = 'flex';
     } else {
-      if (chartView) chartView.style.display = 'none';
+      if (chartWrap) chartWrap.style.display = 'none';
       if (chartSum)  chartSum.style.display  = 'none';
       if (tableView) tableView.style.display = 'block';
       if (yrPicker)  yrPicker.style.display  = 'none';
@@ -7259,6 +7262,41 @@
     + '<div style="font-size:14px;font-weight:800;margin-top:2px">' + _sysFmtW(grandTotal) + '</div>'
     + '<div style="font-size:10px;opacity:0.85;margin-top:1px">' + grandTotal.toLocaleString() + '원</div>'
     + '</div>';
+
+    // 우측 KPI 패널 (총 매출 / 평균 매출 / 전년 대비)
+    var kpiEl = document.getElementById('sys-kpi-panel');
+    if (kpiEl) {
+      var nonZeroCount = SYS_SALES_ITEMS.reduce(function(c, it, i){ return c + (data[i] > 0 ? 1 : 0); }, 0);
+      // 평균: 매출 발생 항목 평균 (0 인 항목은 제외). 매출 항목이 0개면 전체 6개로 나눔
+      var avgVal = nonZeroCount > 0 ? Math.round(grandTotal / nonZeroCount) : Math.round(grandTotal / SYS_SALES_ITEMS.length);
+      var prevYear = year - 1;
+      var prevTotal = SYS_SALES_ITEMS.reduce(function(s, it){ return s + _sysYearTotal(prevYear, it.key); }, 0);
+      var yoyDiff = grandTotal - prevTotal;
+      var yoyPct  = prevTotal > 0 ? Math.round(yoyDiff / prevTotal * 100) : (grandTotal > 0 ? 100 : 0);
+      var yoyColor   = yoyDiff >= 0 ? '#16a34a' : '#dc2626';
+      var yoyArrow   = yoyDiff >= 0 ? '▲' : '▼';
+      var yoySign    = yoyDiff >= 0 ? '+' : '-';
+
+      kpiEl.innerHTML = ''
+        + '<div style="font-size:11px;font-weight:700;color:#7c3aed;letter-spacing:0.3px">' + year + '년 KPI 요약</div>'
+        + '<div style="height:1px;background:#ddd6fe;margin:2px 0 4px"></div>'
+        + '<div style="background:#fff;border:1px solid #ede9fe;border-radius:10px;padding:11px 13px">'
+          + '<div style="font-size:10.5px;color:#64748b;font-weight:600">총 매출</div>'
+          + '<div style="font-size:18px;font-weight:800;color:#7c3aed;margin-top:2px">' + _sysFmtW(grandTotal) + '</div>'
+          + '<div style="font-size:10px;color:#94a3b8;margin-top:1px">' + grandTotal.toLocaleString() + '원</div>'
+        + '</div>'
+        + '<div style="background:#fff;border:1px solid #ede9fe;border-radius:10px;padding:11px 13px">'
+          + '<div style="font-size:10.5px;color:#64748b;font-weight:600">평균 매출</div>'
+          + '<div style="font-size:16px;font-weight:800;color:#0f172a;margin-top:2px">' + _sysFmtW(avgVal) + '</div>'
+          + '<div style="font-size:10px;color:#94a3b8;margin-top:1px">' + (nonZeroCount > 0 ? nonZeroCount + '개 항목 평균' : SYS_SALES_ITEMS.length + '개 항목 평균') + '</div>'
+        + '</div>'
+        + '<div style="background:#fff;border:1px solid ' + (yoyDiff >= 0 ? '#bbf7d0' : '#fecaca') + ';border-radius:10px;padding:11px 13px">'
+          + '<div style="font-size:10.5px;color:#64748b;font-weight:600">전년 대비</div>'
+          + '<div style="font-size:15px;font-weight:800;color:' + yoyColor + ';margin-top:2px">' + yoyArrow + ' ' + yoySign + Math.abs(yoyPct) + '%</div>'
+          + '<div style="font-size:10.5px;color:#475569;margin-top:2px">전년(' + prevYear + '): ' + _sysFmtW(prevTotal) + '</div>'
+          + '<div style="font-size:10px;color:' + yoyColor + ';font-weight:600;margin-top:1px">' + yoySign + _sysFmtW(Math.abs(yoyDiff)) + '</div>'
+        + '</div>';
+    }
   }
 
   // 표 보기 — 6개 항목 × N개 연도 컬럼 + 합계 (이전 구조)
