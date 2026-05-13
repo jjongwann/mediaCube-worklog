@@ -7326,24 +7326,11 @@
   }
   function _sysRefillFields() {
     var y = parseInt(document.getElementById('sys-sales-input-year').value, 10);
-    // 연도 단일 row (month_key = 'YYYY')
-    var yearRow = _sysRowFor(String(y));
-    // 기존 월별 row 가 있으면 합산해서 보여줌 (편집 시 사용자가 통합 가능)
-    var monthlySum = {};
-    SYS_SALES_ITEMS.forEach(function(it){ monthlySum[it.key] = 0; });
-    var hasMonthly = false;
-    for (var m = 1; m <= 12; m++) {
-      var mr = _sysRowFor(_sysMonthKey(y, m));
-      if (mr) {
-        hasMonthly = true;
-        SYS_SALES_ITEMS.forEach(function(it){ monthlySum[it.key] += (parseInt(mr[it.key], 10) || 0); });
-      }
-    }
-    // 표시 우선순위: 연도 row 있으면 그 값, 아니면 월별 합산
-    var srcRow = yearRow || monthlySum;
+    // 대시보드와 동일한 _sysYearTotal 을 사용해 pre-fill →
+    // 사용자가 실제 화면에 보이는 값을 그대로 보고 수정할 수 있음
     var host = document.getElementById('sys-sales-fields');
     host.innerHTML = SYS_SALES_ITEMS.map(function(it){
-      var v = parseInt(srcRow[it.key], 10) || 0;
+      var v = _sysYearTotal(y, it.key);
       var vStr = v ? v.toLocaleString() : '';
       return '<div style="display:flex;align-items:center;gap:8px">'
         + '<div style="flex:1;font-size:12px;color:' + it.color + ';font-weight:700">' + escHtml(it.label) + '</div>'
@@ -7368,8 +7355,6 @@
   function saveSysSales() {
     var y = parseInt(document.getElementById('sys-sales-input-year').value, 10);
     if (!y) { showToast('연도를 선택하세요'); return; }
-    // month_key 를 연도 문자열('YYYY')로 저장 — 연도 단위 row 표시.
-    // 기존 'YYYY-M' 월별 row 들이 있어도 _sysYearTotal 이 둘 다 합산하므로 호환됨.
     var mk = String(y);
     var row = { month_key: mk, updated_at: new Date().toISOString() };
     document.querySelectorAll('#sys-sales-fields input').forEach(function(inp){
@@ -7379,22 +7364,49 @@
     var btn = document.getElementById('sys-sales-save-btn');
     var orig = btn.textContent;
     btn.disabled = true; btn.textContent = '저장 중...';
-    var hdr = Object.assign({}, SB_HDR, { 'Prefer': 'resolution=merge-duplicates,return=minimal' });
-    fetch(SB_URL + '/rest/v1/system_sales_data?on_conflict=month_key', {
-      method: 'POST', headers: hdr, body: JSON.stringify(row)
-    }).then(function(r){
-      if (!r.ok && r.status !== 201 && r.status !== 204) {
-        return r.text().then(function(t){ throw new Error('HTTP ' + r.status + ' ' + t); });
-      }
-      showToast('시스템 매출 데이터 저장 완료');
-      closeSysSalesInput();
-      sysSalesFetch().then(function(){ renderSystemSalesWidget(); });
-      btn.disabled = false; btn.textContent = orig;
-    }).catch(function(e){
-      console.error('saveSysSales error', e);
-      alert('저장 실패: ' + (e.message || '') + '\n\nsystem_sales_data 테이블이 Supabase 에 생성되어 있는지 확인하세요.');
-      btn.disabled = false; btn.textContent = orig;
-    });
+
+    var upsertHdr = Object.assign({}, SB_HDR, { 'Prefer': 'resolution=merge-duplicates,return=representation' });
+    var delHdr    = Object.assign({}, SB_HDR, { 'Prefer': 'return=minimal' });
+
+    // 1단계: 해당 연도의 월별 row (month_key LIKE 'YYYY-%') 모두 삭제 → 데이터 일관성 확보
+    //        (편집 시 연도 row 가 단일 진실의 원천이 되도록)
+    var delUrl = SB_URL + '/rest/v1/system_sales_data?month_key=like.' + encodeURIComponent(y + '-') + '*';
+    fetch(delUrl, { method: 'DELETE', headers: delHdr })
+      .then(function(){
+        // 2단계: 연도 row 업서트 (return=representation 으로 저장된 행 직접 받기)
+        return fetch(SB_URL + '/rest/v1/system_sales_data?on_conflict=month_key', {
+          method: 'POST', headers: upsertHdr, body: JSON.stringify(row)
+        });
+      })
+      .then(function(r){
+        if (!r.ok && r.status !== 201 && r.status !== 204) {
+          return r.text().then(function(t){ throw new Error('HTTP ' + r.status + ' ' + t); });
+        }
+        // 응답을 파싱해서 로컬 캐시 즉시 갱신 (Supabase 동기화 lag 방지)
+        return r.json().catch(function(){ return null; }).then(function(saved){
+          // 로컬 캐시에서 해당 연도 관련 row 모두 제거
+          _sysSalesRows = _sysSalesRows.filter(function(rr){
+            var t = (rr.month_key || '').split('-')[0];
+            return t !== String(y);
+          });
+          // 새로 저장된 연도 row 를 캐시에 추가
+          if (Array.isArray(saved) && saved.length > 0) {
+            _sysSalesRows.push(saved[0]);
+          } else {
+            // representation 이 비어 있으면 보낸 row 객체로 대체
+            _sysSalesRows.push(row);
+          }
+          showToast('시스템 매출 데이터 저장 완료');
+          closeSysSalesInput();
+          renderSystemSalesWidget();
+          btn.disabled = false; btn.textContent = orig;
+        });
+      })
+      .catch(function(e){
+        console.error('saveSysSales error', e);
+        alert('저장 실패: ' + (e.message || '') + '\n\nsystem_sales_data 테이블이 Supabase 에 생성되어 있는지 확인하세요.');
+        btn.disabled = false; btn.textContent = orig;
+      });
   }
 
   // 연간 누계 통계 모달 (연도 단위 집계 + 전년 대비 비교 지원)
