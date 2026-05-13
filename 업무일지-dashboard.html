@@ -1917,7 +1917,7 @@
       </div>
     </div>
 
-    <!-- 시스템 매출 데이터 입력 모달 -->
+    <!-- 시스템 매출 데이터 입력 모달 (연도별) -->
     <div id="sys-sales-input-overlay" onclick="if(event.target===this)closeSysSalesInput()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:10005;align-items:center;justify-content:center">
       <div style="background:#fff;border-radius:16px;width:520px;max-width:96vw;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.22);font-family:inherit">
         <div style="display:flex;align-items:center;padding:16px 20px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border-radius:16px 16px 0 0;flex-shrink:0">
@@ -1926,13 +1926,9 @@
         </div>
         <div style="padding:18px 22px;flex:1;overflow-y:auto">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+            <span style="font-size:12px;font-weight:700;color:#475569">연도</span>
             <select id="sys-sales-input-year" style="padding:7px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#374151;outline:none;background:#f8fafc;font-weight:600"></select>
-            <select id="sys-sales-input-month" style="padding:7px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#374151;outline:none;background:#f8fafc;font-weight:600">
-              <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
-              <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
-              <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
-              <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
-            </select>
+            <span style="font-size:11px;color:#94a3b8;margin-left:auto">한 해 전체 합계를 입력</span>
           </div>
           <div id="sys-sales-fields" style="display:flex;flex-direction:column;gap:10px"></div>
           <div style="margin-top:14px;padding:10px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;display:flex;align-items:center;justify-content:space-between">
@@ -7073,8 +7069,9 @@
   function _sysAllYears() {
     var seen = {};
     _sysSalesRows.forEach(function(r){
+      // 'YYYY' (연도 형식) 또는 'YYYY-M' (월별 형식) 둘 다 첫 번째 토큰이 연도
       var y = (r.month_key || '').split('-')[0];
-      if (y) seen[y] = true;
+      if (y && /^\d{4}$/.test(y)) seen[y] = true;
     });
     var cy = new Date().getFullYear();
     seen[cy] = true;
@@ -7106,9 +7103,14 @@
     return years;
   }
 
-  // 특정 연도의 항목 합계 (12개월 합산)
+  // 특정 연도의 항목 합계
+  //  - 신규 형식: month_key = 'YYYY' (연도 단일 row, 입력 모달에서 저장)
+  //  - 레거시 형식: month_key = 'YYYY-M' (월별 row, 12개월 합산)
+  //  두 형식이 동시에 존재해도 모두 합산하여 반환
   function _sysYearTotal(year, itemKey) {
     var sum = 0;
+    var yearRow = _sysRowFor(String(year));
+    if (yearRow) sum += (parseInt(yearRow[itemKey], 10) || 0);
     for (var m = 1; m <= 12; m++) {
       var r = _sysRowFor(_sysMonthKey(year, m));
       if (r) sum += (parseInt(r[itemKey], 10) || 0);
@@ -7159,24 +7161,20 @@
     tbody.innerHTML = html;
   }
 
-  // 입력 모달
+  // 입력 모달 (연도별)
   function openSysSalesInput() {
     if (!_sysSalesLoaded) { sysSalesFetch().then(openSysSalesInput); return; }
     var ySel = document.getElementById('sys-sales-input-year');
     var now = new Date(); var curY = now.getFullYear();
     ySel.innerHTML = '';
-    for (var y = curY - 2; y <= curY + 1; y++) {
+    for (var y = curY - 4; y <= curY + 1; y++) {
       var opt = document.createElement('option');
       opt.value = y; opt.textContent = y + '년';
       if (y === curY) opt.selected = true;
       ySel.appendChild(opt);
     }
-    // 기본값: 올해 + 이번 달
-    document.getElementById('sys-sales-input-month').value = String(now.getMonth() + 1);
-
     _sysRefillFields();
     ySel.onchange = _sysRefillFields;
-    document.getElementById('sys-sales-input-month').onchange = _sysRefillFields;
     document.getElementById('sys-sales-input-overlay').style.display = 'flex';
   }
   function closeSysSalesInput() {
@@ -7184,12 +7182,24 @@
   }
   function _sysRefillFields() {
     var y = parseInt(document.getElementById('sys-sales-input-year').value, 10);
-    var m = parseInt(document.getElementById('sys-sales-input-month').value, 10);
-    var mk = _sysMonthKey(y, m);
-    var r = _sysRowFor(mk) || {};
+    // 연도 단일 row (month_key = 'YYYY')
+    var yearRow = _sysRowFor(String(y));
+    // 기존 월별 row 가 있으면 합산해서 보여줌 (편집 시 사용자가 통합 가능)
+    var monthlySum = {};
+    SYS_SALES_ITEMS.forEach(function(it){ monthlySum[it.key] = 0; });
+    var hasMonthly = false;
+    for (var m = 1; m <= 12; m++) {
+      var mr = _sysRowFor(_sysMonthKey(y, m));
+      if (mr) {
+        hasMonthly = true;
+        SYS_SALES_ITEMS.forEach(function(it){ monthlySum[it.key] += (parseInt(mr[it.key], 10) || 0); });
+      }
+    }
+    // 표시 우선순위: 연도 row 있으면 그 값, 아니면 월별 합산
+    var srcRow = yearRow || monthlySum;
     var host = document.getElementById('sys-sales-fields');
     host.innerHTML = SYS_SALES_ITEMS.map(function(it){
-      var v = r[it.key] || 0;
+      var v = parseInt(srcRow[it.key], 10) || 0;
       var vStr = v ? v.toLocaleString() : '';
       return '<div style="display:flex;align-items:center;gap:8px">'
         + '<div style="flex:1;font-size:12px;color:' + it.color + ';font-weight:700">' + escHtml(it.label) + '</div>'
@@ -7213,9 +7223,10 @@
   }
   function saveSysSales() {
     var y = parseInt(document.getElementById('sys-sales-input-year').value, 10);
-    var m = parseInt(document.getElementById('sys-sales-input-month').value, 10);
-    if (!y || !m) { showToast('년/월을 선택하세요'); return; }
-    var mk = _sysMonthKey(y, m);
+    if (!y) { showToast('연도를 선택하세요'); return; }
+    // month_key 를 연도 문자열('YYYY')로 저장 — 연도 단위 row 표시.
+    // 기존 'YYYY-M' 월별 row 들이 있어도 _sysYearTotal 이 둘 다 합산하므로 호환됨.
+    var mk = String(y);
     var row = { month_key: mk, updated_at: new Date().toISOString() };
     document.querySelectorAll('#sys-sales-fields input').forEach(function(inp){
       var k = inp.dataset.key;
