@@ -1922,7 +1922,7 @@
         <div id="sys-chart-view" style="position:relative;height:280px">
           <canvas id="sys-year-chart"></canvas>
         </div>
-        <div id="sys-kpi-panel" style="height:280px;box-sizing:border-box;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:7px;font-size:12px;overflow:hidden"></div>
+        <div id="sys-kpi-panel" style="height:280px;box-sizing:border-box;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:12px;overflow:hidden"></div>
       </div>
       <!-- 차트 보기 - 항목별 요약 카드 (좌: 6개 바와 정렬, 우: 합계 카드 = KPI 너비 매칭) -->
       <div style="display:grid;grid-template-columns:1fr 240px;gap:16px;margin-top:12px">
@@ -7290,22 +7290,21 @@
       var yoySign    = yoyDiff >= 0 ? '+' : '-';
 
       kpiEl.innerHTML = ''
-        + '<div style="font-size:11px;font-weight:700;color:#7c3aed;letter-spacing:0.3px">' + year + '년 KPI 요약</div>'
-        + '<div style="height:1px;background:#ddd6fe;margin:2px 0 4px"></div>'
-        + '<div style="background:#fff;border:1px solid #ede9fe;border-radius:10px;padding:11px 13px">'
+        + '<div style="font-size:10.5px;font-weight:700;color:#7c3aed;letter-spacing:0.3px;padding-bottom:4px;border-bottom:1px solid #ddd6fe">' + year + '년 KPI 요약</div>'
+        + '<div style="background:#fff;border:1px solid #ede9fe;border-radius:9px;padding:8px 11px">'
           + '<div style="font-size:10.5px;color:#64748b;font-weight:600">총 매출</div>'
-          + '<div style="font-size:18px;font-weight:800;color:#7c3aed;margin-top:2px">' + _sysFmtW(grandTotal) + '</div>'
-          + '<div style="font-size:10px;color:#94a3b8;margin-top:1px">' + grandTotal.toLocaleString() + '원</div>'
+          + '<div style="font-size:16px;font-weight:800;color:#7c3aed;margin-top:1px;white-space:nowrap">' + _sysFmtW(grandTotal) + '</div>'
+          + '<div style="font-size:10px;color:#94a3b8;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + grandTotal.toLocaleString() + '원</div>'
         + '</div>'
-        + '<div style="background:#fff;border:1px solid #ede9fe;border-radius:10px;padding:11px 13px">'
+        + '<div style="background:#fff;border:1px solid #ede9fe;border-radius:9px;padding:8px 11px">'
           + '<div style="font-size:10.5px;color:#64748b;font-weight:600">평균 매출</div>'
-          + '<div style="font-size:16px;font-weight:800;color:#0f172a;margin-top:2px">' + _sysFmtW(avgVal) + '</div>'
+          + '<div style="font-size:14.5px;font-weight:800;color:#0f172a;margin-top:1px;white-space:nowrap">' + _sysFmtW(avgVal) + '</div>'
           + '<div style="font-size:10px;color:#94a3b8;margin-top:1px">' + (nonZeroCount > 0 ? nonZeroCount + '개 항목 평균' : SYS_SALES_ITEMS.length + '개 항목 평균') + '</div>'
         + '</div>'
-        + '<div style="background:#fff;border:1px solid ' + (yoyDiff >= 0 ? '#bbf7d0' : '#fecaca') + ';border-radius:10px;padding:11px 13px">'
+        + '<div style="background:#fff;border:1px solid ' + (yoyDiff >= 0 ? '#bbf7d0' : '#fecaca') + ';border-radius:9px;padding:8px 11px">'
           + '<div style="font-size:10.5px;color:#64748b;font-weight:600">전년 대비</div>'
-          + '<div style="font-size:15px;font-weight:800;color:' + yoyColor + ';margin-top:2px">' + yoyArrow + ' ' + yoySign + Math.abs(yoyPct) + '%</div>'
-          + '<div style="font-size:10.5px;color:#475569;margin-top:2px">전년(' + prevYear + '): ' + _sysFmtW(prevTotal) + '</div>'
+          + '<div style="font-size:14px;font-weight:800;color:' + yoyColor + ';margin-top:1px">' + yoyArrow + ' ' + yoySign + Math.abs(yoyPct) + '%</div>'
+          + '<div style="font-size:10px;color:#475569;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">전년(' + prevYear + '): ' + _sysFmtW(prevTotal) + '</div>'
           + '<div style="font-size:10px;color:' + yoyColor + ';font-weight:600;margin-top:1px">' + yoySign + _sysFmtW(Math.abs(yoyDiff)) + '</div>'
         + '</div>';
     }
