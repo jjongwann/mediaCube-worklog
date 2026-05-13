@@ -55,8 +55,12 @@
   aside::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 100px; }
   aside::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
 
+  /* ── 사이드바 컴팩트 스페이싱 ────────────────────────────────
+     관리자 계정은 메인/상태/바로가기/사업부 보기/관리자 + 푸터까지 들어가야 함.
+     스크롤 없이 한 화면에 들어오도록 padding · margin · 폰트 · 아이콘을 통일하여 압축.
+  ──────────────────────────────────────────────────────── */
   .sidebar-logo {
-    padding: 18px 14px 14px;
+    padding: 12px 14px 10px;
     display: flex;
     align-items: center;
     gap: 9px;
@@ -64,7 +68,7 @@
     cursor: default;
   }
   .sidebar-logo-icon {
-    width: 32px; height: 32px;
+    width: 30px; height: 30px;
     border-radius: 6px;
     overflow: hidden;
     flex-shrink: 0;
@@ -87,7 +91,7 @@
   }
 
   .sidebar-section {
-    padding: 12px 8px 4px;
+    padding: 6px 8px 0;
   }
   .sidebar-section-label {
     font-size: 10px;
@@ -96,15 +100,15 @@
     text-transform: uppercase;
     color: var(--text-muted);
     padding: 0 8px;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
   }
   .sidebar-item {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 8px;
+    padding: 4px 8px;
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 500;
     color: var(--text-secondary);
     cursor: pointer;
@@ -134,30 +138,30 @@
   .sidebar-divider {
     height: 1px;
     background: var(--border);
-    margin: 8px 12px;
+    margin: 5px 12px;
   }
 
   .sidebar-footer {
     margin-top: auto;
-    padding: 10px 8px;
+    padding: 7px 8px 9px;
     border-top: 1px solid var(--border);
   }
   .sidebar-user {
     display: flex;
     align-items: center;
     gap: 9px;
-    padding: 7px 8px;
+    padding: 5px 8px;
     border-radius: 6px;
     cursor: pointer;
     transition: background 0.1s;
   }
   .sidebar-user:hover { background: #f0f0f0; }
   .sidebar-avatar {
-    width: 38px; height: 38px;
+    width: 32px; height: 32px;
     background: #374151;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 700; color: #fff;
+    font-size: 12px; font-weight: 700; color: #fff;
     flex-shrink: 0;
     overflow: hidden;
   }
@@ -166,8 +170,8 @@
   .sidebar-user-role { font-size: 11px; color: var(--text-muted); }
   .sidebar-logout-btn {
     width: 100%;
-    margin-top: 8px;
-    padding: 8px;
+    margin-top: 5px;
+    padding: 6px;
     background: none;
     border: 1px solid var(--border);
     border-radius: 8px;
