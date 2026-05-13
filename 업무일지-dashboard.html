@@ -1995,11 +1995,11 @@
           <div style="position:relative;height:300px">
             <canvas id="sys-cumul-chart"></canvas>
           </div>
-          <!-- 6개 항목 카드 (좌) + 총 합계 카드 (우, 큰 단일 컬럼) -->
-          <!-- align-items:start 로 카드가 자연 높이로 표시되어 빈 공간 최소화 -->
-          <div style="display:grid;grid-template-columns:1fr 280px;gap:14px;margin-top:18px;align-items:start">
-            <div id="sys-cumul-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px"></div>
-            <div id="sys-cumul-grand"></div>
+          <!-- 6개 항목 카드 - 차트 x축 항목과 정렬 (6 컬럼 grid, y축 너비 60 / 우측 padding 8 매칭) -->
+          <div id="sys-cumul-summary" style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:18px;padding-left:60px;padding-right:8px;box-sizing:border-box"></div>
+          <!-- 총 합계 - 다음 줄 오른쪽, 단일 카드의 2배 폭 (grid-column 5/7) -->
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:12px;padding-left:60px;padding-right:8px;box-sizing:border-box">
+            <div id="sys-cumul-grand" style="grid-column:5/7"></div>
           </div>
         </div>
       </div>
@@ -7604,13 +7604,20 @@
       data: { labels: labels, datasets: datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
+        // y축 너비 고정 + 우측 padding 으로 플롯 영역 좌/우 오프셋을 일정하게 유지
+        // 아래 6 컬럼 카드 grid 가 동일한 padding-left/right 로 정확히 정렬됨
+        layout: { padding: { left: 0, right: 8, top: 4, bottom: 0 } },
         plugins: {
           legend: { display: true, position: 'top', labels: { font: { size: 11 }, boxWidth: 12, padding: 8 } },
           tooltip: { callbacks: { label: function(c){ return c.dataset.label + ': ' + _sysFmtW(c.parsed.y); } } }
         },
         scales: {
           x: { ticks: { maxRotation: 0, autoSkip: false, font: { size: 11, weight: '600' } } },
-          y: { beginAtZero: true, ticks: { callback: function(v){ return _sysFmtW(v); }, font: { size: 11 } } }
+          y: {
+            beginAtZero: true,
+            afterFit: function(s){ s.width = 60; },
+            ticks: { callback: function(v){ return _sysFmtW(v); }, font: { size: 11 } }
+          }
         }
       }
     });
@@ -7654,31 +7661,38 @@
       + '</div>';
     }).join('');
 
-    // 총 합계 카드 — 별도 우측 컬럼 (큰 크기로 강조 표시)
+    // 총 합계 카드 — 다음 줄 우측 2 컬럼 (카드 2배 폭). 가로형 레이아웃.
+    //  · 기본 모드: 라벨/기간 | 큰 금액/상세 (2 sections, space-between)
+    //  · 전년 대비: 라벨/기간 | 큰 금액/상세 | 전년 동기/증감률 (3 sections, divider)
     var grandEl = document.getElementById('sys-cumul-grand');
     if (grandEl) {
-      var grandDiffHtml = '';
+      var baseStyle = 'background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-radius:12px;padding:14px 20px;box-shadow:0 4px 12px rgba(124,58,237,0.25);display:flex;align-items:center;gap:20px';
+      var labelBlock = ''
+        + '<div style="flex:0 0 auto">'
+          + '<div style="font-size:13px;font-weight:700;letter-spacing:0.3px">총 합계</div>'
+          + '<div style="font-size:11px;opacity:0.85;margin-top:3px;font-weight:500;white-space:nowrap">' + years.length + '개년 · ' + periodLabel + '</div>'
+        + '</div>';
+      var amountBlock = ''
+        + '<div style="flex:1;text-align:right;min-width:0">'
+          + '<div style="font-size:24px;font-weight:800;letter-spacing:-0.5px;line-height:1.1;font-variant-numeric:tabular-nums;white-space:nowrap">' + _sysFmtW(grandTotal) + '</div>'
+          + '<div style="font-size:11.5px;opacity:0.9;margin-top:3px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + grandTotal.toLocaleString() + '원</div>'
+        + '</div>';
+      var diffBlock = '';
       if (_sysCumulCmpMode === 'yoy') {
         var gDiff = grandTotal - prevGrand;
         var gDiffPct = prevGrand > 0 ? Math.round(gDiff / prevGrand * 100) : (grandTotal > 0 ? 100 : 0);
         var gArrow = gDiff >= 0 ? '▲' : '▼';
         var gSign  = gDiff >= 0 ? '+' : '-';
-        grandDiffHtml = '<div style="border-top:1px solid rgba(255,255,255,0.25);margin-top:10px;padding-top:10px">'
-          + '<div style="font-size:11.5px;opacity:0.9;font-weight:600">전년 동기 (' + ((years[0] || 0) - 1) + '~' + ((years[years.length - 1] || 0) - 1) + '년)</div>'
-          + '<div style="font-size:14px;font-weight:700;margin-top:2px">' + _sysFmtW(prevGrand) + '</div>'
-          + '<div style="font-size:14px;font-weight:800;margin-top:6px;color:' + (gDiff >= 0 ? '#bbf7d0' : '#fecaca') + '">' + gArrow + ' ' + gSign + Math.abs(gDiffPct) + '%</div>'
-          + '<div style="font-size:11.5px;opacity:0.85;margin-top:2px;font-weight:600">' + gSign + _sysFmtW(Math.abs(gDiff)) + '</div>'
-        + '</div>';
+        var gDiffColor = gDiff >= 0 ? '#bbf7d0' : '#fecaca';
+        diffBlock = ''
+          + '<div style="flex:0 0 auto;text-align:right;padding-left:18px;border-left:1px solid rgba(255,255,255,0.28)">'
+            + '<div style="font-size:10.5px;opacity:0.85;font-weight:600;white-space:nowrap">전년 동기 (' + ((years[0] || 0) - 1) + '~' + ((years[years.length - 1] || 0) - 1) + ')</div>'
+            + '<div style="font-size:11.5px;opacity:0.92;margin-top:2px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap">' + _sysFmtW(prevGrand) + '</div>'
+            + '<div style="font-size:15px;font-weight:800;margin-top:5px;color:' + gDiffColor + ';white-space:nowrap">' + gArrow + ' ' + gSign + Math.abs(gDiffPct) + '%</div>'
+            + '<div style="font-size:10.5px;opacity:0.85;margin-top:1px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap">' + gSign + _sysFmtW(Math.abs(gDiff)) + '</div>'
+          + '</div>';
       }
-      grandEl.innerHTML = '<div style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-radius:12px;padding:18px 20px;height:100%;display:flex;flex-direction:column;box-sizing:border-box">'
-        + '<div style="font-size:13px;font-weight:700;letter-spacing:0.3px">총 합계</div>'
-        + '<div style="font-size:12px;opacity:0.85;margin-top:3px">' + years.length + '개년 · ' + periodLabel + '</div>'
-        + '<div style="margin-top:14px">'
-          + '<div style="font-size:28px;font-weight:800;letter-spacing:-0.5px;line-height:1.15">' + _sysFmtW(grandTotal) + '</div>'
-          + '<div style="font-size:12.5px;opacity:0.9;margin-top:4px;font-weight:600">' + grandTotal.toLocaleString() + '원</div>'
-        + '</div>'
-        + grandDiffHtml
-      + '</div>';
+      grandEl.innerHTML = '<div style="' + baseStyle + '">' + labelBlock + amountBlock + diffBlock + '</div>';
     }
   }
 
