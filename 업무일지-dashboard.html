@@ -2861,6 +2861,14 @@
     if (typeof updateStats === 'function') updateStats();
     if (typeof renderList === 'function') renderList();
     if (typeof renderCharts === 'function') renderCharts();
+    // 시스템 사업부 보기로 전환 시 매출 분석 표를 강제 렌더
+    if (deptKey === 'system' && typeof renderSystemSalesWidget === 'function') {
+      if (typeof _sysSalesLoaded !== 'undefined' && !_sysSalesLoaded) {
+        sysSalesFetch().then(renderSystemSalesWidget);
+      } else {
+        renderSystemSalesWidget();
+      }
+    }
   }
 
   // 현재 부서에 따라 음원/시스템 매출 위젯·BMAT 카드 표시 토글
