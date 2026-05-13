@@ -1965,7 +1965,7 @@
 
     <!-- 시스템 매출 연간 누계 통계 모달 -->
     <div id="sys-sales-cumul-overlay" onclick="if(event.target===this)closeSysSalesCumul()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10007;align-items:center;justify-content:center">
-      <div style="background:#fff;border-radius:20px;width:1320px;max-width:97vw;max-height:94vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,0.24);font-family:inherit">
+      <div style="background:#fff;border-radius:20px;width:1600px;max-width:97vw;max-height:94vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,0.24);font-family:inherit">
         <div style="display:flex;align-items:center;gap:12px;padding:18px 26px;border-radius:20px 20px 0 0;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           <span style="font-size:15px;font-weight:700;flex:1">시스템 매출 연간 누계 통계</span>
@@ -1986,7 +1986,7 @@
           <div style="position:relative;height:380px">
             <canvas id="sys-cumul-chart"></canvas>
           </div>
-          <div id="sys-cumul-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:20px"></div>
+          <div id="sys-cumul-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin-top:22px"></div>
         </div>
       </div>
     </div>
@@ -7587,13 +7587,13 @@
         var diff = v - pv;
         var diffPct = pv > 0 ? Math.round(diff / pv * 100) : (v > 0 ? 100 : 0);
         var dColor = diff >= 0 ? '#16a34a' : '#dc2626';
-        diffHtml = '<div style="font-size:10px;color:' + dColor + ';font-weight:700;margin-top:2px">' + (diff >= 0 ? '▲ +' : '▼ ') + Math.abs(diffPct) + '% (전년: ' + _sysFmtW(pv) + ')</div>';
+        diffHtml = '<div style="font-size:11.5px;color:' + dColor + ';font-weight:700;margin-top:5px">' + (diff >= 0 ? '▲ +' : '▼ ') + Math.abs(diffPct) + '% (전년: ' + _sysFmtW(pv) + ')</div>';
       }
-      return '<div style="background:' + it.bg + ';border:1px solid ' + it.color + '40;border-radius:8px;padding:10px 12px">'
-        + '<div style="font-size:10.5px;font-weight:700;color:' + it.color + '">' + escHtml(it.label) + '</div>'
-        + '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:2px;flex-wrap:wrap">'
-          + '<div style="font-size:13.5px;font-weight:800;color:#0f172a">' + _sysFmtW(v) + '</div>'
-          + '<div style="font-size:10.5px;color:#64748b;font-weight:600">' + v.toLocaleString() + '원</div>'
+      return '<div style="background:' + it.bg + ';border:1px solid ' + it.color + '40;border-radius:10px;padding:13px 15px">'
+        + '<div style="font-size:12px;font-weight:700;color:' + it.color + ';line-height:1.35;min-height:34px">' + escHtml(it.label) + '</div>'
+        + '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:6px;flex-wrap:nowrap">'
+          + '<div style="font-size:16px;font-weight:800;color:#0f172a;white-space:nowrap">' + _sysFmtW(v) + '</div>'
+          + '<div style="font-size:12px;color:#64748b;font-weight:600;white-space:nowrap;text-align:right">' + v.toLocaleString() + '원</div>'
         + '</div>'
         + diffHtml
         + '</div>';
@@ -7603,12 +7603,15 @@
     if (_sysCumulCmpMode === 'yoy') {
       var gDiff = grandTotal - prevGrand;
       var gDiffPct = prevGrand > 0 ? Math.round(gDiff / prevGrand * 100) : (grandTotal > 0 ? 100 : 0);
-      grandDiffHtml = '<div style="font-size:11px;font-weight:700;margin-top:3px;color:' + (gDiff >= 0 ? '#bbf7d0' : '#fecaca') + '">' + (gDiff >= 0 ? '▲ +' : '▼ ') + Math.abs(gDiffPct) + '% (전년: ' + _sysFmtW(prevGrand) + ')</div>';
+      grandDiffHtml = '<div style="font-size:12px;font-weight:700;margin-top:5px;color:' + (gDiff >= 0 ? '#bbf7d0' : '#fecaca') + '">' + (gDiff >= 0 ? '▲ +' : '▼ ') + Math.abs(gDiffPct) + '% (전년: ' + _sysFmtW(prevGrand) + ')</div>';
     }
-    summary.innerHTML += '<div style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-radius:8px;padding:10px 12px">'
-      + '<div style="font-size:10.5px;font-weight:700">총 합계</div>'
-      + '<div style="font-size:14.5px;font-weight:800;margin-top:2px">' + _sysFmtW(grandTotal) + '</div>'
-      + '<div style="font-size:10px;opacity:0.85;margin-top:1px">' + years.length + '개년 · ' + periodLabel + '</div>'
+    summary.innerHTML += '<div style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-radius:10px;padding:13px 15px">'
+      + '<div style="font-size:12px;font-weight:700;line-height:1.35;min-height:34px">총 합계</div>'
+      + '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:6px;flex-wrap:nowrap">'
+        + '<div style="font-size:17px;font-weight:800;white-space:nowrap">' + _sysFmtW(grandTotal) + '</div>'
+        + '<div style="font-size:11.5px;opacity:0.9;font-weight:600;white-space:nowrap;text-align:right">' + grandTotal.toLocaleString() + '원</div>'
+      + '</div>'
+      + '<div style="font-size:11px;opacity:0.85;margin-top:4px">' + years.length + '개년 · ' + periodLabel + '</div>'
       + grandDiffHtml
       + '</div>';
   }
