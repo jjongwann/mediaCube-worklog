@@ -1933,11 +1933,12 @@
         <div id="sys-kpi-panel" style="height:280px;box-sizing:border-box;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;font-size:12px;overflow:hidden"></div>
       </div>
       <!-- 차트 보기 - 항목별 요약 카드 (좌: 6개 바와 정렬, 우: 합계 카드 = KPI 너비 매칭) -->
-      <!-- align-items:stretch (기본) + 합계 카드 inner height:100% 로 좌측 카드와 동일 높이 유지 -->
+      <!-- align-items:stretch (기본) + min-width:0 으로 1fr 컬럼이 부모를 정확히 차지하도록 보장 -->
       <!-- 좌측 그리드 좌·우 padding 은 차트 y축 너비(60) / 우측 패딩(8) 과 매칭하여 막대 정렬 -->
+      <!-- #sys-grand-card 는 KPI 패널과 동일하게 단일 visual 박스로 처리 → 가로 위치 정확히 일치 -->
       <div style="display:grid;grid-template-columns:1fr 240px;gap:16px;margin-top:12px;align-items:stretch">
-        <div id="sys-chart-summary" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding-left:60px;padding-right:8px;box-sizing:border-box"></div>
-        <div id="sys-grand-card" style="display:flex"></div>
+        <div id="sys-chart-summary" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding-left:60px;padding-right:8px;box-sizing:border-box;min-width:0"></div>
+        <div id="sys-grand-card" style="box-sizing:border-box;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 2px 6px rgba(37,99,235,0.25);overflow:hidden"></div>
       </div>
       <!-- 표 보기 (토글 시 표시) -->
       <div id="sys-table-view" style="display:none;overflow-x:auto">
@@ -7319,18 +7320,16 @@
       + '</div>';
     }).join('');
 
-    // 총 합계 카드 — 우측 별도 컬럼 (KPI 패널 너비 매칭, 240px)
-    // height:100% + flex 로 좌측 6개 카드 행 높이와 정확히 동일하게 맞춤
-    // 내부는 column flex + space-between 으로 세련된 비주얼 밸런스 유지
+    // 총 합계 카드 — 우측 별도 컬럼 (KPI 패널과 동일하게 그리드 셀 = visual 카드)
+    // 외부 wrapper 제거 → 240px column 을 카드가 직접 채워 KPI 패널과 좌·우 edge 가 정확히 일치
     var grandEl = document.getElementById('sys-grand-card');
     if (grandEl) {
-      grandEl.innerHTML = '<div style="background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border-radius:10px;padding:10px 14px;width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;box-shadow:0 2px 6px rgba(37,99,235,0.25)">'
+      grandEl.innerHTML = ''
         + '<div style="font-size:11.5px;font-weight:700;line-height:1.3;letter-spacing:-0.1px;opacity:0.95">' + year + '년 합계</div>'
         + '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:6px;margin-top:5px;flex-wrap:nowrap;min-width:0">'
           + '<div style="font-size:15px;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums">' + _sysFmtW(grandTotal) + '</div>'
           + '<div style="font-size:10.5px;font-weight:600;opacity:0.9;white-space:nowrap;font-variant-numeric:tabular-nums">' + grandTotal.toLocaleString() + '원</div>'
-        + '</div>'
-      + '</div>';
+        + '</div>';
     }
 
     // 우측 KPI 패널 (총 매출 / 평균 매출 / 전년 대비)
