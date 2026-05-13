@@ -7167,7 +7167,8 @@
     var ySel = document.getElementById('sys-sales-input-year');
     var now = new Date(); var curY = now.getFullYear();
     ySel.innerHTML = '';
-    for (var y = curY - 4; y <= curY + 1; y++) {
+    // 2021 년 부터 입력 가능 (현재 년도 - 5 부터 +1 까지)
+    for (var y = curY - 5; y <= curY + 1; y++) {
       var opt = document.createElement('option');
       opt.value = y; opt.textContent = y + '년';
       if (y === curY) opt.selected = true;
