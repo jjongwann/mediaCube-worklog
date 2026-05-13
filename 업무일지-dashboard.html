@@ -1893,11 +1893,10 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-size:13px;font-weight:700;color:#111827">시스템 매출 분석</span>
-          <select id="sys-sales-year-sel" onchange="renderSystemSalesWidget()" style="padding:5px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:600;color:#374151;background:#f8fafc;cursor:pointer;outline:none"></select>
-          <span style="font-size:11px;color:#94a3b8">단위: 원</span>
+          <span style="font-size:11px;color:#94a3b8">단위: 원 · 연도별 합계</span>
           <button onclick="openSysSalesCumul()" style="display:flex;align-items:center;gap:6px;padding:5px 13px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            월별 누계 통계
+            연간 누계 통계
           </button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -1948,26 +1947,30 @@
       </div>
     </div>
 
-    <!-- 시스템 매출 월별 누계 통계 모달 -->
+    <!-- 시스템 매출 연간 누계 통계 모달 -->
     <div id="sys-sales-cumul-overlay" onclick="if(event.target===this)closeSysSalesCumul()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10007;align-items:center;justify-content:center">
-      <div style="background:#fff;border-radius:20px;width:1040px;max-width:97vw;max-height:92vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,0.24);font-family:inherit">
-        <div style="display:flex;align-items:center;gap:12px;padding:18px 24px;border-radius:20px 20px 0 0;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff">
+      <div style="background:#fff;border-radius:20px;width:1320px;max-width:97vw;max-height:94vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,0.24);font-family:inherit">
+        <div style="display:flex;align-items:center;gap:12px;padding:18px 26px;border-radius:20px 20px 0 0;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          <span style="font-size:15px;font-weight:700;flex:1">시스템 매출 월별 누계 통계</span>
+          <span style="font-size:15px;font-weight:700;flex:1">시스템 매출 연간 누계 통계</span>
           <button onclick="closeSysSalesCumul()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center">×</button>
         </div>
-        <div style="padding:14px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#faf5ff;border-bottom:1px solid #ede9fe">
-          <span style="font-size:12px;font-weight:700;color:#7c3aed">기간 선택</span>
-          <select id="sys-cumul-from" style="padding:7px 12px;border:1px solid #ddd6fe;border-radius:8px;font-size:12px;color:#374151;background:#fff;outline:none;font-weight:500"></select>
+        <div style="padding:14px 26px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#faf5ff;border-bottom:1px solid #ede9fe">
+          <span style="font-size:12px;font-weight:700;color:#7c3aed">연도 선택</span>
+          <select id="sys-cumul-from-year" style="padding:7px 12px;border:1px solid #ddd6fe;border-radius:8px;font-size:12px;color:#374151;background:#fff;outline:none;font-weight:500"></select>
           <span style="font-size:13px;color:#a78bfa;font-weight:600">~</span>
-          <select id="sys-cumul-to" style="padding:7px 12px;border:1px solid #ddd6fe;border-radius:8px;font-size:12px;color:#374151;background:#fff;outline:none;font-weight:500"></select>
+          <select id="sys-cumul-to-year" style="padding:7px 12px;border:1px solid #ddd6fe;border-radius:8px;font-size:12px;color:#374151;background:#fff;outline:none;font-weight:500"></select>
+          <div style="display:flex;border:1px solid #ddd6fe;border-radius:8px;overflow:hidden;font-size:11px;margin-left:8px">
+            <button id="sys-cumul-cmp-none" onclick="setSysCumulCmp('')"    style="padding:6px 14px;border:none;background:#7c3aed;color:#fff;cursor:pointer;font-weight:700">기본</button>
+            <button id="sys-cumul-cmp-yoy"  onclick="setSysCumulCmp('yoy')" style="padding:6px 14px;border:none;background:#fff;color:#7c3aed;cursor:pointer;font-weight:600">전년 대비</button>
+          </div>
           <button onclick="renderSysSalesCumul()" style="padding:7px 20px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-left:auto">조회</button>
         </div>
-        <div style="padding:20px 24px">
-          <div style="position:relative;height:320px">
+        <div style="padding:20px 26px">
+          <div style="position:relative;height:380px">
             <canvas id="sys-cumul-chart"></canvas>
           </div>
-          <div id="sys-cumul-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:18px"></div>
+          <div id="sys-cumul-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:20px"></div>
         </div>
       </div>
     </div>
@@ -7092,56 +7095,66 @@
   }
 
   function _sysPopulateYearSel() {
-    var sel = document.getElementById('sys-sales-year-sel');
-    if (!sel) return;
-    var years = _sysAllYears();
-    var prev = sel.value;
-    sel.innerHTML = years.map(function(y){ return '<option value="' + y + '">' + y + '년</option>'; }).join('');
-    if (prev && years.indexOf(parseInt(prev, 10)) !== -1) sel.value = prev;
-    else sel.value = years[0];
+    // 기존: 단일 연도 선택 — 이제는 사용 안 함. 호환을 위해 빈 함수 유지.
   }
 
-  // 메인 위젯 — 6개 항목 × 12개월 + 합계 테이블 형식
-  function renderSystemSalesWidget() {
-    var sel = document.getElementById('sys-sales-year-sel');
-    if (!sel || !sel.value) { _sysPopulateYearSel(); if (!sel || !sel.value) return; }
-    var year = parseInt(sel.value, 10);
+  // 표시할 연도 범위 (현재 연도 기준 최근 5년)
+  function _sysDisplayYears() {
+    var cy = new Date().getFullYear();
+    var years = [];
+    for (var y = cy - 4; y <= cy; y++) years.push(y);
+    return years;
+  }
 
-    // 헤더 (항목 | 1월 ~ 12월 | 합계)
-    var theadRow = document.getElementById('sys-sales-thead-row');
-    var headCells = '<th style="padding:8px 10px;text-align:left;color:#475569;font-size:12px;font-weight:700;border-bottom:1px solid #e2e8f0">항목</th>';
+  // 특정 연도의 항목 합계 (12개월 합산)
+  function _sysYearTotal(year, itemKey) {
+    var sum = 0;
     for (var m = 1; m <= 12; m++) {
-      headCells += '<th style="padding:8px 10px;text-align:right;color:#475569;font-size:11px;font-weight:700;border-bottom:1px solid #e2e8f0">' + m + '월</th>';
+      var r = _sysRowFor(_sysMonthKey(year, m));
+      if (r) sum += (parseInt(r[itemKey], 10) || 0);
     }
-    headCells += '<th style="padding:8px 10px;text-align:right;color:#7c3aed;font-size:12px;font-weight:800;border-bottom:1px solid #e2e8f0;background:#faf5ff">합계</th>';
+    return sum;
+  }
+
+  // 메인 위젯 — 6개 항목 × N개 연도 컬럼 + 합계 (캡쳐 화면과 동일 구조)
+  function renderSystemSalesWidget() {
+    var years = _sysDisplayYears();
+
+    // 헤더 (항목 | YYYY ~ YYYY | 합계)
+    var theadRow = document.getElementById('sys-sales-thead-row');
+    var headCells = '<th style="padding:10px 12px;text-align:left;color:#475569;font-size:12.5px;font-weight:700;border-bottom:1px solid #e2e8f0">항목</th>';
+    years.forEach(function(y){
+      headCells += '<th style="padding:10px 12px;text-align:right;color:#475569;font-size:12px;font-weight:700;border-bottom:1px solid #e2e8f0">' + y + '</th>';
+    });
+    headCells += '<th style="padding:10px 12px;text-align:right;color:#7c3aed;font-size:12.5px;font-weight:800;border-bottom:1px solid #e2e8f0;background:#faf5ff">합계</th>';
     theadRow.innerHTML = headCells;
 
     // 각 항목별 행 + 합계 행
     var tbody = document.getElementById('sys-sales-tbody');
-    var monthlyTotals = new Array(13).fill(0); // index 1..12 + grandTotal at 0
+    var yearTotals = {}; years.forEach(function(y){ yearTotals[y] = 0; });
+    var grandTotal = 0;
     var html = '';
     SYS_SALES_ITEMS.forEach(function(item){
-      var rowHtml = '<tr style="background:' + item.bg + '33"><td style="padding:9px 10px;font-weight:700;color:' + item.color + ';font-size:12px;border-bottom:1px solid #f1f5f9">' + escHtml(item.label) + '</td>';
+      var rowHtml = '<tr style="background:' + item.bg + '33"><td style="padding:11px 12px;font-weight:700;color:' + item.color + ';font-size:12.5px;border-bottom:1px solid #f1f5f9">' + escHtml(item.label) + '</td>';
       var rowTotal = 0;
-      for (var m = 1; m <= 12; m++) {
-        var r = _sysRowFor(_sysMonthKey(year, m));
-        var v = r ? (parseInt(r[item.key], 10) || 0) : 0;
+      years.forEach(function(y){
+        var v = _sysYearTotal(y, item.key);
         rowTotal += v;
-        monthlyTotals[m] += v;
-        rowHtml += '<td style="padding:9px 10px;text-align:right;font-size:12px;color:#374151;font-weight:600;border-bottom:1px solid #f1f5f9">' + (v ? v.toLocaleString() : '<span style="color:#cbd5e1">0</span>') + '</td>';
-      }
-      monthlyTotals[0] += rowTotal;
-      rowHtml += '<td style="padding:9px 10px;text-align:right;font-size:12px;font-weight:800;color:#7c3aed;background:#faf5ff;border-bottom:1px solid #f1f5f9">' + rowTotal.toLocaleString() + '</td>';
+        yearTotals[y] += v;
+        rowHtml += '<td style="padding:11px 12px;text-align:right;font-size:12.5px;color:#374151;font-weight:600;border-bottom:1px solid #f1f5f9">' + (v ? v.toLocaleString() : '<span style="color:#cbd5e1">0</span>') + '</td>';
+      });
+      grandTotal += rowTotal;
+      rowHtml += '<td style="padding:11px 12px;text-align:right;font-size:12.5px;font-weight:800;color:#7c3aed;background:#faf5ff;border-bottom:1px solid #f1f5f9">' + (rowTotal ? rowTotal.toLocaleString() : '<span style="color:#cbd5e1">0</span>') + '</td>';
       rowHtml += '</tr>';
       html += rowHtml;
     });
     // 합계 행
-    html += '<tr style="background:linear-gradient(180deg,#f8fafc,#f1f5f9);font-weight:800"><td style="padding:11px 10px;font-size:12.5px;color:#0f172a;border-top:2px solid #cbd5e1">합계</td>';
-    for (var m = 1; m <= 12; m++) {
-      var mt = monthlyTotals[m];
-      html += '<td style="padding:11px 10px;text-align:right;font-size:12px;color:#0f172a;border-top:2px solid #cbd5e1">' + (mt ? mt.toLocaleString() : '<span style="color:#cbd5e1">0</span>') + '</td>';
-    }
-    html += '<td style="padding:11px 10px;text-align:right;font-size:13px;color:#fff;background:#7c3aed;border-top:2px solid #5b21b6">' + monthlyTotals[0].toLocaleString() + '</td>';
+    html += '<tr style="background:linear-gradient(180deg,#f8fafc,#f1f5f9);font-weight:800"><td style="padding:13px 12px;font-size:13px;color:#0f172a;border-top:2px solid #cbd5e1">합계</td>';
+    years.forEach(function(y){
+      var yt = yearTotals[y];
+      html += '<td style="padding:13px 12px;text-align:right;font-size:12.5px;color:#0f172a;border-top:2px solid #cbd5e1">' + (yt ? yt.toLocaleString() : '<span style="color:#cbd5e1">0</span>') + '</td>';
+    });
+    html += '<td style="padding:13px 12px;text-align:right;font-size:13.5px;color:#fff;background:#7c3aed;border-top:2px solid #5b21b6">' + grandTotal.toLocaleString() + '</td>';
     html += '</tr>';
     tbody.innerHTML = html;
   }
@@ -7158,9 +7171,7 @@
       if (y === curY) opt.selected = true;
       ySel.appendChild(opt);
     }
-    // 현재 위젯에서 선택된 연도/이번 달 기본
-    var widgetYearSel = document.getElementById('sys-sales-year-sel');
-    if (widgetYearSel && widgetYearSel.value) ySel.value = widgetYearSel.value;
+    // 기본값: 올해 + 이번 달
     document.getElementById('sys-sales-input-month').value = String(now.getMonth() + 1);
 
     _sysRefillFields();
@@ -7222,12 +7233,7 @@
       }
       showToast('시스템 매출 데이터 저장 완료');
       closeSysSalesInput();
-      sysSalesFetch().then(function(){
-        _sysPopulateYearSel();
-        var yrSel = document.getElementById('sys-sales-year-sel');
-        if (yrSel) yrSel.value = y;
-        renderSystemSalesWidget();
-      });
+      sysSalesFetch().then(function(){ renderSystemSalesWidget(); });
       btn.disabled = false; btn.textContent = orig;
     }).catch(function(e){
       console.error('saveSysSales error', e);
@@ -7236,93 +7242,168 @@
     });
   }
 
-  // 월별 누계 통계 모달
+  // 연간 누계 통계 모달 (연도 단위 집계 + 전년 대비 비교 지원)
+  var _sysCumulCmpMode = ''; // '' | 'yoy'
+
   function openSysSalesCumul() {
     if (!_sysSalesLoaded) { sysSalesFetch().then(openSysSalesCumul); return; }
-    var fromSel = document.getElementById('sys-cumul-from');
-    var toSel   = document.getElementById('sys-cumul-to');
+    var fromSel = document.getElementById('sys-cumul-from-year');
+    var toSel   = document.getElementById('sys-cumul-to-year');
     var curYear = new Date().getFullYear();
-    var years = _sysAllYears();
-    var minYear = Math.min.apply(null, years.concat([curYear - 1]));
-    var maxYear = Math.max.apply(null, years.concat([curYear]));
+    var minYear = curYear - 5;
+    var maxYear = curYear;
     var opts = [];
     for (var y = minYear; y <= maxYear; y++) {
-      for (var m = 1; m <= 12; m++) {
-        opts.push('<option value="' + y + '-' + m + '">' + y + '년 ' + m + '월</option>');
-      }
+      opts.push('<option value="' + y + '">' + y + '년</option>');
     }
     fromSel.innerHTML = opts.join('');
     toSel.innerHTML   = opts.join('');
-    fromSel.value = curYear + '-1';
-    toSel.value   = curYear + '-' + (new Date().getMonth() + 1);
+    fromSel.value = String(curYear - 4); // 기본: 최근 5년
+    toSel.value   = String(curYear);
     document.getElementById('sys-sales-cumul-overlay').style.display = 'flex';
-    renderSysSalesCumul();
+    setSysCumulCmp('');
   }
   function closeSysSalesCumul() {
     document.getElementById('sys-sales-cumul-overlay').style.display = 'none';
   }
-  function _sysBuildKeyRange(fromKey, toKey) {
-    var fp = fromKey.split('-').map(Number); var tp = toKey.split('-').map(Number);
-    if (fp[0] * 100 + fp[1] > tp[0] * 100 + tp[1]) { var s = fp; fp = tp; tp = s; }
-    var keys = []; var y = fp[0], m = fp[1]; var safety = 0;
-    while ((y < tp[0] || (y === tp[0] && m <= tp[1])) && safety < 300) {
-      keys.push(y + '-' + m); m++; if (m > 12) { m = 1; y++; } safety++;
+  function setSysCumulCmp(mode) {
+    _sysCumulCmpMode = (mode === 'yoy') ? 'yoy' : '';
+    var noneBtn = document.getElementById('sys-cumul-cmp-none');
+    var yoyBtn  = document.getElementById('sys-cumul-cmp-yoy');
+    if (noneBtn) {
+      noneBtn.style.background = _sysCumulCmpMode === '' ? '#7c3aed' : '#fff';
+      noneBtn.style.color      = _sysCumulCmpMode === '' ? '#fff' : '#7c3aed';
+      noneBtn.style.fontWeight = _sysCumulCmpMode === '' ? '700' : '600';
     }
-    return keys;
+    if (yoyBtn) {
+      yoyBtn.style.background  = _sysCumulCmpMode === 'yoy' ? '#7c3aed' : '#fff';
+      yoyBtn.style.color       = _sysCumulCmpMode === 'yoy' ? '#fff' : '#7c3aed';
+      yoyBtn.style.fontWeight  = _sysCumulCmpMode === 'yoy' ? '700' : '600';
+    }
+    if (document.getElementById('sys-sales-cumul-overlay').style.display !== 'none') renderSysSalesCumul();
   }
+
+  // 특정 연도의 항목별 합계 객체 반환
+  function _sysYearAggregate(year) {
+    var agg = { _total: 0 };
+    SYS_SALES_ITEMS.forEach(function(it){
+      var v = _sysYearTotal(year, it.key);
+      agg[it.key] = v;
+      agg._total += v;
+    });
+    return agg;
+  }
+
   function renderSysSalesCumul() {
-    var fromKey = document.getElementById('sys-cumul-from').value;
-    var toKey   = document.getElementById('sys-cumul-to').value;
-    if (!fromKey || !toKey) return;
-    var keys = _sysBuildKeyRange(fromKey, toKey);
-    // 항목별 합계
+    var fromY = parseInt(document.getElementById('sys-cumul-from-year').value, 10);
+    var toY   = parseInt(document.getElementById('sys-cumul-to-year').value, 10);
+    if (!fromY || !toY) return;
+    if (fromY > toY) { var t = fromY; fromY = toY; toY = t; }
+
+    // 연도 배열
+    var years = []; for (var y = fromY; y <= toY; y++) years.push(y);
+
+    // 각 항목별, 각 연도의 값
+    var labels = SYS_SALES_ITEMS.map(function(it){ return it.label; });
+    var colors = SYS_SALES_ITEMS.map(function(it){ return it.color; });
+
+    // 현재 기간 합계 (선택 연도 전체 합)
     var totals = {}; SYS_SALES_ITEMS.forEach(function(it){ totals[it.key] = 0; });
-    keys.forEach(function(mk){
-      var r = _sysRowFor(mk);
-      if (!r) return;
-      SYS_SALES_ITEMS.forEach(function(it){ totals[it.key] += (parseInt(r[it.key], 10) || 0); });
+    years.forEach(function(y){
+      SYS_SALES_ITEMS.forEach(function(it){ totals[it.key] += _sysYearTotal(y, it.key); });
     });
 
-    var labels = SYS_SALES_ITEMS.map(function(it){ return it.label; });
-    var data   = SYS_SALES_ITEMS.map(function(it){ return totals[it.key]; });
-    var colors = SYS_SALES_ITEMS.map(function(it){ return it.color; });
+    // 전년 대비: 같은 항목, 같은 길이의 직전 연도 범위 합계
+    var prevTotals = null;
+    if (_sysCumulCmpMode === 'yoy') {
+      prevTotals = {}; SYS_SALES_ITEMS.forEach(function(it){ prevTotals[it.key] = 0; });
+      years.forEach(function(y){
+        SYS_SALES_ITEMS.forEach(function(it){ prevTotals[it.key] += _sysYearTotal(y - 1, it.key); });
+      });
+    }
+
+    var data     = SYS_SALES_ITEMS.map(function(it){ return totals[it.key]; });
+    var prevData = prevTotals ? SYS_SALES_ITEMS.map(function(it){ return prevTotals[it.key]; }) : null;
 
     var ctx = document.getElementById('sys-cumul-chart').getContext('2d');
     if (_sysCumulChart) { try{_sysCumulChart.destroy();}catch(e){} _sysCumulChart = null; }
+
+    var periodLabel = (fromY === toY) ? (fromY + '년') : (fromY + '~' + toY + '년');
+    var datasets = [{
+      label: periodLabel + ' 합계',
+      data: data,
+      backgroundColor: colors.map(function(c){ return c + 'cc'; }),
+      borderColor: colors,
+      borderWidth: 1
+    }];
+    if (prevData) {
+      var prevPeriodLabel = ((fromY - 1) === (toY - 1)) ? ((fromY - 1) + '년') : ((fromY - 1) + '~' + (toY - 1) + '년');
+      datasets.push({
+        label: prevPeriodLabel + ' (전년)',
+        data: prevData,
+        backgroundColor: colors.map(function(c){ return c + '40'; }),
+        borderColor: colors.map(function(c){ return c + '80'; }),
+        borderWidth: 1,
+        borderDash: [4, 4]
+      });
+    }
+
     _sysCumulChart = new Chart(ctx, {
       type: 'bar',
-      data: { labels: labels, datasets: [{ label: '누계 매출', data: data, backgroundColor: colors.map(function(c){return c+'cc';}), borderColor: colors, borderWidth: 1 }] },
+      data: { labels: labels, datasets: datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: function(c){ return _sysFmtW(c.parsed.y); } } }
+          legend: { display: !!prevData, position: 'top', labels: { font: { size: 11 } } },
+          tooltip: { callbacks: { label: function(c){ return c.dataset.label + ': ' + _sysFmtW(c.parsed.y); } } }
         },
-        scales: { y: { beginAtZero: true, ticks: { callback: function(v){ return _sysFmtW(v); } } } }
+        scales: {
+          x: { ticks: { maxRotation: 0, minRotation: 0, autoSkip: false, font: { size: 11 } } },
+          y: { beginAtZero: true, ticks: { callback: function(v){ return _sysFmtW(v); } } }
+        }
       }
     });
 
+    // 항목별 카드 + 총 합계
     var summary = document.getElementById('sys-cumul-summary');
     var grandTotal = data.reduce(function(a,b){ return a+b; }, 0);
+    var prevGrand = prevData ? prevData.reduce(function(a,b){ return a+b; }, 0) : 0;
     summary.innerHTML = SYS_SALES_ITEMS.map(function(it, i){
       var v = data[i];
       var pct = grandTotal > 0 ? Math.round(v / grandTotal * 100) : 0;
-      return '<div style="background:' + it.bg + ';border:1px solid ' + it.color + '40;border-radius:8px;padding:9px 11px">'
+      var diffHtml = '';
+      if (prevData) {
+        var pv = prevData[i];
+        var diff = v - pv;
+        var diffPct = pv > 0 ? Math.round(diff / pv * 100) : (v > 0 ? 100 : 0);
+        var dColor = diff >= 0 ? '#16a34a' : '#dc2626';
+        diffHtml = '<div style="font-size:10px;color:' + dColor + ';font-weight:700;margin-top:2px">' + (diff >= 0 ? '▲ +' : '▼ ') + Math.abs(diffPct) + '% (전년: ' + _sysFmtW(pv) + ')</div>';
+      }
+      return '<div style="background:' + it.bg + ';border:1px solid ' + it.color + '40;border-radius:8px;padding:10px 12px">'
         + '<div style="font-size:10.5px;font-weight:700;color:' + it.color + '">' + escHtml(it.label) + '</div>'
-        + '<div style="font-size:13px;font-weight:800;color:#0f172a;margin-top:2px">' + _sysFmtW(v) + '</div>'
+        + '<div style="font-size:13.5px;font-weight:800;color:#0f172a;margin-top:2px">' + _sysFmtW(v) + '</div>'
         + '<div style="font-size:10px;color:#64748b;margin-top:1px">' + pct + '% · ' + v.toLocaleString() + '원</div>'
+        + diffHtml
         + '</div>';
-    }).join('')
-    + '<div style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-radius:8px;padding:9px 11px">'
-    + '<div style="font-size:10.5px;font-weight:700">총 합계</div>'
-    + '<div style="font-size:14px;font-weight:800;margin-top:2px">' + _sysFmtW(grandTotal) + '</div>'
-    + '<div style="font-size:10px;opacity:0.85;margin-top:1px">' + keys.length + '개월 누계</div>'
-    + '</div>';
+    }).join('');
+
+    // 총 합계 카드
+    var grandDiffHtml = '';
+    if (prevData) {
+      var gDiff = grandTotal - prevGrand;
+      var gDiffPct = prevGrand > 0 ? Math.round(gDiff / prevGrand * 100) : (grandTotal > 0 ? 100 : 0);
+      grandDiffHtml = '<div style="font-size:11px;font-weight:700;margin-top:3px;color:' + (gDiff >= 0 ? '#bbf7d0' : '#fecaca') + '">' + (gDiff >= 0 ? '▲ +' : '▼ ') + Math.abs(gDiffPct) + '% (전년: ' + _sysFmtW(prevGrand) + ')</div>';
+    }
+    summary.innerHTML += '<div style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-radius:8px;padding:10px 12px">'
+      + '<div style="font-size:10.5px;font-weight:700">총 합계</div>'
+      + '<div style="font-size:14.5px;font-weight:800;margin-top:2px">' + _sysFmtW(grandTotal) + '</div>'
+      + '<div style="font-size:10px;opacity:0.85;margin-top:1px">' + years.length + '개년 · ' + periodLabel + '</div>'
+      + grandDiffHtml
+      + '</div>';
   }
 
   // 초기 로드
   sysSalesFetch().then(function(){
-    _sysPopulateYearSel();
     if (_viewDeptKey === 'system') renderSystemSalesWidget();
     _applyDeptVisibility();
   });
