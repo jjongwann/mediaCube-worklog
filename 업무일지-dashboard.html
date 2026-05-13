@@ -352,6 +352,13 @@
     font-weight: 600;
   }
   .sidebar-item.bmat-active .sidebar-item-icon { opacity: 1; }
+  /* 관리자 부서 토글 활성 상태 — 보라 테마 */
+  .sidebar-item.dept-toggle-item.active {
+    background: #f3e8ff;
+    color: #7c3aed;
+    font-weight: 700;
+  }
+  .sidebar-item.dept-toggle-item.active .sidebar-item-icon { opacity: 1; }
   .stat-card-top {
     display: flex;
     align-items: center;
@@ -1589,6 +1596,17 @@
   <div id="admin-sidebar-section" style="display:none">
     <div class="sidebar-divider"></div>
     <div class="sidebar-section">
+      <div class="sidebar-section-label">사업부 보기</div>
+      <div class="sidebar-item dept-toggle-item active" id="sidebar-dept-sound" onclick="setViewDept('sound')" title="사운드 컨텐츠 사업부">
+        <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+        사운드 컨텐츠 사업부
+      </div>
+      <div class="sidebar-item dept-toggle-item" id="sidebar-dept-system" onclick="setViewDept('system')" title="시스템 사업부">
+        <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></span>
+        시스템 사업부
+      </div>
+    </div>
+    <div class="sidebar-section">
       <div class="sidebar-section-label">관리자</div>
       <div class="sidebar-item" id="sidebar-emp-btn" onclick="toggleEmpPanel()">
         <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
@@ -1870,6 +1888,90 @@
     </div>
 
     <!-- ══ 매출 분석 위젯 ══ -->
+    <!-- ══ 시스템 매출 분석 위젯 (시스템 사업부 전용, 기본 숨김) ══ -->
+    <div id="system-sales-widget" style="display:none;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px 20px;margin-bottom:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:13px;font-weight:700;color:#111827">시스템 매출 분석</span>
+          <select id="sys-sales-year-sel" onchange="renderSystemSalesWidget()" style="padding:5px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:600;color:#374151;background:#f8fafc;cursor:pointer;outline:none"></select>
+          <span style="font-size:11px;color:#94a3b8">단위: 원</span>
+          <button onclick="openSysSalesCumul()" style="display:flex;align-items:center;gap:6px;padding:5px 13px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            월별 누계 통계
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button onclick="openSysSalesInput()" style="display:flex;align-items:center;gap:5px;padding:5px 13px;background:#2563eb;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            데이터 입력
+          </button>
+        </div>
+      </div>
+      <!-- 연도별 테이블 (캡쳐와 동일 구조) -->
+      <div style="overflow-x:auto">
+        <table id="sys-sales-table" style="width:100%;border-collapse:collapse;font-size:13px;min-width:760px">
+          <thead>
+            <tr id="sys-sales-thead-row" style="background:linear-gradient(180deg,#f8fafc,#f1f5f9)"></tr>
+          </thead>
+          <tbody id="sys-sales-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 시스템 매출 데이터 입력 모달 -->
+    <div id="sys-sales-input-overlay" onclick="if(event.target===this)closeSysSalesInput()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:10005;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:16px;width:520px;max-width:96vw;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.22);font-family:inherit">
+        <div style="display:flex;align-items:center;padding:16px 20px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border-radius:16px 16px 0 0;flex-shrink:0">
+          <span style="font-size:14px;font-weight:700;flex:1">시스템 매출 데이터 입력</span>
+          <button onclick="closeSysSalesInput()" style="background:rgba(255,255,255,0.18);border:none;color:#fff;cursor:pointer;font-size:18px;width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center">×</button>
+        </div>
+        <div style="padding:18px 22px;flex:1;overflow-y:auto">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+            <select id="sys-sales-input-year" style="padding:7px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#374151;outline:none;background:#f8fafc;font-weight:600"></select>
+            <select id="sys-sales-input-month" style="padding:7px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#374151;outline:none;background:#f8fafc;font-weight:600">
+              <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option>
+              <option value="4">4월</option><option value="5">5월</option><option value="6">6월</option>
+              <option value="7">7월</option><option value="8">8월</option><option value="9">9월</option>
+              <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+            </select>
+          </div>
+          <div id="sys-sales-fields" style="display:flex;flex-direction:column;gap:10px"></div>
+          <div style="margin-top:14px;padding:10px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:12px;color:#15803d;font-weight:700">합계</span>
+            <span id="sys-sales-input-total" style="font-size:14px;font-weight:800;color:#15803d">0</span>
+          </div>
+        </div>
+        <div style="padding:14px 20px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;gap:8px;background:#f8fafc;flex-shrink:0">
+          <button onclick="closeSysSalesInput()" style="padding:8px 18px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;color:#475569;font-size:13px;font-weight:600;cursor:pointer">취소</button>
+          <button id="sys-sales-save-btn" onclick="saveSysSales()" style="padding:8px 18px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-size:13px;font-weight:700;cursor:pointer">저장</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 시스템 매출 월별 누계 통계 모달 -->
+    <div id="sys-sales-cumul-overlay" onclick="if(event.target===this)closeSysSalesCumul()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10007;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:20px;width:1040px;max-width:97vw;max-height:92vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,0.24);font-family:inherit">
+        <div style="display:flex;align-items:center;gap:12px;padding:18px 24px;border-radius:20px 20px 0 0;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span style="font-size:15px;font-weight:700;flex:1">시스템 매출 월별 누계 통계</span>
+          <button onclick="closeSysSalesCumul()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center">×</button>
+        </div>
+        <div style="padding:14px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#faf5ff;border-bottom:1px solid #ede9fe">
+          <span style="font-size:12px;font-weight:700;color:#7c3aed">기간 선택</span>
+          <select id="sys-cumul-from" style="padding:7px 12px;border:1px solid #ddd6fe;border-radius:8px;font-size:12px;color:#374151;background:#fff;outline:none;font-weight:500"></select>
+          <span style="font-size:13px;color:#a78bfa;font-weight:600">~</span>
+          <select id="sys-cumul-to" style="padding:7px 12px;border:1px solid #ddd6fe;border-radius:8px;font-size:12px;color:#374151;background:#fff;outline:none;font-weight:500"></select>
+          <button onclick="renderSysSalesCumul()" style="padding:7px 20px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-left:auto">조회</button>
+        </div>
+        <div style="padding:20px 24px">
+          <div style="position:relative;height:320px">
+            <canvas id="sys-cumul-chart"></canvas>
+          </div>
+          <div id="sys-cumul-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:18px"></div>
+        </div>
+      </div>
+    </div>
+
     <div id="sales-widget" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:18px 20px 20px;margin-bottom:24px">
       <!-- 헤더 -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
@@ -2710,6 +2812,76 @@
   ];
   var adminEmpFilter = ''; // '' = 전체, user_id = 특정 직원만
 
+  /* ── 부서 (Department) 매핑 ──
+     - 'sound'  : 사운드 컨텐츠 사업부 (기존 직원 전부)
+     - 'system' : 시스템 사업부 (avsystem, engineer2)
+     - 관리자(mediacube)는 어느 부서에도 속하지 않음. 토글로 두 부서 모두 조회 가능 */
+  var SYSTEM_DEPT_USERNAMES = ['avsystem', 'engineer2'];
+
+  function _userDeptKey(userIdOrUsername) {
+    if (!userIdOrUsername) return null;
+    var u = ALL_USERS.find(function(x){
+      return x.id === userIdOrUsername || x.username === userIdOrUsername;
+    });
+    if (!u) return null;
+    if (u.isAdmin) return null; // 관리자는 부서 없음
+    return SYSTEM_DEPT_USERNAMES.indexOf(u.username) !== -1 ? 'system' : 'sound';
+  }
+
+  function _getDeptUserIds(deptKey) {
+    return ALL_USERS.filter(function(u){
+      if (u.isAdmin) return false;
+      return _userDeptKey(u.username) === deptKey;
+    }).map(function(u){ return u.id; });
+  }
+
+  // 현재 대시보드에서 보고 있는 부서 — 비관리자는 본인 부서로 고정, 관리자는 토글로 변경 가능
+  var _viewDeptKey = (function(){
+    var k = _userDeptKey(_userId);
+    return k || 'sound'; // 관리자 기본: 사운드
+  })();
+
+  // 일지가 현재 부서 뷰에 해당하는지
+  function _journalInDeptView(j) {
+    var deptIds = _getDeptUserIds(_viewDeptKey);
+    return deptIds.indexOf(j.user_id) !== -1;
+  }
+
+  // 관리자가 사이드바에서 사업부 토글 — 'sound' | 'system'
+  function setViewDept(deptKey) {
+    if (deptKey !== 'sound' && deptKey !== 'system') return;
+    if (_viewDeptKey === deptKey) return;
+    _viewDeptKey = deptKey;
+    // 사이드바 active 클래스 동기화
+    var s = document.getElementById('sidebar-dept-sound');
+    var y = document.getElementById('sidebar-dept-system');
+    if (s) s.classList.toggle('active', deptKey === 'sound');
+    if (y) y.classList.toggle('active', deptKey === 'system');
+    // 모든 영역 재렌더
+    _applyDeptVisibility();
+    if (typeof updateStats === 'function') updateStats();
+    if (typeof renderList === 'function') renderList();
+    if (typeof renderCharts === 'function') renderCharts();
+  }
+
+  // 현재 부서에 따라 음원/시스템 매출 위젯·BMAT 카드 표시 토글
+  function _applyDeptVisibility() {
+    var soundWidget  = document.getElementById('sales-widget');
+    var systemWidget = document.getElementById('system-sales-widget');
+    var bmatBtn      = document.getElementById('sidebar-bmat-btn');
+    var bmatWidget   = document.getElementById('bmat-widget');
+    if (_viewDeptKey === 'system') {
+      if (soundWidget)  soundWidget.style.display  = 'none';
+      if (systemWidget) systemWidget.style.display = '';
+      if (bmatBtn)      bmatBtn.style.display      = 'none';
+      if (bmatWidget)   bmatWidget.style.display   = 'none';
+    } else {
+      if (soundWidget)  soundWidget.style.display  = '';
+      if (systemWidget) systemWidget.style.display = 'none';
+      if (bmatBtn)      bmatBtn.style.display      = '';
+    }
+  }
+
   /* ── Storage (Supabase 기반) ── */
   function loadJournals() { return journalCache; }
   function saveJournals(newData) {
@@ -2772,14 +2944,23 @@
     var todayStr = localDateStr(today);
     var weekStart = getWeekStart();
 
-    // 비관리자: 본인 일지만 표시 (RLS가 전체 허용돼도 프론트에서 필터)
-    if (!_isAdmin) {
+    // 부서 필터:
+    //  - 관리자: _viewDeptKey 부서 전체
+    //  - 시스템 사업부 직원: 시스템 부서 전체
+    //  - 사운드 사업부 직원: 본인 일지만 (기존 동작)
+    if (_isAdmin) {
+      var _vIds = _getDeptUserIds(_viewDeptKey);
+      data = data.filter(function(j){ return _vIds.indexOf(j.user_id) !== -1; });
+    } else if (_userDeptKey(_userId) === 'system') {
+      var _sIds = _getDeptUserIds('system');
+      data = data.filter(function(j){ return _sIds.indexOf(j.user_id) !== -1; });
+    } else {
       var _myName = (_currentSession && _currentSession._display && (_currentSession._display.fullName || _currentSession._display.name)) || '';
       data = data.filter(function(j) {
         return (_userId && j.user_id === _userId) || (_myName && (j.author || '').trim() === _myName.trim());
       });
     }
-    // 관리자 직원 필터
+    // 관리자 직원 필터 (특정 직원 카드 클릭 시)
     if (_isAdmin && adminEmpFilter) {
       data = data.filter(function(j) { return j.user_id === adminEmpFilter; });
     }
@@ -2840,8 +3021,16 @@
   /* ── Stats ── */
   function updateStats() {
     var all = loadJournals();
-    // 비관리자: 본인 일지만 통계 계산
-    if (!_isAdmin) {
+    if (_isAdmin) {
+      // 관리자: 현재 토글된 부서(_viewDeptKey) 기준으로 필터
+      var adminIds = _getDeptUserIds(_viewDeptKey);
+      all = all.filter(function(j){ return adminIds.indexOf(j.user_id) !== -1; });
+    } else if (_userDeptKey(_userId) === 'system') {
+      // 시스템 사업부 직원: 부서 전체 일지 기준
+      var sysIds = _getDeptUserIds('system');
+      all = all.filter(function(j){ return sysIds.indexOf(j.user_id) !== -1; });
+    } else {
+      // 사운드 사업부 직원: 본인 일지만 (기존 동작 보존)
       var _myName = (_currentSession && _currentSession._display && (_currentSession._display.fullName || _currentSession._display.name)) || '';
       all = all.filter(function(j) {
         return (_userId && j.user_id === _userId) || (_myName && (j.author || '').trim() === _myName.trim());
@@ -4759,6 +4948,8 @@
       var adminSb = document.getElementById('admin-sidebar-section');
       if (adminSb) adminSb.style.display = '';
     }
+    // 부서별 위젯 표시/숨김 (시스템 사업부 직원 자동 진입, 관리자 토글 가능)
+    if (typeof _applyDeptVisibility === 'function') _applyDeptVisibility();
     // 사운드콘텐츠사업부 소속이면 음원팀 업무 현황 버튼 표시
     var _soundUsernames = ['soundsupport','webmaster20','soundstore','soundsales','marketing','sunlee','admin','developer'];
     if (_soundUsernames.indexOf(_currentUsername) !== -1) {
@@ -6840,6 +7031,301 @@
 
   // 초기 렌더 (로그인 여부 무관)
   salesInit();
+
+  /* ═══════════════════════════════════════════════════════════════
+     시스템 매출 분석 모듈 (시스템 사업부 전용)
+     - 신규 테이블 system_sales_data
+     - 항목 6개: archiving, restoration, broadcast, etc_as, acoustic, dolby
+     - month_key 기반 (음원 매출 분석과 동일 패턴)
+     ═══════════════════════════════════════════════════════════════*/
+
+  var SYS_SALES_ITEMS = [
+    { key: 'archiving',   label: 'Audio Video Archiving',                bg: '#dbeafe', color: '#2563eb' },
+    { key: 'restoration', label: 'Audio Video Restoration / Forensic',   bg: '#ede9fe', color: '#7c3aed' },
+    { key: 'broadcast',   label: 'Broadcast / Pro Audio Video Product',  bg: '#dcfce7', color: '#16a34a' },
+    { key: 'etc_as',      label: '기타 A/S',                              bg: '#f3f4f6', color: '#4b5563' },
+    { key: 'acoustic',    label: 'Acoustic / Audio Video Engineering',   bg: '#fef9c3', color: '#ca8a04' },
+    { key: 'dolby',       label: 'Dolby Production Services',            bg: '#fed7aa', color: '#ea580c' }
+  ];
+
+  var _sysSalesRows = []; // [{month_key, archiving, restoration, ...}]
+  var _sysSalesLoaded = false;
+  var _sysCumulChart  = null;
+
+  function _sysFmtW(n) {
+    n = parseInt(n, 10) || 0;
+    if (n >= 100000000) return (Math.round(n / 1000000) / 100).toFixed(2) + '억원';
+    if (n >= 10000)     return Math.round(n / 10000).toLocaleString() + '만원';
+    return n.toLocaleString() + '원';
+  }
+  function _sysFmtN(n) { return (parseInt(n, 10) || 0).toLocaleString(); }
+  function _sysMonthKey(y, m) { return y + '-' + m; }
+  function _sysRowFor(mk) {
+    return _sysSalesRows.find(function(r){ return r.month_key === mk; });
+  }
+  function _sysTotalOf(row) {
+    if (!row) return 0;
+    return SYS_SALES_ITEMS.reduce(function(s, it){ return s + (parseInt(row[it.key], 10) || 0); }, 0);
+  }
+  function _sysAllYears() {
+    var seen = {};
+    _sysSalesRows.forEach(function(r){
+      var y = (r.month_key || '').split('-')[0];
+      if (y) seen[y] = true;
+    });
+    var cy = new Date().getFullYear();
+    seen[cy] = true;
+    var arr = Object.keys(seen).map(Number).sort(function(a,b){ return b - a; });
+    return arr;
+  }
+
+  function sysSalesFetch() {
+    return fetch(SB_URL + '/rest/v1/system_sales_data?select=month_key,archiving,restoration,broadcast,etc_as,acoustic,dolby,updated_at', { headers: SB_HDR })
+      .then(function(r){ if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(rows){
+        _sysSalesRows = Array.isArray(rows) ? rows : [];
+        _sysSalesLoaded = true;
+      }).catch(function(e){
+        console.warn('system_sales_data fetch 실패 (테이블 미존재 가능):', e.message);
+        _sysSalesRows = []; _sysSalesLoaded = false;
+      });
+  }
+
+  function _sysPopulateYearSel() {
+    var sel = document.getElementById('sys-sales-year-sel');
+    if (!sel) return;
+    var years = _sysAllYears();
+    var prev = sel.value;
+    sel.innerHTML = years.map(function(y){ return '<option value="' + y + '">' + y + '년</option>'; }).join('');
+    if (prev && years.indexOf(parseInt(prev, 10)) !== -1) sel.value = prev;
+    else sel.value = years[0];
+  }
+
+  // 메인 위젯 — 6개 항목 × 12개월 + 합계 테이블 형식
+  function renderSystemSalesWidget() {
+    var sel = document.getElementById('sys-sales-year-sel');
+    if (!sel || !sel.value) { _sysPopulateYearSel(); if (!sel || !sel.value) return; }
+    var year = parseInt(sel.value, 10);
+
+    // 헤더 (항목 | 1월 ~ 12월 | 합계)
+    var theadRow = document.getElementById('sys-sales-thead-row');
+    var headCells = '<th style="padding:8px 10px;text-align:left;color:#475569;font-size:12px;font-weight:700;border-bottom:1px solid #e2e8f0">항목</th>';
+    for (var m = 1; m <= 12; m++) {
+      headCells += '<th style="padding:8px 10px;text-align:right;color:#475569;font-size:11px;font-weight:700;border-bottom:1px solid #e2e8f0">' + m + '월</th>';
+    }
+    headCells += '<th style="padding:8px 10px;text-align:right;color:#7c3aed;font-size:12px;font-weight:800;border-bottom:1px solid #e2e8f0;background:#faf5ff">합계</th>';
+    theadRow.innerHTML = headCells;
+
+    // 각 항목별 행 + 합계 행
+    var tbody = document.getElementById('sys-sales-tbody');
+    var monthlyTotals = new Array(13).fill(0); // index 1..12 + grandTotal at 0
+    var html = '';
+    SYS_SALES_ITEMS.forEach(function(item){
+      var rowHtml = '<tr style="background:' + item.bg + '33"><td style="padding:9px 10px;font-weight:700;color:' + item.color + ';font-size:12px;border-bottom:1px solid #f1f5f9">' + escHtml(item.label) + '</td>';
+      var rowTotal = 0;
+      for (var m = 1; m <= 12; m++) {
+        var r = _sysRowFor(_sysMonthKey(year, m));
+        var v = r ? (parseInt(r[item.key], 10) || 0) : 0;
+        rowTotal += v;
+        monthlyTotals[m] += v;
+        rowHtml += '<td style="padding:9px 10px;text-align:right;font-size:12px;color:#374151;font-weight:600;border-bottom:1px solid #f1f5f9">' + (v ? v.toLocaleString() : '<span style="color:#cbd5e1">0</span>') + '</td>';
+      }
+      monthlyTotals[0] += rowTotal;
+      rowHtml += '<td style="padding:9px 10px;text-align:right;font-size:12px;font-weight:800;color:#7c3aed;background:#faf5ff;border-bottom:1px solid #f1f5f9">' + rowTotal.toLocaleString() + '</td>';
+      rowHtml += '</tr>';
+      html += rowHtml;
+    });
+    // 합계 행
+    html += '<tr style="background:linear-gradient(180deg,#f8fafc,#f1f5f9);font-weight:800"><td style="padding:11px 10px;font-size:12.5px;color:#0f172a;border-top:2px solid #cbd5e1">합계</td>';
+    for (var m = 1; m <= 12; m++) {
+      var mt = monthlyTotals[m];
+      html += '<td style="padding:11px 10px;text-align:right;font-size:12px;color:#0f172a;border-top:2px solid #cbd5e1">' + (mt ? mt.toLocaleString() : '<span style="color:#cbd5e1">0</span>') + '</td>';
+    }
+    html += '<td style="padding:11px 10px;text-align:right;font-size:13px;color:#fff;background:#7c3aed;border-top:2px solid #5b21b6">' + monthlyTotals[0].toLocaleString() + '</td>';
+    html += '</tr>';
+    tbody.innerHTML = html;
+  }
+
+  // 입력 모달
+  function openSysSalesInput() {
+    if (!_sysSalesLoaded) { sysSalesFetch().then(openSysSalesInput); return; }
+    var ySel = document.getElementById('sys-sales-input-year');
+    var now = new Date(); var curY = now.getFullYear();
+    ySel.innerHTML = '';
+    for (var y = curY - 2; y <= curY + 1; y++) {
+      var opt = document.createElement('option');
+      opt.value = y; opt.textContent = y + '년';
+      if (y === curY) opt.selected = true;
+      ySel.appendChild(opt);
+    }
+    // 현재 위젯에서 선택된 연도/이번 달 기본
+    var widgetYearSel = document.getElementById('sys-sales-year-sel');
+    if (widgetYearSel && widgetYearSel.value) ySel.value = widgetYearSel.value;
+    document.getElementById('sys-sales-input-month').value = String(now.getMonth() + 1);
+
+    _sysRefillFields();
+    ySel.onchange = _sysRefillFields;
+    document.getElementById('sys-sales-input-month').onchange = _sysRefillFields;
+    document.getElementById('sys-sales-input-overlay').style.display = 'flex';
+  }
+  function closeSysSalesInput() {
+    document.getElementById('sys-sales-input-overlay').style.display = 'none';
+  }
+  function _sysRefillFields() {
+    var y = parseInt(document.getElementById('sys-sales-input-year').value, 10);
+    var m = parseInt(document.getElementById('sys-sales-input-month').value, 10);
+    var mk = _sysMonthKey(y, m);
+    var r = _sysRowFor(mk) || {};
+    var host = document.getElementById('sys-sales-fields');
+    host.innerHTML = SYS_SALES_ITEMS.map(function(it){
+      var v = r[it.key] || 0;
+      var vStr = v ? v.toLocaleString() : '';
+      return '<div style="display:flex;align-items:center;gap:8px">'
+        + '<div style="flex:1;font-size:12px;color:' + it.color + ';font-weight:700">' + escHtml(it.label) + '</div>'
+        + '<input type="text" data-key="' + it.key + '" value="' + vStr + '" placeholder="0" oninput="_sysOnNumInput(this);_sysRecalcTotal()" style="width:160px;padding:7px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none;text-align:right;font-weight:600">'
+        + '<span style="font-size:11px;color:#94a3b8">원</span>'
+        + '</div>';
+    }).join('');
+    _sysRecalcTotal();
+  }
+  function _sysOnNumInput(el) {
+    var v = (el.value || '').replace(/[^0-9]/g, '');
+    el.value = v ? parseInt(v, 10).toLocaleString() : '';
+  }
+  function _sysRecalcTotal() {
+    var t = 0;
+    document.querySelectorAll('#sys-sales-fields input').forEach(function(inp){
+      t += parseInt((inp.value || '').replace(/,/g, ''), 10) || 0;
+    });
+    var totalEl = document.getElementById('sys-sales-input-total');
+    if (totalEl) totalEl.textContent = t.toLocaleString();
+  }
+  function saveSysSales() {
+    var y = parseInt(document.getElementById('sys-sales-input-year').value, 10);
+    var m = parseInt(document.getElementById('sys-sales-input-month').value, 10);
+    if (!y || !m) { showToast('년/월을 선택하세요'); return; }
+    var mk = _sysMonthKey(y, m);
+    var row = { month_key: mk, updated_at: new Date().toISOString() };
+    document.querySelectorAll('#sys-sales-fields input').forEach(function(inp){
+      var k = inp.dataset.key;
+      row[k] = parseInt((inp.value || '').replace(/,/g, ''), 10) || 0;
+    });
+    var btn = document.getElementById('sys-sales-save-btn');
+    var orig = btn.textContent;
+    btn.disabled = true; btn.textContent = '저장 중...';
+    var hdr = Object.assign({}, SB_HDR, { 'Prefer': 'resolution=merge-duplicates,return=minimal' });
+    fetch(SB_URL + '/rest/v1/system_sales_data?on_conflict=month_key', {
+      method: 'POST', headers: hdr, body: JSON.stringify(row)
+    }).then(function(r){
+      if (!r.ok && r.status !== 201 && r.status !== 204) {
+        return r.text().then(function(t){ throw new Error('HTTP ' + r.status + ' ' + t); });
+      }
+      showToast('시스템 매출 데이터 저장 완료');
+      closeSysSalesInput();
+      sysSalesFetch().then(function(){
+        _sysPopulateYearSel();
+        var yrSel = document.getElementById('sys-sales-year-sel');
+        if (yrSel) yrSel.value = y;
+        renderSystemSalesWidget();
+      });
+      btn.disabled = false; btn.textContent = orig;
+    }).catch(function(e){
+      console.error('saveSysSales error', e);
+      alert('저장 실패: ' + (e.message || '') + '\n\nsystem_sales_data 테이블이 Supabase 에 생성되어 있는지 확인하세요.');
+      btn.disabled = false; btn.textContent = orig;
+    });
+  }
+
+  // 월별 누계 통계 모달
+  function openSysSalesCumul() {
+    if (!_sysSalesLoaded) { sysSalesFetch().then(openSysSalesCumul); return; }
+    var fromSel = document.getElementById('sys-cumul-from');
+    var toSel   = document.getElementById('sys-cumul-to');
+    var curYear = new Date().getFullYear();
+    var years = _sysAllYears();
+    var minYear = Math.min.apply(null, years.concat([curYear - 1]));
+    var maxYear = Math.max.apply(null, years.concat([curYear]));
+    var opts = [];
+    for (var y = minYear; y <= maxYear; y++) {
+      for (var m = 1; m <= 12; m++) {
+        opts.push('<option value="' + y + '-' + m + '">' + y + '년 ' + m + '월</option>');
+      }
+    }
+    fromSel.innerHTML = opts.join('');
+    toSel.innerHTML   = opts.join('');
+    fromSel.value = curYear + '-1';
+    toSel.value   = curYear + '-' + (new Date().getMonth() + 1);
+    document.getElementById('sys-sales-cumul-overlay').style.display = 'flex';
+    renderSysSalesCumul();
+  }
+  function closeSysSalesCumul() {
+    document.getElementById('sys-sales-cumul-overlay').style.display = 'none';
+  }
+  function _sysBuildKeyRange(fromKey, toKey) {
+    var fp = fromKey.split('-').map(Number); var tp = toKey.split('-').map(Number);
+    if (fp[0] * 100 + fp[1] > tp[0] * 100 + tp[1]) { var s = fp; fp = tp; tp = s; }
+    var keys = []; var y = fp[0], m = fp[1]; var safety = 0;
+    while ((y < tp[0] || (y === tp[0] && m <= tp[1])) && safety < 300) {
+      keys.push(y + '-' + m); m++; if (m > 12) { m = 1; y++; } safety++;
+    }
+    return keys;
+  }
+  function renderSysSalesCumul() {
+    var fromKey = document.getElementById('sys-cumul-from').value;
+    var toKey   = document.getElementById('sys-cumul-to').value;
+    if (!fromKey || !toKey) return;
+    var keys = _sysBuildKeyRange(fromKey, toKey);
+    // 항목별 합계
+    var totals = {}; SYS_SALES_ITEMS.forEach(function(it){ totals[it.key] = 0; });
+    keys.forEach(function(mk){
+      var r = _sysRowFor(mk);
+      if (!r) return;
+      SYS_SALES_ITEMS.forEach(function(it){ totals[it.key] += (parseInt(r[it.key], 10) || 0); });
+    });
+
+    var labels = SYS_SALES_ITEMS.map(function(it){ return it.label; });
+    var data   = SYS_SALES_ITEMS.map(function(it){ return totals[it.key]; });
+    var colors = SYS_SALES_ITEMS.map(function(it){ return it.color; });
+
+    var ctx = document.getElementById('sys-cumul-chart').getContext('2d');
+    if (_sysCumulChart) { try{_sysCumulChart.destroy();}catch(e){} _sysCumulChart = null; }
+    _sysCumulChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: '누계 매출', data: data, backgroundColor: colors.map(function(c){return c+'cc';}), borderColor: colors, borderWidth: 1 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function(c){ return _sysFmtW(c.parsed.y); } } }
+        },
+        scales: { y: { beginAtZero: true, ticks: { callback: function(v){ return _sysFmtW(v); } } } }
+      }
+    });
+
+    var summary = document.getElementById('sys-cumul-summary');
+    var grandTotal = data.reduce(function(a,b){ return a+b; }, 0);
+    summary.innerHTML = SYS_SALES_ITEMS.map(function(it, i){
+      var v = data[i];
+      var pct = grandTotal > 0 ? Math.round(v / grandTotal * 100) : 0;
+      return '<div style="background:' + it.bg + ';border:1px solid ' + it.color + '40;border-radius:8px;padding:9px 11px">'
+        + '<div style="font-size:10.5px;font-weight:700;color:' + it.color + '">' + escHtml(it.label) + '</div>'
+        + '<div style="font-size:13px;font-weight:800;color:#0f172a;margin-top:2px">' + _sysFmtW(v) + '</div>'
+        + '<div style="font-size:10px;color:#64748b;margin-top:1px">' + pct + '% · ' + v.toLocaleString() + '원</div>'
+        + '</div>';
+    }).join('')
+    + '<div style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-radius:8px;padding:9px 11px">'
+    + '<div style="font-size:10.5px;font-weight:700">총 합계</div>'
+    + '<div style="font-size:14px;font-weight:800;margin-top:2px">' + _sysFmtW(grandTotal) + '</div>'
+    + '<div style="font-size:10px;opacity:0.85;margin-top:1px">' + keys.length + '개월 누계</div>'
+    + '</div>';
+  }
+
+  // 초기 로드
+  sysSalesFetch().then(function(){
+    _sysPopulateYearSel();
+    if (_viewDeptKey === 'system') renderSystemSalesWidget();
+    _applyDeptVisibility();
+  });
 
   /* ═══════════════════════════════════════════════════════════════
      BMAT 모니터링 통계 (sales 모듈과 완전 분리, 전용 DB 테이블 bmat_data)
