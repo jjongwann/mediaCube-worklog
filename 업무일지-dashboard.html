@@ -7581,7 +7581,6 @@
     var summary = document.getElementById('sys-cumul-summary');
     summary.innerHTML = SYS_SALES_ITEMS.map(function(it){
       var v = totals[it.key];
-      var pct = grandTotal > 0 ? Math.round(v / grandTotal * 100) : 0;
       var diffHtml = '';
       if (_sysCumulCmpMode === 'yoy') {
         var pv = prevTotals[it.key];
@@ -7592,8 +7591,10 @@
       }
       return '<div style="background:' + it.bg + ';border:1px solid ' + it.color + '40;border-radius:8px;padding:10px 12px">'
         + '<div style="font-size:10.5px;font-weight:700;color:' + it.color + '">' + escHtml(it.label) + '</div>'
-        + '<div style="font-size:13.5px;font-weight:800;color:#0f172a;margin-top:2px">' + _sysFmtW(v) + '</div>'
-        + '<div style="font-size:10px;color:#64748b;margin-top:1px">' + pct + '% · ' + v.toLocaleString() + '원</div>'
+        + '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:2px;flex-wrap:wrap">'
+          + '<div style="font-size:13.5px;font-weight:800;color:#0f172a">' + _sysFmtW(v) + '</div>'
+          + '<div style="font-size:10.5px;color:#64748b;font-weight:600">' + v.toLocaleString() + '원</div>'
+        + '</div>'
         + diffHtml
         + '</div>';
     }).join('');
