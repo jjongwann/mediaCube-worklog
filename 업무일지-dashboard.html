@@ -7461,43 +7461,51 @@
     return agg;
   }
 
+  // 연도별 색상 팔레트 (오래된 → 최신: 연한 → 진한)
+  var SYS_YEAR_PALETTE = ['#cbd5e1','#94a3b8','#64748b','#475569','#334155','#1e293b','#0f172a'];
+
   function renderSysSalesCumul() {
     var fromY = parseInt(document.getElementById('sys-cumul-from-year').value, 10);
     var toY   = parseInt(document.getElementById('sys-cumul-to-year').value, 10);
     if (!fromY || !toY) return;
     if (fromY > toY) { var t = fromY; fromY = toY; toY = t; }
 
-    // 연도 배열 (X축 라벨)
     var years = []; for (var y = fromY; y <= toY; y++) years.push(y);
-    var labels = years.map(function(y){ return y + '년'; });
+
+    // X축 라벨 = 6개 항목
+    var labels = SYS_SALES_ITEMS.map(function(it){ return it.label; });
 
     var ctx = document.getElementById('sys-cumul-chart').getContext('2d');
     if (_sysCumulChart) { try{_sysCumulChart.destroy();}catch(e){} _sysCumulChart = null; }
 
-    // 6개 항목 = 6개 dataset. 각 dataset 의 data = [year1 값, year2 값, ...]
-    //   X축: 연도, Y축: 금액. 같은 연도 그룹 안에 6개 항목 색상으로 막대 나란히 표시.
-    var datasets = SYS_SALES_ITEMS.map(function(it){
+    // 연도별로 별도 dataset 생성 → 각 항목 그룹 안에 연도별 막대가 나란히 표시
+    // 색상: 가장 최신 연도가 보라(#7c3aed), 이전 연도들은 점점 옅은 톤
+    var n = years.length;
+    var datasets = years.map(function(y, idx){
+      // 최신부터 보라색 진하게, 과거로 갈수록 회색 톤
+      var isLatest = (idx === n - 1);
+      var color = isLatest ? '#7c3aed' : SYS_YEAR_PALETTE[Math.max(0, SYS_YEAR_PALETTE.length - 1 - (n - 1 - idx))];
       return {
-        label: it.label,
-        data: years.map(function(y){ return _sysYearTotal(y, it.key); }),
-        backgroundColor: it.color + 'cc',
-        borderColor: it.color,
-        borderWidth: 1,
-        stack: 'cur'
+        label: y + '년',
+        data: SYS_SALES_ITEMS.map(function(it){ return _sysYearTotal(y, it.key); }),
+        backgroundColor: color + 'cc',
+        borderColor: color,
+        borderWidth: 1
       };
     });
 
-    // 전년 대비: 각 연도 옆에 'year-1' 데이터를 별도 dataset 으로 추가 (옅은 점선)
+    // 전년 대비: 각 연도 옆에 'year-1' 데이터를 dataset 으로 추가 (옅은 점선)
     if (_sysCumulCmpMode === 'yoy') {
-      SYS_SALES_ITEMS.forEach(function(it){
+      years.forEach(function(y, idx){
+        var isLatest = (idx === n - 1);
+        var color = isLatest ? '#7c3aed' : SYS_YEAR_PALETTE[Math.max(0, SYS_YEAR_PALETTE.length - 1 - (n - 1 - idx))];
         datasets.push({
-          label: it.label + ' (전년)',
-          data: years.map(function(y){ return _sysYearTotal(y - 1, it.key); }),
-          backgroundColor: it.color + '40',
-          borderColor: it.color + '80',
+          label: (y - 1) + '년 (전년)',
+          data: SYS_SALES_ITEMS.map(function(it){ return _sysYearTotal(y - 1, it.key); }),
+          backgroundColor: color + '30',
+          borderColor: color + '70',
           borderWidth: 1,
-          borderDash: [4, 4],
-          stack: 'prev'
+          borderDash: [4, 4]
         });
       });
     }
@@ -7512,8 +7520,8 @@
           tooltip: { callbacks: { label: function(c){ return c.dataset.label + ': ' + _sysFmtW(c.parsed.y); } } }
         },
         scales: {
-          x: { stacked: true, ticks: { maxRotation: 0, font: { size: 11.5, weight: '600' } } },
-          y: { beginAtZero: true, stacked: true, ticks: { callback: function(v){ return _sysFmtW(v); }, font: { size: 11 } } }
+          x: { ticks: { maxRotation: 0, autoSkip: false, font: { size: 11, weight: '600' } } },
+          y: { beginAtZero: true, ticks: { callback: function(v){ return _sysFmtW(v); }, font: { size: 11 } } }
         }
       }
     });
