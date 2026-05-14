@@ -7221,16 +7221,20 @@
     // 컨테이너 표시/숨김
     var chartWrap = document.getElementById('sys-chart-wrap');
     var chartSum  = document.getElementById('sys-chart-summary');
+    var grandCard = document.getElementById('sys-grand-card');
     var tableView = document.getElementById('sys-table-view');
     var yrPicker  = document.getElementById('sys-year-picker-wrap');
     if (_sysViewMode === 'chart') {
       if (chartWrap) chartWrap.style.display = 'grid';
       if (chartSum)  chartSum.style.display  = 'grid';
+      if (grandCard) grandCard.style.display = 'flex';
       if (tableView) tableView.style.display = 'none';
       if (yrPicker)  yrPicker.style.display  = 'flex';
     } else {
       if (chartWrap) chartWrap.style.display = 'none';
       if (chartSum)  chartSum.style.display  = 'none';
+      // 표 모드: 합계 카드는 표 안에 합계 행이 별도로 있으므로 우측 카드 숨김
+      if (grandCard) grandCard.style.display = 'none';
       if (tableView) tableView.style.display = 'block';
       if (yrPicker)  yrPicker.style.display  = 'none';
     }
