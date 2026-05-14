@@ -10854,6 +10854,22 @@
         <label style="font-size:11px;font-weight:700;color:#475569;width:48px;flex-shrink:0">담당자</label>
         <select id="vendor-edit-manager" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none;background:#fff" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'"></select>
       </div>
+      <!-- 매출 발생처 (선택 입력) -->
+      <div style="display:flex;align-items:center;gap:10px;position:relative">
+        <label style="font-size:11px;font-weight:700;color:#475569;width:48px;flex-shrink:0">매출 발생처</label>
+        <div style="flex:1;position:relative">
+          <input type="text" id="vendor-edit-source" autocomplete="off" placeholder="예: 광고 / 방송사 / 프로젝트명 등 (선택)"
+            oninput="__vendor._onEditSourceInput()"
+            onfocus="__vendor._openEditSourceDrop()"
+            onkeydown="__vendor._onEditSourceKey(event)"
+            onblur="setTimeout(__vendor._closeEditSourceDrop,150)"
+            style="width:100%;box-sizing:border-box;padding:6px 28px 6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none;transition:border-color .12s" onfocusin="this.style.borderColor='#65a30d'">
+          <button type="button" onclick="__vendor._toggleEditSourceDrop()" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:5px;color:#94a3b8;display:flex;align-items:center;justify-content:center" tabindex="-1">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div id="vendor-edit-source-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);max-height:180px;overflow-y:auto;z-index:100"></div>
+        </div>
+      </div>
     </div>
     <div style="flex:1;overflow-y:auto;padding:14px 24px">
       <div style="font-size:11px;color:#64748b;margin-bottom:10px">12개월 매출액을 직접 수정할 수 있습니다. 0원 또는 빈 칸은 미발생으로 처리됩니다.</div>
@@ -11142,6 +11158,73 @@ window.__vendor = (function() {
       }
     } else if (e.key === 'Escape') {
       _closeAddSourceDrop();
+    }
+  }
+
+  // ── 수정 모달 — 매출 발생처 자동완성 (add 와 동일 패턴) ──
+  var _editSourceOptions = [];
+  var _editSourceHi = -1;
+  function _refreshEditSourceOptions(cat) {
+    _editSourceOptions = _collectSources(cat);
+  }
+  function _renderEditSourceDrop(q) {
+    var drop = document.getElementById('vendor-edit-source-drop');
+    if (!drop) return;
+    q = (q || '').trim().toLowerCase();
+    var filtered = _editSourceOptions.filter(function(s){
+      return !q || s.toLowerCase().indexOf(q) !== -1;
+    });
+    if (filtered.length === 0) { drop.style.display = 'none'; return; }
+    drop.innerHTML = filtered.map(function(s, i){
+      var bg = (i === _editSourceHi) ? '#f7fee7' : '#fff';
+      return '<div data-i="' + i + '" onmousedown="event.preventDefault();" onclick="__vendor._pickEditSource(\'' + _esc(s).replace(/'/g,"\\'") + '\')" style="padding:7px 11px;cursor:pointer;font-size:12px;color:#0f172a;background:' + bg + ';border-bottom:1px solid #f1f5f9" onmouseover="this.style.background=\'#f7fee7\'" onmouseout="this.style.background=\'' + bg + '\'">' + _esc(s) + '</div>';
+    }).join('');
+    drop.style.display = 'block';
+  }
+  function _onEditSourceInput() {
+    _editSourceHi = -1;
+    _renderEditSourceDrop(document.getElementById('vendor-edit-source').value || '');
+  }
+  function _openEditSourceDrop() {
+    _editSourceHi = -1;
+    _renderEditSourceDrop(document.getElementById('vendor-edit-source').value || '');
+  }
+  function _closeEditSourceDrop() {
+    var drop = document.getElementById('vendor-edit-source-drop');
+    if (drop) drop.style.display = 'none';
+  }
+  function _toggleEditSourceDrop() {
+    var drop = document.getElementById('vendor-edit-source-drop');
+    if (drop && drop.style.display === 'block') { _closeEditSourceDrop(); return; }
+    _openEditSourceDrop();
+    var inp = document.getElementById('vendor-edit-source');
+    if (inp) inp.focus();
+  }
+  function _pickEditSource(s) {
+    var inp = document.getElementById('vendor-edit-source');
+    if (inp) inp.value = s;
+    _closeEditSourceDrop();
+  }
+  function _onEditSourceKey(e) {
+    var drop = document.getElementById('vendor-edit-source-drop');
+    if (!drop || drop.style.display !== 'block') return;
+    var items = drop.querySelectorAll('[data-i]');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      _editSourceHi = Math.min(_editSourceHi + 1, items.length - 1);
+      _renderEditSourceDrop(document.getElementById('vendor-edit-source').value || '');
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      _editSourceHi = Math.max(_editSourceHi - 1, -1);
+      _renderEditSourceDrop(document.getElementById('vendor-edit-source').value || '');
+    } else if (e.key === 'Enter') {
+      if (_editSourceHi >= 0 && items[_editSourceHi]) {
+        e.preventDefault();
+        var s = items[_editSourceHi].textContent;
+        _pickEditSource(s);
+      }
+    } else if (e.key === 'Escape') {
+      _closeEditSourceDrop();
     }
   }
 
@@ -12165,6 +12248,7 @@ window.__vendor = (function() {
       else { monthRows[m].amount += (r.amount || 0); monthRows[m].dupIds.push(r.id); }
     });
     var curMgr = _getVendorManager(name);
+    var curSrc = _getVendorSource(name, cat);
 
     // 현재 active 상태 결정 (extra.active 있으면 그 값, 없으면 카테고리/매출 기반 기본값)
     var explicitActive = null;
@@ -12180,13 +12264,19 @@ window.__vendor = (function() {
     }
     var curActive = (explicitActive !== null) ? explicitActive : defaultActive;
 
-    _editCtx = { vendorName: name, year: year, category: cat, monthRows: monthRows, prevManager: curMgr, prevActive: explicitActive, curActive: curActive };
+    _editCtx = { vendorName: name, year: year, category: cat, monthRows: monthRows, prevManager: curMgr, prevSource: curSrc, prevActive: explicitActive, curActive: curActive };
 
     document.getElementById('vendor-edit-name').textContent = name;
     document.getElementById('vendor-edit-year-badge').textContent = year + '년';
     document.getElementById('vendor-edit-name-input').value = name;
     _populateManagerSel('vendor-edit-manager', false);
     document.getElementById('vendor-edit-manager').value = curMgr || '';
+    // 매출 발생처 pre-fill + 자동완성 옵션 새로고침
+    var editSrcInp = document.getElementById('vendor-edit-source');
+    if (editSrcInp) editSrcInp.value = curSrc || '';
+    var editSrcDrop = document.getElementById('vendor-edit-source-drop');
+    if (editSrcDrop) editSrcDrop.style.display = 'none';
+    _refreshEditSourceOptions(cat);
 
     // 활성/비활성 토글 표시
     var toggleBtn = document.getElementById('vendor-edit-active-toggle');
@@ -12272,6 +12362,8 @@ window.__vendor = (function() {
     if (!newName) { _toast('거래처명을 입력하세요'); return; }
     var newMgr = (document.getElementById('vendor-edit-manager').value || '').trim();
     var mgrChanged = (newMgr || '') !== (ctx.prevManager || '');
+    var newSrc = ((document.getElementById('vendor-edit-source') || {}).value || '').trim();
+    var srcChanged = (newSrc || '') !== (ctx.prevSource || '');
     var newActive = ctx.curActive;
     var activeChanged = (ctx.prevActive !== newActive);
 
@@ -12292,10 +12384,11 @@ window.__vendor = (function() {
         existing.dupIds.forEach(function(dupId){ ops.push({ type:'delete', id: dupId }); });
       }
 
-      // 새 extra 빌드 (담당자 + active)
+      // 새 extra 빌드 (담당자 + active + 매출 발생처)
       function _buildExtra(baseExtra) {
         var ex = Object.assign({}, baseExtra || {});
         if (mgrChanged) ex.manager = newMgr;
+        if (srcChanged) ex.source = newSrc;
         if (activeChanged) ex.active = newActive;
         return ex;
       }
@@ -12303,7 +12396,7 @@ window.__vendor = (function() {
       if (existing) {
         if (newAmt > 0) {
           var patchBody = { amount: newAmt, vendor_name: newName, updated_at: new Date().toISOString() };
-          if (mgrChanged || activeChanged) patchBody.extra = _buildExtra({ manager: ctx.prevManager });
+          if (mgrChanged || srcChanged || activeChanged) patchBody.extra = _buildExtra({ manager: ctx.prevManager, source: ctx.prevSource });
           ops.push({ type: 'patch', id: existing.id, body: patchBody });
           hasAnyRow = true;
         } else {
@@ -12312,6 +12405,7 @@ window.__vendor = (function() {
       } else if (newAmt > 0) {
         var newExtra = _buildExtra({});
         if (newMgr) newExtra.manager = newMgr;
+        if (newSrc) newExtra.source = newSrc;
         ops.push({ type: 'post', body: { id: _genId(), category: ctx.category, vendor_name: newName, month_key: monthKey, amount: newAmt, extra: newExtra, updated_at: new Date().toISOString() } });
         hasAnyRow = true;
       }
@@ -12326,9 +12420,10 @@ window.__vendor = (function() {
       var body = { updated_at: new Date().toISOString() };
       var changed = false;
       if (newName !== ctx.vendorName) { body.vendor_name = newName; changed = true; }
-      if (mgrChanged || activeChanged) {
+      if (mgrChanged || srcChanged || activeChanged) {
         var ex = Object.assign({}, r.extra || {});
         if (mgrChanged) ex.manager = newMgr;
+        if (srcChanged) ex.source = newSrc;
         if (activeChanged) ex.active = newActive;
         body.extra = ex;
         changed = true;
@@ -12337,10 +12432,11 @@ window.__vendor = (function() {
       hasAnyRow = true;
     });
 
-    // 행이 하나도 남지 않는데 active 변경이 필요한 경우 → 자리표시용 0원 행 생성 (1월)
-    if (!hasAnyRow && (activeChanged || mgrChanged)) {
+    // 행이 하나도 남지 않는데 active/담당자/발생처 변경이 필요한 경우 → 자리표시용 0원 행 생성 (1월)
+    if (!hasAnyRow && (activeChanged || mgrChanged || srcChanged)) {
       var placeholderExtra = {};
       if (newMgr) placeholderExtra.manager = newMgr;
+      if (newSrc) placeholderExtra.source = newSrc;
       placeholderExtra.active = newActive;
       ops.push({ type: 'post', body: { id: _genId(), category: ctx.category, vendor_name: newName, month_key: ctx.year + '-1', amount: 0, extra: placeholderExtra, updated_at: new Date().toISOString() } });
     }
@@ -12431,13 +12527,20 @@ window.__vendor = (function() {
     _pickAddName: _pickAddName,
     _onAddNameKey: _onAddNameKey,
     _onAddCatChange: _onAddCatChange,
-    // 매출 발생처 (source) 자동완성 및 필터 핸들러
+    // 매출 발생처 (source) 자동완성 및 필터 핸들러 — 입력 모달
     _onAddSourceInput: _onAddSourceInput,
     _openAddSourceDrop: _openAddSourceDrop,
     _closeAddSourceDrop: _closeAddSourceDrop,
     _toggleAddSourceDrop: _toggleAddSourceDrop,
     _pickAddSource: _pickAddSource,
-    _onAddSourceKey: _onAddSourceKey
+    _onAddSourceKey: _onAddSourceKey,
+    // 매출 발생처 자동완성 — 수정 모달
+    _onEditSourceInput: _onEditSourceInput,
+    _openEditSourceDrop: _openEditSourceDrop,
+    _closeEditSourceDrop: _closeEditSourceDrop,
+    _toggleEditSourceDrop: _toggleEditSourceDrop,
+    _pickEditSource: _pickEditSource,
+    _onEditSourceKey: _onEditSourceKey
   };
 })();
 
