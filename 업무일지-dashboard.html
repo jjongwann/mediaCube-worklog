@@ -10690,6 +10690,7 @@
         <button id="vendor-needle-allbtn" onclick="__vendor.toggleAllVendors()" title="활성/비활성 모든 거래처 표시" style="padding:5px 9px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:7px;color:#fff;font-size:10px;cursor:pointer;font-weight:600">전체 거래처</button>
         <input type="text" id="vendor-needle-search" placeholder="거래처 검색..." oninput="__vendor.render()" style="flex:0 1 160px;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;outline:none">
         <select id="vendor-needle-manager" onchange="__vendor.render()" title="담당자 조회" style="padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none"></select>
+        <select id="vendor-needle-source" onchange="__vendor.render()" title="매출 발생처 조회" style="padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
         <button onclick="__vendor.refresh()" title="새로고침" style="padding:5px 10px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:7px;color:#fff;font-size:11px;cursor:pointer">↻ 새로고침</button>
       </div>
     </div>
@@ -10796,6 +10797,22 @@
         <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">매출액 (원) *</label>
         <input type="text" id="vendor-add-amount" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-weight:600" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
         <div style="font-size:10px;color:#94a3b8;margin-top:4px">기존 거래처+동일 월 입력 시 매출이 합산됩니다.</div>
+      </div>
+      <!-- 매출 발생처 (선택 입력) — 카테고리 필터의 source 옵션과 연동됨 -->
+      <div id="vendor-add-source-wrap">
+        <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">매출 발생처</label>
+        <div style="position:relative">
+          <input type="text" id="vendor-add-source" autocomplete="off" placeholder="예: 광고 / 방송사 / 프로젝트명 등"
+            oninput="__vendor._onAddSourceInput()"
+            onfocus="__vendor._openAddSourceDrop()"
+            onkeydown="__vendor._onAddSourceKey(event)"
+            style="width:100%;box-sizing:border-box;padding:8px 36px 8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;transition:border-color .12s" onblur="setTimeout(__vendor._closeAddSourceDrop,150)">
+          <button type="button" onclick="__vendor._toggleAddSourceDrop()" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;color:#94a3b8;display:flex;align-items:center;justify-content:center" tabindex="-1">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div id="vendor-add-source-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);max-height:200px;overflow-y:auto;z-index:100"></div>
+        </div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:4px">매출이 어디에서 발생했는지 입력 (선택). 같은 발생처끼리 묶어서 조회할 수 있습니다.</div>
       </div>
       <div id="vendor-add-freenote" style="display:none;font-size:11px;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px">
         💡 무료 BLANKET은 매출액 없이 거래처만 등록됩니다 (자동 비활성 분류).
@@ -11021,6 +11038,113 @@ window.__vendor = (function() {
     return found;
   }
 
+  // 거래처별 매출 발생처 (extra.source). 카테고리 내에서 최근 row 기준.
+  function _getVendorSource(name, cat) {
+    var found = '';
+    _state.rows.forEach(function(r){
+      if (r.vendor_name === name && r.category === cat && r.extra && r.extra.source) {
+        found = r.extra.source;
+      }
+    });
+    return found;
+  }
+
+  // 현재 카테고리에서 사용된 모든 매출 발생처 목록 (중복 제거, 정렬)
+  function _collectSources(cat) {
+    var seen = {};
+    _state.rows.forEach(function(r){
+      if (r.category === cat && r.extra && r.extra.source) {
+        var s = String(r.extra.source).trim();
+        if (s) seen[s] = true;
+      }
+    });
+    return Object.keys(seen).sort(function(a,b){ return a.localeCompare(b, 'ko'); });
+  }
+
+  // 매출 발생처 필터 드롭다운 채우기 (헤더용)
+  function _populateSourceSel(cat) {
+    var sel = document.getElementById('vendor-needle-source');
+    if (!sel) return;
+    var prev = sel.value;
+    var sources = _collectSources(cat);
+    var html = '<option value="">매출 발생처 전체</option>';
+    sources.forEach(function(s){
+      html += '<option value="' + _esc(s) + '">' + _esc(s) + '</option>';
+    });
+    sel.innerHTML = html;
+    // 카테고리 전환 후에도 동일 값이 있으면 유지, 아니면 초기화
+    if (prev && sources.indexOf(prev) !== -1) sel.value = prev;
+    else sel.value = '';
+  }
+
+  // ── 입력 모달 — 매출 발생처 자동완성 ──
+  var _addSourceOptions = []; // [string,...]
+  var _addSourceHi = -1;
+
+  function _refreshAddSourceOptions(cat) {
+    _addSourceOptions = _collectSources(cat);
+  }
+  function _renderAddSourceDrop(q) {
+    var drop = document.getElementById('vendor-add-source-drop');
+    if (!drop) return;
+    q = (q || '').trim().toLowerCase();
+    var filtered = _addSourceOptions.filter(function(s){
+      return !q || s.toLowerCase().indexOf(q) !== -1;
+    });
+    if (filtered.length === 0) { drop.style.display = 'none'; return; }
+    drop.innerHTML = filtered.map(function(s, i){
+      var bg = (i === _addSourceHi) ? '#f7fee7' : '#fff';
+      return '<div data-i="' + i + '" onmousedown="event.preventDefault();" onclick="__vendor._pickAddSource(\'' + _esc(s).replace(/'/g,"\\'") + '\')" style="padding:8px 12px;cursor:pointer;font-size:13px;color:#0f172a;background:' + bg + ';border-bottom:1px solid #f1f5f9" onmouseover="this.style.background=\'#f7fee7\'" onmouseout="this.style.background=\'' + bg + '\'">' + _esc(s) + '</div>';
+    }).join('');
+    drop.style.display = 'block';
+  }
+  function _onAddSourceInput() {
+    _addSourceHi = -1;
+    _renderAddSourceDrop(document.getElementById('vendor-add-source').value || '');
+  }
+  function _openAddSourceDrop() {
+    _addSourceHi = -1;
+    _renderAddSourceDrop(document.getElementById('vendor-add-source').value || '');
+  }
+  function _closeAddSourceDrop() {
+    var drop = document.getElementById('vendor-add-source-drop');
+    if (drop) drop.style.display = 'none';
+  }
+  function _toggleAddSourceDrop() {
+    var drop = document.getElementById('vendor-add-source-drop');
+    if (drop && drop.style.display === 'block') { _closeAddSourceDrop(); return; }
+    _openAddSourceDrop();
+    var inp = document.getElementById('vendor-add-source');
+    if (inp) inp.focus();
+  }
+  function _pickAddSource(s) {
+    var inp = document.getElementById('vendor-add-source');
+    if (inp) inp.value = s;
+    _closeAddSourceDrop();
+  }
+  function _onAddSourceKey(e) {
+    var drop = document.getElementById('vendor-add-source-drop');
+    if (!drop || drop.style.display !== 'block') return;
+    var items = drop.querySelectorAll('[data-i]');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      _addSourceHi = Math.min(_addSourceHi + 1, items.length - 1);
+      _renderAddSourceDrop(document.getElementById('vendor-add-source').value || '');
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      _addSourceHi = Math.max(_addSourceHi - 1, -1);
+      _renderAddSourceDrop(document.getElementById('vendor-add-source').value || '');
+    } else if (e.key === 'Enter') {
+      if (_addSourceHi >= 0 && items[_addSourceHi]) {
+        e.preventDefault();
+        var s = items[_addSourceHi].textContent;
+        _pickAddSource(s);
+      }
+    } else if (e.key === 'Escape') {
+      _closeAddSourceDrop();
+    }
+  }
+
   function _toast(msg) {
     if (typeof window.showToast === 'function') window.showToast(msg);
     else alert(msg);
@@ -11073,6 +11197,7 @@ window.__vendor = (function() {
     _populateYearSel('vendor-needle-from-year');
     _populateYearSel('vendor-needle-to-year');
     _populateManagerSel('vendor-needle-manager', true);
+    _populateSourceSel(cat);
     // 기본값: 올해 1월 ~ 올해 12월
     var now = new Date();
     var y = now.getFullYear();
@@ -11084,11 +11209,16 @@ window.__vendor = (function() {
     if (sr) sr.value = '';
     var mgrSel = document.getElementById('vendor-needle-manager');
     if (mgrSel) mgrSel.value = '';
+    var srcSel = document.getElementById('vendor-needle-source');
+    if (srcSel) srcSel.value = '';
     _state.viewMode = 'active';
     _updateAllBtnStyle();
     document.getElementById('vendor-needle-overlay').style.display = 'block';
-    // 항상 최신 데이터 fetch
-    fetchAll().then(function(){ render(); });
+    // 항상 최신 데이터 fetch (소스 옵션도 fresh 데이터로 재구성)
+    fetchAll().then(function(){
+      _populateSourceSel(cat);
+      render();
+    });
   }
 
   function closePanel() {
@@ -11230,6 +11360,11 @@ window.__vendor = (function() {
     document.getElementById('vendor-add-name').value = '';
     document.getElementById('vendor-add-amount').value = '';
     document.getElementById('vendor-add-name-drop').style.display = 'none';
+    var srcInp = document.getElementById('vendor-add-source');
+    if (srcInp) srcInp.value = '';
+    var srcDrop = document.getElementById('vendor-add-source-drop');
+    if (srcDrop) srcDrop.style.display = 'none';
+    _refreshAddSourceOptions(_state.currentCat); // 자동완성 옵션 초기화
 
     // 신규 고객 모드: 카테고리 드롭다운 노출
     var isNewCustomerMode = (_state.currentCat === 'new_customer');
@@ -11374,6 +11509,8 @@ window.__vendor = (function() {
     var amountRaw = (document.getElementById('vendor-add-amount').value || '').replace(/,/g,'').trim();
     var amount = parseInt(amountRaw, 10);
     if (isNaN(amount) || amount < 0) amount = 0;
+    var sourceVal = (document.getElementById('vendor-add-source') || {}).value || '';
+    var source = sourceVal.trim();
 
     // 신규 고객 모드: 드롭다운에서 실제 카테고리(needle/blanket_paid/blanket_free) 결정
     var viewCat = _state.currentCat; // 저장 후 리렌더할 패널 (신규 고객 패널 유지용)
@@ -11402,6 +11539,7 @@ window.__vendor = (function() {
     if (existing) {
       var newAmount = (existing.amount || 0) + amount;
       var patchExtra = Object.assign({}, existing.extra || {}, { active: activeFlag });
+      if (source) patchExtra.source = source;
       fetch(sb.url + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(existing.id), {
         method: 'PATCH',
         headers: Object.assign({}, sb.hdr, { 'Prefer': 'return=minimal' }),
@@ -11410,10 +11548,14 @@ window.__vendor = (function() {
         if (r.ok) {
           existing.amount = newAmount;
           existing.extra = patchExtra;
-          // 같은 거래처의 다른 행들도 active 동기화
+          // 같은 거래처의 다른 행들도 active + source 동기화 (있을 때만)
           _state.rows.filter(function(rr){
             return rr.category === cat && rr.vendor_name === name && rr.id !== existing.id;
-          }).forEach(function(rr){ rr.extra = Object.assign({}, rr.extra || {}, { active: activeFlag }); });
+          }).forEach(function(rr){
+            var nx = Object.assign({}, rr.extra || {}, { active: activeFlag });
+            if (source) nx.source = source;
+            rr.extra = nx;
+          });
           closeAdd();
           render(viewCat); // 신규 고객 패널 진입 시에는 그대로 머물러 새 거래처 카드 즉시 표시
           _toast('기존 거래처에 합산 저장되었습니다 (' + _fmtW(newAmount) + ')');
@@ -11423,6 +11565,7 @@ window.__vendor = (function() {
       }).catch(function(e){ console.error(e); _toast('네트워크 오류'); });
     } else {
       var initExtra = { active: activeFlag, created_at: new Date().toISOString() };
+      if (source) initExtra.source = source;
       var row = {
         id: _genId(),
         category: cat,
@@ -11480,6 +11623,7 @@ window.__vendor = (function() {
     var toM   = parseInt(document.getElementById('vendor-needle-to-month').value);
     var searchQ = (document.getElementById('vendor-needle-search').value || '').trim().toLowerCase();
     var mgrFilter = (document.getElementById('vendor-needle-manager').value || '').trim();
+    var srcFilter = ((document.getElementById('vendor-needle-source') || {}).value || '').trim();
 
     var range = _buildRange(fromY, fromM, toY, toM);
     var rangeKeys = range.keys;
@@ -11517,6 +11661,7 @@ window.__vendor = (function() {
     var allVendorsAfterFilter = Object.keys(byVendor).filter(function(n){
       if (searchQ && n.toLowerCase().indexOf(searchQ) === -1) return false;
       if (mgrFilter && _getVendorManager(n) !== mgrFilter) return false;
+      if (srcFilter && _getVendorSource(n, cat) !== srcFilter) return false;
       return true;
     });
     // 거래처별 명시적 active 플래그 수집 (extra.active)
@@ -12285,7 +12430,14 @@ window.__vendor = (function() {
     _toggleAddNameDrop: _toggleAddNameDrop,
     _pickAddName: _pickAddName,
     _onAddNameKey: _onAddNameKey,
-    _onAddCatChange: _onAddCatChange
+    _onAddCatChange: _onAddCatChange,
+    // 매출 발생처 (source) 자동완성 및 필터 핸들러
+    _onAddSourceInput: _onAddSourceInput,
+    _openAddSourceDrop: _openAddSourceDrop,
+    _closeAddSourceDrop: _closeAddSourceDrop,
+    _toggleAddSourceDrop: _toggleAddSourceDrop,
+    _pickAddSource: _pickAddSource,
+    _onAddSourceKey: _onAddSourceKey
   };
 })();
 
