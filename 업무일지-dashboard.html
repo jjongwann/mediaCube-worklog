@@ -1938,7 +1938,8 @@
       <!-- #sys-grand-card 는 KPI 패널과 동일하게 단일 visual 박스로 처리 → 가로 위치 정확히 일치 -->
       <div style="display:grid;grid-template-columns:1fr 240px;gap:16px;margin-top:12px;align-items:stretch">
         <div id="sys-chart-summary" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding-left:60px;padding-right:8px;box-sizing:border-box;min-width:0"></div>
-        <div id="sys-grand-card" style="box-sizing:border-box;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 2px 6px rgba(37,99,235,0.25);overflow:hidden"></div>
+        <!-- grid-column:2 → chart-summary 가 display:none 일 때(표 모드)도 우측 240px 컬럼에 고정 -->
+        <div id="sys-grand-card" style="grid-column:2;box-sizing:border-box;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 2px 6px rgba(37,99,235,0.25);overflow:hidden"></div>
       </div>
       <!-- 표 보기 (토글 시 표시) -->
       <div id="sys-table-view" style="display:none;overflow-x:auto">
