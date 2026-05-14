@@ -7142,13 +7142,16 @@
      - month_key 기반 (음원 매출 분석과 동일 패턴)
      ═══════════════════════════════════════════════════════════════*/
 
+  // label    : 전체 표기용 (카드·표·툴팁 등)
+  // chartLabel: 차트 X축용 2줄 분할 (작은 해상도에서 겹침 방지)
+  //            → Chart.js 는 배열 형태 라벨을 자동으로 줄바꿈 렌더링
   var SYS_SALES_ITEMS = [
-    { key: 'archiving',   label: 'AV Archiving',                bg: '#dbeafe', color: '#2563eb' },
-    { key: 'restoration', label: 'AV Restoration / Forensic',   bg: '#ede9fe', color: '#7c3aed' },
-    { key: 'broadcast',   label: 'Broadcast / Pro AV Product',  bg: '#dcfce7', color: '#16a34a' },
-    { key: 'etc_as',      label: '기타 A/S',                     bg: '#f3f4f6', color: '#4b5563' },
-    { key: 'acoustic',    label: 'Acoustic / AV Engineering',   bg: '#fef9c3', color: '#ca8a04' },
-    { key: 'dolby',       label: 'Dolby Production Services',   bg: '#fed7aa', color: '#ea580c' }
+    { key: 'archiving',   label: 'AV Archiving',                chartLabel: ['AV Archiving'],                       bg: '#dbeafe', color: '#2563eb' },
+    { key: 'restoration', label: 'AV Restoration / Forensic',   chartLabel: ['AV Restoration /', 'Forensic'],        bg: '#ede9fe', color: '#7c3aed' },
+    { key: 'broadcast',   label: 'Broadcast / Pro AV Product',  chartLabel: ['Broadcast /', 'Pro AV Product'],       bg: '#dcfce7', color: '#16a34a' },
+    { key: 'etc_as',      label: '기타 A/S',                     chartLabel: ['기타 A/S'],                            bg: '#f3f4f6', color: '#4b5563' },
+    { key: 'acoustic',    label: 'Acoustic / AV Engineering',   chartLabel: ['Acoustic /', 'AV Engineering'],        bg: '#fef9c3', color: '#ca8a04' },
+    { key: 'dolby',       label: 'Dolby Production Services',   chartLabel: ['Dolby Production', 'Services'],        bg: '#fed7aa', color: '#ea580c' }
   ];
 
   var _sysSalesRows = []; // [{month_key, archiving, restoration, ...}]
@@ -7294,7 +7297,8 @@
     var year = sel && sel.value ? parseInt(sel.value, 10) : (new Date().getFullYear() - 1);
     if (isNaN(year)) year = new Date().getFullYear() - 1;
 
-    var labels = SYS_SALES_ITEMS.map(function(it){ return it.label; });
+    // 차트 라벨은 2줄 분할 형태로 사용 → 좁은 해상도에서도 겹침 없이 표시
+    var labels = SYS_SALES_ITEMS.map(function(it){ return it.chartLabel || it.label; });
     var data   = SYS_SALES_ITEMS.map(function(it){ return _sysYearTotal(year, it.key); });
     var colors = SYS_SALES_ITEMS.map(function(it){ return it.color; });
 
@@ -7320,10 +7324,15 @@
         layout: { padding: { left: 0, right: 8, top: 4, bottom: 0 } },
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: function(c){ return _sysFmtW(c.parsed.y); } } }
+          // 툴팁은 전체 label (단일 문자열)을 표시 — 2줄 chartLabel 이 아닌 원래 이름
+          tooltip: { callbacks: {
+            title: function(items){ return items.length ? SYS_SALES_ITEMS[items[0].dataIndex].label : ''; },
+            label: function(c){ return _sysFmtW(c.parsed.y); }
+          } }
         },
         scales: {
-          x: { ticks: { maxRotation: 0, autoSkip: false, font: { size: 12.5, weight: '600' }, color: '#334155' } },
+          // 2줄 라벨 + 작은 폰트 → 좁은 해상도에서도 horizontal 유지하며 겹침 방지
+          x: { ticks: { maxRotation: 0, minRotation: 0, autoSkip: false, font: { size: 11, weight: '600' }, color: '#334155', padding: 2 } },
           y: {
             beginAtZero: true,
             afterFit: function(s){ s.width = 60; },
@@ -7663,8 +7672,8 @@
 
     var years = []; for (var y = fromY; y <= toY; y++) years.push(y);
 
-    // X축 라벨 = 6개 항목
-    var labels = SYS_SALES_ITEMS.map(function(it){ return it.label; });
+    // X축 라벨 = 6개 항목 (2줄 분할 라벨 — 좁은 해상도 겹침 방지)
+    var labels = SYS_SALES_ITEMS.map(function(it){ return it.chartLabel || it.label; });
 
     var ctx = document.getElementById('sys-cumul-chart').getContext('2d');
     if (_sysCumulChart) { try{_sysCumulChart.destroy();}catch(e){} _sysCumulChart = null; }
@@ -7711,10 +7720,14 @@
         layout: { padding: { left: 0, right: 8, top: 4, bottom: 0 } },
         plugins: {
           legend: { display: true, position: 'top', labels: { font: { size: 11 }, boxWidth: 12, padding: 8 } },
-          tooltip: { callbacks: { label: function(c){ return c.dataset.label + ': ' + _sysFmtW(c.parsed.y); } } }
+          // 툴팁 제목은 원래 단일 문자열 label 사용 (2줄 chartLabel 이 아닌 풀 네임)
+          tooltip: { callbacks: {
+            title: function(items){ return items.length ? SYS_SALES_ITEMS[items[0].dataIndex].label : ''; },
+            label: function(c){ return c.dataset.label + ': ' + _sysFmtW(c.parsed.y); }
+          } }
         },
         scales: {
-          x: { ticks: { maxRotation: 0, autoSkip: false, font: { size: 11, weight: '600' } } },
+          x: { ticks: { maxRotation: 0, minRotation: 0, autoSkip: false, font: { size: 10.5, weight: '600' }, padding: 2 } },
           y: {
             beginAtZero: true,
             afterFit: function(s){ s.width = 60; },
