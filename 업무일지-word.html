@@ -1880,6 +1880,7 @@
     var _mcSession = (function () { try { return JSON.parse(localStorage.getItem('mc_session') || 'null'); } catch (e) { return null; } })();
     var _sbToken = (_mcSession && _mcSession.access_token) ? _mcSession.access_token : SB_KEY;
     var _userId = (_mcSession && _mcSession.user && _mcSession.user.id) ? _mcSession.user.id : null;
+    var _isAdmin = (_mcSession && _mcSession._is_admin) || false;
     var SB_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' };
     function sbUpsert(j) {
       return fetch(SB_URL + '/rest/v1/journals', { method: 'POST', headers: SB_HDR, body: JSON.stringify(j) });
@@ -1917,6 +1918,15 @@
         return;
       }
       try { editingEntry = JSON.parse(raw); } catch (e) { return; }
+      // 가드: 본인 일지가 아니면 편집 차단 (관리자는 RLS 정책상 허용되므로 통과)
+      if (editingEntry && editingEntry.user_id && _userId
+          && editingEntry.user_id !== _userId && !_isAdmin) {
+        sessionStorage.removeItem(EDIT_KEY);
+        try { localStorage.removeItem('editJournalBackup'); } catch (e2) {}
+        alert('본인이 작성한 일지만 수정할 수 있습니다.');
+        window.location.href = '업무일지-dashboard.html';
+        return;
+      }
       sessionStorage.removeItem(EDIT_KEY);
       // 새로고침 대비 localStorage에 백업 (저장/뒤로가기 시 제거)
       localStorage.setItem('editJournalBackup', JSON.stringify(editingEntry));

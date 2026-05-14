@@ -3241,8 +3241,13 @@
         return map;
       })
       .catch(function(e){
-        // 테이블 미존재(404/PGRST205) 등은 조용히 패스 → 기존 동작 유지
-        console.warn('employee_permissions load failed (테이블이 아직 없을 수 있습니다):', e.message);
+        // fetch 실패 시 stale localStorage 캐시를 신뢰하지 않음 — 빈 맵으로 fail-safe
+        //  · 권한이 해제됐는데도 캐시 때문에 권한이 유지되는 버그 방지
+        //  · 테이블 미존재(PGRST205) / RLS 차단 / 네트워크 오류 모두 동일하게 처리
+        console.warn('employee_permissions load failed:', e.message);
+        _permMap = {};
+        try { localStorage.removeItem(_PERM_CACHE_KEY); } catch(e2){}
+        _permLoaded = true;
         return _permMap;
       });
   }
@@ -3678,8 +3683,13 @@
         + '<div class="td"><span style="font-size:12px;color:var(--text-muted)">'+(j.type||'—')+'</span></div>'
         + '<div class="td td-actions">'
           + '<button class="action-btn" onclick="togglePin(\''+j.id+'\')" title="고정"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg></button>'
-          + (_isAdmin && j.user_id !== _userId ? '<button class="action-btn" onclick="viewJournal(\''+j.id+'\')" title="상세보기"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>' : '<button class="action-btn" onclick="editJournal(\''+j.id+'\')" title="수정"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>')
-          + '<button class="action-btn del" onclick="deleteJournal(\''+j.id+'\')" title="삭제"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>'
+          // 본인 일지(j.user_id === _userId) → 수정+삭제 / 타인 일지 → 상세보기만(관리자는 삭제 가능 유지)
+          + (j.user_id === _userId
+              ? '<button class="action-btn" onclick="editJournal(\''+j.id+'\')" title="수정"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'
+                + '<button class="action-btn del" onclick="deleteJournal(\''+j.id+'\')" title="삭제"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>'
+              : '<button class="action-btn" onclick="viewJournal(\''+j.id+'\')" title="상세보기"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>'
+                + (_isAdmin ? '<button class="action-btn del" onclick="deleteJournal(\''+j.id+'\')" title="삭제"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' : '')
+            )
         + '</div>'
         + '</div>';
     }).join('');
@@ -3701,8 +3711,13 @@
       return '<div class="journal-card'+(_pinned?' pinned':'')+'" onclick="openDetail(\''+j.id+'\',event)">'
         + '<div class="jcard-actions">'
           + '<button class="action-btn" onclick="event.stopPropagation();togglePin(\''+j.id+'\')" title="고정"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg></button>'
-          + (_isAdmin && j.user_id !== _userId ? '<button class="action-btn" onclick="event.stopPropagation();viewJournal(\''+j.id+'\')" title="상세보기"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>' : '<button class="action-btn" onclick="event.stopPropagation();editJournal(\''+j.id+'\')" title="수정"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>')
-          + '<button class="action-btn del" onclick="event.stopPropagation();deleteJournal(\''+j.id+'\')" title="삭제"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>'
+          // 본인 일지 → 수정+삭제 / 타인 일지 → 상세보기 (관리자만 삭제 가능)
+          + (j.user_id === _userId
+              ? '<button class="action-btn" onclick="event.stopPropagation();editJournal(\''+j.id+'\')" title="수정"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'
+                + '<button class="action-btn del" onclick="event.stopPropagation();deleteJournal(\''+j.id+'\')" title="삭제"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>'
+              : '<button class="action-btn" onclick="event.stopPropagation();viewJournal(\''+j.id+'\')" title="상세보기"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>'
+                + (_isAdmin ? '<button class="action-btn del" onclick="event.stopPropagation();deleteJournal(\''+j.id+'\')" title="삭제"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' : '')
+            )
         + '</div>'
         + '<div class="jcard-top"><span class="jcard-date">'+fmtDate(j.date)+'</span>'+(_pinned?'<span class="jcard-pin" style="color:var(--yellow)"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg></span>':'')+'</div>'
         + '<div class="jcard-title">'+(j.title||'무제')+'</div>'
@@ -3762,13 +3777,28 @@
   function bulkDelete() {
     var count = selectedIds.size;
     if (count === 0) return;
-    if (!confirm(count + '개의 일지를 삭제하시겠습니까?')) return;
-    var data = loadJournals().filter(function(j) { return !selectedIds.has(j.id); });
-    saveJournals(data);
+    // 가드: 본인 일지(또는 관리자는 전체) 만 삭제 가능. 그 외는 자동 제외.
+    var all = loadJournals();
+    var deletable = new Set();
+    var skipped = 0;
+    selectedIds.forEach(function(id){
+      var j = all.find(function(x){ return x.id === id; });
+      if (!j) return;
+      if (j.user_id === _userId || _isAdmin) deletable.add(id);
+      else skipped++;
+    });
+    if (deletable.size === 0) {
+      showToast('선택한 일지는 본인이 작성한 일지가 아니라 삭제할 수 없습니다.');
+      return;
+    }
+    var msg = deletable.size + '개의 일지를 삭제하시겠습니까?' + (skipped > 0 ? '\n(본인이 작성하지 않은 ' + skipped + '개는 제외됩니다)' : '');
+    if (!confirm(msg)) return;
+    var next = all.filter(function(j) { return !deletable.has(j.id); });
+    saveJournals(next);
     selectedIds.clear();
     updateBulkBar();
     renderList();
-    showToast('🗑 ' + count + '개의 일지가 삭제되었습니다.');
+    showToast('🗑 ' + deletable.size + '개의 일지가 삭제되었습니다.' + (skipped > 0 ? ' (' + skipped + '개 건너뜀)' : ''));
   }
 
   function bulkPrint() {
@@ -4231,9 +4261,17 @@
   }
 
   function deleteJournal(id) {
+    var data = loadJournals();
+    var target = data.find(function(x){ return x.id === id; });
+    if (!target) return;
+    // 가드: 본인 일지가 아니고 관리자도 아니면 차단 (UI 우회 / 직접 호출 방어)
+    if (target.user_id !== _userId && !_isAdmin) {
+      showToast('본인이 작성한 일지만 삭제할 수 있습니다.');
+      return;
+    }
     if (!confirm('이 일지를 삭제하시겠습니까?')) return;
-    var data = loadJournals().filter(function(x){ return x.id !== id; });
-    saveJournals(data);
+    var next = data.filter(function(x){ return x.id !== id; });
+    saveJournals(next);
     renderList();
     showToast('🗑 일지가 삭제되었습니다.');
   }
@@ -4242,6 +4280,12 @@
     var data = loadJournals();
     var j = data.find(function(x){ return x.id===id; });
     if (!j) return;
+    // 가드: 본인 일지가 아니면 차단 — 관리자는 viewJournal 로 라우팅
+    if (j.user_id !== _userId) {
+      if (_isAdmin) { viewJournal(id); return; }
+      showToast('본인이 작성한 일지만 수정할 수 있습니다.');
+      return;
+    }
     sessionStorage.setItem('editJournal', JSON.stringify(j));
     window.location.href = '업무일지-word.html';
   }
