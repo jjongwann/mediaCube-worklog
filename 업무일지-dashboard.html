@@ -2931,11 +2931,13 @@
       if (systemWidget) systemWidget.style.display = 'none';
       if (bmatBtn)      bmatBtn.style.display      = '';
     }
-    // 거래처별 매출 분석: 시스템 사업부 사용자(비관리자)에게는 숨김
-    // 관리자는 사업부 뷰와 상관없이 항상 사용 가능 (음원/시스템 거래처 모두 확인 가능해야 하므로)
+    // 거래처별 매출 분석: 모든 사용자에게 노출
+    //  - 사운드 사용자/뷰 → 기존 4개 사운드 카드 (needle/blanket_paid/blanket_free/new_customer)
+    //  - 시스템 사용자/뷰 → 6개 시스템 카드 (sys_archiving 외 5개)
+    //  - 메뉴 열림 시 부서 컨텍스트에 따라 카드 그룹이 동적 분기됨
     var isSystemUser = !_isAdmin && _userDeptKey(_userId) === 'system';
     if (vendorBtn) {
-      vendorBtn.style.display = isSystemUser ? 'none' : '';
+      vendorBtn.style.display = '';
     }
     // 시스템팀 업무 현황: 시스템 사업부 사용자(비관리자)에게만 노출
     // (음원팀 버튼이 사운드 사업부 사용자에게만 노출되는 패턴과 대칭)
@@ -10580,17 +10582,19 @@
      거래처별 매출 분석 모듈 (독립 모듈, 기존 기능에 영향 없음)
      ═══════════════════════════════════════════════════════════ -->
 
-<!-- 카테고리 선택 모달 (3 카드) -->
+<!-- 카테고리 선택 모달 -->
+<!-- 사운드 뷰: 4개 카드 / 시스템 뷰: 6개 카드 (openMenu(deptView) 에서 동적 토글) -->
 <div id="vendor-menu-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:99996;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)__vendor.closeMenu()">
-  <div style="background:#fff;border-radius:18px;max-width:680px;width:100%;padding:28px 30px;box-shadow:0 24px 70px rgba(0,0,0,0.3);font-family:inherit">
+  <div style="background:#fff;border-radius:18px;max-width:760px;width:100%;padding:28px 30px;box-shadow:0 24px 70px rgba(0,0,0,0.3);font-family:inherit">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
       <div>
-        <div style="font-size:16px;font-weight:800;color:#0f172a">거래처별 매출 분석</div>
-        <div style="font-size:11px;color:#64748b;margin-top:2px">분석할 카테고리를 선택하세요</div>
+        <div id="vendor-menu-title" style="font-size:16px;font-weight:800;color:#0f172a">거래처별 매출 분석</div>
+        <div id="vendor-menu-subtitle" style="font-size:11px;color:#64748b;margin-top:2px">분석할 카테고리를 선택하세요</div>
       </div>
       <button onclick="__vendor.closeMenu()" style="background:#f1f5f9;border:none;border-radius:8px;color:#475569;font-size:18px;width:32px;height:32px;cursor:pointer">×</button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+    <!-- 사운드 사업부 카테고리 (기존 4개) -->
+    <div id="vendor-menu-sound-group" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
       <button type="button" onclick="__vendor.pickCat('needle')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#84cc16';this.style.background='#f7fee7';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(132,204,22,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
         <div style="font-size:30px;margin-bottom:6px">🎵</div>
         <div style="font-size:13px;font-weight:800;color:#65a30d;margin-bottom:4px">NEEDLE</div>
@@ -10610,6 +10614,39 @@
         <div style="font-size:30px;margin-bottom:6px">🌟</div>
         <div style="font-size:13px;font-weight:800;color:#d97706;margin-bottom:4px">신규 고객</div>
         <div style="font-size:10px;color:#64748b;line-height:1.4">최근 1년 이내<br>등록된 신규 거래처</div>
+      </button>
+    </div>
+    <!-- 시스템 사업부 카테고리 (신규 6개, 기본 숨김) -->
+    <div id="vendor-menu-system-group" style="display:none;grid-template-columns:repeat(3,1fr);gap:12px">
+      <button type="button" onclick="__vendor.pickCat('sys_archiving')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#2563eb';this.style.background='#eff6ff';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(37,99,235,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
+        <div style="font-size:28px;margin-bottom:6px">🎞️</div>
+        <div style="font-size:13px;font-weight:800;color:#2563eb;margin-bottom:4px">AV Archiving</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.4">오디오·비디오<br>아카이빙 거래처</div>
+      </button>
+      <button type="button" onclick="__vendor.pickCat('sys_restoration')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#7c3aed';this.style.background='#f5f3ff';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(124,58,237,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
+        <div style="font-size:28px;margin-bottom:6px">🔍</div>
+        <div style="font-size:13px;font-weight:800;color:#7c3aed;margin-bottom:4px">AV Restoration / Forensic</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.4">복원 · 디지털<br>포렌식 거래처</div>
+      </button>
+      <button type="button" onclick="__vendor.pickCat('sys_broadcast')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#16a34a';this.style.background='#f0fdf4';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(22,163,74,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
+        <div style="font-size:28px;margin-bottom:6px">📡</div>
+        <div style="font-size:13px;font-weight:800;color:#16a34a;margin-bottom:4px">Broadcast / Pro AV Product</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.4">방송 · 프로 AV<br>제품 거래처</div>
+      </button>
+      <button type="button" onclick="__vendor.pickCat('sys_etc_as')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#4b5563';this.style.background='#f9fafb';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(75,85,99,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
+        <div style="font-size:28px;margin-bottom:6px">🛠️</div>
+        <div style="font-size:13px;font-weight:800;color:#4b5563;margin-bottom:4px">기타 A/S</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.4">분류 외 A/S<br>거래처</div>
+      </button>
+      <button type="button" onclick="__vendor.pickCat('sys_acoustic')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#ca8a04';this.style.background='#fefce8';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(202,138,4,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
+        <div style="font-size:28px;margin-bottom:6px">🎧</div>
+        <div style="font-size:13px;font-weight:800;color:#ca8a04;margin-bottom:4px">Acoustic / AV Engineering</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.4">어쿠스틱·AV<br>엔지니어링 거래처</div>
+      </button>
+      <button type="button" onclick="__vendor.pickCat('sys_dolby')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#ea580c';this.style.background='#fff7ed';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(234,88,12,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
+        <div style="font-size:28px;margin-bottom:6px">🎬</div>
+        <div style="font-size:13px;font-weight:800;color:#ea580c;margin-bottom:4px">Dolby Production Services</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.4">돌비 프로덕션<br>서비스 거래처</div>
       </button>
     </div>
   </div>
@@ -10878,7 +10915,63 @@ window.__vendor = (function() {
       bgLight: '#fffbeb', borderLight: '#fde68a',
       lineFill: 'rgba(251,191,36,0.12)',
       scrollTrack: '#fef3c7', scrollThumb: '#a8a29e', scrollThumbHover: '#78716c', scrollThumbActive: '#57534e', scrollThumbBorder: '#fef3c7'
+    },
+    // 시스템 사업부 카테고리 (6개) — 색상은 SYS_SALES_ITEMS 와 동일 (시각적 일관성)
+    'sys_archiving': {
+      name: 'AV Archiving 매출 분석', icon: '🎞️', subtitle: '오디오·비디오 아카이빙 거래처별 매출',
+      gradFrom: '#2563eb', gradTo: '#1d4ed8',
+      primary: '#2563eb', barFill: '#3b82f6cc', barBorder: '#2563eb',
+      bgLight: '#eff6ff', borderLight: '#bfdbfe',
+      lineFill: 'rgba(37,99,235,0.12)',
+      scrollTrack: '#dbeafe', scrollThumb: '#3b82f6', scrollThumbHover: '#2563eb', scrollThumbActive: '#1d4ed8', scrollThumbBorder: '#dbeafe'
+    },
+    'sys_restoration': {
+      name: 'AV Restoration / Forensic 매출 분석', icon: '🔍', subtitle: '복원·디지털 포렌식 거래처별 매출',
+      gradFrom: '#7c3aed', gradTo: '#5b21b6',
+      primary: '#7c3aed', barFill: '#8b5cf6cc', barBorder: '#7c3aed',
+      bgLight: '#f5f3ff', borderLight: '#ddd6fe',
+      lineFill: 'rgba(124,58,237,0.12)',
+      scrollTrack: '#ede9fe', scrollThumb: '#8b5cf6', scrollThumbHover: '#7c3aed', scrollThumbActive: '#5b21b6', scrollThumbBorder: '#ede9fe'
+    },
+    'sys_broadcast': {
+      name: 'Broadcast / Pro AV Product 매출 분석', icon: '📡', subtitle: '방송·프로 AV 제품 거래처별 매출',
+      gradFrom: '#16a34a', gradTo: '#15803d',
+      primary: '#16a34a', barFill: '#22c55ecc', barBorder: '#16a34a',
+      bgLight: '#f0fdf4', borderLight: '#bbf7d0',
+      lineFill: 'rgba(22,163,74,0.12)',
+      scrollTrack: '#dcfce7', scrollThumb: '#22c55e', scrollThumbHover: '#16a34a', scrollThumbActive: '#15803d', scrollThumbBorder: '#dcfce7'
+    },
+    'sys_etc_as': {
+      name: '기타 A/S 매출 분석', icon: '🛠️', subtitle: '분류 외 A/S 거래처별 매출',
+      gradFrom: '#4b5563', gradTo: '#374151',
+      primary: '#4b5563', barFill: '#6b7280cc', barBorder: '#4b5563',
+      bgLight: '#f9fafb', borderLight: '#e5e7eb',
+      lineFill: 'rgba(75,85,99,0.12)',
+      scrollTrack: '#f3f4f6', scrollThumb: '#9ca3af', scrollThumbHover: '#6b7280', scrollThumbActive: '#4b5563', scrollThumbBorder: '#f3f4f6'
+    },
+    'sys_acoustic': {
+      name: 'Acoustic / AV Engineering 매출 분석', icon: '🎧', subtitle: '어쿠스틱·AV 엔지니어링 거래처별 매출',
+      gradFrom: '#ca8a04', gradTo: '#a16207',
+      primary: '#ca8a04', barFill: '#eab308cc', barBorder: '#ca8a04',
+      bgLight: '#fefce8', borderLight: '#fef08a',
+      lineFill: 'rgba(202,138,4,0.12)',
+      scrollTrack: '#fef9c3', scrollThumb: '#eab308', scrollThumbHover: '#ca8a04', scrollThumbActive: '#a16207', scrollThumbBorder: '#fef9c3'
+    },
+    'sys_dolby': {
+      name: 'Dolby Production Services 매출 분석', icon: '🎬', subtitle: '돌비 프로덕션 서비스 거래처별 매출',
+      gradFrom: '#ea580c', gradTo: '#c2410c',
+      primary: '#ea580c', barFill: '#f97316cc', barBorder: '#ea580c',
+      bgLight: '#fff7ed', borderLight: '#fed7aa',
+      lineFill: 'rgba(234,88,12,0.12)',
+      scrollTrack: '#ffedd5', scrollThumb: '#f97316', scrollThumbHover: '#ea580c', scrollThumbActive: '#c2410c', scrollThumbBorder: '#ffedd5'
     }
+  };
+
+  // 카테고리 → 부서 매핑 (메뉴 그룹 토글 / 데이터 격리 검증용)
+  var _CAT_DEPT = {
+    needle: 'sound', blanket_paid: 'sound', blanket_free: 'sound', new_customer: 'sound',
+    sys_archiving: 'system', sys_restoration: 'system', sys_broadcast: 'system',
+    sys_etc_as: 'system', sys_acoustic: 'system', sys_dolby: 'system'
   };
 
   function _applyCatTheme(cat) {
@@ -10946,7 +11039,17 @@ window.__vendor = (function() {
   function _genId() { return 'v_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
 
   // ── 사이드바에서 진입 ──
-  function openMenu() {
+  // deptView: 'sound' | 'system' — 메뉴 모달의 카드 그룹을 결정
+  function openMenu(deptView) {
+    var isSystem = (deptView === 'system');
+    var soundGroup = document.getElementById('vendor-menu-sound-group');
+    var sysGroup = document.getElementById('vendor-menu-system-group');
+    var title = document.getElementById('vendor-menu-title');
+    var subtitle = document.getElementById('vendor-menu-subtitle');
+    if (soundGroup) soundGroup.style.display = isSystem ? 'none' : 'grid';
+    if (sysGroup)   sysGroup.style.display   = isSystem ? 'grid' : 'none';
+    if (title) title.textContent = isSystem ? '시스템 사업부 거래처별 매출 분석' : '거래처별 매출 분석';
+    if (subtitle) subtitle.textContent = isSystem ? '분석할 시스템 카테고리(6개)를 선택하세요' : '분석할 카테고리를 선택하세요';
     document.getElementById('vendor-menu-overlay').style.display = 'flex';
   }
   function closeMenu() {
@@ -10956,7 +11059,8 @@ window.__vendor = (function() {
   function pickCat(cat) {
     closeMenu();
     setTimeout(function(){
-      if (cat === 'needle' || cat === 'blanket_paid' || cat === 'blanket_free' || cat === 'new_customer') {
+      // _CAT_META 에 등록된 모든 카테고리 허용 (sound 4개 + system 6개)
+      if (_CAT_META[cat]) {
         openPanel(cat);
       }
     }, 150);
@@ -12186,7 +12290,11 @@ window.__vendor = (function() {
 })();
 
 // 사이드바 진입점 (전역 함수)
-function openVendorMenu() { window.__vendor.openMenu(); }
+function openVendorMenu() {
+  // 부서 컨텍스트 판단: 관리자는 토글 상태(_viewDeptKey), 비관리자는 본인 부서
+  var deptView = _isAdmin ? _viewDeptKey : (_userDeptKey(_userId) || 'sound');
+  window.__vendor.openMenu(deptView);
+}
 </script>
 </body>
 </html>
