@@ -7728,11 +7728,14 @@
     //  · 전년 대비: 라벨/기간 | 큰 금액/상세 | 전년 동기/증감률 (3 sections, divider)
     var grandEl = document.getElementById('sys-cumul-grand');
     if (grandEl) {
-      var baseStyle = 'background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-radius:12px;padding:14px 20px;box-shadow:0 4px 12px rgba(124,58,237,0.25);display:flex;align-items:center;gap:20px';
+      // 기본 모드는 카드 위·아래 여백을 살짝 늘려 시각적 무게감 부여 (20px 20px)
+      // 전년 대비 모드는 3 sections + divider 로 컨텐츠 양이 많아 기존 패딩(14px 20px) 유지
+      var basePad = (_sysCumulCmpMode === 'yoy') ? '14px 20px' : '20px 20px';
+      var baseStyle = 'background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-radius:12px;padding:' + basePad + ';box-shadow:0 4px 12px rgba(124,58,237,0.25);display:flex;align-items:center;gap:20px';
       var labelBlock = ''
         + '<div style="flex:0 0 auto">'
           + '<div style="font-size:13px;font-weight:700;letter-spacing:0.3px">총 합계</div>'
-          + '<div style="font-size:11px;opacity:0.85;margin-top:3px;font-weight:500;white-space:nowrap">' + years.length + '개년 · ' + periodLabel + '</div>'
+          + '<div style="font-size:11px;opacity:0.85;margin-top:3px;font-weight:500;white-space:nowrap">' + periodLabel + '</div>'
         + '</div>';
       var amountBlock = ''
         + '<div style="flex:1;text-align:right;min-width:0">'
