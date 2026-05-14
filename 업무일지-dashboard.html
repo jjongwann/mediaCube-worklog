@@ -3009,14 +3009,12 @@
 
     // 부서 필터:
     //  - 관리자: _viewDeptKey 부서 전체
-    //  - 시스템 사업부 직원: 시스템 부서 전체
-    //  - 사운드 사업부 직원: 본인 일지만 (기존 동작)
+    //  - 비관리자(사운드·시스템 동일): 본인 일지만
+    //    → 같은 부서원이라도 명시적 권한 없으면 노출 X (직원별 권한 시스템과 일관성)
+    //    → 시스템팀 업무 현황 패널은 별도 캐시(_systemTeamCache)로 협업용 노출 유지
     if (_isAdmin) {
       var _vIds = _getDeptUserIds(_viewDeptKey);
       data = data.filter(function(j){ return _vIds.indexOf(j.user_id) !== -1; });
-    } else if (_userDeptKey(_userId) === 'system') {
-      var _sIds = _getDeptUserIds('system');
-      data = data.filter(function(j){ return _sIds.indexOf(j.user_id) !== -1; });
     } else {
       var _myName = (_currentSession && _currentSession._display && (_currentSession._display.fullName || _currentSession._display.name)) || '';
       data = data.filter(function(j) {
@@ -3088,12 +3086,8 @@
       // 관리자: 현재 토글된 부서(_viewDeptKey) 기준으로 필터
       var adminIds = _getDeptUserIds(_viewDeptKey);
       all = all.filter(function(j){ return adminIds.indexOf(j.user_id) !== -1; });
-    } else if (_userDeptKey(_userId) === 'system') {
-      // 시스템 사업부 직원: 부서 전체 일지 기준
-      var sysIds = _getDeptUserIds('system');
-      all = all.filter(function(j){ return sysIds.indexOf(j.user_id) !== -1; });
     } else {
-      // 사운드 사업부 직원: 본인 일지만 (기존 동작 보존)
+      // 비관리자(사운드·시스템 동일): 본인 일지만
       var _myName = (_currentSession && _currentSession._display && (_currentSession._display.fullName || _currentSession._display.name)) || '';
       all = all.filter(function(j) {
         return (_userId && j.user_id === _userId) || (_myName && (j.author || '').trim() === _myName.trim());
