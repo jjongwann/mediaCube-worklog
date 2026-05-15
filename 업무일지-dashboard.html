@@ -11057,8 +11057,9 @@ window.__vendor = (function() {
       + '#vendor-needle-scroll::-webkit-scrollbar-thumb:active, #vendor-needle-bar-scroll::-webkit-scrollbar-thumb:active{background:' + meta.scrollThumbActive + ' !important;}';
   }
 
-  // 거래처 담당자 목록 (확장 가능)
-  var VENDOR_MANAGERS = [
+  // 거래처 담당자 목록 — 부서별 분리
+  //  · 사운드 사업부 / 신규 고객 / 무료/유료 BLANKET / NEEDLE 카테고리에서 사용
+  var VENDOR_MANAGERS_SOUND = [
     '이광순 이사',
     '신동원 차장',
     '윤다은 주임',
@@ -11066,6 +11067,19 @@ window.__vendor = (function() {
     '김혜진(영업) 사원',
     '김혜진 대리'
   ];
+  //  · 시스템 사업부 6개 카테고리(sys_*) 에서 사용
+  var VENDOR_MANAGERS_SYSTEM = [
+    '김세준 차장',
+    '권영재 차장'
+  ];
+  // 현재 카테고리에 맞는 담당자 목록 (cat 미지정 시 _state.currentCat 사용)
+  function _getVendorManagers(cat) {
+    cat = cat || _state.currentCat;
+    if (cat && _CAT_DEPT && _CAT_DEPT[cat] === 'system') return VENDOR_MANAGERS_SYSTEM;
+    return VENDOR_MANAGERS_SOUND;
+  }
+  // 하위 호환: 일부 코드가 직접 참조할 수 있어 동적 getter 도 제공
+  Object.defineProperty(window, '_vendorManagersHint', { get: function(){ return _getVendorManagers(); } });
 
   // 거래처별 담당자 캐시 (메모리). vendor 이름 → 담당자
   function _getVendorManager(name) {
@@ -11303,7 +11317,7 @@ window.__vendor = (function() {
     _applyCatTheme(cat);
     _populateYearSel('vendor-needle-from-year');
     _populateYearSel('vendor-needle-to-year');
-    _populateManagerSel('vendor-needle-manager', true);
+    _populateManagerSel('vendor-needle-manager', true, cat);
     _populateSourceSel(cat);
     // 기본값: 올해 1월 ~ 올해 12월
     var now = new Date();
@@ -11349,13 +11363,13 @@ window.__vendor = (function() {
     sel.innerHTML = arr.map(function(y){ return '<option value="'+y+'">'+y+'년</option>'; }).join('');
   }
 
-  function _populateManagerSel(id, includeAll) {
+  function _populateManagerSel(id, includeAll, cat) {
     var sel = document.getElementById(id);
     if (!sel) return;
     var html = '';
     if (includeAll) html += '<option value="">담당자 전체</option>';
     else html += '<option value="">선택 안함</option>';
-    VENDOR_MANAGERS.forEach(function(m){
+    _getVendorManagers(cat).forEach(function(m){
       html += '<option value="' + _esc(m) + '">' + _esc(m) + '</option>';
     });
     sel.innerHTML = html;
@@ -12293,7 +12307,7 @@ window.__vendor = (function() {
     document.getElementById('vendor-edit-name').textContent = name;
     document.getElementById('vendor-edit-year-badge').textContent = year + '년';
     document.getElementById('vendor-edit-name-input').value = name;
-    _populateManagerSel('vendor-edit-manager', false);
+    _populateManagerSel('vendor-edit-manager', false, cat);
     document.getElementById('vendor-edit-manager').value = curMgr || '';
     // 매출 발생처 pre-fill + 자동완성 옵션 새로고침
     var editSrcInp = document.getElementById('vendor-edit-source');
