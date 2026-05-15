@@ -1787,6 +1787,13 @@
                 <input type="text" id="risk-newvendor-amount" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-weight:600;transition:border-color .12s" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
                 <div style="font-size:10px;color:#94a3b8;margin-top:4px">매출액 0원으로 저장하면 비활성 거래처로 분류됩니다.</div>
               </div>
+              <!-- 매출 발생처 (선택 입력) — extra.source 에 저장. 대시보드 거래처별 매출 분석 필터와 연동 -->
+              <div id="risk-newvendor-source-wrap">
+                <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">매출 발생처</label>
+                <input type="text" id="risk-newvendor-source" placeholder="예: 광고 / 방송사 / 프로젝트명 등 (선택)"
+                  style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;transition:border-color .12s" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
+                <div style="font-size:10px;color:#94a3b8;margin-top:4px">매출이 어디에서 발생했는지 입력 (선택). 같은 발생처끼리 묶어서 조회할 수 있습니다.</div>
+              </div>
               <div id="risk-newvendor-freenote" style="display:none;font-size:11px;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px">
                 💡 무료 블랭킷은 매출액 없이 거래처만 등록됩니다 (자동 비활성 분류).
               </div>
@@ -2853,8 +2860,8 @@
       { key: '기타',            icon: '📌', color: '#64748b', bg: '#f1f5f9' }
     ];
 
-    // 2차 카테고리 구조 (확장 가능)
-    var RISK_SUBCATS = {
+    // 2차 카테고리 구조 — 사운드 사업부 (기존)
+    var RISK_SUBCATS_SOUND = {
       '신규고객 확보': [
         { key: '유료 블랭킷',  icon: '💎', desc: '방송사, 광고 녹음실' },
         { key: '무료 블랭킷',  icon: '🆓', desc: '퍼포밍 목적 활성화' },
@@ -2865,6 +2872,31 @@
         { key: 'Needle Drop', icon: '🎵', desc: '곡별 매출' }
       ]
     };
+
+    // 2차 카테고리 구조 — 시스템 사업부 (avsystem, engineer2 전용, 6개 카테고리)
+    var _SYS_RISK_SUBS = [
+      { key: 'AV Archiving',                icon: '🎞️', desc: '오디오·비디오 아카이빙 거래처' },
+      { key: 'AV Restoration / Forensic',   icon: '🔍', desc: '복원·디지털 포렌식 거래처' },
+      { key: 'Broadcast / Pro AV Product',  icon: '📡', desc: '방송·프로 AV 제품 거래처' },
+      { key: '기타 A/S',                     icon: '🛠️', desc: '분류 외 A/S 거래처' },
+      { key: 'Acoustic / AV Engineering',   icon: '🎧', desc: '어쿠스틱·AV 엔지니어링 거래처' },
+      { key: 'Dolby Production Services',   icon: '🎬', desc: '돌비 프로덕션 서비스 거래처' }
+    ];
+    var RISK_SUBCATS_SYSTEM = {
+      '신규고객 확보': _SYS_RISK_SUBS,
+      '기존 고객 관리': _SYS_RISK_SUBS
+    };
+
+    // 시스템 사업부 사용자 판별 (대시보드 SYSTEM_DEPT_USERNAMES 와 일관)
+    var _RISK_SYSTEM_USERS = ['avsystem', 'engineer2'];
+    function _isSystemRiskUser() {
+      var u = (_mcSession && _mcSession._username) || '';
+      return _RISK_SYSTEM_USERS.indexOf(u) !== -1;
+    }
+    // 현재 사용자에 맞는 서브카테고리 맵 반환
+    function _getRiskSubcats() {
+      return _isSystemRiskUser() ? RISK_SUBCATS_SYSTEM : RISK_SUBCATS_SOUND;
+    }
 
     var _riskParentSel = null; // 2차 모달 진입 시 부모 카테고리
 
@@ -2889,9 +2921,10 @@
       var grid = document.getElementById('risk-cat-grid');
       var curVal = document.getElementById('risk-category').value;
       var curParent = curVal.indexOf(' - ') > 0 ? curVal.split(' - ')[0] : curVal;
+      var subcats = _getRiskSubcats();
       grid.innerHTML = RISK_CATS.map(function(c) {
         var selected = curParent === c.key;
-        var hasSub = !!RISK_SUBCATS[c.key];
+        var hasSub = !!subcats[c.key];
         var arrow = hasSub ? '<span style="font-size:9px;color:'+c.color+';opacity:0.7;margin-left:2px">▸</span>' : '';
         return '<button type="button" onclick="onRiskCatPick(\'' + c.key + '\')" style="padding:12px 8px;border-radius:10px;border:2px solid ' + (selected ? c.color : '#e2e8f0') + ';background:' + (selected ? c.bg : '#fff') + ';cursor:pointer;text-align:center;transition:all .15s;position:relative" onmouseover="this.style.borderColor=\'' + c.color + '\';this.style.background=\'' + c.bg + '\'" onmouseout="if(!' + selected + '){this.style.borderColor=\'#e2e8f0\';this.style.background=\'#fff\'}">'
           + '<div style="font-size:20px;margin-bottom:4px">' + c.icon + '</div>'
@@ -2907,7 +2940,8 @@
 
     // 1차 카드 클릭: 하위 카테고리 있으면 2차 모달, 아니면 즉시 선택
     function onRiskCatPick(key) {
-      if (RISK_SUBCATS[key]) {
+      var subcats = _getRiskSubcats();
+      if (subcats[key]) {
         _riskParentSel = key;
         closeRiskCatModal();
         setTimeout(function(){ openRiskSubcatModal(key); }, 180);
@@ -2919,7 +2953,7 @@
     function openRiskSubcatModal(parentKey) {
       var parent = RISK_CATS.find(function(c){ return c.key === parentKey; });
       if (!parent) return;
-      var subs = RISK_SUBCATS[parentKey] || [];
+      var subs = _getRiskSubcats()[parentKey] || [];
       var curVal = document.getElementById('risk-category').value;
       var curSub = curVal.indexOf(' - ') > 0 && curVal.split(' - ')[0] === parentKey ? curVal.split(' - ')[1] : '';
       document.getElementById('risk-subcat-title').innerHTML = (parent.icon||'') + ' ' + parent.key;
@@ -2963,11 +2997,19 @@
       closeRiskCatModal();
     }
 
-    // 서브카테고리 → vendor_sales 테이블 카테고리 매핑
+    // 서브카테고리 → vendor_sales 테이블 카테고리 매핑 (사운드 + 시스템)
     var _RISK_SUB_TO_VENDOR_CAT = {
+      // 사운드 사업부
       'Needle Drop': 'needle',
       '유료 블랭킷': 'blanket_paid',
-      '무료 블랭킷': 'blanket_free'
+      '무료 블랭킷': 'blanket_free',
+      // 시스템 사업부 (6개)
+      'AV Archiving':                'sys_archiving',
+      'AV Restoration / Forensic':   'sys_restoration',
+      'Broadcast / Pro AV Product':  'sys_broadcast',
+      '기타 A/S':                     'sys_etc_as',
+      'Acoustic / AV Engineering':   'sys_acoustic',
+      'Dolby Production Services':   'sys_dolby'
     };
 
     function selectRiskSubcat(parentKey, subKey) {
@@ -3138,6 +3180,8 @@
       document.getElementById('risk-newvendor-month').value = String(now.getMonth()+1);
       document.getElementById('risk-newvendor-name').value = '';
       document.getElementById('risk-newvendor-amount').value = '';
+      var srcInp = document.getElementById('risk-newvendor-source');
+      if (srcInp) srcInp.value = '';
 
       // 무료 블랭킷 → 매출액 입력 숨김 (자동 0원 저장)
       var isFreeBlanket = (subKey === '무료 블랭킷');
@@ -3203,6 +3247,7 @@
       var amountRaw = (document.getElementById('risk-newvendor-amount').value || '').replace(/,/g,'').trim();
       var amount = parseInt(amountRaw, 10);
       if (isNaN(amount) || amount < 0) amount = 0;
+      var source = ((document.getElementById('risk-newvendor-source') || {}).value || '').trim();
       if (!name) { alert('거래처명을 입력하세요'); return; }
       if (!year || !month) { alert('년도/월을 선택하세요'); return; }
 
@@ -3226,6 +3271,7 @@
           if (existing) {
             var newAmount = (existing.amount || 0) + amount;
             var patchExtra = Object.assign({}, existing.extra || {}, { active: activeFlag });
+            if (source) patchExtra.source = source;
             return fetch(SB_URL + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(existing.id), {
               method: 'PATCH',
               headers: Object.assign({}, SB_HDR, { 'Prefer': 'return=minimal' }),
@@ -3233,13 +3279,15 @@
             });
           } else {
             newRowId = _genVendorId();
+            var initExtra = { active: activeFlag, created_at: new Date().toISOString() };
+            if (source) initExtra.source = source;
             var row = {
               id: newRowId,
               category: dbCat,
               vendor_name: name,
               month_key: monthKey,
               amount: amount,
-              extra: { active: activeFlag, created_at: new Date().toISOString() },
+              extra: initExtra,
               updated_at: new Date().toISOString()
             };
             return fetch(SB_URL + '/rest/v1/vendor_sales', {
