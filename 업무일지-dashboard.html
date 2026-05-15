@@ -12029,6 +12029,9 @@ window.__vendor = (function() {
 
     _state.rows.forEach(function(r){
       if (!r.extra || !r.extra.created_at) return;
+      // 신규 고객 패널은 사운드 사업부 카테고리만 집계 (시스템 sys_* 카테고리 제외)
+      //  → _CAT_DEPT 매핑으로 부서 분리 (시스템 사업부 거래처는 시스템 패널에서 별도 조회)
+      if (_CAT_DEPT[r.category] !== 'sound') return;
       var addedTs = new Date(r.extra.created_at).getTime();
       if (isNaN(addedTs)) return;
       // 365일 이내만
