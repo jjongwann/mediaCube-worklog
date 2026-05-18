@@ -10688,6 +10688,17 @@
           <div id="vendor-needle-subtitle" style="font-size:11px;opacity:0.85;margin-top:3px">오디오 PD 거래처별 곡별 매출</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
+          <!-- 차트/표 뷰 토글 — 누르면 막대 차트(x: 거래처명, y: 매출액) ↔ 표 모드 전환 -->
+          <div id="vendor-view-toggle" style="display:inline-flex;border:1px solid rgba(255,255,255,0.3);border-radius:8px;overflow:hidden;background:rgba(255,255,255,0.1)">
+            <button id="vendor-view-chart-btn" onclick="__vendor.setDisplayMode('chart')" style="padding:6px 14px;background:#fff;color:#0f172a;border:none;cursor:pointer;font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              차트
+            </button>
+            <button id="vendor-view-table-btn" onclick="__vendor.setDisplayMode('table')" style="padding:6px 14px;background:transparent;color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              표
+            </button>
+          </div>
           <button onclick="__vendor.openAdd()" style="padding:7px 14px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">+ 신규 거래처 추가</button>
           <button onclick="__vendor.closePanel()" style="background:rgba(255,255,255,0.15);border:none;border-radius:8px;color:#fff;font-size:18px;width:32px;height:32px;cursor:pointer">✕</button>
         </div>
@@ -10723,9 +10734,9 @@
     <div style="padding:16px 24px 0;flex-shrink:0">
       <div id="vendor-needle-kpi" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px"></div>
     </div>
-    <!-- 차트 + 거래처 목록 (좌우 분할) -->
+    <!-- 차트 + 거래처 목록 — displayMode 에 따라 좌우 분할 / 차트 단독 / 표 단독 토글 -->
     <div id="vendor-needle-charts-wrap" style="flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr);gap:14px;padding:0 24px 24px;min-height:0;overflow:hidden">
-      <!-- 좌: 거래처별 매출 막대 차트 — HTML/CSS bars / position:absolute로 강제 사이즈 확보 -->
+      <!-- 좌: 거래처별 매출 막대 (HTML/CSS bars) — '표' 모드에서는 숨김 -->
       <div id="vendor-needle-bar-wrap" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;position:relative;min-height:0;overflow:hidden">
         <div id="vendor-needle-bar-title" style="position:absolute;top:0;left:0;right:0;font-size:11px;font-weight:700;color:#374151;padding:12px 16px 6px 16px;background:#fff;z-index:2;border-bottom:1px solid #f1f5f9">📊 거래처별 매출</div>
         <div id="vendor-needle-bar-scroll" style="position:absolute;top:34px;left:0;right:0;bottom:0;overflow-y:scroll;overflow-x:hidden;padding:8px 4px 8px 12px"></div>
@@ -10738,6 +10749,13 @@
         </div>
         <div id="vendor-needle-scroll" style="flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:auto;scrollbar-color:#84cc16 #ecfccb">
           <div id="vendor-needle-table"></div>
+        </div>
+      </div>
+      <!-- '차트' 모드 전용: Chart.js 막대 그래프 (x: 거래처명, y: 매출액) — 기본 숨김 -->
+      <div id="vendor-needle-chartview-wrap" style="display:none;background:#fff;border:1px solid #e2e8f0;border-radius:12px;position:relative;min-height:0;overflow:hidden;grid-column:1/-1">
+        <div id="vendor-needle-chartview-title" style="position:absolute;top:0;left:0;right:0;font-size:12px;font-weight:700;color:#374151;padding:14px 18px 8px;background:#fff;z-index:2;border-bottom:1px solid #f1f5f9">📊 거래처별 매출 그래프</div>
+        <div style="position:absolute;top:42px;left:0;right:0;bottom:0;padding:14px 22px 18px">
+          <canvas id="vendor-needle-chartview-canvas"></canvas>
         </div>
       </div>
       <!-- 무료 BLANKET 모드: 좌측 차트 숨김 / 우측 거래처 목록 가득 차게 (JS로 컬럼 조정) -->
@@ -10941,9 +10959,10 @@ window.__vendor = (function() {
 
   var _state = {
     rows: [],          // 모든 vendor_sales 행 (메모리 캐시)
-    currentCat: null,  // 'needle' | 'blanket_paid' | 'blanket_free'
-    charts: { bar: null, line: null },
-    viewMode: 'active' // 'active' | 'all' | 'inactive'
+    currentCat: null,  // 'needle' | 'blanket_paid' | 'blanket_free' | 'sys_*' (6종)
+    charts: { bar: null, line: null, chartview: null },
+    viewMode: 'active', // 'active' | 'all' | 'inactive'
+    displayMode: 'chart' // 'chart' (Chart.js 막대 그래프 단독) | 'table' (표 단독)
   };
 
   // 카테고리별 시각 테마
@@ -11341,6 +11360,8 @@ window.__vendor = (function() {
     if (srcSel) srcSel.value = '';
     _state.viewMode = 'active';
     _updateAllBtnStyle();
+    // 차트/표 토글 버튼 스타일만 동기화 (실제 render 는 fetchAll().then 에서 1회만 실행)
+    _syncDisplayModeBtns(_state.displayMode || 'chart');
     document.getElementById('vendor-needle-overlay').style.display = 'block';
     // 항상 최신 데이터 fetch (소스 옵션도 fresh 데이터로 재구성)
     fetchAll().then(function(){
@@ -11888,17 +11909,26 @@ window.__vendor = (function() {
       + _kpiCard('💤 비활성 거래처', inactiveCount + '곳', '', (totalCount > 0 ? Math.round(inactiveCount/totalCount*100) + '% 미발생' : '데이터 없음') + (inactiveCardActive ? ' ✓ 표시중' : ''), '#ea580c', '#ffedd5', { onclick: "__vendor.setViewMode('inactive')", active: inactiveCardActive });
 
     // ── 차트 ──
-    // 무료 BLANKET은 매출 0원 고정이라 차트 숨기고 거래처 목록을 패널 전체 너비로 확장
+    // displayMode 기반 차트/표 토글 + blanket_free 는 매출 없으므로 표 모드 강제
     var chartsWrap = document.getElementById('vendor-needle-charts-wrap');
-    var barWrap = document.getElementById('vendor-needle-bar-wrap');
-    if (cat === 'blanket_free') {
-      if (barWrap) barWrap.style.display = 'none';
+    var barWrap   = document.getElementById('vendor-needle-bar-wrap');
+    var listWrap  = document.getElementById('vendor-needle-list-wrap');
+    var chartviewWrap = document.getElementById('vendor-needle-chartview-wrap');
+    var effectiveMode = (cat === 'blanket_free') ? 'table' : (_state.displayMode || 'chart');
+    // 좌측 HTML 막대(legacy) 는 더 이상 사용하지 않음 — 항상 숨김
+    if (barWrap) barWrap.style.display = 'none';
+    if (_state.charts.bar) { try{_state.charts.bar.destroy();}catch(e){} _state.charts.bar = null; }
+    if (effectiveMode === 'chart') {
       if (chartsWrap) chartsWrap.style.gridTemplateColumns = '1fr';
-      if (_state.charts.bar) { try{_state.charts.bar.destroy();}catch(e){} _state.charts.bar = null; }
+      if (chartviewWrap) chartviewWrap.style.display = '';
+      if (listWrap) listWrap.style.display = 'none';
+      _renderChartView(vendorStats);
     } else {
-      if (barWrap) barWrap.style.display = '';
-      if (chartsWrap) chartsWrap.style.gridTemplateColumns = '1fr 1fr';
-      _renderBarChart(vendorStats);
+      if (chartsWrap) chartsWrap.style.gridTemplateColumns = '1fr';
+      if (chartviewWrap) chartviewWrap.style.display = 'none';
+      if (listWrap) listWrap.style.display = '';
+      // 차트뷰 인스턴스 정리
+      if (_state.charts.chartview) { try{_state.charts.chartview.destroy();}catch(e){} _state.charts.chartview = null; }
     }
     // 라인 차트는 더 이상 사용하지 않음 — 인스턴스 정리만
     if (_state.charts.line) { try{_state.charts.line.destroy();}catch(e){} _state.charts.line = null; }
@@ -12214,6 +12244,119 @@ window.__vendor = (function() {
     });
     html += '</div>';
     scroll.innerHTML = html;
+  }
+
+  // ── 차트뷰: Chart.js 막대 그래프 (x: 거래처명, y: 매출액) ──
+  // 'chart' displayMode 에서 사용. _state.charts.chartview 로 인스턴스 관리.
+  function _renderChartView(vendorStats) {
+    var canvas = document.getElementById('vendor-needle-chartview-canvas');
+    if (!canvas) return;
+    if (_state.charts.chartview) { try{_state.charts.chartview.destroy();}catch(e){} _state.charts.chartview = null; }
+
+    // 매출 큰 순 정렬
+    var top = vendorStats.slice().sort(function(a,b){ return b.cur - a.cur; });
+    var labels = top.map(function(v){ return v.name; });
+    var data   = top.map(function(v){ return v.cur || 0; });
+    var meta   = _CAT_META[_state.currentCat] || _CAT_META.needle;
+
+    // 타이틀 갱신
+    var titleEl = document.getElementById('vendor-needle-chartview-title');
+    if (titleEl) {
+      var vm = _state.viewMode || 'active';
+      var titleText;
+      if (vm === 'all')           titleText = '📊 거래처별 매출 그래프 (전체 ' + top.length + '곳)';
+      else if (vm === 'inactive') titleText = '📊 거래처별 매출 그래프 (비활성 ' + top.length + '곳)';
+      else                        titleText = '📊 거래처별 매출 그래프 (활성 ' + top.length + '곳)';
+      titleEl.textContent = titleText;
+    }
+
+    if (!top.length) {
+      // 빈 상태도 캔버스 영역에 메시지 표시
+      var parent = canvas.parentElement;
+      if (parent) {
+        parent.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#cbd5e1;font-size:13px">데이터 없음</div><canvas id="vendor-needle-chartview-canvas" style="display:none"></canvas>';
+      }
+      return;
+    }
+
+    _state.charts.chartview = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: '매출액',
+          data: data,
+          backgroundColor: meta.barFill,
+          borderColor: meta.barBorder,
+          borderWidth: 1,
+          borderRadius: 6,
+          maxBarThickness: 56
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 8, right: 8, bottom: 0, left: 0 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(15,23,42,0.95)',
+            titleColor: '#fff', bodyColor: '#fff',
+            padding: 10, displayColors: false,
+            callbacks: {
+              title: function(items){ return items[0].label; },
+              label: function(ctx){ return _fmtFull(ctx.parsed.y); }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: {
+              autoSkip: false,
+              maxRotation: labels.length > 6 ? 35 : 0,
+              minRotation: labels.length > 6 ? 35 : 0,
+              font: { size: 11, weight: '600' },
+              color: '#374151'
+            },
+            grid: { display: false }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(v){ return _fmtW(v); },
+              font: { size: 11 },
+              color: '#64748b'
+            },
+            grid: { color: '#f1f5f9' }
+          }
+        }
+      }
+    });
+  }
+
+  // 토글 버튼 시각 상태만 동기화 (render() 호출 X)
+  function _syncDisplayModeBtns(mode) {
+    var chartBtn = document.getElementById('vendor-view-chart-btn');
+    var tableBtn = document.getElementById('vendor-view-table-btn');
+    if (chartBtn) {
+      var active = mode === 'chart';
+      chartBtn.style.background  = active ? '#fff' : 'transparent';
+      chartBtn.style.color       = active ? '#0f172a' : '#fff';
+      chartBtn.style.fontWeight  = active ? '700' : '600';
+    }
+    if (tableBtn) {
+      var active2 = mode === 'table';
+      tableBtn.style.background  = active2 ? '#fff' : 'transparent';
+      tableBtn.style.color       = active2 ? '#0f172a' : '#fff';
+      tableBtn.style.fontWeight  = active2 ? '700' : '600';
+    }
+  }
+  // 차트/표 토글 — 헤더의 버튼에서 호출 (상태 변경 + 즉시 재렌더)
+  function setDisplayMode(mode) {
+    if (mode !== 'chart' && mode !== 'table') return;
+    _state.displayMode = mode;
+    _syncDisplayModeBtns(mode);
+    render();
   }
 
   function _renderRangeLineChart(rowsCat, rangeKeys, rangeLabel) {
@@ -12573,6 +12716,7 @@ window.__vendor = (function() {
     setRangePreset: setRangePreset,
     toggleAllVendors: toggleAllVendors,
     setViewMode: setViewMode,
+    setDisplayMode: setDisplayMode,
     toggleEditActive: toggleEditActive,
     toggleAddActive: toggleAddActive,
     _recomputeEditTotal: _recomputeEditTotal,
