@@ -11489,7 +11489,12 @@ window.__vendor = (function() {
     document.getElementById('vendor-add-amount').value = '';
     document.getElementById('vendor-add-name-drop').style.display = 'none';
     var srcInp = document.getElementById('vendor-add-source');
-    if (srcInp) srcInp.value = '';
+    if (srcInp) {
+      srcInp.value = '';
+      // 시스템 사업부 카테고리는 placeholder 를 'storic' 예시로 변경
+      var isSystemCat = (_CAT_DEPT && _CAT_DEPT[_state.currentCat] === 'system');
+      srcInp.placeholder = isSystemCat ? '예: storic' : '예: 광고 / 방송사 / 프로젝트명 등';
+    }
     var srcDrop = document.getElementById('vendor-add-source-drop');
     if (srcDrop) srcDrop.style.display = 'none';
     _refreshAddSourceOptions(_state.currentCat); // 자동완성 옵션 초기화
