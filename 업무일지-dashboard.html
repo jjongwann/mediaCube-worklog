@@ -10747,7 +10747,8 @@
           <div style="font-size:12px;font-weight:700;color:#0f172a">거래처 목록 <span id="vendor-needle-count" style="color:#94a3b8;font-weight:500;margin-left:4px"></span></div>
           <div style="font-size:10px;color:#94a3b8">기간 합계 ▼</div>
         </div>
-        <div id="vendor-needle-scroll" style="flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:auto;scrollbar-color:#84cc16 #ecfccb">
+        <!-- overflow-y:scroll → 거래처 < 11 곳이라도 스크롤바 영역을 항상 유지해 레이아웃 흔들림 방지 -->
+        <div id="vendor-needle-scroll" style="flex:1;overflow-y:scroll;overflow-x:hidden;scrollbar-width:auto;scrollbar-color:#84cc16 #ecfccb">
           <div id="vendor-needle-table"></div>
         </div>
       </div>
@@ -12013,7 +12014,8 @@ window.__vendor = (function() {
           + sparkCellHtml
           + editBtnHtml;
       }
-      return '<div style="display:grid;grid-template-columns:' + gridCols + ';gap:8px;padding:10px 14px;border-bottom:1px solid #f1f5f9;font-size:12px;align-items:center;transition:background .12s;background:' + rowBg + (showInactiveStyle ? ';opacity:0.9' : '') + '" onmouseover="this.style.background=\'#fafbfc\'" onmouseout="this.style.background=\'' + rowBg + '\'">'
+      // padding 10px → 12px 로 살짝 늘려 11개 행 기준 600px 가량 — 첫 페이지 11개 노출 후 스크롤
+      return '<div style="display:grid;grid-template-columns:' + gridCols + ';gap:8px;padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:12px;align-items:center;transition:background .12s;background:' + rowBg + (showInactiveStyle ? ';opacity:0.9' : '') + '" onmouseover="this.style.background=\'#fafbfc\'" onmouseout="this.style.background=\'' + rowBg + '\'">'
         + rowCells
         + '</div>';
     }).join('');
