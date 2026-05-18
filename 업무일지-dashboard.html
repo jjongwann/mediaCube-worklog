@@ -11946,13 +11946,13 @@ window.__vendor = (function() {
     }
     var hasPrev = prevRangeKeys.length === monthsCount && prevFromIdx >= 0;
     var isFreeBlanket = (cat === 'blanket_free');
-    // 무료 BLANKET은 매출 컬럼 모두 숨기고 거래처명 / 추이 영역만 표시
+    // 매출 발생처 컬럼 추가 (거래처명 옆) — 무료 BLANKET 도 동일하게 노출
     var gridCols = isFreeBlanket
-      ? '32px 1fr 80px 28px'
-      : '32px 1.4fr 1fr 1.1fr 90px 28px';
+      ? '32px 1fr 1fr 80px 28px'
+      : '32px 1.3fr 1fr 1fr 1.1fr 90px 28px';
     var headerCells = isFreeBlanket
-      ? '<div>#</div><div>거래처명</div><div style="text-align:center">상태</div><div></div>'
-      : '<div>#</div><div>거래처명</div><div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>';
+      ? '<div>#</div><div>거래처명</div><div>매출 발생처</div><div style="text-align:center">상태</div><div></div>'
+      : '<div>#</div><div>거래처명</div><div>매출 발생처</div><div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>';
     var rowsHtml = ''
       + '<div style="display:grid;grid-template-columns:' + gridCols + ';gap:8px;padding:10px 14px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;position:sticky;top:0;z-index:2">'
       +   headerCells
@@ -11988,19 +11988,26 @@ window.__vendor = (function() {
         + '<div style="font-weight:700;color:' + (showInactiveStyle ? '#475569' : '#0f172a') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .12s" onmouseover="this.style.color=\'#65a30d\'" onmouseout="this.style.color=\'' + (showInactiveStyle ? '#475569' : '#0f172a') + '\'">' + _esc(v.name) + inactiveChip + '</div>'
         + mgrChip
         + '</div>';
+      // 매출 발생처 셀 (현재 카테고리 기준 extra.source)
+      var srcVal = _getVendorSource(v.name, cat);
+      var sourceCellHtml = srcVal
+        ? '<div title="' + _esc(srcVal) + '" style="font-size:11.5px;color:#475569;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(srcVal) + '</div>'
+        : '<div style="font-size:11px;color:#cbd5e1">-</div>';
       var rowCells;
       if (isFreeBlanket) {
-        // 무료 BLANKET: 4 컬럼 (#, 거래처명, 상태, 수정)
+        // 무료 BLANKET: 5 컬럼 (#, 거래처명, 매출 발생처, 상태, 수정)
         var statusCell = isInactive
           ? '<div style="text-align:center"><span style="font-size:10px;color:#ea580c;background:#ffedd5;border:1px solid #fed7aa;border-radius:10px;padding:2px 8px;font-weight:700">비활성</span></div>'
           : '<div style="text-align:center"><span style="font-size:10px;color:#16a34a;background:#dcfce7;border:1px solid #bbf7d0;border-radius:10px;padding:2px 8px;font-weight:700">활성</span></div>';
         rowCells = '<div style="color:#94a3b8;font-weight:600">' + (idx+1) + '</div>'
           + nameCellHtml
+          + sourceCellHtml
           + statusCell
           + editBtnHtml;
       } else {
         rowCells = '<div style="color:#94a3b8;font-weight:600">' + (idx+1) + '</div>'
           + nameCellHtml
+          + sourceCellHtml
           + '<div style="text-align:right;font-weight:700;color:' + (v.cur > 0 ? '#0f172a' : '#cbd5e1') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (v.cur > 0 ? v.cur.toLocaleString() : '-') + '</div>'
           + '<div style="text-align:right;overflow:hidden">' + deltaHtml + '</div>'
           + sparkCellHtml
