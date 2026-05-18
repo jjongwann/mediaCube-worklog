@@ -10742,13 +10742,16 @@
         <div id="vendor-needle-bar-scroll" style="position:absolute;top:34px;left:0;right:0;bottom:0;overflow-y:scroll;overflow-x:hidden;padding:8px 4px 8px 12px"></div>
       </div>
       <!-- 우: 거래처 목록 -->
-      <div id="vendor-needle-list-wrap" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;display:flex;flex-direction:column;min-height:0;overflow:hidden">
-        <div style="padding:12px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <!-- position:relative + 내부 absolute 패턴: grid cell 의 height 자동 추론 실패로
+           scroll 컨테이너가 콘텐츠 높이만큼 부풀어 스크롤이 발동되지 않던 문제 해결.
+           bar-wrap / chartview-wrap 과 동일한 사이즈 보장 패턴. -->
+      <div id="vendor-needle-list-wrap" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;position:relative;min-height:0;overflow:hidden">
+        <div id="vendor-needle-list-header" style="position:absolute;top:0;left:0;right:0;padding:12px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#fff;z-index:2">
           <div style="font-size:12px;font-weight:700;color:#0f172a">거래처 목록 <span id="vendor-needle-count" style="color:#94a3b8;font-weight:500;margin-left:4px"></span></div>
           <div style="font-size:10px;color:#94a3b8">기간 합계 ▼</div>
         </div>
-        <!-- overflow-y:scroll → 거래처 < 11 곳이라도 스크롤바 영역을 항상 유지해 레이아웃 흔들림 방지 -->
-        <div id="vendor-needle-scroll" style="flex:1;overflow-y:scroll;overflow-x:hidden;scrollbar-width:auto;scrollbar-color:#84cc16 #ecfccb">
+        <!-- top:44px (헤더 높이 고정) ~ bottom:0 으로 절대 위치 → 스크롤 영역 높이가 항상 확정됨 -->
+        <div id="vendor-needle-scroll" style="position:absolute;top:44px;left:0;right:0;bottom:0;overflow-y:scroll;overflow-x:hidden;scrollbar-width:auto;scrollbar-color:#84cc16 #ecfccb">
           <div id="vendor-needle-table"></div>
         </div>
       </div>
