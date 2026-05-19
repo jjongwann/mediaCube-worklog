@@ -10732,7 +10732,7 @@
         <input type="text" id="vendor-needle-search" placeholder="거래처 검색..." oninput="__vendor.render()" style="flex:0 1 160px;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;outline:none">
         <select id="vendor-needle-manager" onchange="__vendor.render()" title="담당자 조회" style="padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none"></select>
         <select id="vendor-needle-source" onchange="__vendor.render()" title="매출 발생처 조회" style="padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
-        <button onclick="__vendor.refresh()" title="새로고침" style="padding:5px 10px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:7px;color:#fff;font-size:11px;cursor:pointer">↻ 새로고침</button>
+        <button id="vendor-needle-refresh-btn" onclick="__vendor.refresh()" title="새로고침" style="padding:5px 10px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:7px;color:#fff;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:opacity .15s"><span class="vendor-refresh-icon" style="display:inline-block">↻</span><span>새로고침</span></button>
       </div>
     </div>
     <!-- KPI 카드 -->
@@ -10779,6 +10779,17 @@
   .sales-month-drop-scroll::-webkit-scrollbar-track { background: transparent; }
   .sales-month-drop-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 100px; }
   .sales-month-drop-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  /* 거래처별 매출 분석 새로고침 버튼 회전 애니메이션 */
+  @keyframes vendorRefreshSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  #vendor-needle-refresh-btn.vendor-refresh-spinning .vendor-refresh-icon {
+    animation: vendorRefreshSpin 0.6s linear infinite;
+  }
+  #vendor-needle-refresh-btn:disabled { opacity: 0.7; cursor: wait; }
+  /* 콘텐츠 영역 페이드 트랜지션 (새로고침 시 시각적 피드백) */
+  #vendor-needle-charts-wrap { transition: opacity .25s ease; }
   /* 거래처별 매출 분석 - 공통 스크롤바 스타일 (카테고리 테마는 _applyCatTheme에서 동적 override) */
   #vendor-needle-scroll, #vendor-needle-bar-scroll {
     scrollbar-width: auto;
@@ -11500,9 +11511,39 @@ window.__vendor = (function() {
   }
 
   function refresh() {
+    var btn         = document.getElementById('vendor-needle-refresh-btn');
+    var chartsWrap  = document.getElementById('vendor-needle-charts-wrap');
+    var startTs     = Date.now();
+    var MIN_DELAY   = 350; // 최소 350ms 시각적 피드백 보장 (네트워크가 빨라도 사용자가 인지 가능)
+    // 1) 버튼 회전 + 비활성
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add('vendor-refresh-spinning');
+    }
+    // 2) 콘텐츠 영역 페이드 아웃
+    if (chartsWrap) chartsWrap.style.opacity = '0.35';
+
     fetchAll().then(function(){
-      if (_state.currentCat) render(_state.currentCat);
-      _toast('새로고침 완료');
+      var elapsed = Date.now() - startTs;
+      var wait = Math.max(0, MIN_DELAY - elapsed);
+      setTimeout(function(){
+        // 3) 재렌더 + 페이드 인
+        if (_state.currentCat) render(_state.currentCat);
+        if (chartsWrap) chartsWrap.style.opacity = '1';
+        // 4) 버튼 복원
+        if (btn) {
+          btn.disabled = false;
+          btn.classList.remove('vendor-refresh-spinning');
+        }
+        _toast('새로고침 완료');
+      }, wait);
+    }).catch(function(){
+      // 실패 시에도 UI 복원
+      if (chartsWrap) chartsWrap.style.opacity = '1';
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove('vendor-refresh-spinning');
+      }
     });
   }
 
