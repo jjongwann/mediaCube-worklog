@@ -2860,16 +2860,18 @@
       { key: '기타',            icon: '📌', color: '#64748b', bg: '#f1f5f9' }
     ];
 
-    // 2차 카테고리 구조 — 사운드 사업부 (기존)
+    // 2차 카테고리 구조 — 사운드 사업부 (NEEDLE, 유료/무료 BLANKET, CMO)
     var RISK_SUBCATS_SOUND = {
       '신규고객 확보': [
         { key: '유료 블랭킷',  icon: '💎', desc: '방송사, 광고 녹음실' },
         { key: '무료 블랭킷',  icon: '🆓', desc: '퍼포밍 목적 활성화' },
-        { key: 'Needle Drop', icon: '🎵', desc: '곡별 매출' }
+        { key: 'Needle Drop', icon: '🎵', desc: '곡별 매출' },
+        { key: 'CMO',         icon: '📣', desc: 'CMO 채널 거래처' }
       ],
       '기존 고객 관리': [
         { key: '무료 블랭킷',  icon: '🆓', desc: '퍼포밍 목적 활성화' },
-        { key: 'Needle Drop', icon: '🎵', desc: '곡별 매출' }
+        { key: 'Needle Drop', icon: '🎵', desc: '곡별 매출' },
+        { key: 'CMO',         icon: '📣', desc: 'CMO 채널 거래처' }
       ]
     };
 
@@ -3003,6 +3005,7 @@
       'Needle Drop': 'needle',
       '유료 블랭킷': 'blanket_paid',
       '무료 블랭킷': 'blanket_free',
+      'CMO':        'cmo',
       // 시스템 사업부 (6개)
       'AV Archiving':                'sys_archiving',
       'AV Restoration / Forensic':   'sys_restoration',

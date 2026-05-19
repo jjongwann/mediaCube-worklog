@@ -10610,7 +10610,7 @@
 <!-- 카테고리 선택 모달 -->
 <!-- 사운드 뷰: 4개 카드 / 시스템 뷰: 6개 카드 (openMenu(deptView) 에서 동적 토글) -->
 <div id="vendor-menu-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:99996;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)__vendor.closeMenu()">
-  <div style="background:#fff;border-radius:18px;max-width:760px;width:100%;padding:28px 30px;box-shadow:0 24px 70px rgba(0,0,0,0.3);font-family:inherit">
+  <div style="background:#fff;border-radius:18px;max-width:880px;width:100%;padding:28px 30px;box-shadow:0 24px 70px rgba(0,0,0,0.3);font-family:inherit">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
       <div>
         <div id="vendor-menu-title" style="font-size:16px;font-weight:800;color:#0f172a">거래처별 매출 분석</div>
@@ -10618,8 +10618,8 @@
       </div>
       <button onclick="__vendor.closeMenu()" style="background:#f1f5f9;border:none;border-radius:8px;color:#475569;font-size:18px;width:32px;height:32px;cursor:pointer">×</button>
     </div>
-    <!-- 사운드 사업부 카테고리 (기존 4개) -->
-    <div id="vendor-menu-sound-group" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+    <!-- 사운드 사업부 카테고리 (5개: NEEDLE, 유료 BLANKET, 무료 BLANKET, CMO, 신규 고객) -->
+    <div id="vendor-menu-sound-group" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">
       <button type="button" onclick="__vendor.pickCat('needle')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#84cc16';this.style.background='#f7fee7';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(132,204,22,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
         <div style="font-size:30px;margin-bottom:6px">🎵</div>
         <div style="font-size:13px;font-weight:800;color:#65a30d;margin-bottom:4px">NEEDLE</div>
@@ -10634,6 +10634,11 @@
         <div style="font-size:30px;margin-bottom:6px">🆓</div>
         <div style="font-size:13px;font-weight:800;color:#475569;margin-bottom:4px">무료 BLANKET</div>
         <div style="font-size:10px;color:#64748b;line-height:1.4">퍼포밍 활성화<br>거래처별 매출</div>
+      </button>
+      <button type="button" onclick="__vendor.pickCat('cmo')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#ec4899';this.style.background='#fdf2f8';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(236,72,153,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
+        <div style="font-size:30px;margin-bottom:6px">📣</div>
+        <div style="font-size:13px;font-weight:800;color:#db2777;margin-bottom:4px">CMO 매출</div>
+        <div style="font-size:10px;color:#64748b;line-height:1.4">CMO 채널<br>거래처별 매출</div>
       </button>
       <button type="button" onclick="__vendor.pickCat('new_customer')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#f59e0b';this.style.background='#fffbeb';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(245,158,11,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
         <div style="font-size:30px;margin-bottom:6px">🌟</div>
@@ -10995,6 +11000,14 @@ window.__vendor = (function() {
       lineFill: 'rgba(148,163,184,0.12)',
       scrollTrack: '#f1f5f9', scrollThumb: '#94a3b8', scrollThumbHover: '#64748b', scrollThumbActive: '#475569', scrollThumbBorder: '#f1f5f9'
     },
+    'cmo': {
+      name: 'CMO 매출 분석', icon: '📣', subtitle: 'CMO 채널 거래처별 매출',
+      gradFrom: '#db2777', gradTo: '#be185d',
+      primary: '#db2777', barFill: '#ec4899cc', barBorder: '#db2777',
+      bgLight: '#fdf2f8', borderLight: '#fbcfe8',
+      lineFill: 'rgba(236,72,153,0.12)',
+      scrollTrack: '#fce7f3', scrollThumb: '#f472b6', scrollThumbHover: '#ec4899', scrollThumbActive: '#db2777', scrollThumbBorder: '#fce7f3'
+    },
     'new_customer': {
       name: '신규 고객 (최근 1년)', icon: '🌟', subtitle: '최근 1년 이내 등록된 신규 거래처 (등록 후 365일 자동 만료)',
       gradFrom: '#f59e0b', gradTo: '#d97706',
@@ -11056,7 +11069,7 @@ window.__vendor = (function() {
 
   // 카테고리 → 부서 매핑 (메뉴 그룹 토글 / 데이터 격리 검증용)
   var _CAT_DEPT = {
-    needle: 'sound', blanket_paid: 'sound', blanket_free: 'sound', new_customer: 'sound',
+    needle: 'sound', blanket_paid: 'sound', blanket_free: 'sound', cmo: 'sound', new_customer: 'sound',
     sys_archiving: 'system', sys_restoration: 'system', sys_broadcast: 'system',
     sys_etc_as: 'system', sys_acoustic: 'system', sys_dolby: 'system'
   };
@@ -12073,7 +12086,8 @@ window.__vendor = (function() {
     var catLabels = {
       'needle': { label: 'NEEDLE', color: '#65a30d', bg: '#f7fee7', border: '#d9f99d' },
       'blanket_paid': { label: '유료 BLANKET', color: '#0891b2', bg: '#ecfeff', border: '#a5f3fc' },
-      'blanket_free': { label: '무료 BLANKET', color: '#475569', bg: '#f1f5f9', border: '#e2e8f0' }
+      'blanket_free': { label: '무료 BLANKET', color: '#475569', bg: '#f1f5f9', border: '#e2e8f0' },
+      'cmo': { label: 'CMO', color: '#db2777', bg: '#fdf2f8', border: '#fbcfe8' }
     };
 
     // 거래처별 최초 등록일 + 카테고리 + 매출 합계 수집
@@ -12126,7 +12140,7 @@ window.__vendor = (function() {
     var kpi = document.getElementById('vendor-needle-kpi');
     if (kpi) {
       // 카테고리별 카운트
-      var catCount = { needle: 0, blanket_paid: 0, blanket_free: 0 };
+      var catCount = { needle: 0, blanket_paid: 0, blanket_free: 0, cmo: 0 };
       list.forEach(function(v){ if (catCount[v.category] !== undefined) catCount[v.category]++; });
       // 총 매출 합계
       var totalSum = 0;
@@ -12143,7 +12157,7 @@ window.__vendor = (function() {
         + _kpiCard('🌟 신규 고객 수', list.length + '곳', '', '최근 365일 이내 등록', '#d97706', '#fffbeb', null)
         + _kpiCard('💰 누적 매출', _fmtW(totalSum), _fmtFull(totalSum), '신규 거래처 전체 합계', '#65a30d', '#f7fee7', null)
         + _kpiCard('🎵 NEEDLE / 💎 유료', catCount.needle + ' / ' + catCount.blanket_paid + ' 곳', '', 'NEEDLE / 유료 BLANKET 비율', '#0891b2', '#ecfeff', null)
-        + _kpiCard('🆓 무료', catCount.blanket_free + '곳', '', '무료 BLANKET 신규', '#64748b', '#f1f5f9', null);
+        + _kpiCard('🆓 무료 / 📣 CMO', catCount.blanket_free + ' / ' + catCount.cmo + ' 곳', '', '무료 BLANKET / CMO 신규', '#db2777', '#fdf2f8', null);
     }
 
     // 막대 차트는 숨기고 좌측 영역에 카테고리별 분포만 간단히 표시
