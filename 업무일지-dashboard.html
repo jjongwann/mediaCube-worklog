@@ -3505,12 +3505,24 @@
     renderList();
   }
 
-  // 직원별 업무 시간 차트의 월 필터 상태 ('' = 전체, 'YYYY-MM' = 특정 월)
-  var _empTaskMonthKey = '';
+  // 직원별 업무 시간 차트의 기간 필터 상태 ('' = 전체, 'YYYY-MM-DD' = 시작/종료일)
+  var _empTaskStartDate = '';
+  var _empTaskEndDate = '';
 
-  function setEmpTaskMonth(key) {
-    _empTaskMonthKey = key || '';
+  function setEmpTaskDateRange(start, end) {
+    _empTaskStartDate = start || '';
+    _empTaskEndDate = end || '';
     if (adminEmpFilter) renderEmpTaskTimeChart(adminEmpFilter);
+  }
+
+  function applyEmpTaskDateRange() {
+    var s = document.getElementById('emp-task-start-date');
+    var e = document.getElementById('emp-task-end-date');
+    setEmpTaskDateRange(s ? s.value : '', e ? e.value : '');
+  }
+
+  function clearEmpTaskDateRange() {
+    setEmpTaskDateRange('', '');
   }
 
   function renderEmpTaskTimeChart(uid) {
@@ -3518,17 +3530,17 @@
     if (!u) return;
     var all = journalCache;
     var uJournalsAll = all.filter(function(j){ return j.user_id === uid; });
-    // 월 필터 적용 — _empTaskMonthKey ('' 면 전체)
-    var uJournals = _empTaskMonthKey
-      ? uJournalsAll.filter(function(j){ return (j.date||'').substring(0,7) === _empTaskMonthKey; })
+    // 기간 필터 적용 — 둘 다 비면 전체
+    var sDate = _empTaskStartDate;
+    var eDate = _empTaskEndDate;
+    var uJournals = (sDate || eDate)
+      ? uJournalsAll.filter(function(j){
+          var d = (j.date || '');
+          if (sDate && d < sDate) return false;
+          if (eDate && d > eDate) return false;
+          return true;
+        })
       : uJournalsAll;
-
-    // 월 옵션 수집 (해당 직원이 작성한 모든 일지의 YYYY-MM, 최신순)
-    var monthSet = {};
-    uJournalsAll.forEach(function(j){
-      if (j.date && /^\d{4}-\d{2}/.test(j.date)) monthSet[j.date.substring(0,7)] = true;
-    });
-    var monthOpts = Object.keys(monthSet).sort().reverse();
 
     var taskMinsMap = {};
     uJournals.forEach(function(j) {
@@ -3548,25 +3560,33 @@
     var section = document.getElementById('emp-task-time-section');
     var content = document.getElementById('emp-tts-content');
 
-    // 월 필터 드롭다운 HTML (헤더 우측에 배치) — 데이터 유무 무관 항상 표시
-    var curKey = _empTaskMonthKey;
-    var monthSelHtml = '<select onchange="setEmpTaskMonth(this.value)" style="padding:5px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-weight:600;background:#fff;color:#374151;outline:none;cursor:pointer">'
-      + '<option value=""' + (curKey === '' ? ' selected' : '') + '>전체 기간</option>'
-      + monthOpts.map(function(k){
-          var p = k.split('-');
-          var label = p[0] + '년 ' + parseInt(p[1], 10) + '월';
-          return '<option value="' + k + '"' + (curKey === k ? ' selected' : '') + '>' + label + '</option>';
-        }).join('')
-      + '</select>';
+    // 기간 필터 (시작일 ~ 종료일) UI — 데이터 유무 무관 항상 표시
+    var hasRange = !!(sDate || eDate);
+    var inputStyle = 'padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-weight:600;background:#fff;color:#374151;outline:none;cursor:pointer';
+    var btnStyle = 'padding:5px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-weight:600;background:#fff;color:#374151;outline:none;cursor:pointer';
+    var applyBtnStyle = 'padding:5px 10px;border:1px solid #2563eb;border-radius:7px;font-size:12px;font-weight:600;background:#2563eb;color:#fff;outline:none;cursor:pointer';
+    var rangeHtml = '<span style="display:inline-flex;align-items:center;gap:6px">'
+      + '<input type="date" id="emp-task-start-date" value="' + sDate + '" style="' + inputStyle + '">'
+      + '<span style="color:var(--text-muted);font-size:12px">~</span>'
+      + '<input type="date" id="emp-task-end-date" value="' + eDate + '" style="' + inputStyle + '">'
+      + '<button onclick="applyEmpTaskDateRange()" style="' + applyBtnStyle + '">조회</button>'
+      + (hasRange ? '<button onclick="clearEmpTaskDateRange()" style="' + btnStyle + '">초기화</button>' : '')
+      + '</span>';
+
+    var rangeLabel = '';
+    if (sDate && eDate) rangeLabel = sDate + ' ~ ' + eDate + ' ';
+    else if (sDate) rangeLabel = sDate + ' 이후 ';
+    else if (eDate) rangeLabel = eDate + ' 이전 ';
+    else rangeLabel = '전체 ';
 
     if (!taskList.length) {
-      var emptyMsg = curKey
-        ? '<div style="text-align:center;color:var(--text-muted);padding:20px">선택한 월에 시간이 기록된 업무 내역이 없습니다.</div>'
+      var emptyMsg = hasRange
+        ? '<div style="text-align:center;color:var(--text-muted);padding:20px">선택한 기간에 시간이 기록된 업무 내역이 없습니다.</div>'
         : '<div style="text-align:center;color:var(--text-muted);padding:20px">시간이 기록된 업무 내역이 없습니다.</div>';
-      content.innerHTML = '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">'
+      content.innerHTML = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);flex-wrap:wrap">'
         + '<span style="font-size:15px;font-weight:700;color:var(--text-primary)">' + u.fullName + '</span>'
         + '<span style="font-size:12px;color:var(--text-muted)">(' + u.dept + ')</span>'
-        + '<span style="margin-left:auto">' + monthSelHtml + '</span>'
+        + '<span style="margin-left:auto">' + rangeHtml + '</span>'
         + '</div>' + emptyMsg;
       section.style.display = '';
       return;
@@ -3576,11 +3596,11 @@
     var totalMinsEmp = taskList.reduce(function(s,t){ return s+t.mins; }, 0);
     var BAR_COLS = ['#3b82f6','#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899'];
 
-    var html = '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">'
+    var html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);flex-wrap:wrap">'
       + '<span style="font-size:15px;font-weight:700;color:var(--text-primary)">' + u.fullName + '</span>'
       + '<span style="font-size:12px;color:var(--text-muted)">(' + u.dept + ')</span>'
-      + monthSelHtml
-      + '<span style="font-size:13px;font-weight:700;color:#d97706;margin-left:auto">' + (curKey ? curKey.split('-')[0]+'년 '+parseInt(curKey.split('-')[1],10)+'월 ' : '전체 ') + '총 ' + fmtDuration(totalMinsEmp) + '</span>'
+      + rangeHtml
+      + '<span style="font-size:13px;font-weight:700;color:#d97706;margin-left:auto">' + rangeLabel + '총 ' + fmtDuration(totalMinsEmp) + '</span>'
       + '</div>'
       + '<div style="display:flex;flex-direction:column;gap:10px">';
 
