@@ -3214,6 +3214,46 @@
       var fullKey = parentKey + ' - ' + subKey + ' - ' + vendorName;
       _applyRiskSelection(fullKey, parentKey, subKey, vendorName);
       closeRiskVendorModal();
+      // 신규고객 확보 플로우에서 기존 거래처를 선택하면, 해당 (cat, vendor) 의
+      // vendor_sales 행 중 하나에 extra.created_at 을 백필하여 신규 고객 패널에 노출되도록 보정
+      // - 365일 이내 created_at 이 이미 있는 행이 있으면 추가 작업 없음 (이미 노출됨)
+      // - 모든 행에 created_at 이 없으면, 가장 최근 행(updated_at desc)에 NOW 로 추가
+      // 사이드이펙트 검토:
+      //   · vendor_sales 테이블만 PATCH, 다른 테이블/집계 무영향
+      //   · 기존 extra 모든 필드(manager/source/active/count/source_journal_id 등) Object.assign 으로 보존
+      //   · created_at 이 이미 있으면 절대 덮어쓰지 않음 (365일 카운트 리셋 방지)
+      if (parentKey !== '신규고객 확보' || !_riskVendorDbCat || !vendorName) return;
+      var dbCat = _riskVendorDbCat;
+      var qUrl = SB_URL + '/rest/v1/vendor_sales'
+        + '?select=id,extra,updated_at'
+        + '&category=eq.' + encodeURIComponent(dbCat)
+        + '&vendor_name=eq.' + encodeURIComponent(vendorName)
+        + '&order=updated_at.desc';
+      fetch(qUrl, { headers: SB_HDR })
+        .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function(rows){
+          if (!Array.isArray(rows) || rows.length === 0) return;
+          var ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+          var nowTs = Date.now();
+          // 365일 이내 created_at 가진 행이 이미 있으면 작업 불필요
+          var alreadyVisible = rows.some(function(r){
+            if (!r.extra || !r.extra.created_at) return false;
+            var ts = new Date(r.extra.created_at).getTime();
+            return !isNaN(ts) && (nowTs - ts <= ONE_YEAR_MS);
+          });
+          if (alreadyVisible) return;
+          // 가장 최근(updated_at desc) 행에 created_at 백필
+          var target = rows[0];
+          var newExtra = Object.assign({}, target.extra || {}, { created_at: new Date().toISOString() });
+          return fetch(SB_URL + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(target.id), {
+            method: 'PATCH',
+            headers: Object.assign({}, SB_HDR, { 'Prefer': 'return=minimal' }),
+            body: JSON.stringify({ extra: newExtra })
+          });
+        })
+        .catch(function(e){
+          console.warn('selectRiskVendor backfill created_at failed', e);
+        });
     }
 
     // ── 4차 모달: 신규 거래처 추가 (신규고객 확보 전용) ──
@@ -3328,6 +3368,9 @@
             var newAmount = (existing.amount || 0) + amount;
             var patchExtra = Object.assign({}, existing.extra || {}, { active: activeFlag });
             if (source) patchExtra.source = source;
+            // 신규고객 확보 플로우로 PATCH 되는 경우, 신규 고객 패널에 노출되도록 created_at 백필
+            // (이미 존재하면 덮어쓰지 않음 → 365일 카운트 리셋 방지)
+            if (!patchExtra.created_at) patchExtra.created_at = new Date().toISOString();
             return fetch(SB_URL + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(existing.id), {
               method: 'PATCH',
               headers: Object.assign({}, SB_HDR, { 'Prefer': 'return=minimal' }),
