@@ -10923,9 +10923,17 @@
         </div>
       </div>
       <div id="vendor-add-amount-wrap">
-        <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">매출액 (원) *</label>
-        <input type="text" id="vendor-add-amount" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-weight:600" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
-        <div style="font-size:10px;color:#94a3b8;margin-top:4px">기존 거래처+동일 월 입력 시 매출이 합산됩니다.</div>
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">매출액 (원) *</label>
+            <input type="text" id="vendor-add-amount" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-weight:600" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">건 수</label>
+            <input type="text" id="vendor-add-count" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-weight:600" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
+          </div>
+        </div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:4px">기존 거래처+동일 월 입력 시 매출과 건 수가 합산됩니다.</div>
       </div>
       <!-- 매출 발생처 (선택 입력) — 카테고리 필터의 source 옵션과 연동됨 -->
       <div id="vendor-add-source-wrap">
@@ -11626,6 +11634,8 @@ window.__vendor = (function() {
     document.getElementById('vendor-add-month').value = String(new Date().getMonth()+1);
     document.getElementById('vendor-add-name').value = '';
     document.getElementById('vendor-add-amount').value = '';
+    var addCntEl = document.getElementById('vendor-add-count');
+    if (addCntEl) addCntEl.value = '';
     document.getElementById('vendor-add-name-drop').style.display = 'none';
     var srcInp = document.getElementById('vendor-add-source');
     if (srcInp) {
@@ -11781,6 +11791,10 @@ window.__vendor = (function() {
     var amountRaw = (document.getElementById('vendor-add-amount').value || '').replace(/,/g,'').trim();
     var amount = parseInt(amountRaw, 10);
     if (isNaN(amount) || amount < 0) amount = 0;
+    var countEl = document.getElementById('vendor-add-count');
+    var countRaw = (countEl ? countEl.value : '').replace(/,/g,'').trim();
+    var count = parseInt(countRaw, 10);
+    if (isNaN(count) || count < 0) count = 0;
     var sourceVal = (document.getElementById('vendor-add-source') || {}).value || '';
     var source = sourceVal.trim();
 
@@ -11810,8 +11824,11 @@ window.__vendor = (function() {
 
     if (existing) {
       var newAmount = (existing.amount || 0) + amount;
+      var existingCount = (existing.extra && existing.extra.count) || 0;
+      var newCount = existingCount + count;
       var patchExtra = Object.assign({}, existing.extra || {}, { active: activeFlag });
       if (source) patchExtra.source = source;
+      if (newCount > 0) patchExtra.count = newCount;
       fetch(sb.url + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(existing.id), {
         method: 'PATCH',
         headers: Object.assign({}, sb.hdr, { 'Prefer': 'return=minimal' }),
@@ -11838,6 +11855,7 @@ window.__vendor = (function() {
     } else {
       var initExtra = { active: activeFlag, created_at: new Date().toISOString() };
       if (source) initExtra.source = source;
+      if (count > 0) initExtra.count = count;
       var row = {
         id: _genId(),
         category: cat,
@@ -11924,8 +11942,10 @@ window.__vendor = (function() {
     // 거래처 집계 (전체 기간 보존)
     var byVendor = {};
     rowsCat.forEach(function(r){
-      if (!byVendor[r.vendor_name]) byVendor[r.vendor_name] = { months: {}, ids: {} };
+      if (!byVendor[r.vendor_name]) byVendor[r.vendor_name] = { months: {}, monthsCount: {}, ids: {} };
       byVendor[r.vendor_name].months[r.month_key] = (byVendor[r.vendor_name].months[r.month_key] || 0) + (r.amount || 0);
+      var _rc = (r.extra && r.extra.count) || 0;
+      byVendor[r.vendor_name].monthsCount[r.month_key] = (byVendor[r.vendor_name].monthsCount[r.month_key] || 0) + _rc;
       byVendor[r.vendor_name].ids[r.month_key] = r.id;
     });
 
@@ -11968,8 +11988,9 @@ window.__vendor = (function() {
 
     var vendorStats = vendorNames.map(function(n){
       var months = byVendor[n].months;
-      var cur = 0, prev = 0, allTime = 0;
-      rangeKeys.forEach(function(k){ cur += (months[k] || 0); });
+      var monthsCnt = byVendor[n].monthsCount || {};
+      var cur = 0, prev = 0, allTime = 0, curCount = 0;
+      rangeKeys.forEach(function(k){ cur += (months[k] || 0); curCount += (monthsCnt[k] || 0); });
       prevRangeKeys.forEach(function(k){ prev += (months[k] || 0); });
       Object.keys(months).forEach(function(k){ allTime += (months[k] || 0); });
 
@@ -11994,6 +12015,7 @@ window.__vendor = (function() {
       return {
         name: n,
         cur: cur,
+        curCount: curCount,
         prev: prev,
         delta: cur - prev,
         deltaPct: prev > 0 ? ((cur - prev)/prev * 100) : (cur > 0 ? null : 0),
@@ -12366,7 +12388,8 @@ window.__vendor = (function() {
       var marginTop = idx > 0 ? 'margin-top:6px;' : '';
       // 거래처명 컬럼 너비 90 → 180px, 막대 높이 18 → 22px, 행 높이 24 → 30px
       //  → 모달 너비 확장(1500px) + 컬럼 확대로 긴 거래처명도 잘리지 않음
-      html += '<div title="' + _esc(v.name) + ': ' + (v.cur > 0 ? _fmtFull(v.cur) : '0원') + '" style="' + marginTop + 'display:grid;grid-template-columns:180px 1fr 80px;gap:10px;align-items:center;font-size:12px;height:30px;box-sizing:border-box">'
+      var _cntStr = (v.curCount > 0) ? ' · ' + v.curCount.toLocaleString() + '건' : '';
+      html += '<div title="' + _esc(v.name) + ': ' + (v.cur > 0 ? _fmtFull(v.cur) : '0원') + _cntStr + '" style="' + marginTop + 'display:grid;grid-template-columns:180px 1fr 80px;gap:10px;align-items:center;font-size:12px;height:30px;box-sizing:border-box">'
         + '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151;font-weight:600">' + displayName + '</div>'
         + '<div style="position:relative;height:22px;background:#f1f5f9;border-radius:5px;overflow:hidden">'
           + (v.cur > 0
@@ -12461,7 +12484,12 @@ window.__vendor = (function() {
                 var idx = items[0].dataIndex;
                 return top[idx] ? top[idx].name : items[0].label;
               },
-              label: function(ctx){ return _fmtFull(ctx.parsed.y); }
+              label: function(ctx){
+                var v = top[ctx.dataIndex];
+                var lines = [_fmtFull(ctx.parsed.y)];
+                if (v && v.curCount > 0) lines.push('건 수: ' + v.curCount.toLocaleString() + '건');
+                return lines;
+              }
             }
           }
         },
@@ -12756,7 +12784,10 @@ window.__vendor = (function() {
       if (existing) {
         if (newAmt > 0) {
           var patchBody = { amount: newAmt, vendor_name: newName, updated_at: new Date().toISOString() };
-          if (mgrChanged || srcChanged || activeChanged) patchBody.extra = _buildExtra({ manager: ctx.prevManager, source: ctx.prevSource });
+          if (mgrChanged || srcChanged || activeChanged) {
+            var _origRow = _state.rows.find(function(rr){ return rr.id === existing.id; });
+            patchBody.extra = _buildExtra((_origRow && _origRow.extra) || { manager: ctx.prevManager, source: ctx.prevSource });
+          }
           ops.push({ type: 'patch', id: existing.id, body: patchBody });
           hasAnyRow = true;
         } else {
