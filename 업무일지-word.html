@@ -373,7 +373,13 @@
     }
 
     .col-task-name {
-      min-width: 200px;
+      width: 310px;
+      min-width: 310px;
+      max-width: 310px;
+    }
+
+    .col-task-detail {
+      min-width: 220px;
     }
 
     .col-task-hrs {
@@ -612,7 +618,8 @@
     }
 
     /* 상세보기(readonly) 에서 가로 스크롤 허용 */
-    .task-text[readonly] {
+    .task-text[readonly],
+    .task-detail[readonly] {
       overflow-x: auto;
       cursor: text;
       white-space: nowrap;
@@ -624,7 +631,8 @@
       white-space: nowrap;
     }
 
-    .task-text {
+    .task-text,
+    .task-detail {
       flex: 1;
       width: 100%;
       display: block;
@@ -639,6 +647,20 @@
       resize: none;
       overflow: hidden;
       min-height: 20px;
+    }
+
+    .task-text {
+      font-weight: 600;
+    }
+
+    .task-detail {
+      color: var(--text-secondary);
+    }
+
+    .task-detail::placeholder,
+    .task-text::placeholder {
+      color: #cbd5e1;
+      font-weight: 400;
     }
 
     /* ── 커스텀 시간 피커 ── */
@@ -1563,6 +1585,7 @@
             <th class="col-task-drag"></th>
             <th class="col-task-status">상태</th>
             <th class="col-task-name">업무명</th>
+            <th class="col-task-detail">업무 내용</th>
             <th class="col-task-hrs">시간 <span style="font-size:10px;font-weight:400;color:#9ca3af">(시작 ~ 종료)</span></th>
             <th class="col-task-del"></th>
           </tr>
@@ -1571,7 +1594,8 @@
           <tr class="task-item">
             <td class="col-task-drag" title="드래그하여 순서 변경">⠿</td>
             <td class="col-task-status"><span class="task-status status-todo">예정</span></td>
-            <td class="col-task-name"><textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea></td>
+            <td class="col-task-name"><textarea class="task-text" rows="1" placeholder="업무명 입력"></textarea></td>
+            <td class="col-task-detail"><textarea class="task-detail" rows="1" placeholder="업무 내용을 입력하세요"></textarea></td>
             <td class="col-task-hrs">
               <div class="time-range-wrap"><button type="button" class="t-time-btn t-start" data-val=""><span
                     class="t-time-label">--</span><svg width="9" height="6" viewBox="0 0 10 6">
@@ -2087,7 +2111,7 @@
           var stxt = STATUS_TEXT[t.status] || '예정';
           var tr = document.createElement('tr');
           tr.className = 'task-item';
-          tr.innerHTML = _taskRowHtml(scls, stxt, t.text, t.pct, t.startTime, t.endTime, true);
+          tr.innerHTML = _taskRowHtml(scls, stxt, t.text, t.pct, t.startTime, t.endTime, true, t.detail);
           taskList.appendChild(tr);
         });
         // readonly 모드: 총 작업 시간 계산
@@ -2391,16 +2415,27 @@
         var stxt = STATUS_TEXT[t.status] || '예정';
         var tr = document.createElement('tr');
         tr.className = 'task-item';
-        tr.innerHTML = _taskRowHtml(scls, stxt, t.text, t.pct, t.startTime, t.endTime, false);
+        tr.innerHTML = _taskRowHtml(scls, stxt, t.text, t.pct, t.startTime, t.endTime, false, t.detail);
         if (t.directive_id) tr.dataset.directiveId = t.directive_id;
         taskList.appendChild(tr);
-        var ta = tr.querySelector('textarea');
-        ta.value = t.text || '';
-        ta.addEventListener('input', function () {
-          this.style.height = 'auto';
-          this.style.height = this.scrollHeight + 'px';
-        });
-        ta.style.height = ta.scrollHeight + 'px';
+        var taName = tr.querySelector('.task-text');
+        var taDetail = tr.querySelector('.task-detail');
+        if (taName) {
+          taName.value = t.text || '';
+          taName.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+          });
+          taName.style.height = taName.scrollHeight + 'px';
+        }
+        if (taDetail) {
+          taDetail.value = t.detail || '';
+          taDetail.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+          });
+          taDetail.style.height = taDetail.scrollHeight + 'px';
+        }
         wireStatus(tr.querySelector('.task-status'));
         wireTimePicker(tr);
         initTaskDrag(tr);
@@ -2535,14 +2570,20 @@
       });
     }
 
-    function _taskRowHtml(scls, stxt, text, pct, startTime, endTime, readonly) {
+    function _taskRowHtml(scls, stxt, text, pct, startTime, endTime, readonly, detail) {
       var dis = readonly ? ' disabled' : '';
       var ro = readonly ? ' readonly' : '';
+      var safeText = (text || '').replace(/"/g, '&quot;');
+      var safeDetail = (detail || '').replace(/"/g, '&quot;');
       return (readonly ? '<td class="col-task-drag"></td>' : '<td class="col-task-drag" title="드래그하여 순서 변경">⠿</td>')
         + '<td class="col-task-status"><span class="task-status ' + scls + '">' + stxt + '</span></td>'
         + '<td class="col-task-name">' + (readonly
-          ? '<input type="text" class="task-text" value="' + (text || '').replace(/"/g, '&quot;') + '"' + ro + '>'
-          : '<textarea class="task-text" rows="1" placeholder="업무 내용을 입력하세요"></textarea>')
+          ? '<input type="text" class="task-text" value="' + safeText + '"' + ro + '>'
+          : '<textarea class="task-text" rows="1" placeholder="업무명 입력"></textarea>')
+        + '</td>'
+        + '<td class="col-task-detail">' + (readonly
+          ? '<input type="text" class="task-detail" value="' + safeDetail + '"' + ro + '>'
+          : '<textarea class="task-detail" rows="1" placeholder="업무 내용을 입력하세요"></textarea>')
         + '</td>'
         + '<td class="col-task-hrs"><div class="time-range-wrap">'
         + (readonly
@@ -2623,19 +2664,21 @@
       var tbody = document.getElementById('task-list');
       var tr = document.createElement('tr');
       tr.className = 'task-item';
-      tr.innerHTML = _taskRowHtml('status-todo', '예정', '', 0, '', '', false);
+      tr.innerHTML = _taskRowHtml('status-todo', '예정', '', 0, '', '', false, '');
       tbody.appendChild(tr);
       initTaskDrag(tr);
 
-      var ta = tr.querySelector('textarea');
-      ta.addEventListener('input', function () {
-        this.style.height = 'auto';
-        this.style.height = this.scrollHeight + 'px';
+      tr.querySelectorAll('textarea').forEach(function (ta) {
+        ta.addEventListener('input', function () {
+          this.style.height = 'auto';
+          this.style.height = this.scrollHeight + 'px';
+        });
       });
       wireStatus(tr.querySelector('.task-status'));
       wireTimePicker(tr);
       calcProgress();
-      ta.focus();
+      var firstTa = tr.querySelector('.task-text');
+      if (firstTa) firstTa.focus();
     }
 
     async function importPrevTasks() {
@@ -2697,15 +2740,25 @@
           var tr = document.createElement('tr');
           tr.className = 'task-item';
           // 시간(startTime, endTime)은 빈값으로 가져오기
-          tr.innerHTML = _taskRowHtml(scls, stxt, (t.text || '').trim(), 0, '', '', false);
+          tr.innerHTML = _taskRowHtml(scls, stxt, (t.text || '').trim(), 0, '', '', false, (t.detail || '').trim());
           tbody.appendChild(tr);
           initTaskDrag(tr);
-          var ta = tr.querySelector('textarea');
-          if (ta) {
-            ta.value = (t.text || '').trim();
-            ta.style.height = 'auto';
-            ta.style.height = ta.scrollHeight + 'px';
-            ta.addEventListener('input', function() {
+          var taName = tr.querySelector('.task-text');
+          if (taName) {
+            taName.value = (t.text || '').trim();
+            taName.style.height = 'auto';
+            taName.style.height = taName.scrollHeight + 'px';
+            taName.addEventListener('input', function() {
+              this.style.height = 'auto';
+              this.style.height = this.scrollHeight + 'px';
+            });
+          }
+          var taDetail = tr.querySelector('.task-detail');
+          if (taDetail) {
+            taDetail.value = (t.detail || '').trim();
+            taDetail.style.height = 'auto';
+            taDetail.style.height = taDetail.scrollHeight + 'px';
+            taDetail.addEventListener('input', function() {
               this.style.height = 'auto';
               this.style.height = this.scrollHeight + 'px';
             });
@@ -3394,8 +3447,10 @@
       var tasks = [];
       document.querySelectorAll('#task-list tr').forEach(function (tr) {
         var ta = tr.querySelector('.task-text');
+        var taDetail = tr.querySelector('.task-detail');
         var text = ta ? ta.value.trim() : '';
-        if (!text) return;
+        var detail = taDetail ? taDetail.value.trim() : '';
+        if (!text && !detail) return;
         var statusEl = tr.querySelector('.task-status');
         var taskStatus = 'todo';
         if (statusEl) {
@@ -3411,7 +3466,7 @@
         var endTime = (endBtn && endBtn.dataset) ? (endBtn.dataset.val || '') : '';
         var diffMins = calcTaskHrs(startTime, endTime) || 0;
         var hrs = diffMins ? Math.round(diffMins / 60 * 10) / 10 : 0;
-        var taskObj = { text: text, status: taskStatus, done: false, pct: pct, startTime: startTime, endTime: endTime, hrs: hrs };
+        var taskObj = { text: text, detail: detail, status: taskStatus, done: false, pct: pct, startTime: startTime, endTime: endTime, hrs: hrs };
         var dId = (tr.dataset && tr.dataset.directiveId) || '';
         if (dId) taskObj.directive_id = dId;
         tasks.push(taskObj);
@@ -3557,7 +3612,7 @@
             var v = (t.text || '').trim();
             if (v && !taskSeen.has(v) && !_blacklist.has(v)) {
               taskSeen.add(v);
-              taskSet.push({ text: v, startTime: t.start_time || t.startTime || '', endTime: t.end_time || t.endTime || '' });
+              taskSet.push({ text: v, detail: t.detail || '', startTime: t.start_time || t.startTime || '', endTime: t.end_time || t.endTime || '' });
             }
           });
           if (Array.isArray(r.work_progress)) r.work_progress.forEach(function (p) {
@@ -3671,23 +3726,32 @@
           acTarget = null; acList = []; acActiveIdx = -1;
           t.value = val;
           t.dispatchEvent(new Event('input', { bubbles: true }));
-          // 업무명인 경우: 시간도 함께 채우기
-          if (typeof item === 'object' && item.startTime && item.endTime) {
+          // 업무명인 경우: 시간 + 업무 내용도 함께 채우기
+          if (typeof item === 'object') {
             var row = t.closest('tr');
             if (row) {
-              var startBtn = row.querySelector('.t-start');
-              var endBtn = row.querySelector('.t-end');
-              if (startBtn) {
-                startBtn.dataset.val = item.startTime;
-                startBtn.querySelector('.t-time-label').textContent = item.startTime;
-                startBtn.classList.add('has-val');
+              if (item.detail) {
+                var detailEl = row.querySelector('.task-detail');
+                if (detailEl && !detailEl.value) {
+                  detailEl.value = item.detail;
+                  detailEl.dispatchEvent(new Event('input', { bubbles: true }));
+                }
               }
-              if (endBtn) {
-                endBtn.dataset.val = item.endTime;
-                endBtn.querySelector('.t-time-label').textContent = item.endTime;
-                endBtn.classList.add('has-val');
+              if (item.startTime && item.endTime) {
+                var startBtn = row.querySelector('.t-start');
+                var endBtn = row.querySelector('.t-end');
+                if (startBtn) {
+                  startBtn.dataset.val = item.startTime;
+                  startBtn.querySelector('.t-time-label').textContent = item.startTime;
+                  startBtn.classList.add('has-val');
+                }
+                if (endBtn) {
+                  endBtn.dataset.val = item.endTime;
+                  endBtn.querySelector('.t-time-label').textContent = item.endTime;
+                  endBtn.classList.add('has-val');
+                }
+                calcTotalTaskHrs();
               }
-              calcTotalTaskHrs();
             }
           }
           t.focus();
