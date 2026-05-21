@@ -955,8 +955,8 @@
   .detail-modal {
     background: #fff;
     border-radius: 16px;
-    width: 880px;
-    max-width: 92vw;
+    width: 1200px;
+    max-width: 94vw;
     box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 24px 64px rgba(0,0,0,0.12);
     overflow: hidden;
     animation: modal-in 0.18s cubic-bezier(.22,.61,.36,1);
@@ -4017,10 +4017,12 @@
 
       var totalTaskMins = calcTasksUnionMins(tasks);
 
+      var _escPrint = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
       var taskListHtml = tasks.length > 0
-        ? '<table class="task-table"><thead><tr>'
+        ? '<table class="task-table" style="table-layout:fixed"><thead><tr>'
             + '<th style="width:66px;text-align:center">상태</th>'
-            + '<th>업무명</th>'
+            + '<th style="width:240px">업무명</th>'
+            + '<th>업무 내용</th>'
             + '<th style="width:160px;text-align:center">시간 (시작 ~ 종료)</th>'
           + '</tr></thead><tbody>'
           + tasks.map(function(t) {
@@ -4030,7 +4032,8 @@
                 : '—';
               return '<tr>'
                 + '<td style="text-align:center"><span class="task-status ' + (STAT_CLS[t.status]||'status-todo') + '">' + (STAT_TXT[t.status]||'예정') + '</span></td>'
-                + '<td class="task-text-val">' + (t.text||'') + '</td>'
+                + '<td class="task-text-val" style="font-weight:600;word-break:break-word">' + _escPrint(t.text||'') + '</td>'
+                + '<td class="task-text-val" style="color:#475569;word-break:break-word;white-space:pre-wrap">' + _escPrint(t.detail||'') + '</td>'
                 + '<td class="task-time-val">' + timeStr + '</td>'
                 + '</tr>';
             }).join('')
@@ -4406,10 +4409,12 @@
     if (j.tasks && j.tasks.length > 0) {
       var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정' };
       var STATUS_CLS  = { done: 'sb-done', wip: 'sb-wip', issue: 'sb-issue', hold: 'sb-hold', todo: 'sb-todo' };
-      tasksList.innerHTML = '<table style="width:100%;border-collapse:collapse;margin-top:6px">'
+      var _escDetailHtml = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+      tasksList.innerHTML = '<table style="width:100%;border-collapse:collapse;margin-top:6px;table-layout:fixed">'
         + '<thead><tr>'
         + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:66px">상태</th>'
-        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:left">업무명</th>'
+        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:left;width:300px">업무명</th>'
+        + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:left">업무 내용</th>'
         + '<th style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 10px;font-size:11px;font-weight:700;color:#64748b;text-align:center;width:210px">시간 (시작 ~ 종료)</th>'
         + '</tr></thead><tbody>'
         + j.tasks.map(function(t) {
@@ -4421,7 +4426,8 @@
             : '—';
           return '<tr>'
             + '<td style="border:1px solid #e2e8f0;padding:6px 8px;text-align:center"><span class="status-badge ' + scls + '" style="font-size:10px;padding:2px 7px">' + stxt + '</span></td>'
-            + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;color:#0f172a">' + (t.text || '—') + '</td>'
+            + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;font-weight:600;color:#0f172a;word-break:break-word">' + _escDetailHtml(t.text || '—') + '</td>'
+            + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:13px;color:#475569;word-break:break-word;white-space:pre-wrap">' + _escDetailHtml(t.detail || '—') + '</td>'
             + '<td style="border:1px solid #e2e8f0;padding:6px 10px;font-size:12px;color:#374151;text-align:center;white-space:nowrap">' + timeStr + '</td>'
             + '</tr>';
         }).join('')
