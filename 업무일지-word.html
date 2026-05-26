@@ -2122,8 +2122,11 @@
         (function (tasks) {
           setTimeout(function () {
             try {
+              // 상태가 '완료'(done)인 업무만 총 작업 시간 합계에 반영 (레거시 done 불리언 폴백)
+              var _isDoneTask = function (t) { return (t.status || (t.done ? 'done' : 'todo')) === 'done'; };
               var roIntervals = [];
               tasks.forEach(function (t) {
+                if (!_isDoneTask(t)) return;
                 if (t.startTime && t.endTime) {
                   var sp = t.startTime.split(':'), ep = t.endTime.split(':');
                   if (sp.length >= 2 && ep.length >= 2) {
@@ -2136,6 +2139,7 @@
               var totalMins = roIntervals.length > 0 ? calcUnionMins(roIntervals) : 0;
               if (!totalMins) {
                 tasks.forEach(function (t) {
+                  if (!_isDoneTask(t)) return;
                   if (!t.startTime && t.hrs) totalMins += Math.round(parseFloat(t.hrs) * 60);
                 });
               }
@@ -2246,13 +2250,16 @@
         var startVal = startBtn.dataset ? startBtn.dataset.val : '';
         var endVal = endBtn.dataset ? endBtn.dataset.val : '';
         var mins = calcTaskHrs(startVal, endVal);
+        // 상태가 '완료'(status-done)인 업무만 총 작업 시간 합계에 반영.
+        // per-row 시간 배지(durEl)는 상태와 무관하게 시간 범위 표시 유지.
+        var statusEl = tr.querySelector('.task-status');
+        var isDone = !!(statusEl && statusEl.classList.contains('status-done'));
         if (durEl) {
           if (mins !== null) {
             durEl.textContent = fmtDuration(mins);
             durEl.classList.add('visible');
             var s = toMins(startVal), e = toMins(endVal);
-            if (s !== null && e !== null) intervals.push([s, e]);
-            hasAny = true;
+            if (isDone && s !== null && e !== null) { intervals.push([s, e]); hasAny = true; }
           } else {
             durEl.textContent = '';
             durEl.classList.remove('visible');
