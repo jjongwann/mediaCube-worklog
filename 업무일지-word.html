@@ -1615,7 +1615,7 @@
         <button class="add-btn" onclick="addTask()">+ 업무 항목 추가</button>
         <button class="add-btn" id="import-prev-btn" onclick="importPrevTasks()" style="background:#f0fdf4;color:#16a34a;border-color:#bbf7d0">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
-          직전일 미완료 가져오기
+          최근 일지 미완료 가져오기
         </button>
       </div>
     </div>
@@ -1673,7 +1673,7 @@
         <button class="add-btn" onclick="addProgressRow()">+ 업무 현황 추가</button>
         <button class="add-btn" id="import-prev-wp-btn" onclick="importPrevWorkProgress()" style="background:#f0fdf4;color:#16a34a;border-color:#bbf7d0">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:3px"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
-          직전일 업무현황 가져오기
+          최근 일지 업무현황 가져오기
         </button>
       </div>
     </div>
@@ -2690,17 +2690,12 @@
 
     async function importPrevTasks() {
       var btn = document.getElementById('import-prev-btn');
-      // 현재 작성일 기준 직전 영업일 계산
+      // 현재 작성일(doc-date) 이전에 작성된 '가장 최근 일지'를 기준으로 가져온다.
+      // 평일 계산을 쓰지 않으므로 공휴일·휴가 등으로 공백이 생겨도 실제 마지막 작성 일지에서 가져옴.
       var dateEl = document.getElementById('doc-date');
-      var baseDate = dateEl && dateEl.value ? new Date(dateEl.value + 'T00:00:00') : new Date();
-      var prev = new Date(baseDate);
-      prev.setDate(prev.getDate() - 1);
-      // 주말 건너뜀 (일→금, 토→금)
-      while (prev.getDay() === 0 || prev.getDay() === 6) prev.setDate(prev.getDate() - 1);
-      var yyyy = prev.getFullYear();
-      var mm = String(prev.getMonth() + 1).padStart(2, '0');
-      var dd = String(prev.getDate()).padStart(2, '0');
-      var prevDateStr = yyyy + '-' + mm + '-' + dd;
+      var baseDate = (dateEl && dateEl.value)
+        ? dateEl.value
+        : (function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
 
       // 버튼 로딩 상태
       var origText = btn.innerHTML;
@@ -2708,23 +2703,24 @@
       btn.textContent = '불러오는 중...';
 
       try {
-        // 현재 사용자의 직전일 일지 조회
-        var url = SB_URL + '/rest/v1/journals?select=tasks&date=eq.' + prevDateStr
+        // 현재 사용자의 작성일 이전(date < baseDate) 일지 중 가장 최근 날짜순 조회
+        var url = SB_URL + '/rest/v1/journals?select=date,tasks&date=lt.' + encodeURIComponent(baseDate)
           + (_userId ? '&user_id=eq.' + _userId : '')
-          + '&order=created_at.desc&limit=5';
+          + '&order=date.desc,created_at.desc&limit=20';
         var res = await fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } });
         var rows = await res.json();
 
         if (!Array.isArray(rows) || rows.length === 0) {
           btn.innerHTML = origText; btn.disabled = false; // 버튼 복원 후 종료 (불러오는 중... 멈춤 방지)
-          alert(prevDateStr + ' 날짜의 일지가 없습니다.');
+          alert('이전에 작성한 일지가 없습니다.');
           return;
         }
 
-        // 전체 일지에서 tasks 합산
+        // 가장 최근 일지의 날짜만 추출 → 같은 날짜의 여러 일지 tasks 합산
+        var latestDate = rows[0].date;
         var allTasks = [];
         rows.forEach(function(r) {
-          if (Array.isArray(r.tasks)) allTasks = allTasks.concat(r.tasks);
+          if (r.date === latestDate && Array.isArray(r.tasks)) allTasks = allTasks.concat(r.tasks);
         });
 
         // 완료(done) 제외 필터
@@ -2734,7 +2730,7 @@
 
         if (pendingTasks.length === 0) {
           btn.innerHTML = origText; btn.disabled = false; // 버튼 복원 후 종료
-          alert(prevDateStr + ' 날짜에 미완료 업무가 없습니다.');
+          alert('최근 일지(' + latestDate + ')에 미완료 업무가 없습니다.');
           return;
         }
 
@@ -2805,16 +2801,11 @@
     // - 비어있는 기존 행은 제거, 사용자가 입력한 행은 보존
     async function importPrevWorkProgress() {
       var btn = document.getElementById('import-prev-wp-btn');
+      // 현재 작성일(doc-date) 이전에 작성된 '가장 최근 일지'를 기준으로 가져온다.
       var dateEl = document.getElementById('doc-date');
-      var baseDate = dateEl && dateEl.value ? new Date(dateEl.value + 'T00:00:00') : new Date();
-      var prev = new Date(baseDate);
-      prev.setDate(prev.getDate() - 1);
-      // 주말 건너뜀 (일→금, 토→금)
-      while (prev.getDay() === 0 || prev.getDay() === 6) prev.setDate(prev.getDate() - 1);
-      var yyyy = prev.getFullYear();
-      var mm = String(prev.getMonth() + 1).padStart(2, '0');
-      var dd = String(prev.getDate()).padStart(2, '0');
-      var prevDateStr = yyyy + '-' + mm + '-' + dd;
+      var baseDate = (dateEl && dateEl.value)
+        ? dateEl.value
+        : (function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
 
       var origText = btn.innerHTML;
       var origBg = btn.style.background;
@@ -2822,22 +2813,23 @@
       btn.textContent = '불러오는 중...';
 
       try {
-        var url = SB_URL + '/rest/v1/journals?select=work_progress&date=eq.' + prevDateStr
+        var url = SB_URL + '/rest/v1/journals?select=date,work_progress&date=lt.' + encodeURIComponent(baseDate)
           + (_userId ? '&user_id=eq.' + _userId : '')
-          + '&order=created_at.desc&limit=5';
+          + '&order=date.desc,created_at.desc&limit=20';
         var res = await fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } });
         var rows = await res.json();
 
         if (!Array.isArray(rows) || rows.length === 0) {
           btn.innerHTML = origText; btn.style.background = origBg || '#f0fdf4'; btn.disabled = false;
-          alert(prevDateStr + ' 날짜의 일지가 없습니다.');
+          alert('이전에 작성한 일지가 없습니다.');
           return;
         }
 
-        // 모든 일지의 work_progress 합산
+        // 가장 최근 일지의 날짜만 추출 → 같은 날짜의 여러 일지 work_progress 합산
+        var latestDate = rows[0].date;
         var allWp = [];
         rows.forEach(function(r) {
-          if (Array.isArray(r.work_progress)) allWp = allWp.concat(r.work_progress);
+          if (r.date === latestDate && Array.isArray(r.work_progress)) allWp = allWp.concat(r.work_progress);
         });
 
         // 이름 또는 요약이 있는 유효 항목만
@@ -2847,7 +2839,7 @@
 
         if (validWp.length === 0) {
           btn.innerHTML = origText; btn.style.background = origBg || '#f0fdf4'; btn.disabled = false;
-          alert(prevDateStr + ' 날짜에 업무 추진 현황 항목이 없습니다.');
+          alert('최근 일지(' + latestDate + ')에 업무 추진 현황 항목이 없습니다.');
           return;
         }
 
@@ -2858,7 +2850,7 @@
         });
         if (!hasIncomplete) {
           btn.innerHTML = origText; btn.style.background = origBg || '#f0fdf4'; btn.disabled = false;
-          alert(prevDateStr + ' 직전일 업무 추진 현황이 모두 100% 완료되었습니다.\n가져올 항목이 없습니다.');
+          alert('최근 일지(' + latestDate + ')의 업무 추진 현황이 모두 100% 완료되었습니다.\n가져올 항목이 없습니다.');
           return;
         }
 
