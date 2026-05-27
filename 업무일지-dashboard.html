@@ -12317,6 +12317,11 @@ window.__vendor = (function() {
 
     var list = Object.keys(byVendor).map(function(k){ return byVendor[k]; });
 
+    // 담당자 보정: 신규 고객 행(created_at 보유)에 manager 가 없을 수 있으므로
+    // (담당자가 created_at 없는 다른 행에 저장된 경우), 일반 render·수정모달과 동일하게
+    // _getVendorManager(전체 행 검색)로 폴백하여 담당자 필터/표기가 일관되게 동작하도록 보정.
+    list.forEach(function(v){ if (!v.manager) v.manager = _getVendorManager(v.name); });
+
     // 검색 필터
     if (searchQ) {
       list = list.filter(function(v){ return v.name.toLowerCase().indexOf(searchQ) !== -1; });
