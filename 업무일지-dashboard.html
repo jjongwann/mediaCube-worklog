@@ -11265,11 +11265,26 @@ window.__vendor = (function() {
   // 현재 카테고리에서 사용된 모든 매출 발생처 목록 (중복 제거, 정렬)
   function _collectSources(cat) {
     var seen = {};
+    // 신규 고객(new_customer)은 가상 카테고리 — 사운드 사업부 전 카테고리의
+    // 등록일 365일 이내 신규 거래처 행에서 매출 발생처를 수집한다.
+    var isNewCustomer = (cat === 'new_customer');
+    var ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+    var nowTs = Date.now();
     _state.rows.forEach(function(r){
-      if (r.category === cat && r.extra && r.extra.source) {
-        var s = String(r.extra.source).trim();
-        if (s) seen[s] = true;
+      if (!r.extra || !r.extra.source) return;
+      var matched;
+      if (isNewCustomer) {
+        if (_CAT_DEPT[r.category] !== 'sound') return;
+        if (!r.extra.created_at) return;
+        var ts = new Date(r.extra.created_at).getTime();
+        if (isNaN(ts) || (nowTs - ts) > ONE_YEAR_MS) return;
+        matched = true;
+      } else {
+        matched = (r.category === cat);
       }
+      if (!matched) return;
+      var s = String(r.extra.source).trim();
+      if (s) seen[s] = true;
     });
     return Object.keys(seen).sort(function(a,b){ return a.localeCompare(b, 'ko'); });
   }
@@ -12278,6 +12293,7 @@ window.__vendor = (function() {
     var byVendor = {}; // key: vendor_name|category
     var searchQ = (document.getElementById('vendor-needle-search').value || '').trim().toLowerCase();
     var mgrFilter = (document.getElementById('vendor-needle-manager').value || '').trim();
+    var srcFilter = ((document.getElementById('vendor-needle-source') || {}).value || '').trim();
 
     _state.rows.forEach(function(r){
       if (!r.extra || !r.extra.created_at) return;
@@ -12329,6 +12345,10 @@ window.__vendor = (function() {
     // 담당자 필터
     if (mgrFilter) {
       list = list.filter(function(v){ return v.manager === mgrFilter; });
+    }
+    // 매출 발생처 필터
+    if (srcFilter) {
+      list = list.filter(function(v){ return (v.source || '') === srcFilter; });
     }
 
     // 등록일 빠른 순 (최근 등록일 → 오래된 등록일 순으로 정렬)
