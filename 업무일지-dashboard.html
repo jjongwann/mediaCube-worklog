@@ -11491,8 +11491,8 @@ window.__vendor = (function() {
     // 모달 진입 시 항상 '표' 뷰를 기본으로 노출 (사용자는 상단 토글로 차트 전환 가능)
     _state.displayMode = 'table';
     _applyCatTheme(cat);
-    _populateYearSel('vendor-needle-from-year');
-    _populateYearSel('vendor-needle-to-year');
+    _populateYearSel('vendor-needle-from-year', 2030);
+    _populateYearSel('vendor-needle-to-year', 2030);
     _populateManagerSel('vendor-needle-manager', true, cat);
     _populateSourceSel(cat);
     // 기본값: 올해 1월 ~ 올해 12월
@@ -11682,7 +11682,8 @@ window.__vendor = (function() {
     var addYearSel = document.getElementById('vendor-add-year');
     var now = new Date().getFullYear();
     addYearSel.innerHTML = '';
-    for (var y = now-2; y <= now+1; y++) {
+    var addYearTop = Math.max(now + 1, 2030); // 매출 등록 가능 연도 상한: 2030년
+    for (var y = now-2; y <= addYearTop; y++) {
       var opt = document.createElement('option');
       opt.value = y; opt.textContent = y + '년';
       if (y === now) opt.selected = true;
