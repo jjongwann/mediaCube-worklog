@@ -11527,7 +11527,7 @@ window.__vendor = (function() {
     if (_state.charts.line) { try{_state.charts.line.destroy();}catch(e){} _state.charts.line = null; }
   }
 
-  function _populateYearSel(id) {
+  function _populateYearSel(id, maxYear) {
     var sel = document.getElementById(id);
     if (!sel) return;
     var now = new Date().getFullYear();
@@ -11537,6 +11537,9 @@ window.__vendor = (function() {
       if (y) years[y] = true;
     });
     years[now] = true; years[now-1] = true; years[now+1] = true;
+    // 미래 연도 상한 옵션 (예: 수정 모달은 2030년까지 매출 등록 가능)
+    var top = maxYear || (now + 1);
+    for (var fy = now + 1; fy <= top; fy++) years[fy] = true;
     var arr = Object.keys(years).map(Number).sort(function(a,b){ return b-a; });
     sel.innerHTML = arr.map(function(y){ return '<option value="'+y+'">'+y+'년</option>'; }).join('');
   }
@@ -12843,7 +12846,7 @@ window.__vendor = (function() {
 
     // 연도 셀렉터 채우기 + 기본값(현재 필터 종료연도) → 해당 연도 월별 로드
     var initYear = parseInt(document.getElementById('vendor-needle-to-year').value) || new Date().getFullYear();
-    _populateYearSel('vendor-edit-year');
+    _populateYearSel('vendor-edit-year', 2030); // 수정 모달은 2030년까지 선택 가능
     var yearSel = document.getElementById('vendor-edit-year');
     if (yearSel) yearSel.value = String(initYear);
     _editLoadYear(initYear);
