@@ -11087,7 +11087,7 @@ window.__vendor = (function() {
     currentCat: null,  // 'needle' | 'blanket_paid' | 'blanket_free' | 'sys_*' (6종)
     charts: { bar: null, line: null, chartview: null },
     viewMode: 'active', // 'active' | 'all' | 'inactive'
-    displayMode: 'chart' // 'chart' (Chart.js 막대 그래프 단독) | 'table' (표 단독)
+    displayMode: 'table' // 'chart' (Chart.js 막대 그래프 단독) | 'table' (표 단독) — 기본값: 표
   };
 
   // 카테고리별 시각 테마
@@ -11488,6 +11488,8 @@ window.__vendor = (function() {
   // ── 패널 열기 (모든 카테고리 공용) ──
   function openPanel(cat) {
     _state.currentCat = cat;
+    // 모달 진입 시 항상 '표' 뷰를 기본으로 노출 (사용자는 상단 토글로 차트 전환 가능)
+    _state.displayMode = 'table';
     _applyCatTheme(cat);
     _populateYearSel('vendor-needle-from-year');
     _populateYearSel('vendor-needle-to-year');
