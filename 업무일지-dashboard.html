@@ -4275,6 +4275,22 @@
     });
   }
 
+  // 신규 등록일(extra.created_at) 변환 헬퍼
+  // 'YYYY-MM-DD' → 로컬 자정 기준 ISO 문자열 (빈 값/오류 시 현재 시각)
+  function _regDateToIso(dateStr) {
+    if (!dateStr) return new Date().toISOString();
+    var d = new Date(dateStr + 'T00:00:00');
+    if (isNaN(d.getTime())) return new Date().toISOString();
+    return d.toISOString();
+  }
+  // ISO 문자열 → date input 용 'YYYY-MM-DD' (로컬 기준)
+  function _isoToDateInput(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+
   function fmtDateShort(d) {
     var mm = d.getMonth()+1, dd = d.getDate();
     return d.getFullYear() + '.' + (mm<10?'0'+mm:mm) + '.' + (dd<10?'0'+dd:dd);
@@ -10933,6 +10949,11 @@
           </select>
         </div>
       </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">신규 등록일 <span style="font-size:10px;font-weight:400;color:#94a3b8">(신규 고객 1년 기준일)</span></label>
+        <input type="date" id="vendor-add-regdate" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
+        <div style="font-size:10px;color:#94a3b8;margin-top:4px">이 날짜부터 1년간 '신규 고객' 패널에 노출됩니다. (기본: 오늘)</div>
+      </div>
       <div id="vendor-add-amount-wrap">
         <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px">
           <div>
@@ -11001,6 +11022,11 @@
       <div style="display:flex;align-items:center;gap:10px">
         <label style="font-size:11px;font-weight:700;color:#475569;width:48px;flex-shrink:0">담당자</label>
         <select id="vendor-edit-manager" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none;background:#fff" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'"></select>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <label style="font-size:11px;font-weight:700;color:#475569;width:48px;flex-shrink:0">등록일</label>
+        <input type="date" id="vendor-edit-regdate" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
+        <span style="font-size:10px;color:#94a3b8;flex-shrink:0">신규 고객 1년 기준</span>
       </div>
       <!-- 매출 발생처 (선택 입력) -->
       <div style="display:flex;align-items:center;gap:10px;position:relative">
@@ -11647,6 +11673,9 @@ window.__vendor = (function() {
     document.getElementById('vendor-add-amount').value = '';
     var addCntEl = document.getElementById('vendor-add-count');
     if (addCntEl) addCntEl.value = '';
+    // 신규 등록일 기본값: 오늘
+    var addRegEl = document.getElementById('vendor-add-regdate');
+    if (addRegEl) addRegEl.value = _isoToDateInput(new Date().toISOString());
     document.getElementById('vendor-add-name-drop').style.display = 'none';
     var srcInp = document.getElementById('vendor-add-source');
     if (srcInp) {
@@ -11808,6 +11837,9 @@ window.__vendor = (function() {
     if (isNaN(count) || count < 0) count = 0;
     var sourceVal = (document.getElementById('vendor-add-source') || {}).value || '';
     var source = sourceVal.trim();
+    // 신규 등록일 → created_at (비어있으면 오늘)
+    var regEl = document.getElementById('vendor-add-regdate');
+    var createdAtIso = _regDateToIso(regEl ? regEl.value : '');
 
     // 신규 고객 모드: 드롭다운에서 실제 카테고리(needle/blanket_paid/blanket_free) 결정
     var viewCat = _state.currentCat; // 저장 후 리렌더할 패널 (신규 고객 패널 유지용)
@@ -11840,6 +11872,8 @@ window.__vendor = (function() {
       var patchExtra = Object.assign({}, existing.extra || {}, { active: activeFlag });
       if (source) patchExtra.source = source;
       if (newCount > 0) patchExtra.count = newCount;
+      // 기존 행 합산 시: created_at 이 없을 때만 선택한 등록일로 백필 (기존 등록일 보존)
+      if (!patchExtra.created_at) patchExtra.created_at = createdAtIso;
       fetch(sb.url + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(existing.id), {
         method: 'PATCH',
         headers: Object.assign({}, sb.hdr, { 'Prefer': 'return=minimal' }),
@@ -11864,7 +11898,7 @@ window.__vendor = (function() {
         }
       }).catch(function(e){ console.error(e); _toast('네트워크 오류'); });
     } else {
-      var initExtra = { active: activeFlag, created_at: new Date().toISOString() };
+      var initExtra = { active: activeFlag, created_at: createdAtIso };
       if (source) initExtra.source = source;
       if (count > 0) initExtra.count = count;
       var row = {
@@ -12669,13 +12703,25 @@ window.__vendor = (function() {
     }
     var curActive = (explicitActive !== null) ? explicitActive : defaultActive;
 
-    _editCtx = { vendorName: name, year: year, category: cat, monthRows: monthRows, prevManager: curMgr, prevSource: curSrc, prevActive: explicitActive, curActive: curActive };
+    // 등록일(created_at): 해당 거래처(전 년도 포함)의 가장 이른 created_at 기준 (신규 고객 패널과 동일 로직)
+    var earliestIso = null;
+    _state.rows.filter(function(r){ return r.category === cat && r.vendor_name === name; }).forEach(function(r){
+      if (r.extra && r.extra.created_at) {
+        if (!earliestIso || r.extra.created_at < earliestIso) earliestIso = r.extra.created_at;
+      }
+    });
+    var curRegDate = _isoToDateInput(earliestIso);
+
+    _editCtx = { vendorName: name, year: year, category: cat, monthRows: monthRows, prevManager: curMgr, prevSource: curSrc, prevActive: explicitActive, curActive: curActive, prevRegDate: curRegDate };
 
     document.getElementById('vendor-edit-name').textContent = name;
     document.getElementById('vendor-edit-year-badge').textContent = year + '년';
     document.getElementById('vendor-edit-name-input').value = name;
     _populateManagerSel('vendor-edit-manager', false, cat);
     document.getElementById('vendor-edit-manager').value = curMgr || '';
+    // 등록일 pre-fill (없으면 빈 값 — 저장 시 변경하지 않으면 그대로 유지)
+    var editRegEl = document.getElementById('vendor-edit-regdate');
+    if (editRegEl) editRegEl.value = curRegDate || '';
     // 매출 발생처 pre-fill + 자동완성 옵션 새로고침
     var editSrcInp = document.getElementById('vendor-edit-source');
     if (editSrcInp) editSrcInp.value = curSrc || '';
@@ -12774,17 +12820,24 @@ window.__vendor = (function() {
     var srcChanged = (newSrc || '') !== (ctx.prevSource || '');
     var newActive = ctx.curActive;
     var activeChanged = (ctx.prevActive !== newActive);
+    // 등록일(created_at): 비어있지 않고 기존과 다르면 변경으로 간주 (빈 값으로 지우면 기존 유지)
+    var newRegStr = ((document.getElementById('vendor-edit-regdate') || {}).value || '').trim();
+    var regChanged = !!newRegStr && (newRegStr !== (ctx.prevRegDate || ''));
+    var newRegIso = regChanged ? _regDateToIso(newRegStr) : null;
+    // 신규 생성 행에 부여할 등록일 (변경값 우선, 없으면 기존 등록일 유지)
+    var effectiveRegIso = newRegStr ? _regDateToIso(newRegStr) : (ctx.prevRegDate ? _regDateToIso(ctx.prevRegDate) : null);
 
     var sb = _getSb();
     var ops = []; // [{type, ...}]
     var hasAnyRow = false; // 거래처에 행이 하나라도 남아있는지 추적
 
-    // 새 extra 빌드 (담당자 + active + 매출 발생처)
+    // 새 extra 빌드 (담당자 + active + 매출 발생처 + 등록일)
     function _buildExtra(baseExtra) {
       var ex = Object.assign({}, baseExtra || {});
       if (mgrChanged) ex.manager = newMgr;
       if (srcChanged) ex.source = newSrc;
       if (activeChanged) ex.active = newActive;
+      if (regChanged) ex.created_at = newRegIso;
       return ex;
     }
 
@@ -12810,7 +12863,7 @@ window.__vendor = (function() {
       if (existing) {
         if (newAmt > 0) {
           var patchBody = { amount: newAmt, vendor_name: newName, updated_at: new Date().toISOString() };
-          if (mgrChanged || srcChanged || activeChanged || cntChanged) {
+          if (mgrChanged || srcChanged || activeChanged || cntChanged || regChanged) {
             var _origRow = _state.rows.find(function(rr){ return rr.id === existing.id; });
             var baseExtra = (_origRow && _origRow.extra) ? Object.assign({}, _origRow.extra) : { manager: ctx.prevManager, source: ctx.prevSource };
             var nextExtra = _buildExtra(baseExtra);
@@ -12828,6 +12881,8 @@ window.__vendor = (function() {
         if (newMgr) newExtra.manager = newMgr;
         if (newSrc) newExtra.source = newSrc;
         if (newCnt > 0) newExtra.count = newCnt;
+        // 신규 생성 행에도 거래처 등록일 부여 (신규 고객 패널 일관성)
+        if (!newExtra.created_at && effectiveRegIso) newExtra.created_at = effectiveRegIso;
         ops.push({ type: 'post', body: { id: _genId(), category: ctx.category, vendor_name: newName, month_key: monthKey, amount: newAmt, extra: newExtra, updated_at: new Date().toISOString() } });
         hasAnyRow = true;
       }
@@ -12842,11 +12897,12 @@ window.__vendor = (function() {
       var body = { updated_at: new Date().toISOString() };
       var changed = false;
       if (newName !== ctx.vendorName) { body.vendor_name = newName; changed = true; }
-      if (mgrChanged || srcChanged || activeChanged) {
+      if (mgrChanged || srcChanged || activeChanged || regChanged) {
         var ex = Object.assign({}, r.extra || {});
         if (mgrChanged) ex.manager = newMgr;
         if (srcChanged) ex.source = newSrc;
         if (activeChanged) ex.active = newActive;
+        if (regChanged) ex.created_at = newRegIso;
         body.extra = ex;
         changed = true;
       }
@@ -12854,12 +12910,13 @@ window.__vendor = (function() {
       hasAnyRow = true;
     });
 
-    // 행이 하나도 남지 않는데 active/담당자/발생처 변경이 필요한 경우 → 자리표시용 0원 행 생성 (1월)
-    if (!hasAnyRow && (activeChanged || mgrChanged || srcChanged)) {
+    // 행이 하나도 남지 않는데 active/담당자/발생처/등록일 변경이 필요한 경우 → 자리표시용 0원 행 생성 (1월)
+    if (!hasAnyRow && (activeChanged || mgrChanged || srcChanged || regChanged)) {
       var placeholderExtra = {};
       if (newMgr) placeholderExtra.manager = newMgr;
       if (newSrc) placeholderExtra.source = newSrc;
       placeholderExtra.active = newActive;
+      if (effectiveRegIso) placeholderExtra.created_at = effectiveRegIso;
       ops.push({ type: 'post', body: { id: _genId(), category: ctx.category, vendor_name: newName, month_key: ctx.year + '-1', amount: 0, extra: placeholderExtra, updated_at: new Date().toISOString() } });
     }
 
