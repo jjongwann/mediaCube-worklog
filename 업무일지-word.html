@@ -1806,6 +1806,11 @@
                   </select>
                 </div>
               </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">신규 등록일 <span style="font-size:10px;font-weight:400;color:#94a3b8">(신규 고객 1년 기준일)</span></label>
+                <input type="date" id="risk-newvendor-regdate" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;transition:border-color .12s" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
+                <div style="font-size:10px;color:#94a3b8;margin-top:4px">이 날짜부터 1년간 '신규 고객' 패널에 노출됩니다. (기본: 오늘)</div>
+              </div>
               <div id="risk-newvendor-amount-wrap">
                 <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">매출액 (원) *</label>
                 <input type="text" id="risk-newvendor-amount" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-weight:600;transition:border-color .12s" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
@@ -3280,6 +3285,9 @@
       document.getElementById('risk-newvendor-month').value = String(now.getMonth()+1);
       document.getElementById('risk-newvendor-name').value = '';
       document.getElementById('risk-newvendor-amount').value = '';
+      // 신규 등록일 기본값: 오늘
+      var regInp = document.getElementById('risk-newvendor-regdate');
+      if (regInp) regInp.value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
       var srcInp = document.getElementById('risk-newvendor-source');
       if (srcInp) srcInp.value = '';
 
@@ -3348,6 +3356,13 @@
       var amount = parseInt(amountRaw, 10);
       if (isNaN(amount) || amount < 0) amount = 0;
       var source = ((document.getElementById('risk-newvendor-source') || {}).value || '').trim();
+      // 신규 등록일 → created_at (비어있으면 오늘). 대시보드 거래처별 매출 분석의 등록일 입력과 동일 의미.
+      var regVal = ((document.getElementById('risk-newvendor-regdate') || {}).value || '').trim();
+      var createdAtIso = (function(){
+        if (!regVal) return new Date().toISOString();
+        var d = new Date(regVal + 'T00:00:00');
+        return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+      })();
       if (!name) { alert('거래처명을 입력하세요'); return; }
       if (!year || !month) { alert('년도/월을 선택하세요'); return; }
 
@@ -3360,7 +3375,7 @@
       var newRowId = null; // POST 분기로 새로 생성된 row id (PATCH 분기면 null)
 
       // 동일 (cat, name, monthKey) 행 존재 여부 먼저 조회
-      var qUrl = SB_URL + '/rest/v1/vendor_sales?select=id,amount&category=eq.' + encodeURIComponent(dbCat)
+      var qUrl = SB_URL + '/rest/v1/vendor_sales?select=id,amount,extra&category=eq.' + encodeURIComponent(dbCat)
         + '&vendor_name=eq.' + encodeURIComponent(name)
         + '&month_key=eq.' + encodeURIComponent(monthKey);
       fetch(qUrl, { headers: SB_HDR })
@@ -3370,11 +3385,12 @@
           var existing = (Array.isArray(rows) && rows.length > 0) ? rows[0] : null;
           if (existing) {
             var newAmount = (existing.amount || 0) + amount;
+            // 기존 extra 모든 필드(manager/source/count 등) 보존 후 active/source 갱신
             var patchExtra = Object.assign({}, existing.extra || {}, { active: activeFlag });
             if (source) patchExtra.source = source;
             // 신규고객 확보 플로우로 PATCH 되는 경우, 신규 고객 패널에 노출되도록 created_at 백필
             // (이미 존재하면 덮어쓰지 않음 → 365일 카운트 리셋 방지)
-            if (!patchExtra.created_at) patchExtra.created_at = new Date().toISOString();
+            if (!patchExtra.created_at) patchExtra.created_at = createdAtIso;
             return fetch(SB_URL + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(existing.id), {
               method: 'PATCH',
               headers: Object.assign({}, SB_HDR, { 'Prefer': 'return=minimal' }),
@@ -3382,7 +3398,7 @@
             });
           } else {
             newRowId = _genVendorId();
-            var initExtra = { active: activeFlag, created_at: new Date().toISOString() };
+            var initExtra = { active: activeFlag, created_at: createdAtIso };
             if (source) initExtra.source = source;
             var row = {
               id: newRowId,
