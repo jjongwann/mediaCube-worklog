@@ -6375,10 +6375,12 @@
     ySel.innerHTML = '';
     var now = new Date();
     var curY = now.getFullYear();
-    // 범위: 현재년 - 2 ~ 현재년 + 1, + DB 에 이미 존재하는 모든 연도 (오름차순)
+    // 범위: 현재년 - 2 ~ max(현재년+1, 2030), + DB 에 이미 존재하는 모든 연도 (오름차순)
     //  → 2024 등 과거 연도가 기본 범위에 포함되고, 더 과거 데이터가 DB 에 있으면 자동 노출
+    //  → 미래는 2030년까지 항상 노출
     var seen = {};
-    for (var y = curY - 2; y <= curY + 1; y++) seen[y] = true;
+    var topY = Math.max(curY + 1, 2030);
+    for (var y = curY - 2; y <= topY; y++) seen[y] = true;
     var salesObj = (typeof salesLoadData === 'function') ? salesLoadData() : (_salesCache || {});
     Object.keys(salesObj || {}).forEach(function(k){
       var t = (k || '').split('-')[0];
