@@ -3540,6 +3540,21 @@
   function _empTaskLoadMore() {
     _empTaskVisibleCount += EMP_TASK_PAGE_SIZE;
     if (adminEmpFilter) renderEmpTaskTimeChart(adminEmpFilter);
+    // 더 보기 누른 직후 새로 추가된 항목들이 시야에 들어오도록 컨테이너 하단으로 스크롤
+    setTimeout(function(){
+      var sc = document.querySelector('.emp-task-scroll');
+      if (sc) sc.scrollTop = sc.scrollHeight;
+    }, 50);
+  }
+
+  function _empTaskCollapse() {
+    _empTaskVisibleCount = EMP_TASK_PAGE_SIZE;
+    if (adminEmpFilter) renderEmpTaskTimeChart(adminEmpFilter);
+    // 첫 페이지로 돌아갈 때 컨테이너 최상단으로 스크롤
+    setTimeout(function(){
+      var sc = document.querySelector('.emp-task-scroll');
+      if (sc) sc.scrollTop = 0;
+    }, 50);
   }
 
   function renderEmpTaskTimeChart(uid) {
@@ -3642,11 +3657,19 @@
 
     html += '</div>';
 
-    if (hasMore) {
-      html += '<div style="text-align:center;margin-top:14px">'
-        + '<button onclick="_empTaskLoadMore()" style="padding:8px 22px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;color:#475569;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .12s,border-color .12s,color .12s" onmouseover="this.style.background=\'#eff6ff\';this.style.borderColor=\'#93c5fd\';this.style.color=\'#2563eb\'" onmouseout="this.style.background=\'#f8fafc\';this.style.borderColor=\'#e2e8f0\';this.style.color=\'#475569\'">'
-        + '더 보기 (' + shownCount + ' / ' + taskList.length + ')'
-        + '</button>'
+    // 컨트롤 영역 — 상황별로 버튼 노출
+    //  · 더 보여줄 항목 있음 → '더 보기' (+첫 페이지 초과 시 '처음으로 접기' 함께)
+    //  · 전부 노출됨(첫 페이지 초과) → '처음으로 접기'만
+    var isExpanded = (shownCount > EMP_TASK_PAGE_SIZE);
+    if (hasMore || isExpanded) {
+      var moreBtn = hasMore
+        ? '<button onclick="_empTaskLoadMore()" style="padding:8px 22px;background:#eff6ff;border:1px solid #93c5fd;border-radius:8px;color:#2563eb;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .12s" onmouseover="this.style.background=\'#dbeafe\'" onmouseout="this.style.background=\'#eff6ff\'">↓ 더 보기 (' + shownCount + ' / ' + taskList.length + ')</button>'
+        : '';
+      var collapseBtn = isExpanded
+        ? '<button onclick="_empTaskCollapse()" style="padding:8px 18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;color:#64748b;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .12s,color .12s" onmouseover="this.style.background=\'#f1f5f9\';this.style.color=\'#374151\'" onmouseout="this.style.background=\'#f8fafc\';this.style.color=\'#64748b\'">↑ 처음으로 접기</button>'
+        : '';
+      html += '<div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap">'
+        + moreBtn + collapseBtn
         + '</div>';
     }
 
