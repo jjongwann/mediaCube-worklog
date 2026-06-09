@@ -1178,6 +1178,11 @@
     background: #fff; border: 1.5px solid #eaeff5; border-radius: 12px;
     padding: 14px 16px; cursor: pointer; transition: all 0.15s;
   }
+  /* 직원별 업무 시간 차트 목록 스크롤바 (Chrome/Edge용) */
+  .emp-task-scroll::-webkit-scrollbar { width: 8px; }
+  .emp-task-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 6px; }
+  .emp-task-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 6px; }
+  .emp-task-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   .emp-card:hover { border-color: #93c5fd; box-shadow: 0 4px 16px rgba(37,99,235,0.08); transform: translateY(-1px); }
   .emp-card.active { border-color: var(--accent); background: #eff6ff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
   .emp-card-header { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
@@ -3525,6 +3530,18 @@
     setEmpTaskDateRange('', '');
   }
 
+  // 직원별 업무 시간 차트 페이지네이션 상태
+  // - 동일 (uid, 시작일, 종료일) 컨텍스트면 페이지 누적 유지
+  // - 직원/기간이 바뀌면 자동으로 첫 페이지(20개)로 리셋
+  var EMP_TASK_PAGE_SIZE = 20;
+  var _empTaskVisibleKey = null;
+  var _empTaskVisibleCount = EMP_TASK_PAGE_SIZE;
+
+  function _empTaskLoadMore() {
+    _empTaskVisibleCount += EMP_TASK_PAGE_SIZE;
+    if (adminEmpFilter) renderEmpTaskTimeChart(adminEmpFilter);
+  }
+
   function renderEmpTaskTimeChart(uid) {
     var u = ALL_USERS.find(function(x){ return x.id === uid; });
     if (!u) return;
@@ -3593,15 +3610,25 @@
     var totalMinsEmp = taskList.reduce(function(s,t){ return s+t.mins; }, 0);
     var BAR_COLS = ['#3b82f6','#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899'];
 
+    // 페이지네이션 컨텍스트 키 — 직원/기간 변경 시 첫 페이지(20개)로 리셋
+    var ctxKey = uid + '|' + sDate + '|' + eDate;
+    if (ctxKey !== _empTaskVisibleKey) {
+      _empTaskVisibleKey = ctxKey;
+      _empTaskVisibleCount = EMP_TASK_PAGE_SIZE;
+    }
+    var shownCount = Math.min(_empTaskVisibleCount, taskList.length);
+    var hasMore = taskList.length > shownCount;
+
     var html = '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);flex-wrap:wrap">'
       + '<span style="font-size:15px;font-weight:700;color:var(--text-primary)">' + u.fullName + '</span>'
       + '<span style="font-size:12px;color:var(--text-muted)">(' + u.dept + ')</span>'
       + rangeHtml
       + '<span style="font-size:13px;font-weight:700;color:#d97706;margin-left:auto">총 ' + fmtDuration(totalMinsEmp) + '</span>'
       + '</div>'
-      + '<div style="display:flex;flex-direction:column;gap:10px">';
+      // 스크롤 컨테이너: 한 화면 분량(60vh) 초과 시 우측 스크롤바로 탐색
+      + '<div class="emp-task-scroll" style="max-height:60vh;overflow-y:auto;padding-right:6px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:#cbd5e1 #f1f5f9">';
 
-    taskList.slice(0, 20).forEach(function(t, i) {
+    taskList.slice(0, shownCount).forEach(function(t, i) {
       var pct = Math.round(t.mins / maxMins * 100);
       var color = BAR_COLS[i % BAR_COLS.length];
       html += '<div style="display:flex;align-items:center;gap:12px">'
@@ -3614,6 +3641,15 @@
     });
 
     html += '</div>';
+
+    if (hasMore) {
+      html += '<div style="text-align:center;margin-top:14px">'
+        + '<button onclick="_empTaskLoadMore()" style="padding:8px 22px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;color:#475569;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .12s,border-color .12s,color .12s" onmouseover="this.style.background=\'#eff6ff\';this.style.borderColor=\'#93c5fd\';this.style.color=\'#2563eb\'" onmouseout="this.style.background=\'#f8fafc\';this.style.borderColor=\'#e2e8f0\';this.style.color=\'#475569\'">'
+        + '더 보기 (' + shownCount + ' / ' + taskList.length + ')'
+        + '</button>'
+        + '</div>';
+    }
+
     content.innerHTML = html;
     section.style.display = '';
 
