@@ -3579,7 +3579,8 @@
       (j.tasks || []).forEach(function(t) {
         // 상태가 '완료'(done)인 업무만 누적 시간에 집계 (레거시 done 불리언 폴백)
         if ((t.status || (t.done ? 'done' : 'todo')) !== 'done') return;
-        var name = (t.text || '').trim();
+        // 사람 눈에 같은 업무명이 공백/보이지 않는 문자 차이로 분리 집계되지 않도록 정규화
+        var name = _normTaskName(t.text);
         var mins = taskMins(t);
         if (!name || !mins) return;
         taskMinsMap[name] = (taskMinsMap[name] || 0) + mins;
@@ -4334,6 +4335,21 @@
     });
   }
 
+  // 업무명 정규화 — 사람 눈에 같은 텍스트가 키 차이로 분리 집계되는 문제 방지
+  //  · 유니코드 NFC 정규화 (조합형/완성형 통일)
+  //  · 비분리 공백(NBSP)/제로폭 문자 → 일반 공백으로 치환
+  //  · 모든 공백류(스페이스·탭·전각 공백 등) 1개로 압축
+  //  · 앞뒤 공백 제거
+  function _normTaskName(s) {
+    if (!s) return '';
+    var str = String(s);
+    if (typeof str.normalize === 'function') str = str.normalize('NFC');
+    return str
+      .replace(/[ ​‌‍﻿　]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   // 신규 등록일(extra.created_at) 변환 헬퍼
   // 'YYYY-MM-DD' → 로컬 자정 기준 ISO 문자열 (빈 값/오류 시 현재 시각)
   function _regDateToIso(dateStr) {
@@ -4811,7 +4827,8 @@
         var taskMap = {}, statusMap = {};
         uJournals.forEach(function(j) {
           (j.tasks || []).forEach(function(t) {
-            var name = (t.text || '').trim();
+            // 공백/보이지 않는 문자 차이로 같은 업무가 분리 집계되지 않도록 정규화
+            var name = _normTaskName(t.text);
             var mins = taskMins(t);
             if (!name || !mins) return;
             if (!taskMap[name]) { taskMap[name] = 0; statusMap[name] = t.status || 'todo'; }
@@ -4906,7 +4923,8 @@
       var taskMap = {}, statusMap = {};
       myJournals.forEach(function(j) {
         (j.tasks || []).forEach(function(t) {
-          var name = (t.text || '').trim();
+          // 공백/보이지 않는 문자 차이로 같은 업무가 분리 집계되지 않도록 정규화
+          var name = _normTaskName(t.text);
           var mins = taskMins(t);
           if (!name || !mins) return;
           if (!taskMap[name]) { taskMap[name] = 0; statusMap[name] = t.status || 'todo'; }
