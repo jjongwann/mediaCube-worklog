@@ -2105,6 +2105,9 @@
             <button id="cumul-btn-line" onclick="setCumulType('line')" style="padding:6px 16px;border:none;background:#fff;color:#7c3aed;cursor:pointer;font-weight:600">꺾은선</button>
           </div>
           <button onclick="renderCumulChart()" style="padding:7px 20px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:filter .15s;box-shadow:0 2px 8px rgba(124,58,237,0.25)" onmouseover="this.style.filter='brightness(0.9)'" onmouseout="this.style.filter=''">조회</button>
+          <span style="width:1px;height:18px;background:#ddd6fe;margin:0 4px"></span>
+          <span style="font-size:11px;font-weight:700;color:#7c3aed">비교 연도</span>
+          <select id="cumul-compare-year" onchange="renderCumulChart()" title="비교할 연도 선택 (디폴트: 직전 연도)" style="padding:6px 10px;border:1px solid #ddd6fe;border-radius:8px;font-size:12px;color:#374151;background:#fff;outline:none;font-weight:500;min-width:130px"></select>
         </div>
         <!-- 차트 + 통계 -->
         <div style="padding:20px 24px;display:grid;grid-template-columns:1fr 240px;gap:20px;align-items:start">
@@ -6688,6 +6691,20 @@
     }
     fromSel.selectedIndex = janIdx >= 0 ? janIdx : 0;
     toSel.selectedIndex = keys.length - 1;
+
+    // 비교 연도 셀렉터 — 데이터에 존재하는 연도 + 현재±2 범위, 디폴트는 '직전 연도 (자동)'
+    var cmpSel = document.getElementById('cumul-compare-year');
+    if (cmpSel) {
+      var yrSet = {};
+      keys.forEach(function(k){ var y = parseInt(k.split('-')[0], 10); if (y) yrSet[y] = true; });
+      var cy = new Date().getFullYear();
+      [cy-2, cy-1, cy, cy+1].forEach(function(y){ yrSet[y] = true; });
+      var yrs = Object.keys(yrSet).map(Number).sort(function(a,b){ return b - a; });
+      cmpSel.innerHTML = '<option value="">직전 연도 (자동)</option>'
+        + yrs.map(function(y){ return '<option value="'+y+'">'+y+'년</option>'; }).join('');
+      cmpSel.value = ''; // 모달 열 때마다 디폴트로 리셋
+    }
+
     setCumulType('bar');
     document.getElementById('cumul-overlay').style.display = 'flex';
     renderCumulChart();
@@ -6753,7 +6770,14 @@
       totalSum  += e._total || 0;
     });
 
-    // 전년 동기간 누계 (현재 선택 범위와 겹치지 않는 키만)
+    // 비교 동기간 누계 — 디폴트는 직전 연도 (자동), 사용자가 선택하면 그 연도와 비교.
+    // yearOffset = 현재 시작연도 - 비교 시작연도. 디폴트(빈값)는 1.
+    var cmpSelEl = document.getElementById('cumul-compare-year');
+    var cmpRaw = cmpSelEl ? cmpSelEl.value : '';
+    var fromYearNum = parseInt(fromKey.split('-')[0], 10);
+    var cmpYearNum = cmpRaw ? parseInt(cmpRaw, 10) : (fromYearNum - 1);
+    var yearOffset = fromYearNum - cmpYearNum; // 양수=과거 비교, 음수=미래 비교, 0=자기자신(degenerate)
+
     var prevTotals = {};
     SALES_ITEMS.forEach(function(item){ prevTotals[item.key]=0; });
     var prevTotalReal=0, prevTotalSum=0, hasPrevData=false;
@@ -6761,7 +6785,7 @@
     allKeys.forEach(function(k){ allKeysSet[k]=true; });
     var prevKeys = allKeys.map(function(k){
       var p=k.split('-');
-      return (parseInt(p[0])-1)+'-'+p[1];
+      return (parseInt(p[0]) - yearOffset)+'-'+p[1];
     }).filter(function(pk){ return !allKeysSet[pk]; });
     prevKeys.forEach(function(pk){
       if (!data[pk]) return;
@@ -6781,8 +6805,10 @@
     var bdColors  = SALES_ITEMS.map(function(i){ return i.color; });
     var fp2=fromKey.split('-'), tp2=toKey.split('-');
     var rangeLabel = fp2[0]+'년 '+fp2[1]+'월 ~ '+tp2[0]+'년 '+tp2[1]+'월';
-    var prevFp2=(parseInt(fp2[0])-1), prevTp2=(parseInt(tp2[0])-1);
+    var prevFp2=(parseInt(fp2[0]) - yearOffset), prevTp2=(parseInt(tp2[0]) - yearOffset);
     var prevRangeLabel = prevFp2+'년 '+fp2[1]+'월 ~ '+prevTp2+'년 '+tp2[1]+'월';
+    // 우측 패널 비교 동기 라벨 — 디폴트(yearOffset===1)면 '전년', 사용자 선택이면 해당 연도 명시
+    var prevPanelLabel = (yearOffset === 1) ? '전년 동기 총 매출' : (prevFp2 + '년 동기 총 매출');
 
     var ctx = document.getElementById('cumul-chart').getContext('2d');
     if (_cumulChart) { _cumulChart.destroy(); _cumulChart=null; }
@@ -6985,7 +7011,7 @@
       + '</div>'
       + (hasPrevData
         ? '<div style="background:#faf5ff;border-radius:8px;padding:10px 12px">'
-          + '<div style="font-size:10px;color:#7c3aed;font-weight:700;margin-bottom:3px">전년 동기 총 매출</div>'
+          + '<div style="font-size:10px;color:#7c3aed;font-weight:700;margin-bottom:3px">' + prevPanelLabel + '</div>'
           + '<div style="font-size:14px;font-weight:700;color:#6d28d9">'+fmtCumul(prevTotalSum)+'</div>'
           + '<div style="font-size:10px;color:#64748b;margin-top:2px">'+fmtOri(prevTotalSum)+'</div>'
         + '</div>'
