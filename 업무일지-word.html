@@ -1812,9 +1812,17 @@
                 <div style="font-size:10px;color:#94a3b8;margin-top:4px">이 날짜부터 1년간 '신규 고객' 패널에 노출됩니다. (기본: 오늘)</div>
               </div>
               <div id="risk-newvendor-amount-wrap">
-                <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">매출액 (원) *</label>
-                <input type="text" id="risk-newvendor-amount" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-weight:600;transition:border-color .12s" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
-                <div style="font-size:10px;color:#94a3b8;margin-top:4px">매출액 0원으로 저장하면 비활성 거래처로 분류됩니다.</div>
+                <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px">
+                  <div>
+                    <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">매출액 (원) *</label>
+                    <input type="text" id="risk-newvendor-amount" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-weight:600;transition:border-color .12s" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
+                  </div>
+                  <div>
+                    <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">건 수</label>
+                    <input type="text" id="risk-newvendor-count" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-weight:600;transition:border-color .12s" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
+                  </div>
+                </div>
+                <div style="font-size:10px;color:#94a3b8;margin-top:4px">매출액 0원으로 저장하면 비활성 거래처로 분류됩니다. 기존 거래처+동일 월 입력 시 매출과 건 수가 합산됩니다.</div>
               </div>
               <!-- 매출 발생처 (선택 입력) — extra.source 에 저장. 대시보드 거래처별 매출 분석 필터와 연동 -->
               <div id="risk-newvendor-source-wrap">
@@ -3286,6 +3294,8 @@
       document.getElementById('risk-newvendor-month').value = String(now.getMonth()+1);
       document.getElementById('risk-newvendor-name').value = '';
       document.getElementById('risk-newvendor-amount').value = '';
+      var cntEl = document.getElementById('risk-newvendor-count');
+      if (cntEl) cntEl.value = '';
       // 신규 등록일 기본값: 오늘
       var regInp = document.getElementById('risk-newvendor-regdate');
       if (regInp) regInp.value = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
@@ -3356,6 +3366,11 @@
       var amountRaw = (document.getElementById('risk-newvendor-amount').value || '').replace(/,/g,'').trim();
       var amount = parseInt(amountRaw, 10);
       if (isNaN(amount) || amount < 0) amount = 0;
+      // 건 수 — 대시보드 '+신규 거래처 추가' 와 동일하게 extra.count 로 저장
+      var countEl = document.getElementById('risk-newvendor-count');
+      var countRaw = (countEl ? countEl.value : '').replace(/,/g,'').trim();
+      var count = parseInt(countRaw, 10);
+      if (isNaN(count) || count < 0) count = 0;
       var source = ((document.getElementById('risk-newvendor-source') || {}).value || '').trim();
       // 신규 등록일 → created_at (비어있으면 오늘). 대시보드 거래처별 매출 분석의 등록일 입력과 동일 의미.
       var regVal = ((document.getElementById('risk-newvendor-regdate') || {}).value || '').trim();
@@ -3389,6 +3404,10 @@
             // 기존 extra 모든 필드(manager/source/count 등) 보존 후 active/source 갱신
             var patchExtra = Object.assign({}, existing.extra || {}, { active: activeFlag });
             if (source) patchExtra.source = source;
+            // 건 수: 기존값 + 신규 입력값 누적 (대시보드 saveAdd 와 동일 의미)
+            var existingCount = (existing.extra && existing.extra.count) || 0;
+            var newCount = existingCount + count;
+            if (newCount > 0) patchExtra.count = newCount;
             // 신규고객 확보 플로우로 PATCH 되는 경우, 신규 고객 패널에 노출되도록 created_at 백필
             // (이미 존재하면 덮어쓰지 않음 → 365일 카운트 리셋 방지)
             if (!patchExtra.created_at) patchExtra.created_at = createdAtIso;
@@ -3401,6 +3420,7 @@
             newRowId = _genVendorId();
             var initExtra = { active: activeFlag, created_at: createdAtIso };
             if (source) initExtra.source = source;
+            if (count > 0) initExtra.count = count;
             var row = {
               id: newRowId,
               category: dbCat,
