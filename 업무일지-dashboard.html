@@ -8782,6 +8782,11 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
       <button onclick="_scalToday()" style="padding:6px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;color:#475569;font-size:12px;font-weight:700;cursor:pointer;transition:all .12s" onmouseover="this.style.background='#eff6ff';this.style.borderColor='#93c5fd';this.style.color='#2563eb'" onmouseout="this.style.background='#fff';this.style.borderColor='#e2e8f0';this.style.color='#475569'">오늘</button>
+      <!-- 표 모드 전용: 일별 / 월별 토글 -->
+      <div id="scal-table-mode-wrap" style="display:none;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:3px;align-items:center">
+        <button id="scal-table-day-btn" onclick="_scalSetTableMode('day')" style="padding:4px 12px;background:#0891b2;color:#fff;border:none;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;transition:background .12s,color .12s">일별</button>
+        <button id="scal-table-month-btn" onclick="_scalSetTableMode('month')" style="padding:4px 12px;background:transparent;color:#64748b;border:none;border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer;transition:background .12s,color .12s">월별</button>
+      </div>
       <div style="flex:1"></div>
       <!-- 뷰 토글: 캘린더 / 표 -->
       <div style="display:inline-flex;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:3px">
@@ -13405,6 +13410,8 @@ function openVendorMenu() {
     viewYear: new Date().getFullYear(),
     viewMonth: new Date().getMonth(), // 0-based
     viewMode: 'grid', // 'grid' | 'table'
+    tableMode: 'day', // 'day' | 'month' — 표 뷰에서만 의미 있음 (기본: 일별)
+    viewDay: '', // 'YYYY-MM-DD' — 표 일별 모드 커서 (기본: 오늘, 진입 시 세팅)
     events: [],
     editingId: null,
     dayViewDate: null, // 일자 뷰 모달이 보고 있는 'YYYY-MM-DD' (열려있지 않으면 null)
@@ -13416,10 +13423,10 @@ function openVendorMenu() {
   //  · 초록: 김세준 차장(avsystem) 개인 업무 — 본인 + 관리자에게만 노출
   //  · 주황: 기타 업무
   var SCAL_PALETTE = [
-    { name: '청록', val: '#0891b2', label: '공동 업무',           desc: '시스템 사업부 공통/협업' },
-    { name: '파랑', val: '#3b82f6', label: '권영재 차장 (engineer2)', desc: '권영재 차장 개인 업무', personalFor: 'engineer2' },
-    { name: '초록', val: '#16a34a', label: '김세준 차장 (avsystem)',  desc: '김세준 차장 개인 업무', personalFor: 'avsystem' },
-    { name: '주황', val: '#ea580c', label: '기타 업무',           desc: '그 외 분류' }
+    { name: '청록', val: '#0891b2', label: '공동 업무',     desc: '시스템 사업부 공통/협업' },
+    { name: '파랑', val: '#3b82f6', label: '권영재 차장',   desc: '권영재 차장 개인 업무', personalFor: 'engineer2' },
+    { name: '초록', val: '#16a34a', label: '김세준 차장',   desc: '김세준 차장 개인 업무', personalFor: 'avsystem' },
+    { name: '주황', val: '#ea580c', label: '기타 업무',     desc: '그 외 분류' }
   ];
 
   // 현재 사용자에게 보여줄 색상만 반환
@@ -13464,6 +13471,8 @@ function openVendorMenu() {
     if (!_scalCanAccess()) { alert('이 메뉴는 시스템 사업부 직원 전용입니다.'); return; }
     var ov = document.getElementById('shared-cal-overlay');
     if (!ov) return;
+    // 진입 시 viewDay 기본값(오늘) 보장 — 표 일별 모드 대비
+    if (!SCAL_STATE.viewDay) SCAL_STATE.viewDay = _scalToYmd(new Date());
     ov.style.display = 'flex';
     _scalFetchAndRender();
   }
@@ -13472,31 +13481,92 @@ function openVendorMenu() {
     if (ov) ov.style.display = 'none';
   }
 
+  // 표 일별 모드 여부
+  function _scalIsDayMode() {
+    return SCAL_STATE.viewMode === 'table' && SCAL_STATE.tableMode === 'day';
+  }
+  // viewDay 변경 시 viewYear/viewMonth 자동 동기화 (재fetch 트리거용)
+  function _scalSyncMonthFromDay() {
+    if (!SCAL_STATE.viewDay) return;
+    var p = SCAL_STATE.viewDay.split('-');
+    if (p.length < 2) return;
+    SCAL_STATE.viewYear = parseInt(p[0], 10);
+    SCAL_STATE.viewMonth = parseInt(p[1], 10) - 1;
+  }
+
   function _scalPrev() {
-    SCAL_STATE.viewMonth -= 1;
-    if (SCAL_STATE.viewMonth < 0) { SCAL_STATE.viewMonth = 11; SCAL_STATE.viewYear -= 1; }
+    if (_scalIsDayMode()) {
+      var d = new Date((SCAL_STATE.viewDay || _scalToYmd(new Date())) + 'T00:00:00');
+      d.setDate(d.getDate() - 1);
+      SCAL_STATE.viewDay = _scalToYmd(d);
+      _scalSyncMonthFromDay();
+    } else {
+      SCAL_STATE.viewMonth -= 1;
+      if (SCAL_STATE.viewMonth < 0) { SCAL_STATE.viewMonth = 11; SCAL_STATE.viewYear -= 1; }
+    }
     _scalFetchAndRender();
   }
   function _scalNext() {
-    SCAL_STATE.viewMonth += 1;
-    if (SCAL_STATE.viewMonth > 11) { SCAL_STATE.viewMonth = 0; SCAL_STATE.viewYear += 1; }
+    if (_scalIsDayMode()) {
+      var d = new Date((SCAL_STATE.viewDay || _scalToYmd(new Date())) + 'T00:00:00');
+      d.setDate(d.getDate() + 1);
+      SCAL_STATE.viewDay = _scalToYmd(d);
+      _scalSyncMonthFromDay();
+    } else {
+      SCAL_STATE.viewMonth += 1;
+      if (SCAL_STATE.viewMonth > 11) { SCAL_STATE.viewMonth = 0; SCAL_STATE.viewYear += 1; }
+    }
     _scalFetchAndRender();
   }
   function _scalToday() {
     var now = new Date();
+    if (_scalIsDayMode()) {
+      SCAL_STATE.viewDay = _scalToYmd(now);
+    }
     SCAL_STATE.viewYear = now.getFullYear();
     SCAL_STATE.viewMonth = now.getMonth();
     _scalFetchAndRender();
+  }
+
+  // 표 모드에서 일별/월별 전환
+  function _scalSetTableMode(mode) {
+    if (mode !== 'day' && mode !== 'month') return;
+    SCAL_STATE.tableMode = mode;
+    // 일별로 전환 시 viewDay 비어있으면 오늘 (또는 현재 보고 있는 월의 1일)로 세팅
+    if (mode === 'day' && !SCAL_STATE.viewDay) {
+      var now = new Date();
+      var sameMonth = (now.getFullYear() === SCAL_STATE.viewYear && now.getMonth() === SCAL_STATE.viewMonth);
+      SCAL_STATE.viewDay = sameMonth
+        ? _scalToYmd(now)
+        : SCAL_STATE.viewYear + '-' + _scalPad(SCAL_STATE.viewMonth+1) + '-01';
+    }
+    _scalSyncTableModeBtns();
+    _scalFetchAndRender();
+  }
+  function _scalSyncTableModeBtns() {
+    var dayBtn = document.getElementById('scal-table-day-btn');
+    var monBtn = document.getElementById('scal-table-month-btn');
+    if (!dayBtn || !monBtn) return;
+    if (SCAL_STATE.tableMode === 'day') {
+      dayBtn.style.background = '#0891b2'; dayBtn.style.color = '#fff'; dayBtn.style.fontWeight = '700';
+      monBtn.style.background = 'transparent'; monBtn.style.color = '#64748b'; monBtn.style.fontWeight = '600';
+    } else {
+      monBtn.style.background = '#0891b2'; monBtn.style.color = '#fff'; monBtn.style.fontWeight = '700';
+      dayBtn.style.background = 'transparent'; dayBtn.style.color = '#64748b'; dayBtn.style.fontWeight = '600';
+    }
   }
 
   // 제목 영역 클릭 시 네이티브 date picker 열기 (연/월/일 점프)
   function _scalOpenJumpPicker() {
     var inp = document.getElementById('shared-cal-jump-date');
     if (!inp) return;
-    // 현재 보고 있는 월의 1일을 기본값으로 세팅 → 사용자에게 컨텍스트 제공
-    var y = SCAL_STATE.viewYear, m = SCAL_STATE.viewMonth + 1;
-    inp.value = y + '-' + (m < 10 ? '0'+m : ''+m) + '-01';
-    // 클릭 동안만 pointer-events 활성화하여 네이티브 피커 트리거
+    // 기본값: 일별 모드면 viewDay, 그 외엔 현재 월의 1일
+    if (_scalIsDayMode() && SCAL_STATE.viewDay) {
+      inp.value = SCAL_STATE.viewDay;
+    } else {
+      var y = SCAL_STATE.viewYear, m = SCAL_STATE.viewMonth + 1;
+      inp.value = y + '-' + (m < 10 ? '0'+m : ''+m) + '-01';
+    }
     inp.style.pointerEvents = 'auto';
     if (typeof inp.showPicker === 'function') {
       try { inp.showPicker(); } catch(e) { inp.focus(); inp.click(); }
@@ -13504,7 +13574,6 @@ function openVendorMenu() {
       inp.focus();
       inp.click();
     }
-    // 다음 틱에 다시 비활성화 (오버레이 클릭 차단 복원)
     setTimeout(function(){ inp.style.pointerEvents = 'none'; }, 100);
   }
 
@@ -13512,12 +13581,14 @@ function openVendorMenu() {
     var inp = document.getElementById('shared-cal-jump-date');
     if (!inp || !inp.value) return;
     var parts = inp.value.split('-');
-    if (parts.length < 2) return;
+    if (parts.length < 3) return;
     var y = parseInt(parts[0], 10);
     var m = parseInt(parts[1], 10);
     if (isNaN(y) || isNaN(m) || m < 1 || m > 12) return;
     SCAL_STATE.viewYear = y;
     SCAL_STATE.viewMonth = m - 1; // 0-based
+    // 일별 모드는 viewDay 까지 갱신
+    if (_scalIsDayMode()) SCAL_STATE.viewDay = inp.value;
     _scalFetchAndRender();
   }
 
@@ -13556,18 +13627,30 @@ function openVendorMenu() {
     var gBtn = document.getElementById('scal-view-grid-btn');
     var tBtn = document.getElementById('scal-view-table-btn');
     var xBtn = document.getElementById('scal-export-btn');
+    var tableModeWrap = document.getElementById('scal-table-mode-wrap');
     if (mode === 'grid') {
       if (grid) grid.style.display = '';
       if (table) table.style.display = 'none';
       if (gBtn) { gBtn.style.background = '#0891b2'; gBtn.style.color = '#fff'; gBtn.style.fontWeight = '700'; }
       if (tBtn) { tBtn.style.background = 'transparent'; tBtn.style.color = '#64748b'; tBtn.style.fontWeight = '600'; }
       if (xBtn) xBtn.style.display = 'none';
+      if (tableModeWrap) tableModeWrap.style.display = 'none';
     } else {
       if (grid) grid.style.display = 'none';
       if (table) table.style.display = '';
       if (gBtn) { gBtn.style.background = 'transparent'; gBtn.style.color = '#64748b'; gBtn.style.fontWeight = '600'; }
       if (tBtn) { tBtn.style.background = '#0891b2'; tBtn.style.color = '#fff'; tBtn.style.fontWeight = '700'; }
       if (xBtn) xBtn.style.display = 'inline-flex';
+      if (tableModeWrap) tableModeWrap.style.display = 'inline-flex';
+      // 표 진입 시 일별 모드의 viewDay 기본값 처리
+      if (SCAL_STATE.tableMode === 'day' && !SCAL_STATE.viewDay) {
+        var now = new Date();
+        var sameMonth = (now.getFullYear() === SCAL_STATE.viewYear && now.getMonth() === SCAL_STATE.viewMonth);
+        SCAL_STATE.viewDay = sameMonth
+          ? _scalToYmd(now)
+          : SCAL_STATE.viewYear + '-' + _scalPad(SCAL_STATE.viewMonth+1) + '-01';
+      }
+      _scalSyncTableModeBtns();
     }
     _scalRender();
   }
@@ -13590,7 +13673,14 @@ function openVendorMenu() {
   function _scalRender() {
     var y = SCAL_STATE.viewYear, m = SCAL_STATE.viewMonth;
     var titleEl = document.getElementById('shared-cal-title');
-    if (titleEl) titleEl.textContent = y + '년 ' + (m+1) + '월';
+    if (titleEl) {
+      if (_scalIsDayMode() && SCAL_STATE.viewDay) {
+        var dp = SCAL_STATE.viewDay.split('-');
+        titleEl.textContent = parseInt(dp[0],10) + '년 ' + parseInt(dp[1],10) + '월 ' + parseInt(dp[2],10) + '일';
+      } else {
+        titleEl.textContent = y + '년 ' + (m+1) + '월';
+      }
+    }
     if (SCAL_STATE.viewMode === 'table') {
       _scalRenderTable();
       return;
@@ -13666,19 +13756,32 @@ function openVendorMenu() {
     grid.innerHTML = html;
   }
 
-  // 표 뷰 렌더 — 현재 월 이벤트만 (시작일 기준 정렬)
+  // 표 뷰 렌더 — 일별/월별 모드에 따라 필터링
   function _scalRenderTable() {
-    var y = SCAL_STATE.viewYear, m = SCAL_STATE.viewMonth;
     var wrap = document.getElementById('shared-cal-table');
     if (!wrap) return;
 
-    var firstDayStr = y + '-' + _scalPad(m+1) + '-01';
-    var lastDate = new Date(y, m+1, 0);
-    var lastDayStr = y + '-' + _scalPad(m+1) + '-' + _scalPad(lastDate.getDate());
-    // 월과 겹치는 이벤트만 (fetch 결과가 이미 필터되어 있음)
-    var rows = SCAL_STATE.events.filter(function(e){
-      return e.start_date && e.end_date && e.end_date >= firstDayStr && e.start_date <= lastDayStr;
-    }).slice().sort(function(a, b){
+    var rows, emptyMsg;
+    if (_scalIsDayMode()) {
+      // 일별: 선택한 날짜를 포함하는 이벤트만 (start_date ≤ viewDay ≤ end_date)
+      var d = SCAL_STATE.viewDay;
+      rows = SCAL_STATE.events.filter(function(e){
+        return e.start_date && e.end_date && e.start_date <= d && e.end_date >= d;
+      });
+      emptyMsg = '선택한 날짜에 등록된 일정이 없습니다.';
+    } else {
+      // 월별: 월과 겹치는 이벤트 (end ≥ first, start ≤ last)
+      var y = SCAL_STATE.viewYear, m = SCAL_STATE.viewMonth;
+      var firstDayStr = y + '-' + _scalPad(m+1) + '-01';
+      var lastDate = new Date(y, m+1, 0);
+      var lastDayStr = y + '-' + _scalPad(m+1) + '-' + _scalPad(lastDate.getDate());
+      rows = SCAL_STATE.events.filter(function(e){
+        return e.start_date && e.end_date && e.end_date >= firstDayStr && e.start_date <= lastDayStr;
+      });
+      emptyMsg = '이번 달 등록된 일정이 없습니다.';
+    }
+
+    rows = rows.slice().sort(function(a, b){
       if (a.start_date !== b.start_date) return a.start_date < b.start_date ? -1 : 1;
       return (a.start_time || '') < (b.start_time || '') ? -1 : 1;
     });
@@ -13686,7 +13789,7 @@ function openVendorMenu() {
     if (!rows.length) {
       wrap.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#94a3b8;font-size:13px">'
         + '<div style="font-size:32px;margin-bottom:8px">📭</div>'
-        + '<div style="font-weight:600;color:#64748b">이번 달 등록된 일정이 없습니다.</div>'
+        + '<div style="font-weight:600;color:#64748b">' + emptyMsg + '</div>'
         + '<div style="font-size:11px;margin-top:6px">우측 상단 \'+ 새 일정 추가\' 버튼으로 일정을 등록해 보세요.</div>'
         + '</div>';
       return;
@@ -13766,20 +13869,34 @@ function openVendorMenu() {
     return p[0] + '.' + p[1] + '.' + p[2] + ' (' + dowK + ')';
   }
 
-  // 엑셀(CSV) 내보내기 — 현재 월 일정만, UTF-8 BOM 포함
+  // 엑셀(CSV) 내보내기 — 현재 모드(일별/월별)에 맞춰 필터, UTF-8 BOM 포함
   function _scalExportExcel() {
-    var y = SCAL_STATE.viewYear, m = SCAL_STATE.viewMonth;
-    var firstDayStr = y + '-' + _scalPad(m+1) + '-01';
-    var lastDate = new Date(y, m+1, 0);
-    var lastDayStr = y + '-' + _scalPad(m+1) + '-' + _scalPad(lastDate.getDate());
-    var rows = SCAL_STATE.events.filter(function(e){
-      return e.start_date && e.end_date && e.end_date >= firstDayStr && e.start_date <= lastDayStr;
-    }).slice().sort(function(a, b){
+    var rows, scopeLabel, fname;
+    if (_scalIsDayMode()) {
+      var d = SCAL_STATE.viewDay;
+      var dp = (d || '').split('-');
+      rows = SCAL_STATE.events.filter(function(e){
+        return e.start_date && e.end_date && e.start_date <= d && e.end_date >= d;
+      });
+      scopeLabel = dp.length === 3 ? (dp[0] + '년' + parseInt(dp[1],10) + '월' + parseInt(dp[2],10) + '일') : '오늘';
+      fname = '업무공유캘린더_' + scopeLabel + '.csv';
+    } else {
+      var y = SCAL_STATE.viewYear, m = SCAL_STATE.viewMonth;
+      var firstDayStr = y + '-' + _scalPad(m+1) + '-01';
+      var lastDate = new Date(y, m+1, 0);
+      var lastDayStr = y + '-' + _scalPad(m+1) + '-' + _scalPad(lastDate.getDate());
+      rows = SCAL_STATE.events.filter(function(e){
+        return e.start_date && e.end_date && e.end_date >= firstDayStr && e.start_date <= lastDayStr;
+      });
+      fname = '업무공유캘린더_' + y + '년' + (m+1) + '월.csv';
+    }
+
+    rows = rows.slice().sort(function(a, b){
       if (a.start_date !== b.start_date) return a.start_date < b.start_date ? -1 : 1;
       return (a.start_time || '') < (b.start_time || '') ? -1 : 1;
     });
 
-    if (!rows.length) { alert('이번 달 등록된 일정이 없습니다.'); return; }
+    if (!rows.length) { alert('해당 범위에 등록된 일정이 없습니다.'); return; }
 
     function _csvCell(v) {
       var s = String(v == null ? '' : v);
@@ -13811,7 +13928,6 @@ function openVendorMenu() {
     var csv = BOM + lines.join('\r\n');
     var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     var url = URL.createObjectURL(blob);
-    var fname = '업무공유캘린더_' + y + '년' + (m+1) + '월.csv';
     var a = document.createElement('a');
     a.href = url; a.download = fname;
     document.body.appendChild(a);
@@ -14121,6 +14237,7 @@ function openVendorMenu() {
   window._scalCloseDayView = _scalCloseDayView;
   window._scalNewFromDayView = _scalNewFromDayView;
   window._scalEditFromDayView = _scalEditFromDayView;
+  window._scalSetTableMode = _scalSetTableMode;
   window._scalOpenEventModal = _scalOpenEventModal;
   window._scalCloseEventModal = _scalCloseEventModal;
   window._scalPickColor = _scalPickColor;
