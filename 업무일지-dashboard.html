@@ -13869,17 +13869,19 @@ function openVendorMenu() {
     return p[0] + '.' + p[1] + '.' + p[2] + ' (' + dowK + ')';
   }
 
-  // 엑셀(CSV) 내보내기 — 현재 모드(일별/월별)에 맞춰 필터, UTF-8 BOM 포함
+  // 엑셀(.xls) 내보내기 — 스타일 적용 HTML 테이블, 현재 모드에 맞춰 필터
+  //  · Excel 은 HTML 테이블을 그대로 렌더링 — 인라인 스타일(배경/폰트/정렬/보더) 지원
+  //  · UTF-8 BOM 포함 → 한글 정상 표시
   function _scalExportExcel() {
-    var rows, scopeLabel, fname;
+    var rows, scopeLabel, fnameBase;
     if (_scalIsDayMode()) {
       var d = SCAL_STATE.viewDay;
       var dp = (d || '').split('-');
       rows = SCAL_STATE.events.filter(function(e){
         return e.start_date && e.end_date && e.start_date <= d && e.end_date >= d;
       });
-      scopeLabel = dp.length === 3 ? (dp[0] + '년' + parseInt(dp[1],10) + '월' + parseInt(dp[2],10) + '일') : '오늘';
-      fname = '업무공유캘린더_' + scopeLabel + '.csv';
+      scopeLabel = dp.length === 3 ? (dp[0] + '년 ' + parseInt(dp[1],10) + '월 ' + parseInt(dp[2],10) + '일') : '오늘';
+      fnameBase = '업무공유캘린더_' + scopeLabel.replace(/\s+/g, '');
     } else {
       var y = SCAL_STATE.viewYear, m = SCAL_STATE.viewMonth;
       var firstDayStr = y + '-' + _scalPad(m+1) + '-01';
@@ -13888,7 +13890,8 @@ function openVendorMenu() {
       rows = SCAL_STATE.events.filter(function(e){
         return e.start_date && e.end_date && e.end_date >= firstDayStr && e.start_date <= lastDayStr;
       });
-      fname = '업무공유캘린더_' + y + '년' + (m+1) + '월.csv';
+      scopeLabel = y + '년 ' + (m+1) + '월';
+      fnameBase = '업무공유캘린더_' + y + '년' + (m+1) + '월';
     }
 
     rows = rows.slice().sort(function(a, b){
@@ -13898,38 +13901,78 @@ function openVendorMenu() {
 
     if (!rows.length) { alert('해당 범위에 등록된 일정이 없습니다.'); return; }
 
-    function _csvCell(v) {
-      var s = String(v == null ? '' : v);
-      if (/[",\n\r]/.test(s)) {
-        s = '"' + s.replace(/"/g, '""') + '"';
-      }
-      return s;
+    // 색상 헬퍼: hex 를 흰색과 혼합해 옅은 색 반환 (분류 셀 배경용)
+    function _h2(n){ var s = n.toString(16); return s.length === 1 ? '0' + s : s; }
+    function _mix(hex, ratio) {
+      var h = (hex || '').replace('#','');
+      if (h.length !== 6) return '#f8fafc';
+      var r = parseInt(h.substring(0,2), 16);
+      var g = parseInt(h.substring(2,4), 16);
+      var b = parseInt(h.substring(4,6), 16);
+      r = Math.round(r + (255 - r) * ratio);
+      g = Math.round(g + (255 - g) * ratio);
+      b = Math.round(b + (255 - b) * ratio);
+      return '#' + _h2(r) + _h2(g) + _h2(b);
+    }
+    function _e(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    var headers = ['시작일','종료일','시작시간','종료시간','제목','분류','색상(HEX)','작성자','설명'];
-    var lines = [headers.map(_csvCell).join(',')];
-    rows.forEach(function(e){
+    var headers = ['시작일','종료일','시작시간','종료시간','제목','분류','작성자','설명'];
+    var ncols = headers.length;
+
+    var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">'
+      + '<head><meta charset="utf-8"><title>업무 공유 캘린더</title>'
+      + '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>일정</x:Name>'
+      + '<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->'
+      + '</head><body>';
+
+    html += '<table style="border-collapse:collapse;font-family:맑은 고딕,Malgun Gothic,Apple SD Gothic Neo,sans-serif;font-size:11pt">';
+
+    // 타이틀 행
+    html += '<tr style="height:38px"><td colspan="' + ncols + '" style="background-color:#0e7490;color:#ffffff;font-weight:bold;font-size:14pt;padding:14px;text-align:center;border:1px solid #0e7490;letter-spacing:0.5px">📅 업무 공유 캘린더 — ' + _e(scopeLabel) + '</td></tr>';
+
+    // 부제 행 (총 N건)
+    html += '<tr style="height:24px"><td colspan="' + ncols + '" style="background-color:#f0f9ff;color:#0e7490;font-weight:bold;font-size:10pt;padding:6px 12px;text-align:right;border:1px solid #bae6fd">총 ' + rows.length + '건</td></tr>';
+
+    // 헤더 행
+    html += '<tr style="height:34px">';
+    headers.forEach(function(h){
+      html += '<th style="background-color:#0891b2;color:#ffffff;font-weight:bold;padding:9px 12px;border:1px solid #0e7490;text-align:center;font-size:11pt;letter-spacing:0.5px">' + _e(h) + '</th>';
+    });
+    html += '</tr>';
+
+    // 데이터 행
+    rows.forEach(function(e, idx){
       var color = e.color || SCAL_PALETTE[0].val;
-      lines.push([
-        e.start_date || '',
-        e.end_date   || '',
-        (e.start_time || '').slice(0,5),
-        (e.end_time   || '').slice(0,5),
-        e.title || '',
-        _scalColorCategory(color),
-        color,
-        _scalCreatorName(e.created_by),
-        e.description || ''
-      ].map(_csvCell).join(','));
+      var cat = _scalColorCategory(color);
+      var creator = _scalCreatorName(e.created_by);
+      var isMine = e.created_by === _userId;
+      var rowBg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
+      var tdBase = 'padding:8px 10px;border:1px solid #e2e8f0;background-color:' + rowBg + ';font-size:11pt';
+      var catBg = _mix(color, 0.82);
+      var catStyle = 'padding:8px 10px;border:1px solid ' + _mix(color, 0.5) + ';background-color:' + catBg + ';color:' + color + ';font-weight:bold;text-align:center;font-size:10.5pt';
+
+      html += '<tr style="height:28px">'
+        + '<td style="' + tdBase + ';text-align:center">' + _e(e.start_date || '') + '</td>'
+        + '<td style="' + tdBase + ';text-align:center">' + _e(e.end_date || '') + '</td>'
+        + '<td style="' + tdBase + ';text-align:center;color:#475569">' + _e((e.start_time || '').slice(0,5) || '-') + '</td>'
+        + '<td style="' + tdBase + ';text-align:center;color:#475569">' + _e((e.end_time || '').slice(0,5) || '-') + '</td>'
+        + '<td style="' + tdBase + ';font-weight:bold;color:#0f172a">' + _e(e.title || '') + '</td>'
+        + '<td style="' + catStyle + '">' + _e(cat) + '</td>'
+        + '<td style="' + tdBase + ';text-align:center;color:#334155">' + _e(creator) + (isMine ? ' (나)' : '') + '</td>'
+        + '<td style="' + tdBase + ';color:#475569">' + _e(e.description || '-') + '</td>'
+        + '</tr>';
     });
 
-    // UTF-8 BOM → Excel 한글 정상 표시
-    var BOM = '﻿';
-    var csv = BOM + lines.join('\r\n');
-    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    html += '</table></body></html>';
+
+    // UTF-8 BOM + HTML — .xls 확장자로 다운로드 (Excel 이 스타일 그대로 렌더)
+    var blob = new Blob(['﻿', html], { type: 'application/vnd.ms-excel;charset=utf-8' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
-    a.href = url; a.download = fname;
+    a.href = url; a.download = fnameBase + '.xls';
     document.body.appendChild(a);
     a.click();
     setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
