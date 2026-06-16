@@ -13748,9 +13748,22 @@ function openVendorMenu() {
         }
         items.push({ event: e, startCol: startCol, endCol: endCol, continuesLeft: continuesLeft, continuesRight: continuesRight });
       });
-      // 트랙 할당 (greedy: 시작 col 오름차순, 길이 큰 것 우선)
+      // 트랙 할당 (greedy):
+      //  · 1차: 시작 col 오름차순 (왼쪽에서 시작하는 일정이 위쪽 트랙)
+      //  · 2차: 같은 시작일이면 팔레트 순서 (청록 → 파랑 → 초록 → 주황) — 동일 일자에 3색 다 있을 때 보기 순서 보장
+      //  · 3차: 같은 시작일·같은 색이면 길이 큰 것 우선
+      function _scalColorPri(hex) {
+        var h = (hex || '').toLowerCase();
+        for (var p = 0; p < SCAL_PALETTE.length; p++) {
+          if (SCAL_PALETTE[p].val.toLowerCase() === h) return p;
+        }
+        return 99;
+      }
       items.sort(function(a, b){
         if (a.startCol !== b.startCol) return a.startCol - b.startCol;
+        var pa = _scalColorPri(a.event.color);
+        var pb = _scalColorPri(b.event.color);
+        if (pa !== pb) return pa - pb;
         return (b.endCol - b.startCol) - (a.endCol - a.startCol);
       });
       var trackLastEnd = [];
