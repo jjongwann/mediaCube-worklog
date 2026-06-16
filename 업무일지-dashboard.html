@@ -13846,14 +13846,11 @@ function openVendorMenu() {
       html += '<div style="font-size:11px;color:#475569;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + safeCreator + (isMine ? ' <span style="font-size:9px;color:#0891b2;font-weight:700">(나)</span>' : '') + '</div>';
       // 설명
       html += '<div style="font-size:11px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + safeDesc + '">' + (safeDesc || '<span style="color:#cbd5e1">—</span>') + '</div>';
-      // 작업
-      if (isMine) {
-        html += '<div style="display:flex;gap:4px;justify-content:flex-end">'
-          + '<button onclick="event.stopPropagation();_scalOpenEventModal(\'' + safeId + '\')" title="수정" style="width:26px;height:26px;border:none;background:#f1f5f9;color:#64748b;border-radius:6px;cursor:pointer;font-size:13px">✎</button>'
-          + '</div>';
-      } else {
-        html += '<div style="text-align:right"><span style="font-size:11px;color:#cbd5e1;font-weight:700">🔒</span></div>';
-      }
+      // 작업 — 모든 행에 수정/삭제 버튼 노출 (RLS 허용 + 삭제는 confirm 안전망)
+      html += '<div style="display:flex;gap:4px;justify-content:flex-end">'
+        + '<button onclick="event.stopPropagation();_scalOpenEventModal(\'' + safeId + '\')" title="수정" style="width:26px;height:26px;border:none;background:#f1f5f9;color:#64748b;border-radius:6px;cursor:pointer;font-size:13px;transition:background .12s,color .12s" onmouseover="this.style.background=\'#e0f2fe\';this.style.color=\'#0891b2\'" onmouseout="this.style.background=\'#f1f5f9\';this.style.color=\'#64748b\'">✎</button>'
+        + '<button onclick="event.stopPropagation();_scalDeleteFromDayView(\'' + safeId + '\')" title="삭제" style="width:26px;height:26px;border:none;background:#fef2f2;color:#dc2626;border-radius:6px;cursor:pointer;font-size:13px;transition:background .12s" onmouseover="this.style.background=\'#fecaca\'" onmouseout="this.style.background=\'#fef2f2\'">🗑</button>'
+        + '</div>';
       html += '</div>';
     });
 
