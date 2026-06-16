@@ -13698,64 +13698,175 @@ function openVendorMenu() {
     var now = new Date();
     var todayStr = _scalToYmd(now);
 
-    // 일자별 이벤트 인덱싱
-    var eventsByDay = {};
-    SCAL_STATE.events.forEach(function(e){
-      if (!e.start_date || !e.end_date) return;
-      var s = new Date(e.start_date + 'T00:00:00');
-      var en = new Date(e.end_date + 'T00:00:00');
-      if (isNaN(s.getTime()) || isNaN(en.getTime())) return;
-      var d = new Date(s);
-      while (d.getTime() <= en.getTime()) {
-        if (d.getFullYear() === y && d.getMonth() === m) {
-          var ds = _scalToYmd(d);
-          if (!eventsByDay[ds]) eventsByDay[ds] = [];
-          eventsByDay[ds].push(e);
-        }
-        d.setDate(d.getDate() + 1);
+    // 주(week) 구조 + 멀티데이 이벤트를 연속 바로 렌더
+    //  · 각 주는 7개의 셀 (out-of-month 셀은 회색 배경 + 숫자 표시)
+    //  · 이벤트는 해당 주 내에서 startCol~endCol 로 grid-column span
+    //  · 같은 주에 겹치는 이벤트는 track 으로 쌓아 표시
+    var totalCells = Math.ceil((firstDow + daysInMonth) / 7) * 7;
+    var numWeeks = totalCells / 7;
+    var weeks = [];
+    for (var wi = 0; wi < numWeeks; wi++) {
+      var week = [];
+      for (var di = 0; di < 7; di++) {
+        var cellIdx = wi * 7 + di;
+        var dayNum = cellIdx - firstDow + 1;
+        var inMonth = dayNum >= 1 && dayNum <= daysInMonth;
+        var fullDate = new Date(y, m, dayNum); // Date 가 자동으로 out-of-month 처리
+        var fullDateStr = _scalToYmd(fullDate);
+        week.push({
+          dayNum: fullDate.getDate(),
+          inMonth: inMonth,
+          dateStr: fullDateStr,
+          isToday: fullDateStr === todayStr,
+          dow: di
+        });
       }
+      weeks.push(week);
+    }
+
+    // 주별 이벤트 위치 계산 + 트랙 할당
+    var MAX_VISIBLE_TRACKS = 4;
+    var eventsByWeek = weeks.map(function(week){
+      var weekStartStr = week[0].dateStr;
+      var weekEndStr = week[6].dateStr;
+      var items = [];
+      SCAL_STATE.events.forEach(function(e){
+        if (!e.start_date || !e.end_date) return;
+        if (e.end_date < weekStartStr || e.start_date > weekEndStr) return;
+        var startCol = 0, endCol = 6;
+        var continuesLeft = e.start_date < weekStartStr;
+        var continuesRight = e.end_date > weekEndStr;
+        if (!continuesLeft) {
+          for (var i = 0; i < 7; i++) {
+            if (week[i].dateStr === e.start_date) { startCol = i; break; }
+          }
+        }
+        if (!continuesRight) {
+          for (var j = 0; j < 7; j++) {
+            if (week[j].dateStr === e.end_date) { endCol = j; break; }
+          }
+        }
+        items.push({ event: e, startCol: startCol, endCol: endCol, continuesLeft: continuesLeft, continuesRight: continuesRight });
+      });
+      // 트랙 할당 (greedy: 시작 col 오름차순, 길이 큰 것 우선)
+      items.sort(function(a, b){
+        if (a.startCol !== b.startCol) return a.startCol - b.startCol;
+        return (b.endCol - b.startCol) - (a.endCol - a.startCol);
+      });
+      var trackLastEnd = [];
+      items.forEach(function(it){
+        var placed = false;
+        for (var k = 0; k < trackLastEnd.length; k++) {
+          if (trackLastEnd[k] < it.startCol) {
+            trackLastEnd[k] = it.endCol;
+            it.track = k;
+            placed = true;
+            break;
+          }
+        }
+        if (!placed) {
+          it.track = trackLastEnd.length;
+          trackLastEnd.push(it.endCol);
+        }
+      });
+      return items;
     });
 
     var dayHeaders = ['일','월','화','수','목','금','토'];
-    var dayColors = ['#dc2626','#374151','#374151','#374151','#374151','#374151','#2563eb'];
+    var dayHeaderColors = ['#dc2626','#374151','#374151','#374151','#374151','#374151','#2563eb'];
     var html = '<div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid #e2e8f0">';
     dayHeaders.forEach(function(d, i){
       var br = (i < 6) ? ';border-right:1px solid #e2e8f0' : '';
-      html += '<div style="padding:10px 8px;text-align:center;font-size:11px;font-weight:700;color:' + dayColors[i] + ';background:#f8fafc' + br + '">' + d + '</div>';
+      html += '<div style="padding:10px 8px;text-align:center;font-size:11px;font-weight:700;color:' + dayHeaderColors[i] + ';background:#f8fafc' + br + '">' + d + '</div>';
     });
     html += '</div>';
 
-    var totalCells = Math.ceil((firstDow + daysInMonth) / 7) * 7;
-    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:minmax(102px,auto)">';
-    for (var i = 0; i < totalCells; i++) {
-      var dayNum = i - firstDow + 1;
-      var inMonth = dayNum >= 1 && dayNum <= daysInMonth;
-      var dateStr = inMonth ? (y + '-' + _scalPad(m+1) + '-' + _scalPad(dayNum)) : '';
-      var isToday = dateStr === todayStr;
-      var dow = i % 7;
-      var dayColor = dow === 0 ? '#dc2626' : (dow === 6 ? '#2563eb' : '#0f172a');
-      var bg = isToday ? '#cffafe' : (inMonth ? '#fff' : '#fafafa');
-      var bd = '1px solid #f1f5f9';
-      var bRight = (i % 7 < 6) ? ';border-right:' + bd : '';
-      var clickAttr = inMonth ? ' onclick="_scalOpenDayView(\'' + dateStr + '\')"' : '';
-      var inMonthClass = inMonth ? 'scal-day-cell inmonth' : 'scal-day-cell';
-      html += '<div class="' + inMonthClass + '" style="border-bottom:' + bd + bRight + ';background:' + bg + ';min-height:102px;padding:5px 6px;position:relative"' + clickAttr + '>';
-      if (inMonth) {
-        html += '<div style="font-size:11px;font-weight:' + (isToday ? '800' : '600') + ';color:' + dayColor + ';text-align:right;margin-bottom:3px">' + dayNum + (isToday ? '<span style="font-size:9px;font-weight:700;color:#0891b2;background:#fff;border:1px solid #67e8f9;border-radius:6px;padding:1px 5px;margin-left:4px">오늘</span>' : '') + '</div>';
-        var evs = eventsByDay[dateStr] || [];
-        evs.slice(0, 4).forEach(function(e){
-          var title = _scalEscape(e.title || '');
-          var tooltip = title;
-          if (e.start_time && e.end_time) tooltip = e.start_time.slice(0,5) + '~' + e.end_time.slice(0,5) + ' ' + title;
-          html += '<div class="scal-event-chip" style="--c:' + (e.color || '#3b82f6') + ';background:' + (e.color || '#3b82f6') + '" onclick="event.stopPropagation();_scalOpenDayView(\'' + dateStr + '\')" title="' + tooltip + '">' + title + '</div>';
-        });
-        if (evs.length > 4) {
-          html += '<div style="font-size:9.5px;color:#94a3b8;text-align:center;margin-top:2px;font-weight:600">+ ' + (evs.length - 4) + '건 더</div>';
+    weeks.forEach(function(week, wi){
+      var items = eventsByWeek[wi];
+      var visible = items.filter(function(it){ return it.track < MAX_VISIBLE_TRACKS; });
+      var maxTrack = -1;
+      visible.forEach(function(it){ if (it.track > maxTrack) maxTrack = it.track; });
+      var numTracks = maxTrack + 1; // 0 ~ maxTrack
+      // 가려진 이벤트가 덮은 일자별 카운트
+      var hiddenByCol = {};
+      items.filter(function(it){ return it.track >= MAX_VISIBLE_TRACKS; }).forEach(function(it){
+        for (var c = it.startCol; c <= it.endCol; c++) {
+          hiddenByCol[c] = (hiddenByCol[c] || 0) + 1;
         }
+      });
+      var hasHidden = Object.keys(hiddenByCol).length > 0;
+
+      // grid-template-rows: 24px(날짜) + 각 트랙 22px + (옵션) 16px 더보기 + 남은 공간
+      var rowsSpec = '24px';
+      for (var t = 0; t < numTracks; t++) rowsSpec += ' 22px';
+      if (hasHidden) rowsSpec += ' 16px';
+      rowsSpec += ' 1fr';
+
+      html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:' + rowsSpec + ';position:relative;min-height:102px;border-bottom:1px solid #f1f5f9">';
+
+      // 셀 배경 (full-height span)
+      week.forEach(function(cell, di) {
+        var bg = cell.isToday ? '#cffafe' : (cell.inMonth ? '#fff' : '#fafafa');
+        var bRight = (di < 6) ? ';border-right:1px solid #f1f5f9' : '';
+        var inMonthClass = cell.inMonth ? 'scal-day-cell inmonth' : 'scal-day-cell';
+        var clickAttr = cell.inMonth ? ' onclick="_scalOpenDayView(\'' + cell.dateStr + '\')"' : '';
+        html += '<div class="' + inMonthClass + '" style="grid-column:' + (di+1) + ';grid-row:1 / -1;background:' + bg + bRight + ';cursor:' + (cell.inMonth ? 'pointer' : 'default') + '"' + clickAttr + '></div>';
+      });
+
+      // 날짜 번호 (row 1)
+      week.forEach(function(cell, di) {
+        var dayColor;
+        if (!cell.inMonth) dayColor = '#cbd5e1';
+        else dayColor = di === 0 ? '#dc2626' : (di === 6 ? '#2563eb' : '#0f172a');
+        var weight = cell.isToday ? '800' : (cell.inMonth ? '600' : '500');
+        var todayBadge = cell.isToday ? ' <span style="font-size:9px;font-weight:700;color:#0891b2;background:#fff;border:1px solid #67e8f9;border-radius:6px;padding:1px 5px;margin-left:2px">오늘</span>' : '';
+        html += '<div style="grid-column:' + (di+1) + ';grid-row:1;font-size:11px;font-weight:' + weight + ';color:' + dayColor + ';text-align:right;padding:5px 6px 3px;pointer-events:none;position:relative;z-index:1">' + cell.dayNum + todayBadge + '</div>';
+      });
+
+      // 이벤트 칩 (멀티데이는 grid-column span 으로 자연스럽게 가로 확장)
+      visible.forEach(function(it){
+        var e = it.event;
+        var color = e.color || '#3b82f6';
+        var title = _scalEscape(e.title || '');
+        var tooltip = title;
+        if (e.start_date !== e.end_date) tooltip = e.start_date + ' ~ ' + e.end_date + ' · ' + title;
+        if (e.start_time && e.end_time) tooltip = e.start_time.slice(0,5) + '~' + e.end_time.slice(0,5) + ' · ' + tooltip;
+
+        var gcStart = it.startCol + 1;
+        var gcEnd = it.endCol + 2;
+        var gRow = it.track + 2; // 1=날짜번호, 2+=트랙
+
+        var br;
+        if (it.continuesLeft && it.continuesRight) br = '0';
+        else if (it.continuesLeft) br = '0 5px 5px 0';
+        else if (it.continuesRight) br = '5px 0 0 5px';
+        else br = '5px';
+
+        var leftArrow = it.continuesLeft ? '◂ ' : '';
+        var rightArrow = it.continuesRight ? ' ▸' : '';
+
+        var clickDateStr = week[it.startCol].dateStr;
+        html += '<div class="scal-event-chip" style="grid-column:' + gcStart + ' / ' + gcEnd + ';grid-row:' + gRow + ';'
+          + 'background:' + color + ';color:#fff;font-size:10.5px;font-weight:600;'
+          + 'padding:2px 7px;border-radius:' + br + ';margin:1px 2px;cursor:pointer;'
+          + 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;position:relative;z-index:2;'
+          + 'display:flex;align-items:center;line-height:1.4" '
+          + 'onclick="event.stopPropagation();_scalOpenDayView(\'' + clickDateStr + '\')" '
+          + 'title="' + tooltip + '">' + leftArrow + title + rightArrow + '</div>';
+      });
+
+      // 가려진 이벤트 표시 (+N건 더)
+      if (hasHidden) {
+        var hiddenRow = numTracks + 2;
+        Object.keys(hiddenByCol).forEach(function(col){
+          var n = hiddenByCol[col];
+          html += '<div style="grid-column:' + (parseInt(col,10)+1) + ';grid-row:' + hiddenRow + ';font-size:9px;color:#94a3b8;text-align:center;padding:0 4px;pointer-events:none;position:relative;z-index:2;font-weight:700;line-height:14px">+' + n + '건</div>';
+        });
       }
+
       html += '</div>';
-    }
-    html += '</div>';
+    });
+
     grid.innerHTML = html;
   }
 
