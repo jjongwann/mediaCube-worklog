@@ -8783,15 +8783,31 @@
       </button>
       <button onclick="_scalToday()" style="padding:6px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;color:#475569;font-size:12px;font-weight:700;cursor:pointer;transition:all .12s" onmouseover="this.style.background='#eff6ff';this.style.borderColor='#93c5fd';this.style.color='#2563eb'" onmouseout="this.style.background='#fff';this.style.borderColor='#e2e8f0';this.style.color='#475569'">오늘</button>
       <div style="flex:1"></div>
+      <!-- 뷰 토글: 캘린더 / 표 -->
+      <div style="display:inline-flex;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:3px">
+        <button id="scal-view-grid-btn" onclick="_scalSetView('grid')" style="padding:5px 12px;background:#0891b2;color:#fff;border:none;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;transition:background .12s,color .12s">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          캘린더
+        </button>
+        <button id="scal-view-table-btn" onclick="_scalSetView('table')" style="padding:5px 12px;background:transparent;color:#64748b;border:none;border-radius:6px;font-size:11.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:background .12s,color .12s">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          표
+        </button>
+      </div>
+      <button id="scal-export-btn" onclick="_scalExportExcel()" title="현재 월 일정 CSV로 내려받기 (Excel 호환)" style="display:none;padding:7px 14px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;align-items:center;gap:5px;box-shadow:0 2px 6px rgba(22,163,74,0.25);transition:filter .12s" onmouseover="this.style.filter='brightness(0.92)'" onmouseout="this.style.filter=''">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        엑셀
+      </button>
       <button onclick="_scalOpenEventModal(null)" style="padding:8px 18px;background:#0891b2;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(8,145,178,0.25);transition:filter .12s" onmouseover="this.style.filter='brightness(0.92)'" onmouseout="this.style.filter=''">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         새 일정 추가
       </button>
     </div>
 
-    <!-- 월 그리드 -->
+    <!-- 월 그리드 / 표 (토글) -->
     <div style="padding:18px 22px">
       <div id="shared-cal-grid" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#fff"></div>
+      <div id="shared-cal-table" style="display:none;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#fff"></div>
       <div style="margin-top:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px">
         <span style="font-size:10.5px;font-weight:700;color:#475569;letter-spacing:0.3px">색상 범례</span>
         <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#0f172a;font-weight:600">
@@ -13368,6 +13384,7 @@ function openVendorMenu() {
   var SCAL_STATE = {
     viewYear: new Date().getFullYear(),
     viewMonth: new Date().getMonth(), // 0-based
+    viewMode: 'grid', // 'grid' | 'table'
     events: [],
     editingId: null,
     pickedColor: '#0891b2' // 기본값: 청록 (공동 업무)
@@ -13490,10 +13507,54 @@ function openVendorMenu() {
       });
   }
 
+  // 뷰 모드 전환 (grid ↔ table)
+  function _scalSetView(mode) {
+    if (mode !== 'grid' && mode !== 'table') return;
+    SCAL_STATE.viewMode = mode;
+    var grid = document.getElementById('shared-cal-grid');
+    var table = document.getElementById('shared-cal-table');
+    var gBtn = document.getElementById('scal-view-grid-btn');
+    var tBtn = document.getElementById('scal-view-table-btn');
+    var xBtn = document.getElementById('scal-export-btn');
+    if (mode === 'grid') {
+      if (grid) grid.style.display = '';
+      if (table) table.style.display = 'none';
+      if (gBtn) { gBtn.style.background = '#0891b2'; gBtn.style.color = '#fff'; gBtn.style.fontWeight = '700'; }
+      if (tBtn) { tBtn.style.background = 'transparent'; tBtn.style.color = '#64748b'; tBtn.style.fontWeight = '600'; }
+      if (xBtn) xBtn.style.display = 'none';
+    } else {
+      if (grid) grid.style.display = 'none';
+      if (table) table.style.display = '';
+      if (gBtn) { gBtn.style.background = 'transparent'; gBtn.style.color = '#64748b'; gBtn.style.fontWeight = '600'; }
+      if (tBtn) { tBtn.style.background = '#0891b2'; tBtn.style.color = '#fff'; tBtn.style.fontWeight = '700'; }
+      if (xBtn) xBtn.style.display = 'inline-flex';
+    }
+    _scalRender();
+  }
+
+  // 색상 → 분류 라벨 매핑 (팔레트에 없는 색상은 '기타')
+  function _scalColorCategory(hex) {
+    var h = (hex || '').toLowerCase();
+    for (var i = 0; i < SCAL_PALETTE.length; i++) {
+      if (SCAL_PALETTE[i].val.toLowerCase() === h) return SCAL_PALETTE[i].label;
+    }
+    return '기타';
+  }
+
+  function _scalCreatorName(uid) {
+    if (!uid || typeof ALL_USERS === 'undefined') return '—';
+    var u = ALL_USERS.find(function(x){ return x.id === uid; });
+    return u ? u.fullName : '—';
+  }
+
   function _scalRender() {
     var y = SCAL_STATE.viewYear, m = SCAL_STATE.viewMonth;
     var titleEl = document.getElementById('shared-cal-title');
     if (titleEl) titleEl.textContent = y + '년 ' + (m+1) + '월';
+    if (SCAL_STATE.viewMode === 'table') {
+      _scalRenderTable();
+      return;
+    }
     var grid = document.getElementById('shared-cal-grid');
     if (!grid) return;
 
@@ -13564,6 +13625,159 @@ function openVendorMenu() {
     }
     html += '</div>';
     grid.innerHTML = html;
+  }
+
+  // 표 뷰 렌더 — 현재 월 이벤트만 (시작일 기준 정렬)
+  function _scalRenderTable() {
+    var y = SCAL_STATE.viewYear, m = SCAL_STATE.viewMonth;
+    var wrap = document.getElementById('shared-cal-table');
+    if (!wrap) return;
+
+    var firstDayStr = y + '-' + _scalPad(m+1) + '-01';
+    var lastDate = new Date(y, m+1, 0);
+    var lastDayStr = y + '-' + _scalPad(m+1) + '-' + _scalPad(lastDate.getDate());
+    // 월과 겹치는 이벤트만 (fetch 결과가 이미 필터되어 있음)
+    var rows = SCAL_STATE.events.filter(function(e){
+      return e.start_date && e.end_date && e.end_date >= firstDayStr && e.start_date <= lastDayStr;
+    }).slice().sort(function(a, b){
+      if (a.start_date !== b.start_date) return a.start_date < b.start_date ? -1 : 1;
+      return (a.start_time || '') < (b.start_time || '') ? -1 : 1;
+    });
+
+    if (!rows.length) {
+      wrap.innerHTML = '<div style="padding:60px 20px;text-align:center;color:#94a3b8;font-size:13px">'
+        + '<div style="font-size:32px;margin-bottom:8px">📭</div>'
+        + '<div style="font-weight:600;color:#64748b">이번 달 등록된 일정이 없습니다.</div>'
+        + '<div style="font-size:11px;margin-top:6px">우측 상단 \'+ 새 일정 추가\' 버튼으로 일정을 등록해 보세요.</div>'
+        + '</div>';
+      return;
+    }
+
+    var headers = ['일정', '시간', '제목', '분류', '작성자', '설명', ''];
+    var widths  = ['180px', '120px', '1.4fr', '140px', '120px', '1.6fr', '70px'];
+    var gridCols = widths.join(' ');
+
+    var html = '<div style="display:grid;grid-template-columns:' + gridCols + ';gap:0;background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:11px 14px;font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px">';
+    headers.forEach(function(h){
+      html += '<div>' + h + '</div>';
+    });
+    html += '</div>';
+
+    rows.forEach(function(e, idx){
+      var color = e.color || SCAL_PALETTE[0].val;
+      var cat = _scalColorCategory(color);
+      var safeTitle = _scalEscape(e.title || '');
+      var safeDesc = _scalEscape(e.description || '');
+      var creator = _scalCreatorName(e.created_by);
+      var safeCreator = _scalEscape(creator);
+      var isMine = e.created_by === _userId;
+
+      // 일정 기간 표시
+      var dateLabel;
+      if (e.start_date === e.end_date) {
+        dateLabel = _scalFmtDateShort(e.start_date);
+      } else {
+        dateLabel = _scalFmtDateShort(e.start_date) + ' ~ ' + _scalFmtDateShort(e.end_date);
+      }
+      var timeLabel = '—';
+      if (e.start_time && e.end_time) timeLabel = e.start_time.slice(0,5) + ' ~ ' + e.end_time.slice(0,5);
+      else if (e.start_time) timeLabel = e.start_time.slice(0,5) + ' ~';
+      else if (e.end_time) timeLabel = '~ ' + e.end_time.slice(0,5);
+
+      var rowBg = idx % 2 === 0 ? '#fff' : '#fafbfc';
+      var safeId = String(e.id || '').replace(/'/g, "\\'");
+
+      html += '<div style="display:grid;grid-template-columns:' + gridCols + ';gap:0;padding:11px 14px;border-bottom:1px solid #f1f5f9;background:' + rowBg + ';font-size:12px;align-items:center;transition:background .12s;border-left:3px solid ' + color + '" onmouseover="this.style.background=\'#f0f9ff\'" onmouseout="this.style.background=\'' + rowBg + '\'">';
+
+      // 일정 (날짜)
+      html += '<div style="font-weight:600;color:#0f172a;font-variant-numeric:tabular-nums">' + dateLabel + '</div>';
+      // 시간
+      html += '<div style="font-size:11px;color:#475569;font-variant-numeric:tabular-nums">' + timeLabel + '</div>';
+      // 제목
+      html += '<div onclick="_scalOpenEventModal(\'' + safeId + '\')" style="cursor:pointer;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + safeTitle + '">' + safeTitle + '</div>';
+      // 분류
+      html += '<div><span style="display:inline-block;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:12px;background:' + color + '22;color:' + color + ';border:1px solid ' + color + '55">' + _scalEscape(cat) + '</span></div>';
+      // 작성자
+      html += '<div style="font-size:11px;color:#475569;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + safeCreator + (isMine ? ' <span style="font-size:9px;color:#0891b2;font-weight:700">(나)</span>' : '') + '</div>';
+      // 설명
+      html += '<div style="font-size:11px;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + safeDesc + '">' + (safeDesc || '<span style="color:#cbd5e1">—</span>') + '</div>';
+      // 작업
+      if (isMine) {
+        html += '<div style="display:flex;gap:4px;justify-content:flex-end">'
+          + '<button onclick="event.stopPropagation();_scalOpenEventModal(\'' + safeId + '\')" title="수정" style="width:26px;height:26px;border:none;background:#f1f5f9;color:#64748b;border-radius:6px;cursor:pointer;font-size:13px">✎</button>'
+          + '</div>';
+      } else {
+        html += '<div style="text-align:right"><span style="font-size:11px;color:#cbd5e1;font-weight:700">🔒</span></div>';
+      }
+      html += '</div>';
+    });
+
+    // 푸터 — 총 건수
+    html += '<div style="padding:10px 14px;background:#f8fafc;border-top:1px solid #e2e8f0;font-size:11px;font-weight:700;color:#475569;text-align:right">총 ' + rows.length + '건</div>';
+
+    wrap.innerHTML = html;
+  }
+
+  function _scalFmtDateShort(s) {
+    if (!s) return '';
+    var p = s.split('-');
+    if (p.length < 3) return s;
+    var d = new Date(s + 'T00:00:00');
+    var dowK = ['일','월','화','수','목','금','토'][d.getDay()];
+    return p[0] + '.' + p[1] + '.' + p[2] + ' (' + dowK + ')';
+  }
+
+  // 엑셀(CSV) 내보내기 — 현재 월 일정만, UTF-8 BOM 포함
+  function _scalExportExcel() {
+    var y = SCAL_STATE.viewYear, m = SCAL_STATE.viewMonth;
+    var firstDayStr = y + '-' + _scalPad(m+1) + '-01';
+    var lastDate = new Date(y, m+1, 0);
+    var lastDayStr = y + '-' + _scalPad(m+1) + '-' + _scalPad(lastDate.getDate());
+    var rows = SCAL_STATE.events.filter(function(e){
+      return e.start_date && e.end_date && e.end_date >= firstDayStr && e.start_date <= lastDayStr;
+    }).slice().sort(function(a, b){
+      if (a.start_date !== b.start_date) return a.start_date < b.start_date ? -1 : 1;
+      return (a.start_time || '') < (b.start_time || '') ? -1 : 1;
+    });
+
+    if (!rows.length) { alert('이번 달 등록된 일정이 없습니다.'); return; }
+
+    function _csvCell(v) {
+      var s = String(v == null ? '' : v);
+      if (/[",\n\r]/.test(s)) {
+        s = '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }
+
+    var headers = ['시작일','종료일','시작시간','종료시간','제목','분류','색상(HEX)','작성자','설명'];
+    var lines = [headers.map(_csvCell).join(',')];
+    rows.forEach(function(e){
+      var color = e.color || SCAL_PALETTE[0].val;
+      lines.push([
+        e.start_date || '',
+        e.end_date   || '',
+        (e.start_time || '').slice(0,5),
+        (e.end_time   || '').slice(0,5),
+        e.title || '',
+        _scalColorCategory(color),
+        color,
+        _scalCreatorName(e.created_by),
+        e.description || ''
+      ].map(_csvCell).join(','));
+    });
+
+    // UTF-8 BOM → Excel 한글 정상 표시
+    var BOM = '﻿';
+    var csv = BOM + lines.join('\r\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var fname = '업무공유캘린더_' + y + '년' + (m+1) + '월.csv';
+    var a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
   }
 
   function _scalOpenEventModal(eventId, presetDate) {
@@ -13742,6 +13956,8 @@ function openVendorMenu() {
   window._scalToday = _scalToday;
   window._scalOpenJumpPicker = _scalOpenJumpPicker;
   window._scalOnJumpDateChange = _scalOnJumpDateChange;
+  window._scalSetView = _scalSetView;
+  window._scalExportExcel = _scalExportExcel;
   window._scalOpenEventModal = _scalOpenEventModal;
   window._scalCloseEventModal = _scalCloseEventModal;
   window._scalPickColor = _scalPickColor;
