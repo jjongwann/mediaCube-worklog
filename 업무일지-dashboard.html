@@ -1780,7 +1780,7 @@
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-size:13px;font-weight:700;color:#111827">BMAT 모니터링 통계</span>
           <select id="bmat-month-sel" onchange="renderBmatWidget()" style="padding:5px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:600;color:#374151;background:#f8fafc;cursor:pointer;outline:none"></select>
-          <span style="font-size:11px;color:#94a3b8">단위: 카운트/모수</span>
+          <span style="font-size:11px;color:#94a3b8">단위: 카운트</span>
           <button onclick="openBmatCumul()" style="display:flex;align-items:center;gap:6px;padding:5px 13px;background:#0891b2;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:filter .15s" onmouseover="this.style.filter='brightness(0.9)'" onmouseout="this.style.filter=''">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             월별 누계 통계
@@ -8192,15 +8192,10 @@
     var bgColors = channels.map(function(c, i){ return _bmatColorFor(c, i) + '99'; });
     var borderColors = channels.map(function(c, i){ return _bmatColorFor(c, i); });
 
-    var datasets;
-    if (_bmatType === 'line') {
-      datasets = [{ label: '점유율 (%)', data: shares, borderColor: '#0891b2', backgroundColor: 'rgba(8,145,178,0.15)', tension: 0.3, fill: true, pointRadius: 5, pointBackgroundColor: '#0891b2' }];
-    } else {
-      datasets = [
-        { label: '카운트 수', data: counts, backgroundColor: bgColors, borderColor: borderColors, borderWidth: 1, yAxisID: 'y' },
-        { label: '점유율 (%)', data: shares, type: 'line', borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,0.1)', tension: 0.3, yAxisID: 'y1', pointRadius: 4, pointBackgroundColor: '#dc2626' }
-      ];
-    }
+    // 점유율(점유율 라인/축) 제거 — 카운트만 표시
+    var datasets = [
+      { label: '카운트 수', data: counts, backgroundColor: bgColors, borderColor: borderColors, borderWidth: 1 }
+    ];
 
     _bmatChart = new Chart(ctx, {
       type: _bmatType === 'line' ? 'line' : 'bar',
@@ -8209,25 +8204,19 @@
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: true, position: 'top', labels: { font: { size: 11 } } },
+          legend: { display: false },
           tooltip: {
             callbacks: {
               label: function(ctx) {
                 var idx = ctx.dataIndex;
-                if (ctx.dataset.label === '카운트 수') {
-                  return '카운트: ' + _bmatFmtN(counts[idx]) + ' / 모수: ' + _bmatFmtN(pops[idx]);
-                }
-                return '점유율: ' + (shares[idx] || 0).toFixed(2) + '%';
+                return '카운트: ' + _bmatFmtN(counts[idx]) + ' / 모수: ' + _bmatFmtN(pops[idx]);
               }
             }
           }
         },
-        scales: _bmatType === 'line'
-          ? { y: { beginAtZero: true, ticks: { callback: function(v){ return v + '%'; } } } }
-          : {
-              y:  { beginAtZero: true, position: 'left',  title: { display: true, text: '카운트' } },
-              y1: { beginAtZero: true, position: 'right', title: { display: true, text: '점유율 (%)' }, grid: { drawOnChartArea: false }, ticks: { callback: function(v){ return v + '%'; } } }
-            }
+        scales: {
+          y: { beginAtZero: true, title: { display: true, text: '카운트' } }
+        }
       }
     });
 
@@ -8240,7 +8229,6 @@
           + '<div style="font-size:10px;font-weight:700;color:' + color + ';margin-bottom:3px">' + escHtml(c) + '</div>'
           + '<div style="font-size:13px;font-weight:800;color:#0f172a">' + _bmatFmtN(counts[i]) + '</div>'
           + '<div style="font-size:9px;color:#64748b">모수 ' + _bmatFmtN(pops[i]) + '</div>'
-          + '<div style="font-size:11px;font-weight:700;color:' + color + ';margin-top:2px">' + (shares[i] || 0).toFixed(1) + '%</div>'
           + '</div>';
       }).join('');
     }
@@ -8248,14 +8236,12 @@
     // 통계 패널
     var totalCount = counts.reduce(function(a,b){ return a+b; }, 0);
     var totalPop = pops.reduce(function(a,b){ return a+b; }, 0);
-    var avgShare = totalPop > 0 ? (totalCount / totalPop * 100) : 0;
     var panel = document.getElementById('bmat-stat-panel');
     if (panel) {
       panel.innerHTML = '<div style="font-size:11px;font-weight:700;color:#0891b2;letter-spacing:0.5px">' + _bmatFmtMonthLabel(mk) + ' 통계</div>'
         + '<div style="height:1px;background:#bae6fd;margin:2px 0 6px"></div>'
         + '<div style="background:#fff;border:1px solid #e0f2fe;border-radius:8px;padding:10px 12px"><div style="font-size:10.5px;color:#64748b;font-weight:600">총 카운트</div><div style="font-size:16px;font-weight:800;color:#0891b2;margin-top:2px">' + _bmatFmtN(totalCount) + '</div></div>'
         + '<div style="background:#fff;border:1px solid #e0f2fe;border-radius:8px;padding:10px 12px"><div style="font-size:10.5px;color:#64748b;font-weight:600">총 모수</div><div style="font-size:16px;font-weight:800;color:#0f172a;margin-top:2px">' + _bmatFmtN(totalPop) + '</div></div>'
-        + '<div style="background:#fff;border:1px solid #e0f2fe;border-radius:8px;padding:10px 12px"><div style="font-size:10.5px;color:#64748b;font-weight:600">평균 점유율</div><div style="font-size:16px;font-weight:800;color:#dc2626;margin-top:2px">' + avgShare.toFixed(2) + '%</div></div>'
         ;
     }
   }
