@@ -13360,17 +13360,18 @@ function openVendorMenu() {
     viewMonth: new Date().getMonth(), // 0-based
     events: [],
     editingId: null,
-    pickedColor: '#3b82f6'
+    pickedColor: '#0891b2' // 기본값: 청록 (공동 업무)
   };
+  // 4색 팔레트 — 각 색상별 의미 부여
+  //  · 청록: 공동 업무 (전체 시스템 사업부 협업)
+  //  · 파랑: 권영재 차장(engineer2) 개인 업무
+  //  · 초록: 김세준 차장(avsystem) 개인 업무
+  //  · 주황: 기타 업무
   var SCAL_PALETTE = [
-    { name: '시안', val: '#0891b2' },
-    { name: '파랑', val: '#3b82f6' },
-    { name: '초록', val: '#16a34a' },
-    { name: '주황', val: '#ea580c' },
-    { name: '보라', val: '#7c3aed' },
-    { name: '핑크', val: '#db2777' },
-    { name: '빨강', val: '#dc2626' },
-    { name: '회색', val: '#64748b' }
+    { name: '청록', val: '#0891b2', label: '공동 업무',           desc: '시스템 사업부 공통/협업' },
+    { name: '파랑', val: '#3b82f6', label: '권영재 차장 (engineer2)', desc: '권영재 차장 개인 업무' },
+    { name: '초록', val: '#16a34a', label: '김세준 차장 (avsystem)',  desc: '김세준 차장 개인 업무' },
+    { name: '주황', val: '#ea580c', label: '기타 업무',           desc: '그 외 분류' }
   ];
 
   function _scalCanAccess() {
@@ -13572,7 +13573,7 @@ function openVendorMenu() {
     document.getElementById('scal-evt-end-time').value = ev && ev.end_time ? ev.end_time.slice(0,5) : '';
     document.getElementById('scal-evt-desc').value = ev ? (ev.description || '') : '';
 
-    var curColor = ev ? (ev.color || '#3b82f6') : '#3b82f6';
+    var curColor = ev ? (ev.color || SCAL_PALETTE[0].val) : SCAL_PALETTE[0].val;
     SCAL_STATE.pickedColor = curColor;
     _scalRenderColorPicker(curColor);
 
@@ -13621,10 +13622,24 @@ function openVendorMenu() {
   function _scalRenderColorPicker(selected) {
     var wrap = document.getElementById('scal-evt-color-picker');
     if (!wrap) return;
-    var sel = (selected || SCAL_STATE.pickedColor || '#3b82f6').toLowerCase();
+    var sel = (selected || SCAL_STATE.pickedColor || SCAL_PALETTE[0].val).toLowerCase();
+    // 4색을 카드형 그리드(2x2)로 — 색상 원 + 라벨 + 설명
+    wrap.style.display = 'grid';
+    wrap.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
+    wrap.style.gap = '8px';
     wrap.innerHTML = SCAL_PALETTE.map(function(c){
       var isSel = c.val.toLowerCase() === sel;
-      return '<button type="button" onclick="_scalPickColor(\'' + c.val + '\')" title="' + c.name + '" style="width:28px;height:28px;border-radius:50%;background:' + c.val + ';border:' + (isSel ? '3px solid #0f172a' : '2px solid #fff') + ';box-shadow:0 1px 4px rgba(0,0,0,0.15);cursor:pointer;padding:0;transition:transform .12s" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'\'"></button>';
+      var border = isSel ? '2px solid ' + c.val : '1px solid #e2e8f0';
+      var bg = isSel ? c.val + '12' : '#fff';
+      return '<button type="button" onclick="_scalPickColor(\'' + c.val + '\')" title="' + c.label + ' — ' + c.desc + '" '
+        + 'style="display:flex;align-items:center;gap:9px;padding:8px 10px;border:' + border + ';border-radius:9px;background:' + bg + ';cursor:pointer;text-align:left;font-family:inherit;transition:background .12s,border-color .12s" '
+        + 'onmouseover="this.style.background=\'' + c.val + '14\'" onmouseout="this.style.background=\'' + bg + '\'">'
+        + '<span style="display:inline-block;width:18px;height:18px;border-radius:50%;background:' + c.val + ';box-shadow:0 1px 3px rgba(0,0,0,0.18);flex-shrink:0"></span>'
+        + '<span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2;min-width:0">'
+          + '<span style="font-size:12px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">' + c.label + '</span>'
+          + '<span style="font-size:10px;font-weight:500;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">' + c.desc + '</span>'
+        + '</span>'
+        + '</button>';
     }).join('');
   }
 
@@ -13643,7 +13658,7 @@ function openVendorMenu() {
     var startTime = (document.getElementById('scal-evt-start-time').value || '').trim();
     var endTime = (document.getElementById('scal-evt-end-time').value || '').trim();
     var description = (document.getElementById('scal-evt-desc').value || '').trim();
-    var color = SCAL_STATE.pickedColor || '#3b82f6';
+    var color = SCAL_STATE.pickedColor || SCAL_PALETTE[0].val;
 
     var nowIso = new Date().toISOString();
     var body = {
