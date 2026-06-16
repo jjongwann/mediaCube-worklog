@@ -13391,15 +13391,31 @@ function openVendorMenu() {
   };
   // 4색 팔레트 — 각 색상별 의미 부여
   //  · 청록: 공동 업무 (전체 시스템 사업부 협업)
-  //  · 파랑: 권영재 차장(engineer2) 개인 업무
-  //  · 초록: 김세준 차장(avsystem) 개인 업무
+  //  · 파랑: 권영재 차장(engineer2) 개인 업무 — 본인 + 관리자에게만 노출
+  //  · 초록: 김세준 차장(avsystem) 개인 업무 — 본인 + 관리자에게만 노출
   //  · 주황: 기타 업무
   var SCAL_PALETTE = [
     { name: '청록', val: '#0891b2', label: '공동 업무',           desc: '시스템 사업부 공통/협업' },
-    { name: '파랑', val: '#3b82f6', label: '권영재 차장 (engineer2)', desc: '권영재 차장 개인 업무' },
-    { name: '초록', val: '#16a34a', label: '김세준 차장 (avsystem)',  desc: '김세준 차장 개인 업무' },
+    { name: '파랑', val: '#3b82f6', label: '권영재 차장 (engineer2)', desc: '권영재 차장 개인 업무', personalFor: 'engineer2' },
+    { name: '초록', val: '#16a34a', label: '김세준 차장 (avsystem)',  desc: '김세준 차장 개인 업무', personalFor: 'avsystem' },
     { name: '주황', val: '#ea580c', label: '기타 업무',           desc: '그 외 분류' }
   ];
+
+  // 현재 사용자에게 보여줄 색상만 반환
+  //  · 관리자: 전체 노출
+  //  · 시스템 사업부 직원: 공동/기타 + 본인 색상만 (상대방 개인 색상은 숨김)
+  function _scalVisiblePalette() {
+    var isAdminUser = (typeof _isAdmin !== 'undefined' && _isAdmin);
+    if (isAdminUser) return SCAL_PALETTE.slice();
+    var me = (typeof ALL_USERS !== 'undefined' && _userId)
+      ? ALL_USERS.find(function(u){ return u.id === _userId; })
+      : null;
+    var myUsername = me ? me.username : '';
+    return SCAL_PALETTE.filter(function(c){
+      if (!c.personalFor) return true; // 공통(청록/주황)은 항상 노출
+      return c.personalFor === myUsername; // 개인 색상은 본인에게만
+    });
+  }
 
   function _scalCanAccess() {
     if (typeof _isAdmin !== 'undefined' && _isAdmin) return true;
@@ -13799,7 +13815,8 @@ function openVendorMenu() {
 
     var curColor = ev ? (ev.color || SCAL_PALETTE[0].val) : SCAL_PALETTE[0].val;
     SCAL_STATE.pickedColor = curColor;
-    _scalRenderColorPicker(curColor);
+    var canEditForPicker = !ev || ev.created_by === _userId;
+    _scalRenderColorPicker(curColor, !canEditForPicker);
 
     var headerEl = document.getElementById('scal-evt-modal-title');
     if (headerEl) headerEl.textContent = ev ? '일정 수정' : '새 일정 추가';
@@ -13843,21 +13860,39 @@ function openVendorMenu() {
     SCAL_STATE.editingId = null;
   }
 
-  function _scalRenderColorPicker(selected) {
+  function _scalRenderColorPicker(selected, readOnly) {
     var wrap = document.getElementById('scal-evt-color-picker');
     if (!wrap) return;
-    var sel = (selected || SCAL_STATE.pickedColor || SCAL_PALETTE[0].val).toLowerCase();
-    // 4색을 카드형 그리드(2x2)로 — 색상 원 + 라벨 + 설명
+    // 읽기 전용(타인 일정 조회) 일 때는 전체 팔레트 노출하여 실제 색상 보존
+    // 편집 가능 시: 본인 + 관리자에게만 허용된 색상만 노출
+    var palette = readOnly ? SCAL_PALETTE.slice() : _scalVisiblePalette();
+    if (!palette.length) palette = SCAL_PALETTE.slice();
+    var sel = (selected || SCAL_STATE.pickedColor || palette[0].val).toLowerCase();
+
+    // 편집 가능 모드에서 가시 팔레트에 없는 색이 선택돼 있으면 첫 가시 색으로 전환
+    if (!readOnly) {
+      var isInPalette = palette.some(function(c){ return c.val.toLowerCase() === sel; });
+      if (!isInPalette) {
+        sel = palette[0].val.toLowerCase();
+        SCAL_STATE.pickedColor = palette[0].val;
+      }
+    }
+
+    // 4색(또는 3색)을 카드형 그리드(2열)로 — 색상 원 + 라벨 + 설명
     wrap.style.display = 'grid';
     wrap.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
     wrap.style.gap = '8px';
-    wrap.innerHTML = SCAL_PALETTE.map(function(c){
+    wrap.innerHTML = palette.map(function(c){
       var isSel = c.val.toLowerCase() === sel;
       var border = isSel ? '2px solid ' + c.val : '1px solid #e2e8f0';
       var bg = isSel ? c.val + '12' : '#fff';
-      return '<button type="button" onclick="_scalPickColor(\'' + c.val + '\')" title="' + c.label + ' — ' + c.desc + '" '
-        + 'style="display:flex;align-items:center;gap:9px;padding:8px 10px;border:' + border + ';border-radius:9px;background:' + bg + ';cursor:pointer;text-align:left;font-family:inherit;transition:background .12s,border-color .12s" '
-        + 'onmouseover="this.style.background=\'' + c.val + '14\'" onmouseout="this.style.background=\'' + bg + '\'">'
+      var clickAttr = readOnly ? '' : 'onclick="_scalPickColor(\'' + c.val + '\')"';
+      var cursor = readOnly ? 'default' : 'pointer';
+      var hoverIn = readOnly ? '' : 'onmouseover="this.style.background=\'' + c.val + '14\'" onmouseout="this.style.background=\'' + bg + '\'"';
+      var opacity = readOnly ? (isSel ? '1' : '0.55') : '1';
+      return '<button type="button" ' + clickAttr + ' title="' + c.label + ' — ' + c.desc + '" '
+        + 'style="display:flex;align-items:center;gap:9px;padding:8px 10px;border:' + border + ';border-radius:9px;background:' + bg + ';cursor:' + cursor + ';text-align:left;font-family:inherit;transition:background .12s,border-color .12s;opacity:' + opacity + '" '
+        + hoverIn + '>'
         + '<span style="display:inline-block;width:18px;height:18px;border-radius:50%;background:' + c.val + ';box-shadow:0 1px 3px rgba(0,0,0,0.18);flex-shrink:0"></span>'
         + '<span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2;min-width:0">'
           + '<span style="font-size:12px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">' + c.label + '</span>'
