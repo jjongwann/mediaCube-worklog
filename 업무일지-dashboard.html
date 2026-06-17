@@ -8888,6 +8888,104 @@
     transition:background .12s,border-color .12s,color .12s;
   }
   .scal-btn-nav:hover { background:#eff6ff;border-color:#93c5fd;color:#2563eb; }
+
+  /* ───────── 모바일 최적화: 업무 공유 캘린더 ───────── */
+  @media (max-width: 640px) {
+    /* 메인 overlay → 풀스크린 */
+    #shared-cal-overlay { padding: 0 !important; align-items: stretch !important; overflow-y: auto !important; }
+    #shared-cal-overlay > div {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-height: 100vh;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      margin: 0 !important;
+    }
+    /* 헤더 compact */
+    #shared-cal-overlay > div > div:nth-child(1) {
+      padding: 12px 14px !important;
+      border-radius: 0 !important;
+    }
+    #shared-cal-overlay > div > div:nth-child(1) > div:first-child svg { width: 18px !important; height: 18px !important; }
+    /* 헤더 제목·부제 */
+    #shared-cal-overlay > div > div:nth-child(1) > div:first-child > div:last-child > div:first-child {
+      font-size: 14px !important;
+    }
+    #shared-cal-overlay > div > div:nth-child(1) > div:first-child > div:last-child > div:nth-child(2) {
+      font-size: 10px !important;
+    }
+    /* 툴바 padding + gap 축소 */
+    #shared-cal-overlay > div > div:nth-child(2) {
+      padding: 10px 12px !important;
+      gap: 6px !important;
+    }
+    #shared-cal-overlay > div > div:nth-child(2) > button,
+    #shared-cal-overlay > div > div:nth-child(2) > div > button {
+      font-size: 11px !important;
+    }
+    /* 새 일정 추가 버튼 padding 축소 */
+    #shared-cal-overlay > div > div:nth-child(2) > button:last-child {
+      padding: 6px 10px !important;
+    }
+    /* 월 타이틀 폰트 */
+    #shared-cal-title { font-size: 15px !important; min-width: 90px !important; }
+    /* 콘텐츠 padding 축소 */
+    #shared-cal-overlay > div > div:nth-child(3) { padding: 10px 8px !important; }
+    /* 캘린더 셀 / 일자 폰트 축소 (인라인 폰트는 못 누르지만 셀 내 여백은 잡힘) */
+    #shared-cal-grid { font-size: 10.5px; }
+    #shared-cal-grid .scal-day-cell { padding: 3px !important; min-height: 64px !important; }
+    /* 이벤트 칩 더 작게 */
+    .scal-event-chip { font-size: 9.5px !important; padding: 1px 4px !important; border-radius: 3px !important; }
+    /* 표 뷰 컴팩트 */
+    #shared-cal-table { font-size: 11px !important; }
+    /* 색상 범례 — 가로 스크롤 가능하게 */
+    #shared-cal-overlay > div > div:nth-child(3) > div:last-child {
+      padding: 8px 10px !important;
+      gap: 8px !important;
+      font-size: 10px !important;
+      flex-wrap: wrap !important;
+    }
+    #shared-cal-overlay > div > div:nth-child(3) > div:last-child > span {
+      font-size: 10.5px !important;
+    }
+
+    /* 일자 뷰 모달 */
+    #shared-cal-day-overlay { padding: 10px !important; align-items: flex-end !important; }
+    #shared-cal-day-overlay > div {
+      max-width: 100% !important;
+      max-height: 88vh !important;
+      border-radius: 14px 14px 0 0 !important;
+    }
+    /* 일정 추가/수정 모달 */
+    #shared-cal-event-overlay { padding: 10px !important; align-items: flex-end !important; }
+    #shared-cal-event-overlay > div {
+      max-width: 100% !important;
+      max-height: 92vh !important;
+      overflow-y: auto !important;
+      border-radius: 14px 14px 0 0 !important;
+    }
+    #shared-cal-event-overlay > div > div:nth-child(2) {
+      padding: 14px 16px !important;
+      gap: 10px !important;
+    }
+    /* 모달 내 2열 그리드(시작일/종료일) → 1열 */
+    #shared-cal-event-overlay > div > div:nth-child(2) > div[style*="grid-template-columns"] {
+      grid-template-columns: 1fr !important;
+    }
+    #shared-cal-event-overlay input[type="date"],
+    #shared-cal-event-overlay input[type="text"],
+    #shared-cal-event-overlay textarea,
+    #shared-cal-event-overlay select {
+      font-size: 16px !important; /* iOS 자동 줌 방지 */
+    }
+  }
+
+  /* 매우 좁은 폭(360px 미만) — KBS1·KBS2 등 텍스트 잘림 방지 */
+  @media (max-width: 380px) {
+    #shared-cal-overlay > div > div:nth-child(3) { padding: 8px 4px !important; }
+    #shared-cal-grid .scal-day-cell { padding: 2px !important; min-height: 56px !important; }
+    .scal-event-chip { font-size: 9px !important; padding: 1px 3px !important; }
+  }
 </style>
 
 <div id="shared-cal-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9990;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto" onclick="if(event.target===this)closeSharedCalendar()">
