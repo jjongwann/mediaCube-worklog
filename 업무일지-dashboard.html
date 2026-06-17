@@ -11604,6 +11604,9 @@ window.__vendor = (function() {
   // 하위 호환: 일부 코드가 직접 참조할 수 있어 동적 getter 도 제공
   Object.defineProperty(window, '_vendorManagersHint', { get: function(){ return _getVendorManagers(); } });
 
+  // 사이트맵 위젯용 vendor_sales 행 노출 (readonly 스냅샷)
+  Object.defineProperty(window, '_vendorSalesRows', { get: function(){ return _state.rows.slice(); } });
+
   // 거래처별 담당자 캐시 (메모리). vendor 이름 → 담당자
   function _getVendorManager(name) {
     var found = '';
@@ -14708,11 +14711,23 @@ function openVendorMenu() {
     n = Math.round(n || 0);
     if (n >= 100000000) {
       var b = n / 100000000;
-      return (b >= 10 ? b.toFixed(0) : b.toFixed(1).replace(/\.0$/,'')) + '억';
+      return b.toFixed(2) + '억';
     }
-    if (n >= 10000) return Math.round(n/10000) + '만';
+    if (n >= 10000) {
+      var m = n / 10000;
+      return (m >= 100 ? Math.round(m) : m.toFixed(1).replace(/\.0$/,'')) + '만';
+    }
     if (n >= 1000) return Math.round(n/1000) + '천';
     return n.toString();
+  }
+  function _smPctChange(curr, prev){
+    if (!prev) return null;
+    return ((curr - prev) / prev) * 100;
+  }
+  function _smFmtPctDelta(p){
+    if (p === null || p === undefined || !isFinite(p)) return '—';
+    var sign = p >= 0 ? '+' : '';
+    return sign + p.toFixed(1) + '%';
   }
   function _smMonthKey(k){
     // 'YYYY-M' → 'YY.MM' 표시
@@ -14799,6 +14814,85 @@ function openVendorMenu() {
     });
     return n;
   }
+  function _smVendorRows(){
+    return (Array.isArray(window._vendorSalesRows)) ? window._vendorSalesRows : [];
+  }
+  // 거래처별 매출 합계 (전체 기간) + 카테고리 + 담당자 + 마지막 행 신호
+  function _smTopVendors(limit){
+    var rows = _smVendorRows();
+    if (!rows.length) return null;
+    var map = {};
+    rows.forEach(function(r){
+      var name = r.vendor_name; if (!name) return;
+      var amt = Number(r.amount) || 0;
+      if (!map[name]) map[name] = { name: name, total: 0, cats: {}, mgr: '', cnt: 0 };
+      map[name].total += amt;
+      map[name].cnt   += 1;
+      if (r.category) map[name].cats[r.category] = (map[name].cats[r.category] || 0) + amt;
+      if (r.extra && r.extra.manager && !map[name].mgr) map[name].mgr = r.extra.manager;
+    });
+    var arr = Object.keys(map).map(function(k){
+      var v = map[k];
+      // 주력 카테고리 (최대 매출 카테고리)
+      var primary = ''; var maxv = 0;
+      Object.keys(v.cats).forEach(function(c){ if (v.cats[c] > maxv) { maxv = v.cats[c]; primary = c; } });
+      v.primary = primary;
+      return v;
+    }).sort(function(a,b){ return b.total - a.total; });
+    return limit ? arr.slice(0, limit) : arr;
+  }
+  // 거래처별 고객(매출 발생처) Top
+  function _smTopSources(limit){
+    var rows = _smVendorRows();
+    if (!rows.length) return null;
+    var map = {};
+    rows.forEach(function(r){
+      var src = r.extra && r.extra.source; if (!src) return;
+      var amt = Number(r.amount) || 0;
+      if (!map[src]) map[src] = { source: src, total: 0, vendors: {}, cnt: 0 };
+      map[src].total += amt;
+      map[src].cnt   += 1;
+      if (r.vendor_name) map[src].vendors[r.vendor_name] = 1;
+    });
+    var arr = Object.keys(map).map(function(k){
+      return {
+        source: map[k].source,
+        total:  map[k].total,
+        vendorCnt: Object.keys(map[k].vendors).length,
+        cnt:    map[k].cnt
+      };
+    }).sort(function(a,b){ return b.total - a.total; });
+    return limit ? arr.slice(0, limit) : arr;
+  }
+  // BMAT 채널 추이 (최근 N개월)
+  function _smBmatTrend(monthsBack){
+    if (!Array.isArray(_bmatRows) || !_bmatRows.length) return null;
+    var byMonth = {};
+    _bmatRows.forEach(function(r){
+      if (!r.month_key) return;
+      if (!byMonth[r.month_key]) byMonth[r.month_key] = [];
+      byMonth[r.month_key].push(r);
+    });
+    var keys = Object.keys(byMonth).sort(function(a,b){
+      var pa = a.split('-').map(Number), pb = b.split('-').map(Number);
+      return (pa[0]-pb[0]) || (pa[1]-pb[1]);
+    });
+    if (!keys.length) return null;
+    var sub = keys.slice(-monthsBack);
+    return sub.map(function(k){
+      var total = byMonth[k].reduce(function(s, r){ return s + (Number(r.count_val) || 0); }, 0);
+      var pop   = byMonth[k].reduce(function(s, r){ return s + (Number(r.population)  || 0); }, 0);
+      return { key: k, count: total, pop: pop };
+    });
+  }
+  // 카테고리 한글 라벨
+  function _smCatLabel(cat){
+    var MAP = {
+      needle:'NEEDLE', blanket_paid:'유료 BLANKET', blanket_free:'무료 BLANKET',
+      sys_av:'AV 시스템', sys_broadcast:'방송 시스템', sys_etc:'기타 시스템'
+    };
+    return MAP[cat] || cat || '—';
+  }
   function _smMiniBars(arr, color){
     var max = Math.max.apply(null, arr.concat([1]));
     var labels = ['월','화','수','목','금','토','일'];
@@ -14874,9 +14968,12 @@ function openVendorMenu() {
     var greet = _smGreeting(h);
     var adminName = _smAdminName();
     var timeLabel = _smPad(h)+':'+_smPad(m);
-    var music = _smMusicRev();          // 6개월 추이
+    var music = _smMusicRev();           // 6개월 총매출 추이
     var bmat  = _smBmatLatest();         // 최신 월 채널별
-    var catRev = _smCategoryRev();       // 카테고리별 매출 (최신 월)
+    var bmatTrend = _smBmatTrend(6);     // BMAT 6개월 합계 추이
+    var catRev = _smCategoryRev();       // 음원 매출 카테고리별 (최신 월)
+    var topVendors = _smTopVendors(7);   // 거래처 Top 7 (전체 기간)
+    var topSources = _smTopSources(7);   // 매출 발생처 Top 7
     var avgProg = _smProgressAvg();      // 평균 진행률
     var salesActCnt = _smSalesActCnt();  // 영업활동 건수
 
@@ -14926,8 +15023,8 @@ function openVendorMenu() {
     html +=   '</div>';
     html += '</div>';
 
-    // 음원 매출 분석 (6개월 추이 라인 차트)
-    html += '<div style="'+CARD+';padding:18px 20px">';
+    // 음원 매출 분석 (6개월 추이 라인 + 통계)
+    html += '<div data-sm-action="vendor" style="'+CARD+';padding:18px 20px;cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 8px 24px rgba(251,191,36,0.18)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">';
     html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
     html +=     '<div>';
     html +=       '<div style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:1.2px">MUSIC REVENUE</div>';
@@ -14935,50 +15032,88 @@ function openVendorMenu() {
     html +=     '</div>';
     if (music && music.length) {
       var lastTotal = music[music.length-1].total;
+      var prevTotal = music.length > 1 ? music[music.length-2].total : 0;
       var lastKey = music[music.length-1].key;
+      var pctChg = _smPctChange(lastTotal, prevTotal);
+      var deltaColor = pctChg === null ? '#94a3b8' : (pctChg >= 0 ? '#34d399' : '#f87171');
       html += '<div style="text-align:right">'+
                 '<div style="font-size:10px;color:#fbbf24;font-weight:700">'+_smMonthKey(lastKey)+'</div>'+
                 '<div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.3px">'+_smFmtWon(lastTotal)+'</div>'+
+                '<div style="font-size:10px;color:'+deltaColor+';font-weight:700;margin-top:2px">전월비 '+_smFmtPctDelta(pctChg)+'</div>'+
               '</div>';
     }
     html +=   '</div>';
     if (music && music.length) {
-      // 라인+영역 + 월별 라벨
       var totalsArr = music.map(function(d){ return d.total; });
-      html += '<div style="height:96px">'+_smSparkline(totalsArr, '#fbbf24')+'</div>';
-      html += '<div style="display:flex;justify-content:space-between;margin-top:8px;padding:0 4px">';
-      music.forEach(function(d){
-        html += '<div style="font-size:9.5px;color:#94a3b8;font-weight:600">'+_smMonthKey(d.key)+'</div>';
+      var avgTotal = totalsArr.reduce(function(s,v){return s+v;}, 0) / totalsArr.length;
+      var maxIdx = 0; totalsArr.forEach(function(v, i){ if (v > totalsArr[maxIdx]) maxIdx = i; });
+      html += '<div style="height:78px;margin-bottom:6px">'+_smSparkline(totalsArr, '#fbbf24')+'</div>';
+      html += '<div style="display:flex;justify-content:space-between;padding:0 4px;margin-bottom:10px">';
+      music.forEach(function(d, i){
+        var emph = (i === maxIdx) ? 'color:#fbbf24;font-weight:800' : 'color:#94a3b8;font-weight:600';
+        html += '<div style="font-size:9.5px;'+emph+'">'+_smMonthKey(d.key)+'</div>';
       });
       html += '</div>';
+      // 통계 strip
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)">'+
+                '<div><div style="font-size:9.5px;color:#94a3b8;font-weight:600">6개월 합계</div><div style="font-size:12px;font-weight:800;color:#fff;margin-top:2px">'+_smFmtWon(totalsArr.reduce(function(s,v){return s+v;},0))+'</div></div>'+
+                '<div><div style="font-size:9.5px;color:#94a3b8;font-weight:600">월 평균</div><div style="font-size:12px;font-weight:800;color:#fff;margin-top:2px">'+_smFmtWon(avgTotal)+'</div></div>'+
+                '<div><div style="font-size:9.5px;color:#94a3b8;font-weight:600">최고 ('+_smMonthKey(music[maxIdx].key)+')</div><div style="font-size:12px;font-weight:800;color:#fbbf24;margin-top:2px">'+_smFmtWon(totalsArr[maxIdx])+'</div></div>'+
+              '</div>';
     } else {
       html += '<div style="height:96px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#64748b">데이터가 없습니다</div>';
     }
     html += '</div>';
 
-    // BMAT 모니터링 (최신 월 채널별 막대)
-    html += '<div style="'+CARD+';padding:18px 20px">';
+    // BMAT 모니터링 (채널별 막대 + 통계)
+    html += '<div data-sm-action="bmat" style="'+CARD+';padding:18px 20px;cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 8px 24px rgba(34,211,238,0.18)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">';
     html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">';
     html +=     '<div>';
     html +=       '<div style="font-size:10px;font-weight:700;color:#22d3ee;letter-spacing:1.2px">BMAT MONITORING</div>';
     html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">지상파 카운트</div>';
     html +=     '</div>';
-    if (bmat) html += '<div style="font-size:10.5px;color:#22d3ee;background:rgba(34,211,238,0.12);border:1px solid rgba(34,211,238,0.25);padding:3px 8px;border-radius:6px;font-weight:700">'+_smMonthKey(bmat.monthKey)+'</div>';
+    if (bmat) {
+      var bmatTotal = bmat.channels.reduce(function(s,c){return s+c.count;}, 0);
+      var bmatPop   = bmat.channels.reduce(function(s,c){return s+c.pop;}, 0);
+      // 전월 대비
+      var prevBmat = null;
+      if (bmatTrend && bmatTrend.length > 1) prevBmat = bmatTrend[bmatTrend.length - 2];
+      var pctChg2 = prevBmat ? _smPctChange(bmatTotal, prevBmat.count) : null;
+      var deltaColor2 = pctChg2 === null ? '#94a3b8' : (pctChg2 >= 0 ? '#34d399' : '#f87171');
+      html += '<div style="text-align:right">'+
+                '<div style="font-size:10px;color:#22d3ee;font-weight:700">'+_smMonthKey(bmat.monthKey)+'</div>'+
+                '<div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.3px">'+bmatTotal.toLocaleString()+'</div>'+
+                (pctChg2 !== null ? '<div style="font-size:10px;color:'+deltaColor2+';font-weight:700;margin-top:2px">전월비 '+_smFmtPctDelta(pctChg2)+'</div>' : '')+
+              '</div>';
+    }
     html +=   '</div>';
     if (bmat && bmat.channels.length) {
       var counts = bmat.channels.map(function(c){ return c.count; });
       var maxC = Math.max.apply(null, counts.concat([1]));
-      html += '<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px;height:84px">';
-      bmat.channels.forEach(function(c){
-        var h = Math.max(6, Math.round(c.count / maxC * 72));
+      var maxChIdx = 0; counts.forEach(function(v, i){ if (v > counts[maxChIdx]) maxChIdx = i; });
+      html += '<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px;height:78px;margin-bottom:8px">';
+      bmat.channels.forEach(function(c, i){
+        var h = Math.max(6, Math.round(c.count / maxC * 66));
+        var isMax = (i === maxChIdx);
+        var grad = isMax ? 'linear-gradient(180deg,#fde047 0%, #facc15 100%)' : 'linear-gradient(180deg,#22d3ee 0%, #06b6d4 100%)';
+        var shareC = c.pop > 0 ? ((c.count / c.pop) * 100).toFixed(1) + '%' : '—';
         html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">'+
-                  '<div style="width:100%;max-width:34px;height:'+h+'px;background:linear-gradient(180deg,#22d3ee 0%, #06b6d4 100%);border-radius:5px 5px 2px 2px;position:relative" title="'+c.ch+' '+c.count+'">'+
-                    '<div style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:#22d3ee">'+c.count+'</div>'+
+                  '<div style="width:100%;max-width:34px;height:'+h+'px;background:'+grad+';border-radius:5px 5px 2px 2px;position:relative;'+(isMax?'box-shadow:0 0 12px #facc1599':'')+'" title="'+c.ch+' · '+c.count+' / 모수 '+c.pop+' · 점유율 '+shareC+'">'+
+                    '<div style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:'+(isMax?'#facc15':'#22d3ee')+'">'+c.count+'</div>'+
                   '</div>'+
                   '<div style="font-size:10px;color:#94a3b8;font-weight:700">'+_smEsc(c.ch)+'</div>'+
                 '</div>';
       });
       html += '</div>';
+      // 통계 strip
+      var bmatTotal2 = bmat.channels.reduce(function(s,c){return s+c.count;}, 0);
+      var bmatPop2   = bmat.channels.reduce(function(s,c){return s+c.pop;}, 0);
+      var totalShare = bmatPop2 > 0 ? ((bmatTotal2 / bmatPop2) * 100).toFixed(2) + '%' : '—';
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)">'+
+                '<div><div style="font-size:9.5px;color:#94a3b8;font-weight:600">총 카운트</div><div style="font-size:12px;font-weight:800;color:#fff;margin-top:2px">'+bmatTotal2.toLocaleString()+'</div></div>'+
+                '<div><div style="font-size:9.5px;color:#94a3b8;font-weight:600">총 모수</div><div style="font-size:12px;font-weight:800;color:#fff;margin-top:2px">'+bmatPop2.toLocaleString()+'</div></div>'+
+                '<div><div style="font-size:9.5px;color:#94a3b8;font-weight:600">평균 점유율</div><div style="font-size:12px;font-weight:800;color:#22d3ee;margin-top:2px">'+totalShare+'</div></div>'+
+              '</div>';
     } else {
       html += '<div style="height:84px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#64748b">데이터가 없습니다</div>';
     }
@@ -14988,25 +15123,29 @@ function openVendorMenu() {
     // === Row 3: KPI 통계 + 거래처별 매출 분석 ===
     html += '<div style="display:grid;grid-template-columns:1fr 1.3fr;gap:14px;margin-bottom:14px">';
 
-    // KPI 통계
+    // KPI 통계 (카드별 클릭 라우팅)
     html += '<div style="'+CARD+';padding:18px 20px">';
     html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">';
     html +=     '<div>';
     html +=       '<div style="font-size:10px;font-weight:700;color:#f472b6;letter-spacing:1.2px">KEY METRICS</div>';
     html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">KPI 통계</div>';
     html +=     '</div>';
+    html +=     '<div style="font-size:10px;color:#94a3b8;font-weight:600">클릭 → 상세 보기</div>';
     html +=   '</div>';
     var kpiItems = [
-      { lbl:'평균 진행률', val: avgProg + '%',            color:'#a78bfa', icon:'trophy' },
-      { lbl:'활성 직원',  val: st.employees + '명',        color:'#60a5fa', icon:'users'  },
-      { lbl:'영업 활동',  val: salesActCnt + '건',         color:'#7c3aed', icon:'users'  },
-      { lbl:'이번 주',    val: st.weekCnt + '건',          color:'#34d399', icon:'calendar' }
+      { lbl:'평균 진행률', val: avgProg + '%',     color:'#a78bfa', icon:'trophy',   action:'achievement' },
+      { lbl:'활성 직원',  val: st.employees + '명', color:'#60a5fa', icon:'users',    action:'emp'         },
+      { lbl:'영업 활동',  val: salesActCnt + '건',  color:'#7c3aed', icon:'users',    action:'sales'       },
+      { lbl:'이번 주',    val: st.weekCnt + '건',   color:'#34d399', icon:'calendar', action:'week'        }
     ];
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
     kpiItems.forEach(function(k){
-      html += '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:11px;padding:12px;position:relative;overflow:hidden">'+
+      html += '<div data-sm-action="kpi-'+k.action+'" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:11px;padding:12px;position:relative;overflow:hidden;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.borderColor=\''+k.color+'66\';this.style.boxShadow=\'0 6px 16px '+k.color+'33\'" onmouseout="this.style.transform=\'\';this.style.borderColor=\'rgba(255,255,255,0.05)\';this.style.boxShadow=\'\'">'+
                 '<div style="position:absolute;top:0;left:0;width:3px;height:100%;background:'+k.color+'"></div>'+
-                '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="color:'+k.color+'">'+_smIcon(k.icon)+'</span></div>'+
+                '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'+
+                  '<span style="color:'+k.color+'">'+_smIcon(k.icon)+'</span>'+
+                  '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="'+k.color+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.7"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>'+
+                '</div>'+
                 '<div style="font-size:10px;color:#94a3b8;font-weight:600;margin-top:4px">'+k.lbl+'</div>'+
                 '<div style="font-size:18px;font-weight:800;color:#fff;margin-top:2px;letter-spacing:-0.5px">'+k.val+'</div>'+
               '</div>';
@@ -15014,34 +15153,113 @@ function openVendorMenu() {
     html += '</div>';
     html += '</div>';
 
-    // 거래처별 매출 분석 (카테고리별 가로 막대 Top 5)
-    html += '<div style="'+CARD+';padding:18px 20px">';
+    // 거래처별 매출 분석 (음원 매출 카테고리별 + 합계/점유율)
+    html += '<div data-sm-action="vendor" style="'+CARD+';padding:18px 20px;cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 8px 24px rgba(251,146,60,0.18)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">';
     html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">';
     html +=     '<div>';
-    html +=       '<div style="font-size:10px;font-weight:700;color:#fb923c;letter-spacing:1.2px">VENDOR SALES</div>';
-    html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">거래처별 매출 분석</div>';
+    html +=       '<div style="font-size:10px;font-weight:700;color:#fb923c;letter-spacing:1.2px">CATEGORY SALES</div>';
+    html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">카테고리별 매출 (음원)</div>';
     html +=     '</div>';
     if (catRev) html += '<div style="font-size:10.5px;color:#fb923c;background:rgba(251,146,60,0.12);border:1px solid rgba(251,146,60,0.25);padding:3px 8px;border-radius:6px;font-weight:700">'+_smMonthKey(catRev.month)+'</div>';
     html +=   '</div>';
     if (catRev && catRev.cats.length) {
-      var top = catRev.cats.slice(0, 6);
+      var top = catRev.cats.slice(0, 8);
+      var sumAll = catRev.cats.reduce(function(s,c){return s+c.val;}, 0);
       var maxV = Math.max.apply(null, top.map(function(c){ return c.val; }).concat([1]));
-      html += '<div style="display:flex;flex-direction:column;gap:9px">';
+      html += '<div style="display:flex;flex-direction:column;gap:8px">';
       top.forEach(function(c){
         var pct = maxV > 0 ? Math.round(c.val / maxV * 100) : 0;
+        var sharePct = sumAll > 0 ? (c.val / sumAll * 100).toFixed(1) : '0.0';
         html += '<div>'+
-                  '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
+                  '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">'+
                     '<span style="font-size:11px;font-weight:600;color:#cbd5e1">'+_smEsc(c.label)+'</span>'+
-                    '<span style="font-size:11px;font-weight:800;color:'+c.color+'">'+_smFmtWon(c.val)+'원</span>'+
+                    '<span style="font-size:11px;font-weight:800;color:'+c.color+'">'+_smFmtWon(c.val)+'원 <span style="font-size:9.5px;color:#64748b;font-weight:600">('+sharePct+'%)</span></span>'+
                   '</div>'+
                   '<div style="width:100%;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">'+
-                    '<div style="width:'+pct+'%;height:100%;background:linear-gradient(90deg,'+c.color+',rgba(255,255,255,0.6));border-radius:3px;box-shadow:0 0 8px '+c.color+'66"></div>'+
+                    '<div style="width:'+pct+'%;height:100%;background:linear-gradient(90deg,'+c.color+',rgba(255,255,255,0.55));border-radius:3px;box-shadow:0 0 8px '+c.color+'66"></div>'+
+                  '</div>'+
+                '</div>';
+      });
+      html += '</div>';
+      // 합계 strip
+      html += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center">'+
+                '<span style="font-size:10.5px;color:#94a3b8;font-weight:600">총 매출 ('+catRev.cats.length+' 카테고리)</span>'+
+                '<span style="font-size:14px;color:#fff;font-weight:800;letter-spacing:-0.3px">'+_smFmtWon(sumAll)+'원</span>'+
+              '</div>';
+    } else {
+      html += '<div style="height:120px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#64748b">데이터가 없습니다</div>';
+    }
+    html += '</div>';
+    html += '</div>';
+
+    // === Row 3.5: 거래처 Top + 매출 발생처(고객) Top ===
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">';
+
+    // Top 거래처
+    html += '<div data-sm-action="vendor" style="'+CARD+';padding:18px 20px;cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 8px 24px rgba(96,165,250,0.18)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">';
+    html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">';
+    html +=     '<div>';
+    html +=       '<div style="font-size:10px;font-weight:700;color:#60a5fa;letter-spacing:1.2px">TOP VENDORS</div>';
+    html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">거래처 매출 Top 7</div>';
+    html +=     '</div>';
+    if (topVendors) html += '<div style="font-size:10.5px;color:#60a5fa;background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.25);padding:3px 8px;border-radius:6px;font-weight:700">'+topVendors.length+' 곳</div>';
+    html +=   '</div>';
+    if (topVendors && topVendors.length) {
+      var maxVend = Math.max.apply(null, topVendors.map(function(v){ return v.total; }).concat([1]));
+      html += '<div style="display:flex;flex-direction:column;gap:10px">';
+      topVendors.forEach(function(v, i){
+        var pct = maxVend > 0 ? Math.round(v.total / maxVend * 100) : 0;
+        html += '<div>'+
+                  '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;gap:8px">'+
+                    '<span style="display:flex;align-items:center;gap:6px;min-width:0">'+
+                      '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:'+(i<3?'#60a5fa':'rgba(255,255,255,0.06)')+';color:'+(i<3?'#0f0f23':'#94a3b8')+';font-size:9.5px;font-weight:800;flex-shrink:0">'+(i+1)+'</span>'+
+                      '<span style="font-size:11.5px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px" title="'+_smEsc(v.name)+'">'+_smEsc(v.name)+'</span>'+
+                      '<span style="font-size:9.5px;color:#94a3b8;font-weight:600;flex-shrink:0">'+_smCatLabel(v.primary)+'</span>'+
+                    '</span>'+
+                    '<span style="font-size:11.5px;font-weight:800;color:#60a5fa;flex-shrink:0">'+_smFmtWon(v.total)+'원</span>'+
+                  '</div>'+
+                  '<div style="width:100%;height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">'+
+                    '<div style="width:'+pct+'%;height:100%;background:linear-gradient(90deg,#60a5fa,rgba(255,255,255,0.55));border-radius:3px"></div>'+
                   '</div>'+
                 '</div>';
       });
       html += '</div>';
     } else {
-      html += '<div style="height:120px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#64748b">데이터가 없습니다</div>';
+      html += '<div style="height:160px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#64748b">거래처 데이터가 없습니다</div>';
+    }
+    html += '</div>';
+
+    // Top 매출 발생처(고객)
+    html += '<div data-sm-action="vendor" style="'+CARD+';padding:18px 20px;cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 8px 24px rgba(244,114,182,0.18)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">';
+    html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">';
+    html +=     '<div>';
+    html +=       '<div style="font-size:10px;font-weight:700;color:#f472b6;letter-spacing:1.2px">TOP CLIENTS</div>';
+    html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">매출 발생처 Top 7</div>';
+    html +=     '</div>';
+    if (topSources) html += '<div style="font-size:10.5px;color:#f472b6;background:rgba(244,114,182,0.12);border:1px solid rgba(244,114,182,0.25);padding:3px 8px;border-radius:6px;font-weight:700">'+topSources.length+' 곳</div>';
+    html +=   '</div>';
+    if (topSources && topSources.length) {
+      var maxSrc = Math.max.apply(null, topSources.map(function(s){ return s.total; }).concat([1]));
+      html += '<div style="display:flex;flex-direction:column;gap:10px">';
+      topSources.forEach(function(s, i){
+        var pct = maxSrc > 0 ? Math.round(s.total / maxSrc * 100) : 0;
+        html += '<div>'+
+                  '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;gap:8px">'+
+                    '<span style="display:flex;align-items:center;gap:6px;min-width:0">'+
+                      '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:'+(i<3?'#f472b6':'rgba(255,255,255,0.06)')+';color:'+(i<3?'#0f0f23':'#94a3b8')+';font-size:9.5px;font-weight:800;flex-shrink:0">'+(i+1)+'</span>'+
+                      '<span style="font-size:11.5px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px" title="'+_smEsc(s.source)+'">'+_smEsc(s.source)+'</span>'+
+                      '<span style="font-size:9.5px;color:#94a3b8;font-weight:600;flex-shrink:0">거래처 '+s.vendorCnt+'곳</span>'+
+                    '</span>'+
+                    '<span style="font-size:11.5px;font-weight:800;color:#f472b6;flex-shrink:0">'+_smFmtWon(s.total)+'원</span>'+
+                  '</div>'+
+                  '<div style="width:100%;height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">'+
+                    '<div style="width:'+pct+'%;height:100%;background:linear-gradient(90deg,#f472b6,rgba(255,255,255,0.55));border-radius:3px"></div>'+
+                  '</div>'+
+                '</div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div style="height:160px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#64748b">매출 발생처 데이터가 없습니다</div>';
     }
     html += '</div>';
     html += '</div>';
@@ -15112,7 +15330,7 @@ function openVendorMenu() {
 
     body.innerHTML = html;
 
-    // 카드 클릭 바인딩
+    // 카드 클릭 바인딩 (Quick Access 타일)
     body.querySelectorAll('.sitemap-card').forEach(function(card){
       card.addEventListener('click', function(){
         var gi = parseInt(this.getAttribute('data-grp'), 10);
@@ -15121,6 +15339,26 @@ function openVendorMenu() {
         if (!item || typeof item.fn !== 'function') return;
         closeSitemapPanel();
         setTimeout(function(){ try { item.fn(); } catch(e) { console.warn('sitemap action failed', e); } }, 60);
+      });
+    });
+
+    // 액션 라우터 (KPI 카드 + 매출/BMAT 카드 클릭)
+    var ACTIONS = {
+      'kpi-achievement': function(){ if (typeof openAchievementPanel==='function') openAchievementPanel(); },
+      'kpi-emp':         function(){ var b = document.getElementById('sidebar-emp-btn'); if (b) b.click(); },
+      'kpi-sales':       function(){ if (typeof openSalesActivityPanel==='function') openSalesActivityPanel(); },
+      'kpi-week':        function(){ if (typeof setFilter==='function') setFilter('week'); },
+      'vendor':          function(){ if (typeof openVendorMenu==='function') openVendorMenu(); },
+      'bmat':            function(){ if (typeof bmatToggleSection==='function') bmatToggleSection(); }
+    };
+    body.querySelectorAll('[data-sm-action]').forEach(function(el){
+      el.addEventListener('click', function(e){
+        e.stopPropagation();
+        var act = this.getAttribute('data-sm-action');
+        var fn = ACTIONS[act];
+        if (typeof fn !== 'function') return;
+        closeSitemapPanel();
+        setTimeout(function(){ try { fn(); } catch(err) { console.warn('sitemap action failed', act, err); } }, 60);
       });
     });
   }
