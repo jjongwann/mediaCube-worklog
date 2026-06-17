@@ -8221,8 +8221,19 @@
     sel.innerHTML = keys.map(function(k){
       return '<option value="' + k + '">' + _bmatFmtMonthLabel(k) + '</option>';
     }).join('');
-    if (prev && keys.indexOf(prev) !== -1) sel.value = prev;
-    else sel.value = keys[0] || '';
+    if (prev && keys.indexOf(prev) !== -1) {
+      sel.value = prev;
+    } else {
+      // 디폴트: 전월 (오늘 기준 직전 달). 데이터에 없으면 가장 최신 가용 월로 폴백.
+      var d = new Date();
+      var y = d.getFullYear();
+      var m = d.getMonth(); // 0-based: 5=6월 → 전월=5월(1-based 5)
+      var prevY = (m === 0) ? y - 1 : y;
+      var prevM = (m === 0) ? 12 : m;
+      var prevKey = prevY + '-' + prevM;
+      if (keys.indexOf(prevKey) !== -1) sel.value = prevKey;
+      else sel.value = keys[0] || '';
+    }
     // 커스텀 드롭다운 라벨 동기화
     var label = document.getElementById('bmat-month-label');
     if (label) label.textContent = sel.value ? _bmatFmtMonthLabel(sel.value) : '—';
@@ -15027,9 +15038,18 @@ function openVendorMenu() {
     // 선택 월 (없으면 데이터 내 최신 월)
     var salesKeys = _smSalesMonthKeys();
     var bmatKeys  = _smBmatMonthKeys();
+    // 전월 키 (오늘 기준)
+    var _smPrevKey = (function(){
+      var d = new Date();
+      var y = d.getFullYear(), m = d.getMonth(); // 0-based
+      return ((m === 0) ? (y - 1) : y) + '-' + ((m === 0) ? 12 : m);
+    })();
     var musicMonth = _smMusicMonth && salesKeys.indexOf(_smMusicMonth) >= 0 ? _smMusicMonth : (salesKeys.length ? salesKeys[salesKeys.length-1] : null);
-    var bmatMonth  = _smBmatMonth  && bmatKeys.indexOf(_smBmatMonth) >= 0   ? _smBmatMonth  : (bmatKeys.length  ? bmatKeys[bmatKeys.length-1] : null);
-    var catMonth   = _smCatMonth   && salesKeys.indexOf(_smCatMonth) >= 0   ? _smCatMonth   : (salesKeys.length ? salesKeys[salesKeys.length-1] : null);
+    // BMAT 디폴트: 전월 우선, 없으면 최신 가용 월
+    var bmatMonth  = _smBmatMonth && bmatKeys.indexOf(_smBmatMonth) >= 0 ? _smBmatMonth
+                     : (bmatKeys.indexOf(_smPrevKey) >= 0 ? _smPrevKey
+                        : (bmatKeys.length ? bmatKeys[bmatKeys.length-1] : null));
+    var catMonth   = _smCatMonth && salesKeys.indexOf(_smCatMonth) >= 0   ? _smCatMonth   : (salesKeys.length ? salesKeys[salesKeys.length-1] : null);
 
     var music = _smMusicRev(musicMonth);           // 6개월 추이 (선택 월 기준)
     var musicCur = musicMonth ? _smMusicForMonth(musicMonth) : null; // 선택 월 실/총 매출
