@@ -2210,6 +2210,7 @@
         <option value="issue">이슈</option>
         <option value="hold">보류</option>
         <option value="todo">예정</option>
+        <option value="sales">영업활동</option>
       </select>
       <select class="filter-select" id="sort-select" onchange="renderList()">
         <option value="date-desc">최신순</option>
@@ -3065,7 +3066,15 @@
     // Apply status filter dropdown
     var statusFilter = document.getElementById('status-filter').value;
     if (statusFilter) {
-      result = result.filter(function(j) { return j.status === statusFilter; });
+      if (statusFilter === 'sales') {
+        // 일지 자동 상태(j.status)에는 'sales'가 없으므로,
+        // 일지 내 태스크 중 status === 'sales' 가 하나라도 있는 일지를 매칭.
+        result = result.filter(function(j){
+          return (j.tasks || []).some(function(t){ return t.status === 'sales'; });
+        });
+      } else {
+        result = result.filter(function(j) { return j.status === statusFilter; });
+      }
     }
 
     // Apply date range filter
