@@ -15083,8 +15083,10 @@ function openVendorMenu() {
       return html;
     }
 
-    // 카드 공통 스타일
-    var CARD = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:16px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);overflow:hidden;position:relative';
+    // 카드 공통 스타일 — backdrop-filter 미지원 환경(구형 GPU/일부 모니터 합성기)에서도
+    // 카드 윤곽이 깨지지 않도록 다크 톤 베이스 + 미세한 그라데이션을 명시적으로 둠.
+    // (blur 효과는 추가 장식 — 안 먹혀도 카드 자체는 정상 표시)
+    var CARD = 'background:linear-gradient(160deg,rgba(30,27,75,0.55) 0%,rgba(15,15,35,0.62) 100%);border:1px solid rgba(255,255,255,0.09);border-radius:16px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);overflow:hidden;position:relative;box-shadow:0 4px 14px rgba(0,0,0,0.18)';
 
     var html = '';
 
