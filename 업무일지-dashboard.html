@@ -8165,6 +8165,16 @@
     });
   }
 
+  // 사이트맵에서 호출 — 데이터가 없으면 BMAT 페치 후 콜백
+  window._bmatEnsureLoaded = function(cb){
+    if (_bmatLoaded && Array.isArray(_bmatRows) && _bmatRows.length > 0) {
+      if (typeof cb === 'function') cb();
+      return;
+    }
+    bmatFetchFromDB().then(function(){ if (typeof cb === 'function') cb(); })
+                     .catch(function(){ if (typeof cb === 'function') cb(); });
+  };
+
   // ── 메인 위젯 토글 (한 번 클릭 → 표시, 다시 클릭 → 숨김) ──
   // 사이드바 'BMAT 모니터링 통계' 메뉴 (#sidebar-bmat-btn) 에서 호출됨.
   // (stat 카드는 제거되어 더 이상 존재하지 않음)
@@ -15141,7 +15151,7 @@ function openVendorMenu() {
     html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">';
     html +=     '<div>';
     html +=       '<div style="font-size:10px;font-weight:700;color:#22d3ee;letter-spacing:1.2px">BMAT MONITORING</div>';
-    html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">지상파 카운트</div>';
+    html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">BMAT 모니터링</div>';
     html +=     '</div>';
     html +=     _smMonthSelect('sm-month-bmat', bmatKeys, bmatMonth, '#22d3ee');
     html +=   '</div>';
@@ -15492,7 +15502,15 @@ function openVendorMenu() {
       var rows = window._vendorSalesRows;
       if (!Array.isArray(rows) || rows.length === 0) {
         window._vendorSalesEnsureLoaded(function(){
-          // 사이트맵이 열려 있으면 재렌더
+          var ov2 = document.getElementById('sitemap-overlay');
+          if (ov2 && ov2.style.display !== 'none') _renderSitemap();
+        });
+      }
+    }
+    // BMAT 데이터가 아직 페치되지 않았으면 자동 로드 후 재렌더
+    if (typeof window._bmatEnsureLoaded === 'function') {
+      if (!Array.isArray(_bmatRows) || _bmatRows.length === 0) {
+        window._bmatEnsureLoaded(function(){
           var ov2 = document.getElementById('sitemap-overlay');
           if (ov2 && ov2.style.display !== 'none') _renderSitemap();
         });
