@@ -14582,6 +14582,10 @@ function openVendorMenu() {
    - z-index 9989 (다른 overlay 9990+보다 낮음 → 다른 패널 호출 시 중복 노출 방지)
    - DB·기존 함수 무수정 */
 (function(){
+  // 카드별 선택 월 (null = 최신)
+  var _smMusicMonth  = null;
+  var _smBmatMonth   = null;
+  var _smCatMonth    = null;
   var SITEMAP_GROUPS = [
     {
       title: '메인',
@@ -14736,14 +14740,30 @@ function openVendorMenu() {
     if (p.length < 2) return k;
     return p[0].slice(2) + '.' + (p[1].length === 1 ? '0'+p[1] : p[1]);
   }
-  function _smMusicRev(){
-    if (typeof _salesCache !== 'object' || !_salesCache) return null;
-    var keys = Object.keys(_salesCache).sort(function(a,b){
+  function _smSalesMonthKeys(){
+    if (typeof _salesCache !== 'object' || !_salesCache) return [];
+    return Object.keys(_salesCache).sort(function(a,b){
       var pa = a.split('-').map(Number), pb = b.split('-').map(Number);
       return (pa[0]-pb[0]) || (pa[1]-pb[1]);
     });
+  }
+  function _smBmatMonthKeys(){
+    if (!Array.isArray(_bmatRows)) return [];
+    var seen = {};
+    _bmatRows.forEach(function(r){ if (r.month_key) seen[r.month_key] = 1; });
+    return Object.keys(seen).sort(function(a,b){
+      var pa = a.split('-').map(Number), pb = b.split('-').map(Number);
+      return (pa[0]-pb[0]) || (pa[1]-pb[1]);
+    });
+  }
+  // 음원 매출 6개월 추이 — endMonthKey 까지의 6개월
+  function _smMusicRev(endMonthKey){
+    var keys = _smSalesMonthKeys();
     if (!keys.length) return null;
-    var sub = keys.slice(-6);
+    var endIdx = endMonthKey ? keys.indexOf(endMonthKey) : -1;
+    if (endIdx < 0) endIdx = keys.length - 1;
+    var startIdx = Math.max(0, endIdx - 5);
+    var sub = keys.slice(startIdx, endIdx + 1);
     var SUM_KEYS = ['annual','needle','buyout','custom','komca','youtube','song','fee'];
     return sub.map(function(k){
       var d = _salesCache[k] || {};
@@ -14751,50 +14771,51 @@ function openVendorMenu() {
       return { key: k, total: total };
     });
   }
-  function _smCategoryRev(){
+  // 특정 월의 실매출/총매출
+  function _smMusicForMonth(monthKey){
+    if (typeof _salesCache !== 'object' || !_salesCache || !_salesCache[monthKey]) return null;
+    var e = _salesCache[monthKey];
+    var SUM_KEYS = ['annual','needle','buyout','custom','komca','youtube','song','fee'];
+    var total = SUM_KEYS.reduce(function(s, k){ return s + (e[k]||0); }, 0);
+    var real  = e.real !== undefined ? Number(e.real) : 0;
+    return { month: monthKey, total: total, real: real };
+  }
+  // 특정 월의 카테고리별 매출
+  function _smCategoryRev(monthKey){
     if (typeof _salesCache !== 'object' || !_salesCache) return null;
     if (typeof SALES_ITEMS === 'undefined') return null;
-    var keys = Object.keys(_salesCache).sort(function(a,b){
-      var pa = a.split('-').map(Number), pb = b.split('-').map(Number);
-      return (pa[0]-pb[0]) || (pa[1]-pb[1]);
-    });
+    var keys = _smSalesMonthKeys();
     if (!keys.length) return null;
-    var latestKey = keys[keys.length - 1];
-    var d = _salesCache[latestKey] || {};
+    var key = monthKey && _salesCache[monthKey] ? monthKey : keys[keys.length - 1];
+    var d = _salesCache[key] || {};
     return {
-      month: latestKey,
+      month: key,
       cats: SALES_ITEMS.map(function(it){ return { key:it.key, label:it.label, color:it.color, val: d[it.key]||0 }; })
         .sort(function(a,b){ return b.val - a.val; })
     };
   }
-  function _smBmatLatest(){
+  // 특정 월의 BMAT 채널별 (기본: 최신 월)
+  function _smBmatForMonth(monthKey){
     if (!Array.isArray(_bmatRows) || !_bmatRows.length) return null;
-    var byMonth = {};
-    _bmatRows.forEach(function(r){
-      if (!r.month_key) return;
-      if (!byMonth[r.month_key]) byMonth[r.month_key] = [];
-      byMonth[r.month_key].push(r);
-    });
-    var keys = Object.keys(byMonth).sort(function(a,b){
-      var pa = a.split('-').map(Number), pb = b.split('-').map(Number);
-      return (pa[0]-pb[0]) || (pa[1]-pb[1]);
-    });
+    var keys = _smBmatMonthKeys();
     if (!keys.length) return null;
-    var latestKey = keys[keys.length - 1];
+    var key = (monthKey && keys.indexOf(monthKey) >= 0) ? monthKey : keys[keys.length - 1];
+    var rows = _bmatRows.filter(function(r){ return r.month_key === key; });
+    if (!rows.length) return null;
     var byCh = {};
-    byMonth[latestKey].forEach(function(r){
+    rows.forEach(function(r){
       var c = r.channel || '기타';
       if (!byCh[c]) byCh[c] = { count: 0, pop: 0 };
       byCh[c].count += Number(r.count_val) || 0;
       byCh[c].pop   += Number(r.population) || 0;
     });
-    // 표준 채널 4개 우선
     var STD = ['KBS1','KBS2','SBS','MBC'];
     var arr = STD.filter(function(c){ return byCh[c]; }).concat(
       Object.keys(byCh).filter(function(c){ return STD.indexOf(c) < 0; })
     ).map(function(c){ return { ch:c, count:byCh[c].count, pop:byCh[c].pop }; });
-    return { monthKey: latestKey, channels: arr };
+    return { monthKey: key, channels: arr };
   }
+  function _smBmatLatest(){ return _smBmatForMonth(null); }
   function _smProgressAvg(){
     var jc = (typeof journalCache !== 'undefined' && Array.isArray(journalCache)) ? journalCache : [];
     if (!jc.length) return 0;
@@ -14968,14 +14989,39 @@ function openVendorMenu() {
     var greet = _smGreeting(h);
     var adminName = _smAdminName();
     var timeLabel = _smPad(h)+':'+_smPad(m);
-    var music = _smMusicRev();           // 6개월 총매출 추이
-    var bmat  = _smBmatLatest();         // 최신 월 채널별
-    var bmatTrend = _smBmatTrend(6);     // BMAT 6개월 합계 추이
-    var catRev = _smCategoryRev();       // 음원 매출 카테고리별 (최신 월)
-    var topVendors = _smTopVendors(7);   // 거래처 Top 7 (전체 기간)
-    var topSources = _smTopSources(7);   // 매출 발생처 Top 7
-    var avgProg = _smProgressAvg();      // 평균 진행률
-    var salesActCnt = _smSalesActCnt();  // 영업활동 건수
+    // 선택 월 (없으면 데이터 내 최신 월)
+    var salesKeys = _smSalesMonthKeys();
+    var bmatKeys  = _smBmatMonthKeys();
+    var musicMonth = _smMusicMonth && salesKeys.indexOf(_smMusicMonth) >= 0 ? _smMusicMonth : (salesKeys.length ? salesKeys[salesKeys.length-1] : null);
+    var bmatMonth  = _smBmatMonth  && bmatKeys.indexOf(_smBmatMonth) >= 0   ? _smBmatMonth  : (bmatKeys.length  ? bmatKeys[bmatKeys.length-1] : null);
+    var catMonth   = _smCatMonth   && salesKeys.indexOf(_smCatMonth) >= 0   ? _smCatMonth   : (salesKeys.length ? salesKeys[salesKeys.length-1] : null);
+
+    var music = _smMusicRev(musicMonth);           // 6개월 추이 (선택 월 기준)
+    var musicCur = musicMonth ? _smMusicForMonth(musicMonth) : null; // 선택 월 실/총 매출
+    var bmat  = _smBmatForMonth(bmatMonth);        // 선택 월 채널별
+    var bmatTrend = _smBmatTrend(6);               // BMAT 6개월 합계 추이
+    var catRev = _smCategoryRev(catMonth);         // 카테고리별 매출 (선택 월)
+    var topVendors = _smTopVendors(7);
+    var topSources = _smTopSources(7);
+    var avgProg = _smProgressAvg();
+    var salesActCnt = _smSalesActCnt();
+
+    // 월 선택 셀렉터 HTML 생성
+    function _smMonthSelect(id, keys, current, color){
+      var bgColor = color + '20', borderColor = color + '40';
+      var arrow = 'data:image/svg+xml;utf8,<svg xmlns=\\\'http://www.w3.org/2000/svg\\\' width=\\\'10\\\' height=\\\'10\\\' viewBox=\\\'0 0 24 24\\\' fill=\\\'none\\\' stroke=\\\''+encodeURIComponent(color)+'\\\' stroke-width=\\\'2.5\\\' stroke-linecap=\\\'round\\\' stroke-linejoin=\\\'round\\\'><polyline points=\\\'6 9 12 15 18 9\\\'/></svg>';
+      var html = '<select id="'+id+'" class="sm-month-sel" onclick="event.stopPropagation()" style="appearance:none;-webkit-appearance:none;background:'+bgColor+';border:1px solid '+borderColor+';color:'+color+';font-weight:700;font-size:11px;padding:4px 24px 4px 10px;border-radius:7px;cursor:pointer;outline:none;font-family:inherit;background-image:url(&quot;'+arrow+'&quot;);background-repeat:no-repeat;background-position:right 6px center" onmouseover="this.style.background=\''+color+'30\'" onmouseout="this.style.background=\''+bgColor+'\'">';
+      if (!keys.length) {
+        html += '<option value="">데이터 없음</option>';
+      } else {
+        // 최신 월부터 (내림차순)
+        keys.slice().reverse().forEach(function(k){
+          html += '<option value="'+k+'"'+(k === current ? ' selected' : '')+' style="background:#1a1a2e;color:#e2e8f0">'+_smMonthKey(k)+'</option>';
+        });
+      }
+      html += '</select>';
+      return html;
+    }
 
     // 카드 공통 스타일
     var CARD = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:16px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);overflow:hidden;position:relative';
@@ -15023,38 +15069,53 @@ function openVendorMenu() {
     html +=   '</div>';
     html += '</div>';
 
-    // 음원 매출 분석 (6개월 추이 라인 + 통계)
+    // 음원 매출 분석 (월 선택 + 실/총 매출 + 6개월 추이)
     html += '<div data-sm-action="vendor" style="'+CARD+';padding:18px 20px;cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 8px 24px rgba(251,191,36,0.18)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">';
-    html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
+    html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">';
     html +=     '<div>';
     html +=       '<div style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:1.2px">MUSIC REVENUE</div>';
     html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">음원 매출 분석</div>';
     html +=     '</div>';
-    if (music && music.length) {
-      var lastTotal = music[music.length-1].total;
-      var prevTotal = music.length > 1 ? music[music.length-2].total : 0;
-      var lastKey = music[music.length-1].key;
+    html +=     _smMonthSelect('sm-month-music', salesKeys, musicMonth, '#fbbf24');
+    html +=   '</div>';
+    // 실/총 매출 strip
+    if (musicCur) {
+      var lastTotal = musicCur.total;
+      var prevIdx = salesKeys.indexOf(musicMonth) - 1;
+      var prevTotal = (prevIdx >= 0) ? (_smMusicForMonth(salesKeys[prevIdx]) || {total:0}).total : 0;
       var pctChg = _smPctChange(lastTotal, prevTotal);
       var deltaColor = pctChg === null ? '#94a3b8' : (pctChg >= 0 ? '#34d399' : '#f87171');
-      html += '<div style="text-align:right">'+
-                '<div style="font-size:10px;color:#fbbf24;font-weight:700">'+_smMonthKey(lastKey)+'</div>'+
-                '<div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.3px">'+_smFmtWon(lastTotal)+'</div>'+
-                '<div style="font-size:10px;color:'+deltaColor+';font-weight:700;margin-top:2px">전월비 '+_smFmtPctDelta(pctChg)+'</div>'+
+      var realPct = lastTotal > 0 ? (musicCur.real / lastTotal * 100).toFixed(1) : '0.0';
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:12px 0;margin-bottom:8px;border-top:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06)">'+
+                '<div>'+
+                  '<div style="font-size:9.5px;color:#94a3b8;font-weight:600;letter-spacing:0.3px">실 매출</div>'+
+                  '<div style="font-size:18px;font-weight:800;color:#34d399;margin-top:3px;letter-spacing:-0.3px">'+_smFmtWon(musicCur.real)+'</div>'+
+                  '<div style="font-size:9.5px;color:#64748b;font-weight:600;margin-top:1px">총매출 대비 '+realPct+'%</div>'+
+                '</div>'+
+                '<div>'+
+                  '<div style="font-size:9.5px;color:#94a3b8;font-weight:600;letter-spacing:0.3px">총 매출</div>'+
+                  '<div style="font-size:18px;font-weight:800;color:#fff;margin-top:3px;letter-spacing:-0.3px">'+_smFmtWon(musicCur.total)+'</div>'+
+                  '<div style="font-size:9.5px;color:#64748b;font-weight:600;margin-top:1px">8개 카테고리 합계</div>'+
+                '</div>'+
+                '<div>'+
+                  '<div style="font-size:9.5px;color:#94a3b8;font-weight:600;letter-spacing:0.3px">전월비</div>'+
+                  '<div style="font-size:18px;font-weight:800;color:'+deltaColor+';margin-top:3px;letter-spacing:-0.3px">'+_smFmtPctDelta(pctChg)+'</div>'+
+                  '<div style="font-size:9.5px;color:#64748b;font-weight:600;margin-top:1px">총매출 변동</div>'+
+                '</div>'+
               '</div>';
     }
-    html +=   '</div>';
     if (music && music.length) {
       var totalsArr = music.map(function(d){ return d.total; });
       var avgTotal = totalsArr.reduce(function(s,v){return s+v;}, 0) / totalsArr.length;
       var maxIdx = 0; totalsArr.forEach(function(v, i){ if (v > totalsArr[maxIdx]) maxIdx = i; });
-      html += '<div style="height:78px;margin-bottom:6px">'+_smSparkline(totalsArr, '#fbbf24')+'</div>';
+      html += '<div style="height:62px;margin-bottom:4px">'+_smSparkline(totalsArr, '#fbbf24')+'</div>';
       html += '<div style="display:flex;justify-content:space-between;padding:0 4px;margin-bottom:10px">';
       music.forEach(function(d, i){
-        var emph = (i === maxIdx) ? 'color:#fbbf24;font-weight:800' : 'color:#94a3b8;font-weight:600';
+        var emph = (d.key === musicMonth) ? 'color:#fbbf24;font-weight:800' :
+                   ((i === maxIdx) ? 'color:#facc15;font-weight:700' : 'color:#94a3b8;font-weight:600');
         html += '<div style="font-size:9.5px;'+emph+'">'+_smMonthKey(d.key)+'</div>';
       });
       html += '</div>';
-      // 통계 strip
       html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)">'+
                 '<div><div style="font-size:9.5px;color:#94a3b8;font-weight:600">6개월 합계</div><div style="font-size:12px;font-weight:800;color:#fff;margin-top:2px">'+_smFmtWon(totalsArr.reduce(function(s,v){return s+v;},0))+'</div></div>'+
                 '<div><div style="font-size:9.5px;color:#94a3b8;font-weight:600">월 평균</div><div style="font-size:12px;font-weight:800;color:#fff;margin-top:2px">'+_smFmtWon(avgTotal)+'</div></div>'+
@@ -15072,20 +15133,23 @@ function openVendorMenu() {
     html +=       '<div style="font-size:10px;font-weight:700;color:#22d3ee;letter-spacing:1.2px">BMAT MONITORING</div>';
     html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">지상파 카운트</div>';
     html +=     '</div>';
+    html +=     '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">';
+    html +=       _smMonthSelect('sm-month-bmat', bmatKeys, bmatMonth, '#22d3ee');
     if (bmat) {
       var bmatTotal = bmat.channels.reduce(function(s,c){return s+c.count;}, 0);
-      var bmatPop   = bmat.channels.reduce(function(s,c){return s+c.pop;}, 0);
-      // 전월 대비
-      var prevBmat = null;
-      if (bmatTrend && bmatTrend.length > 1) prevBmat = bmatTrend[bmatTrend.length - 2];
-      var pctChg2 = prevBmat ? _smPctChange(bmatTotal, prevBmat.count) : null;
+      // 선택 월 직전 월과 비교 (BMAT 데이터 키 기준)
+      var bmIdx = bmatKeys.indexOf(bmatMonth);
+      var prevKey = bmIdx > 0 ? bmatKeys[bmIdx - 1] : null;
+      var prevBmat = prevKey ? _smBmatForMonth(prevKey) : null;
+      var prevTotal = prevBmat ? prevBmat.channels.reduce(function(s,c){return s+c.count;}, 0) : 0;
+      var pctChg2 = prevBmat ? _smPctChange(bmatTotal, prevTotal) : null;
       var deltaColor2 = pctChg2 === null ? '#94a3b8' : (pctChg2 >= 0 ? '#34d399' : '#f87171');
       html += '<div style="text-align:right">'+
-                '<div style="font-size:10px;color:#22d3ee;font-weight:700">'+_smMonthKey(bmat.monthKey)+'</div>'+
-                '<div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.3px">'+bmatTotal.toLocaleString()+'</div>'+
-                (pctChg2 !== null ? '<div style="font-size:10px;color:'+deltaColor2+';font-weight:700;margin-top:2px">전월비 '+_smFmtPctDelta(pctChg2)+'</div>' : '')+
+                '<div style="font-size:17px;font-weight:800;color:#fff;letter-spacing:-0.3px">'+bmatTotal.toLocaleString()+'</div>'+
+                (pctChg2 !== null ? '<div style="font-size:10px;color:'+deltaColor2+';font-weight:700;margin-top:1px">전월비 '+_smFmtPctDelta(pctChg2)+'</div>' : '')+
               '</div>';
     }
+    html +=     '</div>';
     html +=   '</div>';
     if (bmat && bmat.channels.length) {
       var counts = bmat.channels.map(function(c){ return c.count; });
@@ -15153,14 +15217,14 @@ function openVendorMenu() {
     html += '</div>';
     html += '</div>';
 
-    // 거래처별 매출 분석 (음원 매출 카테고리별 + 합계/점유율)
+    // 거래처별 매출 분석 (월 선택 + 음원 카테고리별 + 합계/점유율)
     html += '<div data-sm-action="vendor" style="'+CARD+';padding:18px 20px;cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 8px 24px rgba(251,146,60,0.18)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">';
     html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">';
     html +=     '<div>';
     html +=       '<div style="font-size:10px;font-weight:700;color:#fb923c;letter-spacing:1.2px">CATEGORY SALES</div>';
     html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">카테고리별 매출 (음원)</div>';
     html +=     '</div>';
-    if (catRev) html += '<div style="font-size:10.5px;color:#fb923c;background:rgba(251,146,60,0.12);border:1px solid rgba(251,146,60,0.25);padding:3px 8px;border-radius:6px;font-weight:700">'+_smMonthKey(catRev.month)+'</div>';
+    html +=     _smMonthSelect('sm-month-cat', salesKeys, catMonth, '#fb923c');
     html +=   '</div>';
     if (catRev && catRev.cats.length) {
       var top = catRev.cats.slice(0, 8);
@@ -15340,6 +15404,26 @@ function openVendorMenu() {
         closeSitemapPanel();
         setTimeout(function(){ try { item.fn(); } catch(e) { console.warn('sitemap action failed', e); } }, 60);
       });
+    });
+
+    // 월 셀렉터 change → 상태 업데이트 후 재렌더
+    var musicSel = document.getElementById('sm-month-music');
+    if (musicSel) musicSel.addEventListener('change', function(e){
+      e.stopPropagation();
+      _smMusicMonth = this.value || null;
+      _renderSitemap();
+    });
+    var bmatSel = document.getElementById('sm-month-bmat');
+    if (bmatSel) bmatSel.addEventListener('change', function(e){
+      e.stopPropagation();
+      _smBmatMonth = this.value || null;
+      _renderSitemap();
+    });
+    var catSel = document.getElementById('sm-month-cat');
+    if (catSel) catSel.addEventListener('change', function(e){
+      e.stopPropagation();
+      _smCatMonth = this.value || null;
+      _renderSitemap();
     });
 
     // 액션 라우터 (KPI 카드 + 매출/BMAT 카드 클릭)
