@@ -1779,7 +1779,14 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-size:13px;font-weight:700;color:#111827">BMAT 모니터링 통계</span>
-          <select id="bmat-month-sel" onchange="renderBmatWidget()" style="padding:5px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:600;color:#374151;background:#f8fafc;cursor:pointer;outline:none"></select>
+          <div id="bmat-month-wrap" style="position:relative;display:inline-block">
+            <button id="bmat-month-trigger" type="button" onclick="_bmatToggleMonthDrop()" style="padding:5px 28px 5px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:600;color:#374151;background:#f8fafc;cursor:pointer;outline:none;font-family:inherit;position:relative;display:inline-flex;align-items:center;min-width:96px;transition:background .12s,border-color .12s" onmouseover="this.style.background='#fff';this.style.borderColor='#cbd5e1'" onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e2e8f0'">
+              <span id="bmat-month-label">—</span>
+              <svg width="10" height="10" viewBox="0 0 10 10" style="position:absolute;right:9px;top:50%;transform:translateY(-50%);opacity:0.55"><path d="M1 3l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div id="bmat-month-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:130px;max-height:260px;overflow-y:auto;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:100;padding:4px;scrollbar-width:thin"></div>
+            <select id="bmat-month-sel" onchange="renderBmatWidget()" style="display:none"></select>
+          </div>
           <span style="font-size:11px;color:#94a3b8">단위: 카운트</span>
           <button onclick="openBmatCumul()" style="display:flex;align-items:center;gap:6px;padding:5px 13px;background:#0891b2;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:filter .15s" onmouseover="this.style.filter='brightness(0.9)'" onmouseout="this.style.filter=''">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -8159,7 +8166,58 @@
     }).join('');
     if (prev && keys.indexOf(prev) !== -1) sel.value = prev;
     else sel.value = keys[0] || '';
+    // 커스텀 드롭다운 라벨 동기화
+    var label = document.getElementById('bmat-month-label');
+    if (label) label.textContent = sel.value ? _bmatFmtMonthLabel(sel.value) : '—';
   }
+
+  // ── 커스텀 월 드롭다운 (네이티브 select 펼침 크기 제한이 어려워 별도 컴포넌트로 구현) ──
+  // 10개까지만 표시, 그 이상은 스크롤
+  function _bmatToggleMonthDrop() {
+    var drop = document.getElementById('bmat-month-drop');
+    var sel = document.getElementById('bmat-month-sel');
+    if (!drop || !sel) return;
+    if (drop.style.display === 'block') { drop.style.display = 'none'; return; }
+    var current = sel.value;
+    var html = '';
+    for (var i = 0; i < sel.options.length; i++) {
+      var opt = sel.options[i];
+      var isSel = opt.value === current;
+      var bg = isSel ? '#e0f2fe' : 'transparent';
+      var color = isSel ? '#0891b2' : '#374151';
+      var weight = isSel ? '800' : '600';
+      var safeVal = String(opt.value).replace(/'/g, "\\'");
+      var hoverIn = isSel ? '' : 'onmouseover="this.style.background=\'#f1f5f9\'" onmouseout="this.style.background=\'transparent\'"';
+      html += '<div onclick="_bmatSelectMonth(\'' + safeVal + '\')" data-key="' + opt.value + '" style="padding:7px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:' + weight + ';color:' + color + ';background:' + bg + ';transition:background .12s" ' + hoverIn + '>' + (opt.textContent || '') + '</div>';
+    }
+    drop.innerHTML = html;
+    drop.style.display = 'block';
+    // 현재 선택 항목으로 스크롤
+    var selItem = drop.querySelector('[data-key="' + current + '"]');
+    if (selItem) selItem.scrollIntoView({ block: 'nearest' });
+  }
+
+  function _bmatSelectMonth(key) {
+    var sel = document.getElementById('bmat-month-sel');
+    var label = document.getElementById('bmat-month-label');
+    var drop = document.getElementById('bmat-month-drop');
+    if (sel) {
+      sel.value = key;
+      sel.dispatchEvent(new Event('change'));
+      if (label) label.textContent = _bmatFmtMonthLabel(key) || '—';
+    }
+    if (drop) drop.style.display = 'none';
+  }
+
+  // 외부 클릭 시 드롭다운 닫기 (1회 등록)
+  document.addEventListener('click', function(e){
+    var drop = document.getElementById('bmat-month-drop');
+    if (!drop || drop.style.display !== 'block') return;
+    var trigger = document.getElementById('bmat-month-trigger');
+    if (trigger && (e.target === trigger || trigger.contains(e.target))) return;
+    if (drop.contains(e.target)) return;
+    drop.style.display = 'none';
+  });
 
   function bmatSetType(t) {
     _bmatType = (t === 'line') ? 'line' : 'bar';
