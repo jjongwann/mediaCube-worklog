@@ -2310,10 +2310,13 @@
       document.getElementById('metric-wip').value = cnt.wip;
       document.getElementById('metric-issue').value = cnt.issue;
       document.getElementById('metric-hold').value = cnt.hold;
-      // 진행률 계산: '보류'와 '영업활동'은 분모/분자에서 모두 제외
-      // 레거시 '이슈' 항목은 분모에 포함 유지 (기존 동작 보존)
-      var effectiveTotal = total - cnt.hold - cnt.sales;
-      document.getElementById('chip-progress').value = effectiveTotal <= 0 ? '' : Math.round(cnt.done / effectiveTotal * 100);
+      // 진행률 계산:
+      //  - '보류'는 분모/분자에서 모두 제외
+      //  - '영업활동'은 작업시간과 동일하게 '완료'와 같이 분자에 포함 (분모에도 그대로 카운트)
+      //  - 레거시 '이슈' 항목은 분모에 포함 유지 (기존 동작 보존)
+      var effectiveTotal = total - cnt.hold;
+      var effectiveDone  = cnt.done + cnt.sales;
+      document.getElementById('chip-progress').value = effectiveTotal <= 0 ? '' : Math.round(effectiveDone / effectiveTotal * 100);
       calcTotalTaskHrs();
     }
 
