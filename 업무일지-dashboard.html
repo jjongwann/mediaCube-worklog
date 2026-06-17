@@ -14568,7 +14568,10 @@ function openVendorMenu() {
    - 시간 계산: taskMins() 재사용 (점심 12:00~13:30 자동 차감) */
 (function(){
   var SALES_STATUS = 'sales';
-  var _salesPeriodDays = 90; // 기본 90일
+  var _salesPeriodDays = 90;   // 프리셋 기본 90일
+  var _salesCustomFrom = '';   // 'YYYY-MM-DD' — 설정 시 프리셋 무시
+  var _salesCustomTo   = '';
+  var _salesEmpFilter  = '';   // '' = 전체 직원, user_id = 특정
 
   function _ensureSalesOverlay() {
     if (document.getElementById('sales-activity-overlay')) return;
@@ -14588,15 +14591,78 @@ function openVendorMenu() {
           '</div>'+
           '<button onclick="closeSalesActivityPanel()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center" onmouseover="this.style.background=\'rgba(255,255,255,0.28)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'">×</button>'+
         '</div>'+
-        '<div style="padding:14px 22px;display:flex;align-items:center;gap:10px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-wrap:wrap">'+
+        // 1행: 프리셋 (조회 기간)
+        '<div style="padding:14px 22px 10px;display:flex;align-items:center;gap:10px;background:#f8fafc;border-bottom:1px solid #eef2f7;flex-wrap:wrap">'+
           '<span style="font-size:12px;font-weight:700;color:#475569">조회 기간</span>'+
-          '<div id="sales-act-period-tabs" style="display:inline-flex;gap:4px"></div>'+
-          '<div id="sales-act-period-range" style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:#475569"></div>'+
+          '<div id="sales-act-period-tabs" style="display:inline-flex;gap:4px;flex-wrap:wrap"></div>'+
+          '<div id="sales-act-period-range" style="margin-left:auto;font-size:12px;color:#475569;font-weight:600"></div>'+
+        '</div>'+
+        // 2행: 시작일 / 종료일 / 초기화 + 직원 필터 (관리자만)
+        '<div id="sales-act-adv" style="padding:10px 22px 14px;display:flex;align-items:center;gap:10px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-wrap:wrap">'+
+          '<div style="display:flex;align-items:center;gap:6px">'+
+            '<span style="font-size:11.5px;color:#64748b;font-weight:600">시작일</span>'+
+            '<input type="date" id="sales-act-from" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;outline:none;font-family:inherit" onfocus="this.style.borderColor=\'#7c3aed\'" onblur="this.style.borderColor=\'#e2e8f0\'">'+
+          '</div>'+
+          '<span style="color:#94a3b8">—</span>'+
+          '<div style="display:flex;align-items:center;gap:6px">'+
+            '<span style="font-size:11.5px;color:#64748b;font-weight:600">종료일</span>'+
+            '<input type="date" id="sales-act-to" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;outline:none;font-family:inherit" onfocus="this.style.borderColor=\'#7c3aed\'" onblur="this.style.borderColor=\'#e2e8f0\'">'+
+          '</div>'+
+          '<button id="sales-act-reset" style="padding:5px 12px;border:1px solid #e2e8f0;background:#fff;color:#475569;font-size:11.5px;font-weight:700;border-radius:6px;cursor:pointer;transition:all .12s" onmouseover="this.style.background=\'#f1f5f9\'" onmouseout="this.style.background=\'#fff\'">초기화</button>'+
+          '<div id="sales-act-emp-wrap" style="margin-left:auto;display:flex;align-items:center;gap:6px">'+
+            '<span style="font-size:11.5px;color:#64748b;font-weight:600">직원</span>'+
+            '<select id="sales-act-emp" style="padding:5px 28px 5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;outline:none;font-family:inherit;background:#fff;cursor:pointer;min-width:160px" onfocus="this.style.borderColor=\'#7c3aed\'" onblur="this.style.borderColor=\'#e2e8f0\'"></select>'+
+          '</div>'+
         '</div>'+
         '<div id="sales-act-kpis" style="padding:16px 22px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;background:#fff;border-bottom:1px solid #e2e8f0"></div>'+
-        '<div id="sales-act-body" style="padding:18px 22px;max-height:62vh;overflow-y:auto;background:#f8fafc"></div>'+
+        '<div id="sales-act-body" style="padding:18px 22px;max-height:56vh;overflow-y:auto;background:#f8fafc"></div>'+
       '</div>';
     document.body.appendChild(div);
+
+    // 이벤트 바인딩
+    document.getElementById('sales-act-from').addEventListener('change', function(){
+      _salesCustomFrom = this.value || '';
+      _salesPeriodDays = -1; // 커스텀 활성 → 프리셋 비활성
+      _salesRender();
+    });
+    document.getElementById('sales-act-to').addEventListener('change', function(){
+      _salesCustomTo = this.value || '';
+      _salesPeriodDays = -1;
+      _salesRender();
+    });
+    document.getElementById('sales-act-reset').addEventListener('click', function(){
+      _salesCustomFrom = ''; _salesCustomTo = '';
+      _salesPeriodDays = 90;
+      var f = document.getElementById('sales-act-from'); if (f) f.value = '';
+      var t = document.getElementById('sales-act-to');   if (t) t.value = '';
+      _salesRender();
+    });
+    document.getElementById('sales-act-emp').addEventListener('change', function(){
+      _salesEmpFilter = this.value || '';
+      _salesRender();
+    });
+  }
+
+  function _salesPopulateEmpSelect() {
+    var sel = document.getElementById('sales-act-emp');
+    if (!sel) return;
+    var current = _salesEmpFilter;
+    sel.innerHTML = '<option value="">전체 직원</option>';
+    if (!Array.isArray(ALL_USERS)) return;
+    // 관리자(isAdmin=true) 제외하고 정렬 (부서 → 이름)
+    var list = ALL_USERS.filter(function(u){ return !u.isAdmin; }).slice().sort(function(a, b){
+      var da = (a.dept || ''), db = (b.dept || '');
+      if (da !== db) return da < db ? -1 : 1;
+      var na = (a.fullName || a.username || ''), nb = (b.fullName || b.username || '');
+      return na < nb ? -1 : na > nb ? 1 : 0;
+    });
+    list.forEach(function(u){
+      var opt = document.createElement('option');
+      opt.value = u.id;
+      opt.textContent = (u.fullName || u.username) + (u.dept ? ' · ' + u.dept : '');
+      if (u.id === current) opt.selected = true;
+      sel.appendChild(opt);
+    });
   }
 
   function _salesUserMeta(uid) {
@@ -14614,18 +14680,28 @@ function openVendorMenu() {
     return m + '분';
   }
 
+  function _salesCurrentRange() {
+    // 우선순위: 커스텀 시작/종료(둘 중 하나라도 설정) > 프리셋 일수 > 전체
+    if (_salesCustomFrom || _salesCustomTo) {
+      return { from: _salesCustomFrom || '', to: _salesCustomTo || '' };
+    }
+    if (_salesPeriodDays > 0) {
+      var d = new Date(); d.setHours(0,0,0,0);
+      var to = d.toISOString().slice(0,10);
+      var from = new Date(d.getFullYear(), d.getMonth(), d.getDate() - _salesPeriodDays + 1)
+                   .toISOString().slice(0,10);
+      return { from: from, to: to };
+    }
+    return { from: '', to: '' }; // 전체
+  }
+
   function _salesGather() {
     var rows = []; // {uid, date, text, detail, startTime, endTime, mins, journalId}
     var allJ = (typeof journalCache !== 'undefined' && Array.isArray(journalCache)) ? journalCache : [];
-    var cutoff = null;
-    if (_salesPeriodDays > 0) {
-      var d = new Date();
-      d.setHours(0,0,0,0);
-      d.setDate(d.getDate() - _salesPeriodDays + 1);
-      cutoff = d.toISOString().slice(0, 10);
-    }
+    var range = _salesCurrentRange();
     allJ.forEach(function(j){
-      if (cutoff && j.date && j.date < cutoff) return;
+      if (range.from && j.date && j.date < range.from) return;
+      if (range.to   && j.date && j.date > range.to)   return;
       var tasks = Array.isArray(j.tasks) ? j.tasks : [];
       tasks.forEach(function(t){
         var st = t.status || (t.done ? 'done' : 'todo');
@@ -14663,37 +14739,53 @@ function openVendorMenu() {
       var active = (_salesPeriodDays === p.d);
       b.textContent = p.label;
       b.style.cssText = 'padding:6px 12px;border-radius:7px;font-size:12px;font-weight:'+(active?'700':'600')+';cursor:pointer;border:1px solid '+(active?'#7c3aed':'#e2e8f0')+';background:'+(active?'#7c3aed':'#fff')+';color:'+(active?'#fff':'#475569')+';transition:all .12s';
-      b.onclick = function(){ _salesPeriodDays = p.d; _salesRender(); };
+      b.onclick = function(){
+        _salesPeriodDays = p.d;
+        _salesCustomFrom = ''; _salesCustomTo = '';
+        var f = document.getElementById('sales-act-from'); if (f) f.value = '';
+        var t = document.getElementById('sales-act-to');   if (t) t.value = '';
+        _salesRender();
+      };
       box.appendChild(b);
     });
   }
 
   function _salesRender() {
     _salesRenderPeriodTabs();
-    var rows = _salesGather();
     var isAdmin = !!(typeof _isAdmin !== 'undefined' ? _isAdmin : false);
     var myId = (typeof _userId !== 'undefined') ? _userId : null;
 
+    // 관리자에게만 직원 필터 / 커스텀 날짜 UI 노출 — 일반 사용자는 본인 것만 보므로 직원 필터 불필요
+    var adv = document.getElementById('sales-act-adv');
+    if (adv) adv.style.display = isAdmin ? '' : 'none';
+    if (isAdmin) _salesPopulateEmpSelect();
+
+    var rows = _salesGather();
     // 일반 사용자는 본인 것만
     if (!isAdmin && myId) rows = rows.filter(function(r){ return r.uid === myId; });
+    // 관리자 직원 필터
+    if (isAdmin && _salesEmpFilter) rows = rows.filter(function(r){ return r.uid === _salesEmpFilter; });
 
     // 부제 + 기간 라벨
     var subEl = document.getElementById('sales-act-subtitle');
     if (subEl) {
-      if (isAdmin) subEl.textContent = '직원별 영업 활동 모아보기';
-      else {
+      if (isAdmin) {
+        if (_salesEmpFilter) {
+          var pm = _salesUserMeta(_salesEmpFilter);
+          subEl.textContent = pm.fullName + (pm.dept ? ' · ' + pm.dept : '') + ' — 영업 활동';
+        } else subEl.textContent = '직원별 영업 활동 모아보기';
+      } else {
         var me = _salesUserMeta(myId);
         subEl.textContent = me.fullName + (me.dept ? ' · ' + me.dept : '') + ' — 내 영업 활동';
       }
     }
     var rangeEl = document.getElementById('sales-act-period-range');
     if (rangeEl) {
-      if (_salesPeriodDays > 0) {
-        var d = new Date(); d.setHours(0,0,0,0);
-        var e = d.toISOString().slice(0,10);
-        var s = new Date(d.getFullYear(), d.getMonth(), d.getDate() - _salesPeriodDays + 1).toISOString().slice(0,10);
-        rangeEl.textContent = s + ' ~ ' + e;
-      } else rangeEl.textContent = '전체 기간';
+      var r = _salesCurrentRange();
+      if (!r.from && !r.to) rangeEl.textContent = '전체 기간';
+      else if (r.from && r.to) rangeEl.textContent = r.from + ' ~ ' + r.to;
+      else if (r.from) rangeEl.textContent = r.from + ' ~';
+      else rangeEl.textContent = '~ ' + r.to;
     }
 
     // KPI
@@ -14729,8 +14821,8 @@ function openVendorMenu() {
       return;
     }
 
-    if (isAdmin) {
-      // 직원별 그룹화
+    if (isAdmin && !_salesEmpFilter) {
+      // 직원별 그룹화 (전체 직원일 때만)
       var byUser = {};
       rows.forEach(function(r){
         var key = r.uid || '_';
