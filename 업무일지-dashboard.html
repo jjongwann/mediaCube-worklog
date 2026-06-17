@@ -8233,16 +8233,30 @@
       }).join('');
     }
 
-    // 통계 패널
-    var totalCount = counts.reduce(function(a,b){ return a+b; }, 0);
-    var totalPop = pops.reduce(function(a,b){ return a+b; }, 0);
+    // 통계 패널 — 지상파 3사 (KBS1, KBS2, MBC, SBS) 만 카운트/모수/점유율 표시
     var panel = document.getElementById('bmat-stat-panel');
     if (panel) {
-      panel.innerHTML = '<div style="font-size:11px;font-weight:700;color:#0891b2;letter-spacing:0.5px">' + _bmatFmtMonthLabel(mk) + ' 통계</div>'
-        + '<div style="height:1px;background:#bae6fd;margin:2px 0 6px"></div>'
-        + '<div style="background:#fff;border:1px solid #e0f2fe;border-radius:8px;padding:10px 12px"><div style="font-size:10.5px;color:#64748b;font-weight:600">총 카운트</div><div style="font-size:16px;font-weight:800;color:#0891b2;margin-top:2px">' + _bmatFmtN(totalCount) + '</div></div>'
-        + '<div style="background:#fff;border:1px solid #e0f2fe;border-radius:8px;padding:10px 12px"><div style="font-size:10.5px;color:#64748b;font-weight:600">총 모수</div><div style="font-size:16px;font-weight:800;color:#0f172a;margin-top:2px">' + _bmatFmtN(totalPop) + '</div></div>'
-        ;
+      var TARGETS = ['KBS1', 'KBS2', 'SBS', 'MBC'];
+      var html = '<div style="font-size:11px;font-weight:700;color:#0891b2;letter-spacing:0.3px;line-height:1.35">지상파 3사(KBS1,2, MBC, SBS) 월별 통계</div>'
+        + '<div style="font-size:10px;font-weight:600;color:#64748b;margin-top:2px">' + _bmatFmtMonthLabel(mk) + '</div>'
+        + '<div style="height:1px;background:#bae6fd;margin:4px 0 2px"></div>';
+      TARGETS.forEach(function(t){
+        var idx = channels.indexOf(t);
+        var c = idx >= 0 ? counts[idx] : 0;
+        var p = idx >= 0 ? pops[idx] : 0;
+        var share = p > 0 ? (c / p * 100) : 0;
+        var color = idx >= 0 ? _bmatColorFor(t, idx) : '#94a3b8';
+        var shareTxt = p > 0 ? share.toFixed(2) + '%' : '—';
+        html += '<div style="background:#fff;border:1px solid #e0f2fe;border-left:3px solid ' + color + ';border-radius:8px;padding:8px 10px">'
+          + '<div style="font-size:11px;font-weight:800;color:' + color + ';margin-bottom:5px">' + t + '</div>'
+          + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">'
+            + '<div><div style="color:#64748b;font-weight:600;font-size:8.5px;letter-spacing:0.3px">카운트</div><div style="font-weight:800;color:#0f172a;font-size:11.5px;margin-top:1px">' + _bmatFmtN(c) + '</div></div>'
+            + '<div><div style="color:#64748b;font-weight:600;font-size:8.5px;letter-spacing:0.3px">모수</div><div style="font-weight:800;color:#0f172a;font-size:11.5px;margin-top:1px">' + _bmatFmtN(p) + '</div></div>'
+            + '<div><div style="color:#64748b;font-weight:600;font-size:8.5px;letter-spacing:0.3px">점유율</div><div style="font-weight:800;color:' + color + ';font-size:11.5px;margin-top:1px">' + shareTxt + '</div></div>'
+          + '</div>'
+          + '</div>';
+      });
+      panel.innerHTML = html;
     }
   }
 
