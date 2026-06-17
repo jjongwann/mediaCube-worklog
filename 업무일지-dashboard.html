@@ -14651,28 +14651,121 @@ function openVendorMenu() {
     return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+paths+'</svg>';
   }
 
+  // --- SAAS Dashboard Helpers ---
+  function _smPad(n){ return n < 10 ? '0'+n : ''+n; }
+  function _smYmd(d){ return d.getFullYear()+'-'+_smPad(d.getMonth()+1)+'-'+_smPad(d.getDate()); }
+  function _smGreeting(h){
+    if (h < 6)  return 'Good Night';
+    if (h < 12) return 'Good Morning';
+    if (h < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  }
+  function _smAdminName(){
+    if (!Array.isArray(ALL_USERS)) return '관리자';
+    var a = ALL_USERS.find(function(u){ return u.isAdmin; });
+    return a ? (a.fullName || a.username || '관리자') : '관리자';
+  }
+  function _smGetStats(){
+    var jc = (typeof journalCache !== 'undefined' && Array.isArray(journalCache)) ? journalCache : [];
+    var total = jc.length;
+    var done  = jc.filter(function(j){ return j.status === 'done'; }).length;
+    var wip   = jc.filter(function(j){ return j.status === 'wip'; }).length;
+    var donePct = total ? Math.round(done / total * 100) : 0;
+    // 이번 주(월요일 시작)
+    var ws = new Date(); ws.setHours(0,0,0,0);
+    var dow = ws.getDay();
+    ws.setDate(ws.getDate() - ((dow + 6) % 7));
+    var wsStr = _smYmd(ws);
+    var weekCnt = jc.filter(function(j){ return j.date && j.date >= wsStr; }).length;
+    // 요일별 작성 건수 (이번 주 월~일)
+    var byDow = [0,0,0,0,0,0,0]; // 0:월, 1:화, ..., 6:일
+    jc.forEach(function(j){
+      if (j.date && j.date >= wsStr) {
+        var d = new Date(j.date + 'T00:00:00');
+        var idx = (d.getDay() + 6) % 7;
+        byDow[idx]++;
+      }
+    });
+    // 최근 5개 일지
+    var recent = jc.slice().sort(function(a,b){ return (a.date < b.date ? 1 : a.date > b.date ? -1 : 0); }).slice(0, 5);
+    var employees = Array.isArray(ALL_USERS) ? ALL_USERS.filter(function(u){ return !u.isAdmin; }).length : 0;
+    return { total:total, done:done, wip:wip, donePct:donePct, weekCnt:weekCnt, byDow:byDow, recent:recent, employees:employees };
+  }
+  function _smRing(pct, color, size){
+    size = size || 110;
+    var inner = size - 14;
+    var stop = Math.max(0, Math.min(100, pct));
+    // conic-gradient 기반 원형 진행률
+    return ''+
+      '<div style="position:relative;width:'+size+'px;height:'+size+'px;border-radius:50%;background:conic-gradient('+color+' 0% '+stop+'%, rgba(255,255,255,0.08) '+stop+'% 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 0 30px '+color+'33">'+
+        '<div style="width:'+inner+'px;height:'+inner+'px;border-radius:50%;background:#0f0f23;display:flex;flex-direction:column;align-items:center;justify-content:center">'+
+          '<div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px">'+pct+'<span style="font-size:12px;color:#94a3b8;font-weight:600">%</span></div>'+
+          '<div style="font-size:9px;color:#94a3b8;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:2px">완료율</div>'+
+        '</div>'+
+      '</div>';
+  }
+  function _smMiniBars(arr, color){
+    var max = Math.max.apply(null, arr.concat([1]));
+    var labels = ['월','화','수','목','금','토','일'];
+    var html = '<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:6px;height:80px">';
+    arr.forEach(function(v, i){
+      var h = max > 0 ? Math.max(4, Math.round(v / max * 70)) : 4;
+      html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">'+
+                '<div style="width:100%;max-width:22px;height:'+h+'px;background:linear-gradient(180deg,'+color+' 0%, '+color+'66 100%);border-radius:5px 5px 2px 2px;position:relative" title="'+labels[i]+' '+v+'건">'+
+                  (v > 0 ? '<div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:'+color+'">'+v+'</div>' : '')+
+                '</div>'+
+                '<div style="font-size:10px;color:#64748b;font-weight:600">'+labels[i]+'</div>'+
+              '</div>';
+    });
+    html += '</div>';
+    return html;
+  }
+  function _smSparkline(arr, color){
+    // 간단한 미니 라인 차트 SVG (히어로 배경)
+    if (!arr || !arr.length) return '';
+    var max = Math.max.apply(null, arr.concat([1]));
+    var w = 380, h = 100, pad = 4;
+    var step = (w - pad*2) / (arr.length - 1 || 1);
+    var pts = arr.map(function(v, i){
+      var x = pad + i * step;
+      var y = h - pad - (v / max) * (h - pad*2);
+      return x.toFixed(1)+','+y.toFixed(1);
+    }).join(' ');
+    var areaPts = pts + ' ' + (w-pad).toFixed(1)+','+(h-pad).toFixed(1)+' '+pad+','+(h-pad).toFixed(1);
+    var gid = 'smgrad_'+Math.floor(arr[0]*1000+arr.length);
+    return '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" style="width:100%;height:100%;display:block">'+
+              '<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+color+'" stop-opacity="0.35"/><stop offset="100%" stop-color="'+color+'" stop-opacity="0"/></linearGradient></defs>'+
+              '<polygon points="'+areaPts+'" fill="url(#'+gid+')"/>'+
+              '<polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>'+
+           '</svg>';
+  }
+  function _smEsc(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
   function _ensureSitemapOverlay() {
     if (document.getElementById('sitemap-overlay')) return;
     var div = document.createElement('div');
     div.id = 'sitemap-overlay';
-    div.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:9989;align-items:flex-start;justify-content:center;padding:32px 24px;overflow-y:auto;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)';
+    div.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(2,6,23,0.78);z-index:9989;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)';
     div.onclick = function(e){ if (e.target === this) closeSitemapPanel(); };
     div.innerHTML = ''+
-      '<div style="width:100%;max-width:1240px;background:#fff;border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,0.3);font-family:inherit;margin:auto;overflow:hidden;display:flex;flex-direction:column">'+
-        '<div style="padding:24px 28px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 50%,#ec4899 100%);color:#fff">'+
-          '<div style="display:flex;align-items:center;gap:14px">'+
-            '<div style="width:46px;height:46px;background:rgba(255,255,255,0.18);border-radius:12px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)">'+
-              '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>'+
+      '<div style="width:100%;max-width:1280px;border-radius:20px;font-family:inherit;margin:auto;overflow:hidden;display:flex;flex-direction:column;background:radial-gradient(at 0% 0%, #1e1b4b 0%, transparent 40%),radial-gradient(at 100% 0%, #4c1d95 0%, transparent 45%),radial-gradient(at 100% 100%, #831843 0%, transparent 40%),linear-gradient(135deg,#0f0f23 0%, #1a1a2e 50%, #16213e 100%);box-shadow:0 30px 80px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.06)">'+
+        '<div style="padding:20px 26px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02)">'+
+          '<div style="display:flex;align-items:center;gap:12px">'+
+            '<div style="width:38px;height:38px;background:linear-gradient(135deg,#8b5cf6,#ec4899);border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(139,92,246,0.4)">'+
+              '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:#fff"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>'+
             '</div>'+
             '<div>'+
-              '<div style="font-size:11px;font-weight:700;letter-spacing:1.5px;opacity:0.85">SITE MAP DASHBOARD</div>'+
-              '<div style="font-size:20px;font-weight:800;letter-spacing:-0.5px;margin-top:2px">전체 메뉴 한눈에 보기</div>'+
-              '<div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:4px">카드를 클릭하면 해당 패널이 열립니다</div>'+
+              '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:#a78bfa">CONTROL CENTER</div>'+
+              '<div style="font-size:17px;font-weight:800;letter-spacing:-0.3px;color:#fff;margin-top:1px">Site Map · Workspace Overview</div>'+
             '</div>'+
           '</div>'+
-          '<button onclick="closeSitemapPanel()" style="background:rgba(255,255,255,0.18);border:none;color:#fff;cursor:pointer;font-size:20px;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;transition:background .12s" onmouseover="this.style.background=\'rgba(255,255,255,0.3)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.18)\'">×</button>'+
+          '<button onclick="closeSitemapPanel()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:#cbd5e1;cursor:pointer;font-size:18px;width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;transition:all .15s" onmouseover="this.style.background=\'rgba(255,255,255,0.12)\';this.style.color=\'#fff\'" onmouseout="this.style.background=\'rgba(255,255,255,0.06)\';this.style.color=\'#cbd5e1\'">×</button>'+
         '</div>'+
-        '<div id="sitemap-body" style="padding:28px;background:#f8fafc;max-height:78vh;overflow-y:auto"></div>'+
+        '<div id="sitemap-body" style="padding:22px 26px 28px;max-height:80vh;overflow-y:auto"></div>'+
       '</div>';
     document.body.appendChild(div);
   }
@@ -14680,29 +14773,152 @@ function openVendorMenu() {
   function _renderSitemap() {
     var body = document.getElementById('sitemap-body');
     if (!body) return;
+    var st = _smGetStats();
+    var now = new Date();
+    var h = now.getHours(), m = now.getMinutes();
+    var greet = _smGreeting(h);
+    var adminName = _smAdminName();
+    var DOW_KR = ['일','월','화','수','목','금','토'];
+    var dateLabel = (now.getMonth()+1)+'월 '+now.getDate()+'일 · '+DOW_KR[now.getDay()]+'요일';
+    var timeLabel = _smPad(h)+':'+_smPad(m);
+
+    // 카드 공통 스타일
+    var CARD = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:16px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);overflow:hidden;position:relative';
+
     var html = '';
+
+    // === Row 1: Hero greeting (8) + Time card (4) ===
+    html += '<div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px">';
+    // Hero
+    html += '<div style="'+CARD+';padding:22px 24px;background:linear-gradient(135deg,rgba(139,92,246,0.18) 0%,rgba(236,72,153,0.12) 100%),rgba(255,255,255,0.04);position:relative;overflow:hidden">';
+    html +=   '<div style="position:absolute;inset:0;opacity:0.4;pointer-events:none">'+_smSparkline(st.byDow.length ? st.byDow.map(function(v){return Math.max(v,1);}) : [1,2,3,2,4,3,5], '#a78bfa')+'</div>';
+    html +=   '<div style="position:relative;z-index:1">';
+    html +=     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399"></span><span style="font-size:11px;font-weight:700;color:#a7f3d0;letter-spacing:0.5px">'+greet.toUpperCase()+' · '+timeLabel+'</span></div>';
+    html +=     '<div style="font-size:30px;font-weight:800;color:#fff;letter-spacing:-1px;line-height:1.15">'+_smEsc(adminName)+'</div>';
+    html +=     '<div style="font-size:12.5px;color:#cbd5e1;margin-top:6px;max-width:380px;line-height:1.5">오늘도 팀의 업무 흐름을 한눈에 살펴보세요.<br>전체 일지 <b style="color:#fff">'+st.total+'</b>건 · 이번 주 신규 <b style="color:#a78bfa">'+st.weekCnt+'</b>건</div>';
+    html +=   '</div>';
+    html += '</div>';
+    // Time
+    html += '<div style="'+CARD+';padding:20px 22px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(135deg,rgba(99,102,241,0.18) 0%,rgba(14,165,233,0.10) 100%),rgba(255,255,255,0.04)">';
+    html +=   '<div>';
+    html +=     '<div style="font-size:10px;font-weight:700;color:#93c5fd;letter-spacing:1px">TODAY</div>';
+    html +=     '<div style="font-size:13px;color:#e2e8f0;font-weight:600;margin-top:4px">'+_smEsc(dateLabel)+'</div>';
+    html +=   '</div>';
+    html +=   '<div style="display:flex;align-items:flex-end;gap:8px;margin-top:14px">';
+    html +=     '<div style="font-size:38px;font-weight:800;color:#fff;letter-spacing:-1.5px;line-height:1">'+timeLabel+'</div>';
+    html +=     '<div style="font-size:11px;color:#94a3b8;font-weight:600;padding-bottom:8px">KST</div>';
+    html +=   '</div>';
+    html +=   '<div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center">';
+    html +=     '<span style="font-size:10.5px;color:#94a3b8;font-weight:600">DB</span>';
+    html +=     '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#34d399;font-weight:700"><span style="width:6px;height:6px;border-radius:50%;background:#34d399;box-shadow:0 0 6px #34d399"></span>Online</span>';
+    html +=   '</div>';
+    html += '</div>';
+    html += '</div>';
+
+    // === Row 2: Productivity ring + Weekly chart + Stats ===
+    html += '<div style="display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:14px;margin-bottom:14px">';
+    // Productivity ring
+    html += '<div style="'+CARD+';padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,rgba(167,139,250,0.10),rgba(255,255,255,0.02))">';
+    html +=   '<div style="font-size:10px;font-weight:700;color:#a78bfa;letter-spacing:1.2px;align-self:flex-start">PRODUCTIVITY</div>';
+    html +=   '<div style="margin:14px 0">'+_smRing(st.donePct, '#a78bfa', 130)+'</div>';
+    html +=   '<div style="display:flex;justify-content:space-around;width:100%;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px">';
+    html +=     '<div style="text-align:center"><div style="font-size:10px;color:#94a3b8;font-weight:600">완료</div><div style="font-size:16px;font-weight:800;color:#fff;margin-top:2px">'+st.done+'</div></div>';
+    html +=     '<div style="text-align:center"><div style="font-size:10px;color:#94a3b8;font-weight:600">전체</div><div style="font-size:16px;font-weight:800;color:#fff;margin-top:2px">'+st.total+'</div></div>';
+    html +=   '</div>';
+    html += '</div>';
+    // Weekly chart
+    html += '<div style="'+CARD+';padding:20px 22px">';
+    html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">';
+    html +=     '<div>';
+    html +=       '<div style="font-size:10px;font-weight:700;color:#34d399;letter-spacing:1.2px">WEEKLY ACTIVITY</div>';
+    html +=       '<div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">이번 주 일지 작성</div>';
+    html +=     '</div>';
+    html +=     '<div style="font-size:11px;color:#94a3b8;background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.25);padding:3px 8px;border-radius:6px;font-weight:700">총 '+st.weekCnt+'건</div>';
+    html +=   '</div>';
+    html +=   _smMiniBars(st.byDow, '#34d399');
+    html += '</div>';
+    // Quick stats
+    html += '<div style="'+CARD+';padding:20px 18px">';
+    html +=   '<div style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:1.2px;margin-bottom:12px">QUICK STATS</div>';
+    var qsItems = [
+      { lbl:'진행 중',    val: st.wip,        color:'#60a5fa' },
+      { lbl:'완료',       val: st.done,       color:'#34d399' },
+      { lbl:'활성 직원',  val: st.employees,  color:'#f472b6' },
+      { lbl:'이번 주',    val: st.weekCnt,    color:'#fbbf24' }
+    ];
+    qsItems.forEach(function(q){
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">'+
+                '<div style="display:flex;align-items:center;gap:8px"><span style="width:6px;height:6px;border-radius:50%;background:'+q.color+';box-shadow:0 0 6px '+q.color+'80"></span><span style="font-size:11.5px;color:#cbd5e1;font-weight:600">'+q.lbl+'</span></div>'+
+                '<div style="font-size:14px;font-weight:800;color:#fff">'+q.val+'</div>'+
+              '</div>';
+    });
+    html += '</div>';
+    html += '</div>';
+
+    // === Row 3: Shortcut tiles (그룹별 헤더) ===
+    html += '<div style="'+CARD+';padding:20px 22px;margin-bottom:14px">';
+    html +=   '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">';
+    html +=     '<div>';
+    html +=       '<div style="font-size:10px;font-weight:700;color:#f472b6;letter-spacing:1.2px">QUICK ACCESS</div>';
+    html +=       '<div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">메뉴 바로가기</div>';
+    html +=     '</div>';
+    html +=     '<div style="font-size:11px;color:#94a3b8;font-weight:600">타일 클릭 → 해당 패널 열림</div>';
+    html +=   '</div>';
+
     SITEMAP_GROUPS.forEach(function(g, gi){
-      html += '<div style="margin-bottom:'+(gi === SITEMAP_GROUPS.length-1 ? '0' : '24px')+'">';
-      html +=   '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
-      html +=     '<span style="display:inline-block;width:4px;height:18px;background:'+g.color+';border-radius:2px"></span>';
-      html +=     '<span style="font-size:13px;font-weight:800;color:#0f172a;letter-spacing:-0.2px">'+g.title+'</span>';
-      html +=     '<span style="font-size:11px;color:#94a3b8;font-weight:600">'+g.items.length+'개 메뉴</span>';
+      html += '<div style="margin-top:'+(gi === 0 ? '0' : '18px')+'">';
+      html +=   '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
+      html +=     '<span style="display:inline-block;width:4px;height:14px;background:'+g.color+';border-radius:2px;box-shadow:0 0 10px '+g.color+'80"></span>';
+      html +=     '<span style="font-size:11.5px;font-weight:700;color:#e2e8f0;letter-spacing:0.3px">'+g.title+'</span>';
+      html +=     '<span style="font-size:10px;color:#64748b;font-weight:600">'+g.items.length+'</span>';
       html +=   '</div>';
-      html +=   '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">';
+      html +=   '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">';
       g.items.forEach(function(it, idx){
-        html += '<div data-grp="'+gi+'" data-idx="'+idx+'" class="sitemap-card" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;position:relative;overflow:hidden;display:flex;align-items:flex-start;gap:12px" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 8px 20px rgba(15,23,42,0.08)\';this.style.borderColor=\''+g.color+'\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\';this.style.borderColor=\'#e2e8f0\'">';
-        html +=   '<div style="position:absolute;top:0;left:0;width:3px;height:100%;background:'+g.color+'"></div>';
-        html +=   '<div style="flex-shrink:0;width:36px;height:36px;background:'+g.bg+';color:'+g.color+';border-radius:9px;display:flex;align-items:center;justify-content:center">'+_smIcon(it.icon)+'</div>';
-        html +=   '<div style="min-width:0;flex:1">';
-        html +=     '<div style="font-size:13.5px;font-weight:800;color:#0f172a;letter-spacing:-0.2px">'+it.label+'</div>';
-        html +=     '<div style="font-size:11px;color:#64748b;margin-top:3px;line-height:1.45">'+it.desc+'</div>';
+        // 컬러 타일 (그라데이션 + 호버 시 발광)
+        var c = g.color;
+        html += '<div data-grp="'+gi+'" data-idx="'+idx+'" class="sitemap-card" style="position:relative;cursor:pointer;border-radius:13px;padding:14px 14px 12px;background:linear-gradient(140deg,'+c+'25 0%, '+c+'08 100%);border:1px solid '+c+'33;overflow:hidden;transition:transform .18s,box-shadow .18s,border-color .18s" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.boxShadow=\'0 12px 30px '+c+'40\';this.style.borderColor=\''+c+'\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\';this.style.borderColor=\''+c+'33\'">';
+        html +=   '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+        html +=     '<div style="width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(135deg,'+c+',rgba(255,255,255,0.15));box-shadow:0 4px 12px '+c+'66">'+_smIcon(it.icon)+'</div>';
+        html +=     '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>';
         html +=   '</div>';
-        html +=   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><polyline points="9 18 15 12 9 6"/></svg>';
+        html +=   '<div style="font-size:13px;font-weight:800;color:#fff;letter-spacing:-0.2px">'+it.label+'</div>';
+        html +=   '<div style="font-size:10.5px;color:rgba(255,255,255,0.55);margin-top:3px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+it.desc+'</div>';
         html += '</div>';
       });
-      html += '</div>';
+      html +=   '</div>';
       html += '</div>';
     });
+    html += '</div>';
+
+    // === Row 4: Recent journals ===
+    if (st.recent && st.recent.length) {
+      html += '<div style="'+CARD+';padding:20px 22px">';
+      html +=   '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">';
+      html +=     '<div>';
+      html +=       '<div style="font-size:10px;font-weight:700;color:#22d3ee;letter-spacing:1.2px">RECENT JOURNALS</div>';
+      html +=       '<div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">최근 작성된 일지</div>';
+      html +=     '</div>';
+      html +=     '<div style="font-size:11px;color:#94a3b8;font-weight:600">최근 5건</div>';
+      html +=   '</div>';
+      st.recent.forEach(function(j, i){
+        var meta = (Array.isArray(ALL_USERS)) ? ALL_USERS.find(function(u){ return u.id === j.user_id; }) : null;
+        var who = meta ? (meta.fullName || meta.username) : '—';
+        var dept = meta ? (meta.dept || '') : '';
+        var stTxt = j.status === 'done' ? '완료' : (j.status === 'wip' ? '진행' : (j.status === 'hold' ? '보류' : (j.status === 'todo' ? '예정' : '—')));
+        var stColor = j.status === 'done' ? '#34d399' : (j.status === 'wip' ? '#60a5fa' : (j.status === 'hold' ? '#fbbf24' : '#94a3b8'));
+        var border = (i === st.recent.length - 1) ? '' : 'border-bottom:1px solid rgba(255,255,255,0.04);';
+        html += '<div style="display:flex;align-items:center;gap:14px;padding:11px 0;'+border+'">'+
+                  '<div style="flex-shrink:0;font-family:Menlo,Consolas,monospace;font-size:11.5px;color:#94a3b8;font-weight:600;min-width:84px">'+_smEsc(j.date||'—')+'</div>'+
+                  '<div style="flex:1;min-width:0">'+
+                    '<div style="font-size:13px;color:#fff;font-weight:700;letter-spacing:-0.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_smEsc(j.title || '(제목 없음)')+'</div>'+
+                    '<div style="font-size:10.5px;color:#64748b;margin-top:2px">'+_smEsc(who)+(dept ? ' · '+_smEsc(dept) : '')+'</div>'+
+                  '</div>'+
+                  '<div style="flex-shrink:0;padding:2px 9px;background:'+stColor+'22;border:1px solid '+stColor+'55;border-radius:6px;font-size:10.5px;font-weight:700;color:'+stColor+'">'+stTxt+'</div>'+
+                '</div>';
+      });
+      html += '</div>';
+    }
+
     body.innerHTML = html;
 
     // 카드 클릭 바인딩
@@ -14713,7 +14929,6 @@ function openVendorMenu() {
         var item = (SITEMAP_GROUPS[gi] && SITEMAP_GROUPS[gi].items[idx]) || null;
         if (!item || typeof item.fn !== 'function') return;
         closeSitemapPanel();
-        // 살짝 지연시켜 닫힘 애니메이션 후 호출
         setTimeout(function(){ try { item.fn(); } catch(e) { console.warn('sitemap action failed', e); } }, 60);
       });
     });
