@@ -11606,6 +11606,11 @@ window.__vendor = (function() {
 
   // 사이트맵 위젯용 vendor_sales 행 노출 (readonly 스냅샷)
   Object.defineProperty(window, '_vendorSalesRows', { get: function(){ return _state.rows.slice(); } });
+  // 사이트맵에서 호출 — 데이터가 없으면 vendor_sales 페치 후 콜백
+  window._vendorSalesEnsureLoaded = function(cb){
+    if (Array.isArray(_state.rows) && _state.rows.length > 0) { if (typeof cb === 'function') cb(); return; }
+    fetchAll().then(function(){ if (typeof cb === 'function') cb(); }).catch(function(){ if (typeof cb === 'function') cb(); });
+  };
 
   // 거래처별 담당자 캐시 (메모리). vendor 이름 → 담당자
   function _getVendorManager(name) {
@@ -15006,20 +15011,25 @@ function openVendorMenu() {
     var avgProg = _smProgressAvg();
     var salesActCnt = _smSalesActCnt();
 
-    // 월 선택 셀렉터 HTML 생성
+    // 커스텀 월 드롭다운 — 10개 max-height + 스크롤
     function _smMonthSelect(id, keys, current, color){
-      var bgColor = color + '20', borderColor = color + '40';
-      var arrow = 'data:image/svg+xml;utf8,<svg xmlns=\\\'http://www.w3.org/2000/svg\\\' width=\\\'10\\\' height=\\\'10\\\' viewBox=\\\'0 0 24 24\\\' fill=\\\'none\\\' stroke=\\\''+encodeURIComponent(color)+'\\\' stroke-width=\\\'2.5\\\' stroke-linecap=\\\'round\\\' stroke-linejoin=\\\'round\\\'><polyline points=\\\'6 9 12 15 18 9\\\'/></svg>';
-      var html = '<select id="'+id+'" class="sm-month-sel" onclick="event.stopPropagation()" style="appearance:none;-webkit-appearance:none;background:'+bgColor+';border:1px solid '+borderColor+';color:'+color+';font-weight:700;font-size:11px;padding:4px 24px 4px 10px;border-radius:7px;cursor:pointer;outline:none;font-family:inherit;background-image:url(&quot;'+arrow+'&quot;);background-repeat:no-repeat;background-position:right 6px center" onmouseover="this.style.background=\''+color+'30\'" onmouseout="this.style.background=\''+bgColor+'\'">';
       if (!keys.length) {
-        html += '<option value="">데이터 없음</option>';
-      } else {
-        // 최신 월부터 (내림차순)
-        keys.slice().reverse().forEach(function(k){
-          html += '<option value="'+k+'"'+(k === current ? ' selected' : '')+' style="background:#1a1a2e;color:#e2e8f0">'+_smMonthKey(k)+'</option>';
-        });
+        return '<div style="background:'+color+'20;border:1px solid '+color+'40;color:'+color+';font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px">데이터 없음</div>';
       }
-      html += '</select>';
+      var html = '';
+      html += '<div class="sm-month-wrap" data-target="'+id+'" style="position:relative;display:inline-block" onclick="event.stopPropagation()">';
+      html +=   '<button type="button" class="sm-month-trigger" data-target="'+id+'" style="display:inline-flex;align-items:center;gap:4px;background:'+color+'20;border:1px solid '+color+'40;color:'+color+';font-weight:700;font-size:11px;padding:4px 8px 4px 10px;border-radius:7px;cursor:pointer;outline:none;font-family:inherit;transition:background .12s">';
+      html +=     '<span>'+_smMonthKey(current)+'</span>';
+      html +=     '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>';
+      html +=   '</button>';
+      html +=   '<div class="sm-month-drop" data-target="'+id+'" style="display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:50;min-width:80px;max-height:260px;overflow-y:auto;background:rgba(15,15,35,0.98);border:1px solid '+color+'40;border-radius:8px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 12px 32px rgba(0,0,0,0.5);scrollbar-width:thin">';
+      keys.slice().reverse().forEach(function(k){
+        var sel = (k === current);
+        var bg = sel ? color+'25' : 'transparent';
+        html += '<div class="sm-month-opt" data-target="'+id+'" data-value="'+k+'" style="padding:6px 12px;font-size:11px;font-weight:'+(sel?'800':'600')+';color:'+(sel?color:'#cbd5e1')+';cursor:pointer;background:'+bg+';transition:background .12s;text-align:right;border-bottom:1px solid rgba(255,255,255,0.04)" onmouseover="this.style.background=\''+color+'18\'" onmouseout="this.style.background=\''+bg+'\'">'+_smMonthKey(k)+'</div>';
+      });
+      html +=   '</div>';
+      html += '</div>';
       return html;
     }
 
@@ -15126,44 +15136,44 @@ function openVendorMenu() {
     }
     html += '</div>';
 
-    // BMAT 모니터링 (채널별 막대 + 통계)
+    // BMAT 모니터링 (월 선택 + 채널별 막대 + 통계)
     html += '<div data-sm-action="bmat" style="'+CARD+';padding:18px 20px;cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 8px 24px rgba(34,211,238,0.18)\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">';
-    html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">';
+    html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">';
     html +=     '<div>';
     html +=       '<div style="font-size:10px;font-weight:700;color:#22d3ee;letter-spacing:1.2px">BMAT MONITORING</div>';
     html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">지상파 카운트</div>';
     html +=     '</div>';
-    html +=     '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">';
-    html +=       _smMonthSelect('sm-month-bmat', bmatKeys, bmatMonth, '#22d3ee');
+    html +=     _smMonthSelect('sm-month-bmat', bmatKeys, bmatMonth, '#22d3ee');
+    html +=   '</div>';
+    // 총 카운트 + 전월비 strip (카드 내부 별도 라인)
     if (bmat) {
       var bmatTotal = bmat.channels.reduce(function(s,c){return s+c.count;}, 0);
-      // 선택 월 직전 월과 비교 (BMAT 데이터 키 기준)
       var bmIdx = bmatKeys.indexOf(bmatMonth);
       var prevKey = bmIdx > 0 ? bmatKeys[bmIdx - 1] : null;
       var prevBmat = prevKey ? _smBmatForMonth(prevKey) : null;
       var prevTotal = prevBmat ? prevBmat.channels.reduce(function(s,c){return s+c.count;}, 0) : 0;
       var pctChg2 = prevBmat ? _smPctChange(bmatTotal, prevTotal) : null;
       var deltaColor2 = pctChg2 === null ? '#94a3b8' : (pctChg2 >= 0 ? '#34d399' : '#f87171');
-      html += '<div style="text-align:right">'+
-                '<div style="font-size:17px;font-weight:800;color:#fff;letter-spacing:-0.3px">'+bmatTotal.toLocaleString()+'</div>'+
-                (pctChg2 !== null ? '<div style="font-size:10px;color:'+deltaColor2+';font-weight:700;margin-top:1px">전월비 '+_smFmtPctDelta(pctChg2)+'</div>' : '')+
+      html += '<div style="display:flex;align-items:baseline;gap:10px;padding-bottom:10px;margin-bottom:18px;border-bottom:1px solid rgba(255,255,255,0.06)">'+
+                '<div style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.5px">'+bmatTotal.toLocaleString()+'</div>'+
+                '<div style="font-size:10.5px;color:#94a3b8;font-weight:600">총 카운트</div>'+
+                (pctChg2 !== null ? '<div style="margin-left:auto;font-size:11px;color:'+deltaColor2+';font-weight:700;background:'+deltaColor2+'18;border:1px solid '+deltaColor2+'33;padding:2px 8px;border-radius:6px">전월비 '+_smFmtPctDelta(pctChg2)+'</div>' : '')+
               '</div>';
     }
-    html +=     '</div>';
-    html +=   '</div>';
     if (bmat && bmat.channels.length) {
       var counts = bmat.channels.map(function(c){ return c.count; });
       var maxC = Math.max.apply(null, counts.concat([1]));
       var maxChIdx = 0; counts.forEach(function(v, i){ if (v > counts[maxChIdx]) maxChIdx = i; });
-      html += '<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px;height:78px;margin-bottom:8px">';
+      // 카운트 라벨이 막대 위로 빠져나가지 않도록 컨테이너 padding-top
+      html += '<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px;height:88px;margin-bottom:10px;padding-top:18px">';
       bmat.channels.forEach(function(c, i){
-        var h = Math.max(6, Math.round(c.count / maxC * 66));
+        var h = Math.max(6, Math.round(c.count / maxC * 60));
         var isMax = (i === maxChIdx);
         var grad = isMax ? 'linear-gradient(180deg,#fde047 0%, #facc15 100%)' : 'linear-gradient(180deg,#22d3ee 0%, #06b6d4 100%)';
         var shareC = c.pop > 0 ? ((c.count / c.pop) * 100).toFixed(1) + '%' : '—';
         html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">'+
                   '<div style="width:100%;max-width:34px;height:'+h+'px;background:'+grad+';border-radius:5px 5px 2px 2px;position:relative;'+(isMax?'box-shadow:0 0 12px #facc1599':'')+'" title="'+c.ch+' · '+c.count+' / 모수 '+c.pop+' · 점유율 '+shareC+'">'+
-                    '<div style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:'+(isMax?'#facc15':'#22d3ee')+'">'+c.count+'</div>'+
+                    '<div style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:'+(isMax?'#facc15':'#22d3ee')+';white-space:nowrap">'+c.count.toLocaleString()+'</div>'+
                   '</div>'+
                   '<div style="font-size:10px;color:#94a3b8;font-weight:700">'+_smEsc(c.ch)+'</div>'+
                 '</div>';
@@ -15406,25 +15416,40 @@ function openVendorMenu() {
       });
     });
 
-    // 월 셀렉터 change → 상태 업데이트 후 재렌더
-    var musicSel = document.getElementById('sm-month-music');
-    if (musicSel) musicSel.addEventListener('change', function(e){
-      e.stopPropagation();
-      _smMusicMonth = this.value || null;
-      _renderSitemap();
+    // 커스텀 월 드롭다운 — 트리거 토글
+    body.querySelectorAll('.sm-month-trigger').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var tgt = this.getAttribute('data-target');
+        var drop = body.querySelector('.sm-month-drop[data-target="'+tgt+'"]');
+        // 다른 모든 드롭다운은 닫기
+        body.querySelectorAll('.sm-month-drop').forEach(function(d){
+          if (d !== drop) d.style.display = 'none';
+        });
+        if (drop) drop.style.display = (drop.style.display === 'none' || !drop.style.display) ? 'block' : 'none';
+      });
     });
-    var bmatSel = document.getElementById('sm-month-bmat');
-    if (bmatSel) bmatSel.addEventListener('change', function(e){
-      e.stopPropagation();
-      _smBmatMonth = this.value || null;
-      _renderSitemap();
+    // 옵션 클릭 → 상태 업데이트 + 재렌더
+    body.querySelectorAll('.sm-month-opt').forEach(function(opt){
+      opt.addEventListener('click', function(e){
+        e.stopPropagation();
+        var tgt = this.getAttribute('data-target');
+        var val = this.getAttribute('data-value');
+        if (tgt === 'sm-month-music')      _smMusicMonth = val;
+        else if (tgt === 'sm-month-bmat')  _smBmatMonth  = val;
+        else if (tgt === 'sm-month-cat')   _smCatMonth   = val;
+        _renderSitemap();
+      });
     });
-    var catSel = document.getElementById('sm-month-cat');
-    if (catSel) catSel.addEventListener('change', function(e){
-      e.stopPropagation();
-      _smCatMonth = this.value || null;
-      _renderSitemap();
-    });
+    // 외부 클릭으로 드롭다운 닫기
+    if (!body._smMonthOutsideClick) {
+      body._smMonthOutsideClick = function(e){
+        if (!e.target.closest || !e.target.closest('.sm-month-wrap')) {
+          body.querySelectorAll('.sm-month-drop').forEach(function(d){ d.style.display = 'none'; });
+        }
+      };
+      body.addEventListener('click', body._smMonthOutsideClick);
+    }
 
     // 액션 라우터 (KPI 카드 + 매출/BMAT 카드 클릭)
     var ACTIONS = {
@@ -15456,6 +15481,17 @@ function openVendorMenu() {
     if (!ov) return;
     ov.style.display = 'flex';
     _renderSitemap();
+    // vendor_sales 데이터가 아직 페치되지 않았으면 자동 로드 후 재렌더 (Top 거래처/고객 카드 갱신)
+    if (typeof window._vendorSalesEnsureLoaded === 'function') {
+      var rows = window._vendorSalesRows;
+      if (!Array.isArray(rows) || rows.length === 0) {
+        window._vendorSalesEnsureLoaded(function(){
+          // 사이트맵이 열려 있으면 재렌더
+          var ov2 = document.getElementById('sitemap-overlay');
+          if (ov2 && ov2.style.display !== 'none') _renderSitemap();
+        });
+      }
+    }
   }
   function closeSitemapPanel() {
     var ov = document.getElementById('sitemap-overlay');
