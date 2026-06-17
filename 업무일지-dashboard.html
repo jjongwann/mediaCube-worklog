@@ -1685,6 +1685,10 @@
     <div>
       <div class="topbar-title">업무일지 대시보드</div>
     </div>
+    <button id="sitemap-btn" onclick="openSitemapPanel()" title="사이트맵 한눈에 보기 (관리자 테스트)" style="display:none;align-items:center;gap:6px;padding:8px 14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(99,102,241,0.25);transition:transform .12s,filter .12s;flex-shrink:0" onmouseover="this.style.filter='brightness(1.08)';this.style.transform='translateY(-1px)'" onmouseout="this.style.filter='';this.style.transform=''">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      사이트맵
+    </button>
     <div class="search-box">
       <span class="search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
       <input class="search-input" id="search-input" type="text" placeholder="일지 검색..." oninput="_visibleCount=_pageSize;renderList()">
@@ -3308,6 +3312,9 @@
     var section = document.getElementById('admin-sidebar-section');
     var permBtn = document.getElementById('sidebar-perm-btn');
     var empBtn  = document.getElementById('sidebar-emp-btn');
+    // 사이트맵 버튼 — 관리자만 노출 (테스트 단계)
+    var smBtn = document.getElementById('sitemap-btn');
+    if (smBtn) smBtn.style.display = _isAdmin ? 'inline-flex' : 'none';
     if (_isAdmin) {
       if (section) section.style.display = '';
       if (permBtn) permBtn.style.display = '';
@@ -14564,6 +14571,170 @@ function openVendorMenu() {
     _scalChk++;
     if (_scalChk > 20) clearInterval(_scalT);
   }, 600);
+})();
+
+/* ── 사이트맵 (Sitemap) 대시보드 — 관리자 테스트 ─────────────────────────
+   - 헤더 '사이트맵' 버튼 클릭 시 전체 메뉴/패널을 카드 그리드로 한눈에 표시
+   - 각 카드 클릭 → 사이트맵 닫고 실제 패널 호출 (기존 함수 재사용)
+   - z-index 9989 (다른 overlay 9990+보다 낮음 → 다른 패널 호출 시 중복 노출 방지)
+   - DB·기존 함수 무수정 */
+(function(){
+  var SITEMAP_GROUPS = [
+    {
+      title: '메인',
+      color: '#2563eb', bg: '#eff6ff',
+      items: [
+        { label: '전체 일지',   desc: '누적 작성 일지 전체',         icon: 'list',    fn: function(){ if (typeof setFilter==='function') setFilter('all'); } },
+        { label: '즐겨찾기',    desc: '핀 고정한 일지',              icon: 'bookmark',fn: function(){ if (typeof setFilter==='function') setFilter('pinned'); } },
+        { label: '오늘',        desc: '오늘 작성된 일지',            icon: 'sun',     fn: function(){ if (typeof setFilter==='function') setFilter('today'); } },
+        { label: '이번 주',     desc: '이번 주 작성된 일지',         icon: 'calendar',fn: function(){ if (typeof setFilter==='function') setFilter('week'); } }
+      ]
+    },
+    {
+      title: '상태',
+      color: '#16a34a', bg: '#f0fdf4',
+      items: [
+        { label: '완료',     desc: '진행률 100% 일지',  icon: 'check',  fn: function(){ if (typeof setFilter==='function') setFilter('done'); } },
+        { label: '진행 중',  desc: '진행 중인 일지',    icon: 'clock',  fn: function(){ if (typeof setFilter==='function') setFilter('wip'); } }
+      ]
+    },
+    {
+      title: '바로가기',
+      color: '#7c3aed', bg: '#f5f3ff',
+      items: [
+        { label: '업무 히스토리', desc: '과거 업무 항목 검색·필터',           icon: 'history',  fn: function(){ if (typeof openHistoryPanel==='function') openHistoryPanel(); } },
+        { label: '업무 성과',     desc: '직원/카테고리별 성과 추적',           icon: 'trophy',   fn: function(){ if (typeof openAchievementPanel==='function') openAchievementPanel(); } },
+        { label: '업무 지시',     desc: '관리자 지시·진행 상태',                icon: 'check2',   fn: function(){ if (typeof openDirectivePanel==='function') openDirectivePanel(); } },
+        { label: '영업 활동',     desc: '직원별 영업활동 모아보기',             icon: 'users',    fn: function(){ if (typeof openSalesActivityPanel==='function') openSalesActivityPanel(); } },
+        { label: '업무 공유 캘린더', desc: '시스템 사업부 일정 공유',          icon: 'calendar', fn: function(){ if (typeof openSharedCalendar==='function') openSharedCalendar(); } }
+      ]
+    },
+    {
+      title: '통계',
+      color: '#ea580c', bg: '#fff7ed',
+      items: [
+        { label: '음원팀 업무 현황', desc: '사운드컨텐츠 사업부 직원별 통계', icon: 'users',  fn: function(){ if (typeof openSoundTeamPanel==='function') openSoundTeamPanel(); } },
+        { label: '시스템팀 업무 현황', desc: '시스템 사업부 직원별 통계',   icon: 'users',  fn: function(){ if (typeof openSystemTeamPanel==='function') openSystemTeamPanel(); } },
+        { label: '거래처별 매출 분석', desc: '카테고리/거래처 매출 추이',   icon: 'chart',  fn: function(){ if (typeof openVendorMenu==='function') openVendorMenu(); } },
+        { label: 'BMAT 모니터링 통계', desc: '지상파 카운트·모수·점유율',   icon: 'bar',    fn: function(){ if (typeof bmatToggleSection==='function') bmatToggleSection(); } }
+      ]
+    },
+    {
+      title: '관리자',
+      color: '#0891b2', bg: '#ecfeff',
+      items: [
+        { label: '직원별 현황', desc: '직원 단위 업무·시간 분석',           icon: 'user',     fn: function(){ var b = document.getElementById('sidebar-emp-btn'); if (b) b.click(); } },
+        { label: '직원별 권한', desc: '직원별 메뉴 접근 권한 설정',         icon: 'shield',   fn: function(){ var b = document.getElementById('sidebar-perm-btn'); if (b) b.click(); } }
+      ]
+    }
+  ];
+
+  var ICONS = {
+    list:     '<rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="18" height="4" rx="1"/>',
+    bookmark: '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',
+    sun:      '<circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.07" y2="19.07"/><line x1="4.93" y1="19.07" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.07" y2="4.93"/>',
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+    check:    '<polyline points="20 6 9 17 4 12"/>',
+    check2:   '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+    clock:    '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    history:  '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    trophy:   '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+    users:    '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    user:     '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    chart:    '<path d="M3 3h18v4H3z"/><path d="M5 7v13h14V7"/><path d="M9 11h6"/><path d="M9 15h6"/>',
+    bar:      '<path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-5"/>',
+    shield:   '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'
+  };
+
+  function _smIcon(key) {
+    var paths = ICONS[key] || ICONS.list;
+    return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+paths+'</svg>';
+  }
+
+  function _ensureSitemapOverlay() {
+    if (document.getElementById('sitemap-overlay')) return;
+    var div = document.createElement('div');
+    div.id = 'sitemap-overlay';
+    div.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:9989;align-items:flex-start;justify-content:center;padding:32px 24px;overflow-y:auto;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)';
+    div.onclick = function(e){ if (e.target === this) closeSitemapPanel(); };
+    div.innerHTML = ''+
+      '<div style="width:100%;max-width:1240px;background:#fff;border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,0.3);font-family:inherit;margin:auto;overflow:hidden;display:flex;flex-direction:column">'+
+        '<div style="padding:24px 28px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 50%,#ec4899 100%);color:#fff">'+
+          '<div style="display:flex;align-items:center;gap:14px">'+
+            '<div style="width:46px;height:46px;background:rgba(255,255,255,0.18);border-radius:12px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)">'+
+              '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>'+
+            '</div>'+
+            '<div>'+
+              '<div style="font-size:11px;font-weight:700;letter-spacing:1.5px;opacity:0.85">SITE MAP DASHBOARD</div>'+
+              '<div style="font-size:20px;font-weight:800;letter-spacing:-0.5px;margin-top:2px">전체 메뉴 한눈에 보기</div>'+
+              '<div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:4px">카드를 클릭하면 해당 패널이 열립니다</div>'+
+            '</div>'+
+          '</div>'+
+          '<button onclick="closeSitemapPanel()" style="background:rgba(255,255,255,0.18);border:none;color:#fff;cursor:pointer;font-size:20px;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;transition:background .12s" onmouseover="this.style.background=\'rgba(255,255,255,0.3)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.18)\'">×</button>'+
+        '</div>'+
+        '<div id="sitemap-body" style="padding:28px;background:#f8fafc;max-height:78vh;overflow-y:auto"></div>'+
+      '</div>';
+    document.body.appendChild(div);
+  }
+
+  function _renderSitemap() {
+    var body = document.getElementById('sitemap-body');
+    if (!body) return;
+    var html = '';
+    SITEMAP_GROUPS.forEach(function(g, gi){
+      html += '<div style="margin-bottom:'+(gi === SITEMAP_GROUPS.length-1 ? '0' : '24px')+'">';
+      html +=   '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
+      html +=     '<span style="display:inline-block;width:4px;height:18px;background:'+g.color+';border-radius:2px"></span>';
+      html +=     '<span style="font-size:13px;font-weight:800;color:#0f172a;letter-spacing:-0.2px">'+g.title+'</span>';
+      html +=     '<span style="font-size:11px;color:#94a3b8;font-weight:600">'+g.items.length+'개 메뉴</span>';
+      html +=   '</div>';
+      html +=   '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">';
+      g.items.forEach(function(it, idx){
+        html += '<div data-grp="'+gi+'" data-idx="'+idx+'" class="sitemap-card" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;position:relative;overflow:hidden;display:flex;align-items:flex-start;gap:12px" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 8px 20px rgba(15,23,42,0.08)\';this.style.borderColor=\''+g.color+'\'" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\';this.style.borderColor=\'#e2e8f0\'">';
+        html +=   '<div style="position:absolute;top:0;left:0;width:3px;height:100%;background:'+g.color+'"></div>';
+        html +=   '<div style="flex-shrink:0;width:36px;height:36px;background:'+g.bg+';color:'+g.color+';border-radius:9px;display:flex;align-items:center;justify-content:center">'+_smIcon(it.icon)+'</div>';
+        html +=   '<div style="min-width:0;flex:1">';
+        html +=     '<div style="font-size:13.5px;font-weight:800;color:#0f172a;letter-spacing:-0.2px">'+it.label+'</div>';
+        html +=     '<div style="font-size:11px;color:#64748b;margin-top:3px;line-height:1.45">'+it.desc+'</div>';
+        html +=   '</div>';
+        html +=   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><polyline points="9 18 15 12 9 6"/></svg>';
+        html += '</div>';
+      });
+      html += '</div>';
+      html += '</div>';
+    });
+    body.innerHTML = html;
+
+    // 카드 클릭 바인딩
+    body.querySelectorAll('.sitemap-card').forEach(function(card){
+      card.addEventListener('click', function(){
+        var gi = parseInt(this.getAttribute('data-grp'), 10);
+        var idx = parseInt(this.getAttribute('data-idx'), 10);
+        var item = (SITEMAP_GROUPS[gi] && SITEMAP_GROUPS[gi].items[idx]) || null;
+        if (!item || typeof item.fn !== 'function') return;
+        closeSitemapPanel();
+        // 살짝 지연시켜 닫힘 애니메이션 후 호출
+        setTimeout(function(){ try { item.fn(); } catch(e) { console.warn('sitemap action failed', e); } }, 60);
+      });
+    });
+  }
+
+  function openSitemapPanel() {
+    // 가드: 관리자 전용 (테스트)
+    var isAdmin = !!(typeof _isAdmin !== 'undefined' ? _isAdmin : false);
+    if (!isAdmin) return;
+    _ensureSitemapOverlay();
+    var ov = document.getElementById('sitemap-overlay');
+    if (!ov) return;
+    ov.style.display = 'flex';
+    _renderSitemap();
+  }
+  function closeSitemapPanel() {
+    var ov = document.getElementById('sitemap-overlay');
+    if (ov) ov.style.display = 'none';
+  }
+  window.openSitemapPanel  = openSitemapPanel;
+  window.closeSitemapPanel = closeSitemapPanel;
 })();
 
 /* ── 영업 활동 (Sales Activity) 패널 ────────────────────────────────────
