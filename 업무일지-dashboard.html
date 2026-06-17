@@ -14704,6 +14704,101 @@ function openVendorMenu() {
         '</div>'+
       '</div>';
   }
+  function _smFmtWon(n){
+    n = Math.round(n || 0);
+    if (n >= 100000000) {
+      var b = n / 100000000;
+      return (b >= 10 ? b.toFixed(0) : b.toFixed(1).replace(/\.0$/,'')) + '억';
+    }
+    if (n >= 10000) return Math.round(n/10000) + '만';
+    if (n >= 1000) return Math.round(n/1000) + '천';
+    return n.toString();
+  }
+  function _smMonthKey(k){
+    // 'YYYY-M' → 'YY.MM' 표시
+    if (!k) return '';
+    var p = k.split('-');
+    if (p.length < 2) return k;
+    return p[0].slice(2) + '.' + (p[1].length === 1 ? '0'+p[1] : p[1]);
+  }
+  function _smMusicRev(){
+    if (typeof _salesCache !== 'object' || !_salesCache) return null;
+    var keys = Object.keys(_salesCache).sort(function(a,b){
+      var pa = a.split('-').map(Number), pb = b.split('-').map(Number);
+      return (pa[0]-pb[0]) || (pa[1]-pb[1]);
+    });
+    if (!keys.length) return null;
+    var sub = keys.slice(-6);
+    var SUM_KEYS = ['annual','needle','buyout','custom','komca','youtube','song','fee'];
+    return sub.map(function(k){
+      var d = _salesCache[k] || {};
+      var total = SUM_KEYS.reduce(function(s, kk){ return s + (d[kk]||0); }, 0);
+      return { key: k, total: total };
+    });
+  }
+  function _smCategoryRev(){
+    if (typeof _salesCache !== 'object' || !_salesCache) return null;
+    if (typeof SALES_ITEMS === 'undefined') return null;
+    var keys = Object.keys(_salesCache).sort(function(a,b){
+      var pa = a.split('-').map(Number), pb = b.split('-').map(Number);
+      return (pa[0]-pb[0]) || (pa[1]-pb[1]);
+    });
+    if (!keys.length) return null;
+    var latestKey = keys[keys.length - 1];
+    var d = _salesCache[latestKey] || {};
+    return {
+      month: latestKey,
+      cats: SALES_ITEMS.map(function(it){ return { key:it.key, label:it.label, color:it.color, val: d[it.key]||0 }; })
+        .sort(function(a,b){ return b.val - a.val; })
+    };
+  }
+  function _smBmatLatest(){
+    if (!Array.isArray(_bmatRows) || !_bmatRows.length) return null;
+    var byMonth = {};
+    _bmatRows.forEach(function(r){
+      if (!r.month_key) return;
+      if (!byMonth[r.month_key]) byMonth[r.month_key] = [];
+      byMonth[r.month_key].push(r);
+    });
+    var keys = Object.keys(byMonth).sort(function(a,b){
+      var pa = a.split('-').map(Number), pb = b.split('-').map(Number);
+      return (pa[0]-pb[0]) || (pa[1]-pb[1]);
+    });
+    if (!keys.length) return null;
+    var latestKey = keys[keys.length - 1];
+    var byCh = {};
+    byMonth[latestKey].forEach(function(r){
+      var c = r.channel || '기타';
+      if (!byCh[c]) byCh[c] = { count: 0, pop: 0 };
+      byCh[c].count += Number(r.count_val) || 0;
+      byCh[c].pop   += Number(r.population) || 0;
+    });
+    // 표준 채널 4개 우선
+    var STD = ['KBS1','KBS2','SBS','MBC'];
+    var arr = STD.filter(function(c){ return byCh[c]; }).concat(
+      Object.keys(byCh).filter(function(c){ return STD.indexOf(c) < 0; })
+    ).map(function(c){ return { ch:c, count:byCh[c].count, pop:byCh[c].pop }; });
+    return { monthKey: latestKey, channels: arr };
+  }
+  function _smProgressAvg(){
+    var jc = (typeof journalCache !== 'undefined' && Array.isArray(journalCache)) ? journalCache : [];
+    if (!jc.length) return 0;
+    var sum = 0, cnt = 0;
+    jc.forEach(function(j){
+      if (typeof j.progress === 'number') { sum += j.progress; cnt++; }
+    });
+    return cnt ? Math.round(sum / cnt) : 0;
+  }
+  function _smSalesActCnt(){
+    var jc = (typeof journalCache !== 'undefined' && Array.isArray(journalCache)) ? journalCache : [];
+    var n = 0;
+    jc.forEach(function(j){
+      (j.tasks || []).forEach(function(t){
+        if ((t.status || '') === 'sales') n++;
+      });
+    });
+    return n;
+  }
   function _smMiniBars(arr, color){
     var max = Math.max.apply(null, arr.concat([1]));
     var labels = ['월','화','수','목','금','토','일'];
@@ -14778,80 +14873,176 @@ function openVendorMenu() {
     var h = now.getHours(), m = now.getMinutes();
     var greet = _smGreeting(h);
     var adminName = _smAdminName();
-    var DOW_KR = ['일','월','화','수','목','금','토'];
-    var dateLabel = (now.getMonth()+1)+'월 '+now.getDate()+'일 · '+DOW_KR[now.getDay()]+'요일';
     var timeLabel = _smPad(h)+':'+_smPad(m);
+    var music = _smMusicRev();          // 6개월 추이
+    var bmat  = _smBmatLatest();         // 최신 월 채널별
+    var catRev = _smCategoryRev();       // 카테고리별 매출 (최신 월)
+    var avgProg = _smProgressAvg();      // 평균 진행률
+    var salesActCnt = _smSalesActCnt();  // 영업활동 건수
 
     // 카드 공통 스타일
     var CARD = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:16px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);overflow:hidden;position:relative';
 
     var html = '';
 
-    // === Row 1: Hero greeting (8) + Time card (4) ===
-    html += '<div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px">';
-    // Hero
-    html += '<div style="'+CARD+';padding:22px 24px;background:linear-gradient(135deg,rgba(139,92,246,0.18) 0%,rgba(236,72,153,0.12) 100%),rgba(255,255,255,0.04);position:relative;overflow:hidden">';
-    html +=   '<div style="position:absolute;inset:0;opacity:0.4;pointer-events:none">'+_smSparkline(st.byDow.length ? st.byDow.map(function(v){return Math.max(v,1);}) : [1,2,3,2,4,3,5], '#a78bfa')+'</div>';
-    html +=   '<div style="position:relative;z-index:1">';
-    html +=     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399"></span><span style="font-size:11px;font-weight:700;color:#a7f3d0;letter-spacing:0.5px">'+greet.toUpperCase()+' · '+timeLabel+'</span></div>';
-    html +=     '<div style="font-size:30px;font-weight:800;color:#fff;letter-spacing:-1px;line-height:1.15">'+_smEsc(adminName)+'</div>';
-    html +=     '<div style="font-size:12.5px;color:#cbd5e1;margin-top:6px;max-width:380px;line-height:1.5">오늘도 팀의 업무 흐름을 한눈에 살펴보세요.<br>전체 일지 <b style="color:#fff">'+st.total+'</b>건 · 이번 주 신규 <b style="color:#a78bfa">'+st.weekCnt+'</b>건</div>';
+    // === Row 1: Hero (full width) + Quick Stats strip ===
+    html += '<div style="'+CARD+';padding:24px 26px 18px;background:linear-gradient(135deg,rgba(139,92,246,0.18) 0%,rgba(236,72,153,0.12) 100%),rgba(255,255,255,0.04);position:relative;overflow:hidden;margin-bottom:14px">';
+    html +=   '<div style="position:absolute;inset:0;opacity:0.35;pointer-events:none">'+_smSparkline(st.byDow.length ? st.byDow.map(function(v){return Math.max(v,1);}) : [1,2,3,2,4,3,5], '#a78bfa')+'</div>';
+    html +=   '<div style="position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px">';
+    html +=     '<div>';
+    html +=       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399"></span><span style="font-size:11px;font-weight:700;color:#a7f3d0;letter-spacing:0.5px">'+greet.toUpperCase()+' · '+timeLabel+' KST</span></div>';
+    html +=       '<div style="font-size:30px;font-weight:800;color:#fff;letter-spacing:-1px;line-height:1.15">'+_smEsc(adminName)+'</div>';
+    html +=       '<div style="font-size:12.5px;color:#cbd5e1;margin-top:6px;line-height:1.5">오늘도 팀의 업무 흐름을 한눈에 살펴보세요.</div>';
+    html +=     '</div>';
+    html +=   '</div>';
+    // Quick Stats strip (히어로 카드 내부 하단)
+    html +=   '<div style="position:relative;z-index:1;margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">';
+    var qsItems = [
+      { lbl:'전체 일지', val: st.total,      color:'#a78bfa' },
+      { lbl:'진행 중',   val: st.wip,        color:'#60a5fa' },
+      { lbl:'완료',      val: st.done,       color:'#34d399' },
+      { lbl:'이번 주',   val: st.weekCnt,    color:'#fbbf24' }
+    ];
+    qsItems.forEach(function(q, i){
+      var divider = (i === qsItems.length-1) ? '' : 'border-right:1px solid rgba(255,255,255,0.06);';
+      html += '<div style="'+divider+'padding-right:14px">'+
+                '<div style="display:flex;align-items:center;gap:6px"><span style="width:5px;height:5px;border-radius:50%;background:'+q.color+';box-shadow:0 0 6px '+q.color+'90"></span><span style="font-size:10.5px;color:#cbd5e1;font-weight:600;letter-spacing:0.3px">'+q.lbl+'</span></div>'+
+                '<div style="font-size:22px;font-weight:800;color:#fff;margin-top:4px;letter-spacing:-0.5px">'+q.val+'</div>'+
+              '</div>';
+    });
     html +=   '</div>';
     html += '</div>';
-    // Time
-    html += '<div style="'+CARD+';padding:20px 22px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(135deg,rgba(99,102,241,0.18) 0%,rgba(14,165,233,0.10) 100%),rgba(255,255,255,0.04)">';
-    html +=   '<div>';
-    html +=     '<div style="font-size:10px;font-weight:700;color:#93c5fd;letter-spacing:1px">TODAY</div>';
-    html +=     '<div style="font-size:13px;color:#e2e8f0;font-weight:600;margin-top:4px">'+_smEsc(dateLabel)+'</div>';
+
+    // === Row 2: Productivity ring + 음원 매출 분석 + BMAT 막대 ===
+    html += '<div style="display:grid;grid-template-columns:1fr 1.3fr 1.3fr;gap:14px;margin-bottom:14px">';
+
+    // Productivity ring
+    html += '<div style="'+CARD+';padding:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,rgba(167,139,250,0.10),rgba(255,255,255,0.02))">';
+    html +=   '<div style="font-size:10px;font-weight:700;color:#a78bfa;letter-spacing:1.2px;align-self:flex-start">PRODUCTIVITY</div>';
+    html +=   '<div style="margin:10px 0">'+_smRing(st.donePct, '#a78bfa', 124)+'</div>';
+    html +=   '<div style="display:flex;justify-content:space-around;width:100%;border-top:1px solid rgba(255,255,255,0.06);padding-top:10px">';
+    html +=     '<div style="text-align:center"><div style="font-size:9.5px;color:#94a3b8;font-weight:600">완료</div><div style="font-size:15px;font-weight:800;color:#fff;margin-top:2px">'+st.done+'</div></div>';
+    html +=     '<div style="text-align:center"><div style="font-size:9.5px;color:#94a3b8;font-weight:600">전체</div><div style="font-size:15px;font-weight:800;color:#fff;margin-top:2px">'+st.total+'</div></div>';
     html +=   '</div>';
-    html +=   '<div style="display:flex;align-items:flex-end;gap:8px;margin-top:14px">';
-    html +=     '<div style="font-size:38px;font-weight:800;color:#fff;letter-spacing:-1.5px;line-height:1">'+timeLabel+'</div>';
-    html +=     '<div style="font-size:11px;color:#94a3b8;font-weight:600;padding-bottom:8px">KST</div>';
+    html += '</div>';
+
+    // 음원 매출 분석 (6개월 추이 라인 차트)
+    html += '<div style="'+CARD+';padding:18px 20px">';
+    html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
+    html +=     '<div>';
+    html +=       '<div style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:1.2px">MUSIC REVENUE</div>';
+    html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">음원 매출 분석</div>';
+    html +=     '</div>';
+    if (music && music.length) {
+      var lastTotal = music[music.length-1].total;
+      var lastKey = music[music.length-1].key;
+      html += '<div style="text-align:right">'+
+                '<div style="font-size:10px;color:#fbbf24;font-weight:700">'+_smMonthKey(lastKey)+'</div>'+
+                '<div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.3px">'+_smFmtWon(lastTotal)+'</div>'+
+              '</div>';
+    }
     html +=   '</div>';
-    html +=   '<div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center">';
-    html +=     '<span style="font-size:10.5px;color:#94a3b8;font-weight:600">DB</span>';
-    html +=     '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#34d399;font-weight:700"><span style="width:6px;height:6px;border-radius:50%;background:#34d399;box-shadow:0 0 6px #34d399"></span>Online</span>';
+    if (music && music.length) {
+      // 라인+영역 + 월별 라벨
+      var totalsArr = music.map(function(d){ return d.total; });
+      html += '<div style="height:96px">'+_smSparkline(totalsArr, '#fbbf24')+'</div>';
+      html += '<div style="display:flex;justify-content:space-between;margin-top:8px;padding:0 4px">';
+      music.forEach(function(d){
+        html += '<div style="font-size:9.5px;color:#94a3b8;font-weight:600">'+_smMonthKey(d.key)+'</div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div style="height:96px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#64748b">데이터가 없습니다</div>';
+    }
+    html += '</div>';
+
+    // BMAT 모니터링 (최신 월 채널별 막대)
+    html += '<div style="'+CARD+';padding:18px 20px">';
+    html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">';
+    html +=     '<div>';
+    html +=       '<div style="font-size:10px;font-weight:700;color:#22d3ee;letter-spacing:1.2px">BMAT MONITORING</div>';
+    html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">지상파 카운트</div>';
+    html +=     '</div>';
+    if (bmat) html += '<div style="font-size:10.5px;color:#22d3ee;background:rgba(34,211,238,0.12);border:1px solid rgba(34,211,238,0.25);padding:3px 8px;border-radius:6px;font-weight:700">'+_smMonthKey(bmat.monthKey)+'</div>';
     html +=   '</div>';
+    if (bmat && bmat.channels.length) {
+      var counts = bmat.channels.map(function(c){ return c.count; });
+      var maxC = Math.max.apply(null, counts.concat([1]));
+      html += '<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px;height:84px">';
+      bmat.channels.forEach(function(c){
+        var h = Math.max(6, Math.round(c.count / maxC * 72));
+        html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">'+
+                  '<div style="width:100%;max-width:34px;height:'+h+'px;background:linear-gradient(180deg,#22d3ee 0%, #06b6d4 100%);border-radius:5px 5px 2px 2px;position:relative" title="'+c.ch+' '+c.count+'">'+
+                    '<div style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:#22d3ee">'+c.count+'</div>'+
+                  '</div>'+
+                  '<div style="font-size:10px;color:#94a3b8;font-weight:700">'+_smEsc(c.ch)+'</div>'+
+                '</div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div style="height:84px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#64748b">데이터가 없습니다</div>';
+    }
     html += '</div>';
     html += '</div>';
 
-    // === Row 2: Productivity ring + Weekly chart + Stats ===
-    html += '<div style="display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:14px;margin-bottom:14px">';
-    // Productivity ring
-    html += '<div style="'+CARD+';padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,rgba(167,139,250,0.10),rgba(255,255,255,0.02))">';
-    html +=   '<div style="font-size:10px;font-weight:700;color:#a78bfa;letter-spacing:1.2px;align-self:flex-start">PRODUCTIVITY</div>';
-    html +=   '<div style="margin:14px 0">'+_smRing(st.donePct, '#a78bfa', 130)+'</div>';
-    html +=   '<div style="display:flex;justify-content:space-around;width:100%;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px">';
-    html +=     '<div style="text-align:center"><div style="font-size:10px;color:#94a3b8;font-weight:600">완료</div><div style="font-size:16px;font-weight:800;color:#fff;margin-top:2px">'+st.done+'</div></div>';
-    html +=     '<div style="text-align:center"><div style="font-size:10px;color:#94a3b8;font-weight:600">전체</div><div style="font-size:16px;font-weight:800;color:#fff;margin-top:2px">'+st.total+'</div></div>';
-    html +=   '</div>';
-    html += '</div>';
-    // Weekly chart
-    html += '<div style="'+CARD+';padding:20px 22px">';
+    // === Row 3: KPI 통계 + 거래처별 매출 분석 ===
+    html += '<div style="display:grid;grid-template-columns:1fr 1.3fr;gap:14px;margin-bottom:14px">';
+
+    // KPI 통계
+    html += '<div style="'+CARD+';padding:18px 20px">';
     html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">';
     html +=     '<div>';
-    html +=       '<div style="font-size:10px;font-weight:700;color:#34d399;letter-spacing:1.2px">WEEKLY ACTIVITY</div>';
-    html +=       '<div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">이번 주 일지 작성</div>';
+    html +=       '<div style="font-size:10px;font-weight:700;color:#f472b6;letter-spacing:1.2px">KEY METRICS</div>';
+    html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">KPI 통계</div>';
     html +=     '</div>';
-    html +=     '<div style="font-size:11px;color:#94a3b8;background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.25);padding:3px 8px;border-radius:6px;font-weight:700">총 '+st.weekCnt+'건</div>';
     html +=   '</div>';
-    html +=   _smMiniBars(st.byDow, '#34d399');
-    html += '</div>';
-    // Quick stats
-    html += '<div style="'+CARD+';padding:20px 18px">';
-    html +=   '<div style="font-size:10px;font-weight:700;color:#fbbf24;letter-spacing:1.2px;margin-bottom:12px">QUICK STATS</div>';
-    var qsItems = [
-      { lbl:'진행 중',    val: st.wip,        color:'#60a5fa' },
-      { lbl:'완료',       val: st.done,       color:'#34d399' },
-      { lbl:'활성 직원',  val: st.employees,  color:'#f472b6' },
-      { lbl:'이번 주',    val: st.weekCnt,    color:'#fbbf24' }
+    var kpiItems = [
+      { lbl:'평균 진행률', val: avgProg + '%',            color:'#a78bfa', icon:'trophy' },
+      { lbl:'활성 직원',  val: st.employees + '명',        color:'#60a5fa', icon:'users'  },
+      { lbl:'영업 활동',  val: salesActCnt + '건',         color:'#7c3aed', icon:'users'  },
+      { lbl:'이번 주',    val: st.weekCnt + '건',          color:'#34d399', icon:'calendar' }
     ];
-    qsItems.forEach(function(q){
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">'+
-                '<div style="display:flex;align-items:center;gap:8px"><span style="width:6px;height:6px;border-radius:50%;background:'+q.color+';box-shadow:0 0 6px '+q.color+'80"></span><span style="font-size:11.5px;color:#cbd5e1;font-weight:600">'+q.lbl+'</span></div>'+
-                '<div style="font-size:14px;font-weight:800;color:#fff">'+q.val+'</div>'+
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+    kpiItems.forEach(function(k){
+      html += '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:11px;padding:12px;position:relative;overflow:hidden">'+
+                '<div style="position:absolute;top:0;left:0;width:3px;height:100%;background:'+k.color+'"></div>'+
+                '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="color:'+k.color+'">'+_smIcon(k.icon)+'</span></div>'+
+                '<div style="font-size:10px;color:#94a3b8;font-weight:600;margin-top:4px">'+k.lbl+'</div>'+
+                '<div style="font-size:18px;font-weight:800;color:#fff;margin-top:2px;letter-spacing:-0.5px">'+k.val+'</div>'+
               '</div>';
     });
+    html += '</div>';
+    html += '</div>';
+
+    // 거래처별 매출 분석 (카테고리별 가로 막대 Top 5)
+    html += '<div style="'+CARD+';padding:18px 20px">';
+    html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">';
+    html +=     '<div>';
+    html +=       '<div style="font-size:10px;font-weight:700;color:#fb923c;letter-spacing:1.2px">VENDOR SALES</div>';
+    html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">거래처별 매출 분석</div>';
+    html +=     '</div>';
+    if (catRev) html += '<div style="font-size:10.5px;color:#fb923c;background:rgba(251,146,60,0.12);border:1px solid rgba(251,146,60,0.25);padding:3px 8px;border-radius:6px;font-weight:700">'+_smMonthKey(catRev.month)+'</div>';
+    html +=   '</div>';
+    if (catRev && catRev.cats.length) {
+      var top = catRev.cats.slice(0, 6);
+      var maxV = Math.max.apply(null, top.map(function(c){ return c.val; }).concat([1]));
+      html += '<div style="display:flex;flex-direction:column;gap:9px">';
+      top.forEach(function(c){
+        var pct = maxV > 0 ? Math.round(c.val / maxV * 100) : 0;
+        html += '<div>'+
+                  '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
+                    '<span style="font-size:11px;font-weight:600;color:#cbd5e1">'+_smEsc(c.label)+'</span>'+
+                    '<span style="font-size:11px;font-weight:800;color:'+c.color+'">'+_smFmtWon(c.val)+'원</span>'+
+                  '</div>'+
+                  '<div style="width:100%;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">'+
+                    '<div style="width:'+pct+'%;height:100%;background:linear-gradient(90deg,'+c.color+',rgba(255,255,255,0.6));border-radius:3px;box-shadow:0 0 8px '+c.color+'66"></div>'+
+                  '</div>'+
+                '</div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div style="height:120px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#64748b">데이터가 없습니다</div>';
+    }
     html += '</div>';
     html += '</div>';
 
