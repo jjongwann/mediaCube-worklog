@@ -14568,7 +14568,9 @@ function openVendorMenu() {
    - 시간 계산: taskMins() 재사용 (점심 12:00~13:30 자동 차감) */
 (function(){
   var SALES_STATUS = 'sales';
-  var _salesPeriodDays = 90;   // 프리셋 기본 90일
+  // 프리셋: 개월 단위로 계산 (예: '최근 30일' → 1개월 전 같은 날짜 ~ 오늘)
+  //   0 = 전체, -1 = 커스텀 활성 (date inputs 우선)
+  var _salesPeriodMonths = 3;  // 기본 3개월 (최근 90일)
   var _salesCustomFrom = '';   // 'YYYY-MM-DD' — 설정 시 프리셋 무시
   var _salesCustomTo   = '';
   var _salesEmpFilter  = '';   // '' = 전체 직원, user_id = 특정
@@ -14633,17 +14635,17 @@ function openVendorMenu() {
     // 이벤트 바인딩
     document.getElementById('sales-act-from').addEventListener('change', function(){
       _salesCustomFrom = this.value || '';
-      _salesPeriodDays = -1; // 커스텀 활성 → 프리셋 비활성
+      _salesPeriodMonths = -1; // 커스텀 활성 → 프리셋 비활성
       _salesRender();
     });
     document.getElementById('sales-act-to').addEventListener('change', function(){
       _salesCustomTo = this.value || '';
-      _salesPeriodDays = -1;
+      _salesPeriodMonths = -1;
       _salesRender();
     });
     document.getElementById('sales-act-reset').addEventListener('click', function(){
       _salesCustomFrom = ''; _salesCustomTo = '';
-      _salesPeriodDays = 90;
+      _salesPeriodMonths = 3; // 기본 3개월(최근 90일)로 복귀
       var f = document.getElementById('sales-act-from'); if (f) f.value = '';
       var t = document.getElementById('sales-act-to');   if (t) t.value = '';
       _salesRender();
@@ -14692,14 +14694,15 @@ function openVendorMenu() {
   }
 
   function _salesCurrentRange() {
-    // 우선순위: 커스텀 시작/종료(둘 중 하나라도 설정) > 프리셋 일수 > 전체
+    // 우선순위: 커스텀 시작/종료(둘 중 하나라도 설정) > 프리셋 개월 > 전체
     if (_salesCustomFrom || _salesCustomTo) {
       return { from: _salesCustomFrom || '', to: _salesCustomTo || '' };
     }
-    if (_salesPeriodDays > 0) {
+    if (_salesPeriodMonths > 0) {
       var d = new Date(); d.setHours(0,0,0,0);
       var to = _salesYmd(d);
-      var from = _salesYmd(new Date(d.getFullYear(), d.getMonth(), d.getDate() - _salesPeriodDays + 1));
+      // N개월 전 같은 날짜
+      var from = _salesYmd(new Date(d.getFullYear(), d.getMonth() - _salesPeriodMonths, d.getDate()));
       return { from: from, to: to };
     }
     return { from: '', to: '' }; // 전체
@@ -14737,20 +14740,20 @@ function openVendorMenu() {
     var box = document.getElementById('sales-act-period-tabs');
     if (!box) return;
     var presets = [
-      { d: 30,  label: '최근 30일' },
-      { d: 90,  label: '최근 90일' },
-      { d: 180, label: '최근 6개월' },
-      { d: 365, label: '최근 1년' },
-      { d: 0,   label: '전체' }
+      { m: 1,  label: '최근 30일'  },
+      { m: 3,  label: '최근 90일'  },
+      { m: 6,  label: '최근 6개월' },
+      { m: 12, label: '최근 1년'   },
+      { m: 0,  label: '전체'       }
     ];
     box.innerHTML = '';
     presets.forEach(function(p){
       var b = document.createElement('button');
-      var active = (_salesPeriodDays === p.d);
+      var active = (_salesPeriodMonths === p.m);
       b.textContent = p.label;
       b.style.cssText = 'padding:6px 12px;border-radius:7px;font-size:12px;font-weight:'+(active?'700':'600')+';cursor:pointer;border:1px solid '+(active?'#7c3aed':'#e2e8f0')+';background:'+(active?'#7c3aed':'#fff')+';color:'+(active?'#fff':'#475569')+';transition:all .12s';
       b.onclick = function(){
-        _salesPeriodDays = p.d;
+        _salesPeriodMonths = p.m;
         _salesCustomFrom = ''; _salesCustomTo = '';
         var f = document.getElementById('sales-act-from'); if (f) f.value = '';
         var t = document.getElementById('sales-act-to');   if (t) t.value = '';
