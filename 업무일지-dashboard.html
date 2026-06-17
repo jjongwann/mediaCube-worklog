@@ -8950,19 +8950,26 @@
     }
 
     /* 일자 뷰 모달 */
-    #shared-cal-day-overlay { padding: 10px !important; align-items: flex-end !important; }
+    #shared-cal-day-overlay { padding: 10px 12px !important; align-items: flex-end !important; box-sizing: border-box !important; }
     #shared-cal-day-overlay > div {
-      max-width: 100% !important;
+      width: 100% !important;
+      max-width: calc(100vw - 24px) !important;
       max-height: 88vh !important;
       border-radius: 14px 14px 0 0 !important;
+      box-sizing: border-box !important;
+      margin: 0 auto !important;
     }
     /* 일정 추가/수정 모달 */
-    #shared-cal-event-overlay { padding: 10px !important; align-items: flex-end !important; }
+    #shared-cal-event-overlay { padding: 10px 12px !important; align-items: flex-end !important; box-sizing: border-box !important; }
     #shared-cal-event-overlay > div {
-      max-width: 100% !important;
+      width: 100% !important;
+      max-width: calc(100vw - 24px) !important;
       max-height: 92vh !important;
       overflow-y: auto !important;
+      overflow-x: hidden !important;
       border-radius: 14px 14px 0 0 !important;
+      box-sizing: border-box !important;
+      margin: 0 auto !important;
     }
     #shared-cal-event-overlay > div > div:nth-child(2) {
       padding: 14px 16px !important;
