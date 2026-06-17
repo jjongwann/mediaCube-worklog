@@ -15197,20 +15197,21 @@ function openVendorMenu() {
     // === Row 3: KPI 통계 + 거래처별 매출 분석 ===
     html += '<div style="display:grid;grid-template-columns:1fr 1.3fr;gap:14px;margin-bottom:14px">';
 
-    // KPI 통계 (카드별 클릭 라우팅)
+    // 팀 인사이트 (카드별 클릭 라우팅)
     html += '<div style="'+CARD+';padding:18px 20px">';
     html +=   '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">';
     html +=     '<div>';
-    html +=       '<div style="font-size:10px;font-weight:700;color:#f472b6;letter-spacing:1.2px">KEY METRICS</div>';
-    html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">KPI 통계</div>';
+    html +=       '<div style="font-size:10px;font-weight:700;color:#f472b6;letter-spacing:1.2px">TEAM INSIGHTS</div>';
+    html +=       '<div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px;margin-top:3px">팀 인사이트</div>';
     html +=     '</div>';
     html +=     '<div style="font-size:10px;color:#94a3b8;font-weight:600">클릭 → 상세 보기</div>';
     html +=   '</div>';
+    var inProgress = st.total - st.done; // 미완료(진행중+보류+예정+이슈) 합산
     var kpiItems = [
-      { lbl:'평균 진행률', val: avgProg + '%',     color:'#a78bfa', icon:'trophy',   action:'achievement' },
-      { lbl:'활성 직원',  val: st.employees + '명', color:'#60a5fa', icon:'users',    action:'emp'         },
-      { lbl:'영업 활동',  val: salesActCnt + '건',  color:'#7c3aed', icon:'users',    action:'sales'       },
-      { lbl:'이번 주',    val: st.weekCnt + '건',   color:'#34d399', icon:'calendar', action:'week'        }
+      { lbl:'업무 성과',     val: avgProg + '%',        color:'#a78bfa', icon:'trophy',   action:'achievement' },
+      { lbl:'활성 직원',     val: st.employees + '명',   color:'#60a5fa', icon:'users',    action:'emp'         },
+      { lbl:'영업 활동',     val: salesActCnt + '건',    color:'#7c3aed', icon:'users',    action:'sales'       },
+      { lbl:'업무 추진현황', val: inProgress + '건',     color:'#34d399', icon:'clock',    action:'progress'    }
     ];
     html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
     kpiItems.forEach(function(k){
@@ -15456,7 +15457,12 @@ function openVendorMenu() {
       'kpi-achievement': function(){ if (typeof openAchievementPanel==='function') openAchievementPanel(); },
       'kpi-emp':         function(){ var b = document.getElementById('sidebar-emp-btn'); if (b) b.click(); },
       'kpi-sales':       function(){ if (typeof openSalesActivityPanel==='function') openSalesActivityPanel(); },
-      'kpi-week':        function(){ if (typeof setFilter==='function') setFilter('week'); },
+      'kpi-progress':    function(){
+        // 음원팀 업무 현황 우선, 없으면 시스템팀, 둘 다 없으면 진행중 필터로 폴백
+        if (typeof openSoundTeamPanel === 'function') openSoundTeamPanel();
+        else if (typeof openSystemTeamPanel === 'function') openSystemTeamPanel();
+        else if (typeof setFilter === 'function') setFilter('wip');
+      },
       'vendor':          function(){ if (typeof openVendorMenu==='function') openVendorMenu(); },
       'bmat':            function(){ if (typeof bmatToggleSection==='function') bmatToggleSection(); }
     };
