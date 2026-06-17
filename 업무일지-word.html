@@ -568,6 +568,11 @@
       color: #9333ea;
     }
 
+    .status-sales {
+      background: #f0fdfa;
+      color: #0d9488;
+    }
+
     /* Status Dropdown */
     .status-dropdown {
       position: fixed;
@@ -2117,8 +2122,8 @@
       if (entry.tasks && entry.tasks.length > 0) {
         var taskList = document.getElementById('task-list');
         taskList.innerHTML = '';
-        var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정' };
-        var STATUS_CLS = { done: 'status-done', wip: 'status-wip', issue: 'status-issue', hold: 'status-hold', todo: 'status-todo' };
+        var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정', sales: '영업활동' };
+        var STATUS_CLS = { done: 'status-done', wip: 'status-wip', issue: 'status-issue', hold: 'status-hold', todo: 'status-todo', sales: 'status-sales' };
         entry.tasks.forEach(function (t) {
           var scls = STATUS_CLS[t.status] || 'status-todo';
           var stxt = STATUS_TEXT[t.status] || '예정';
@@ -2135,11 +2140,14 @@
         (function (tasks) {
           setTimeout(function () {
             try {
-              // 상태가 '완료'(done)인 업무만 총 작업 시간 합계에 반영 (레거시 done 불리언 폴백)
-              var _isDoneTask = function (t) { return (t.status || (t.done ? 'done' : 'todo')) === 'done'; };
+              // 상태가 '완료'(done) 또는 '영업활동'(sales)인 업무만 총 작업 시간 합계에 반영
+              var _isCountableTask = function (t) {
+                var s = t.status || (t.done ? 'done' : 'todo');
+                return s === 'done' || s === 'sales';
+              };
               var roIntervals = [];
               tasks.forEach(function (t) {
-                if (!_isDoneTask(t)) return;
+                if (!_isCountableTask(t)) return;
                 if (t.startTime && t.endTime) {
                   var sp = t.startTime.split(':'), ep = t.endTime.split(':');
                   if (sp.length >= 2 && ep.length >= 2) {
@@ -2152,7 +2160,7 @@
               var totalMins = roIntervals.length > 0 ? calcUnionMins(roIntervals) : 0;
               if (!totalMins) {
                 tasks.forEach(function (t) {
-                  if (!_isDoneTask(t)) return;
+                  if (!_isCountableTask(t)) return;
                   if (!t.startTime && t.hrs) totalMins += Math.round(parseFloat(t.hrs) * 60);
                 });
               }
@@ -2199,7 +2207,8 @@
       { cls: 'status-wip', text: '진행' },
       { cls: 'status-issue', text: '이슈' },
       { cls: 'status-hold', text: '보류' },
-      { cls: 'status-todo', text: '예정' }
+      { cls: 'status-todo', text: '예정' },
+      { cls: 'status-sales', text: '영업활동' }
     ];
 
     // 분(정수) 반환, 저장용 소수시간 변환은 submitJournal에서 /60
@@ -2263,16 +2272,16 @@
         var startVal = startBtn.dataset ? startBtn.dataset.val : '';
         var endVal = endBtn.dataset ? endBtn.dataset.val : '';
         var mins = calcTaskHrs(startVal, endVal);
-        // 상태가 '완료'(status-done)인 업무만 총 작업 시간 합계에 반영.
+        // 상태가 '완료'(status-done) 또는 '영업활동'(status-sales)인 업무만 총 작업 시간 합계에 반영.
         // per-row 시간 배지(durEl)는 상태와 무관하게 시간 범위 표시 유지.
         var statusEl = tr.querySelector('.task-status');
-        var isDone = !!(statusEl && statusEl.classList.contains('status-done'));
+        var isCountable = !!(statusEl && (statusEl.classList.contains('status-done') || statusEl.classList.contains('status-sales')));
         if (durEl) {
           if (mins !== null) {
             durEl.textContent = fmtDuration(mins);
             durEl.classList.add('visible');
             var s = toMins(startVal), e = toMins(endVal);
-            if (isDone && s !== null && e !== null) { intervals.push([s, e]); hasAny = true; }
+            if (isCountable && s !== null && e !== null) { intervals.push([s, e]); hasAny = true; }
           } else {
             durEl.textContent = '';
             durEl.classList.remove('visible');
@@ -2288,20 +2297,21 @@
     function calcProgress() {
       var badges = document.querySelectorAll('#task-list .task-status');
       var total = badges.length;
-      var cnt = { done: 0, wip: 0, issue: 0, hold: 0 };
+      var cnt = { done: 0, wip: 0, issue: 0, hold: 0, sales: 0 };
       badges.forEach(function (b) {
         if (b.classList.contains('status-done')) cnt.done++;
         else if (b.classList.contains('status-wip')) cnt.wip++;
         else if (b.classList.contains('status-issue')) cnt.issue++;
         else if (b.classList.contains('status-hold')) cnt.hold++;
+        else if (b.classList.contains('status-sales')) cnt.sales++;
       });
       document.getElementById('metric-done').value = cnt.done;
       document.getElementById('metric-wip').value = cnt.wip;
       document.getElementById('metric-issue').value = cnt.issue;
       document.getElementById('metric-hold').value = cnt.hold;
-      // 진행률 계산: '보류'는 분모/분자에서 모두 제외 (사용자 요청)
+      // 진행률 계산: '보류'와 '영업활동'은 분모/분자에서 모두 제외
       // 레거시 '이슈' 항목은 분모에 포함 유지 (기존 동작 보존)
-      var effectiveTotal = total - cnt.hold;
+      var effectiveTotal = total - cnt.hold - cnt.sales;
       document.getElementById('chip-progress').value = effectiveTotal <= 0 ? '' : Math.round(cnt.done / effectiveTotal * 100);
       calcTotalTaskHrs();
     }
@@ -2374,7 +2384,8 @@
           { cls: 'status-wip', text: '진행 중', dot: '#2563eb' },
           { cls: 'status-hold', text: '보류', dot: '#d97706' },
           { cls: 'status-todo', text: '예정', dot: '#9ca3af' },
-          { cls: 'status-done', text: '완료', dot: '#16a34a' }
+          { cls: 'status-done', text: '완료', dot: '#16a34a' },
+          { cls: 'status-sales', text: '영업활동', dot: '#0d9488' }
         ];
 
         options.forEach(function (opt) {
@@ -2428,8 +2439,8 @@
     if (editingEntry && editingEntry.tasks && editingEntry.tasks.length > 0) {
       var taskList = document.getElementById('task-list');
       taskList.innerHTML = '';
-      var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정' };
-      var STATUS_CLS = { done: 'status-done', wip: 'status-wip', issue: 'status-issue', hold: 'status-hold', todo: 'status-todo' };
+      var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정', sales: '영업활동' };
+      var STATUS_CLS = { done: 'status-done', wip: 'status-wip', issue: 'status-issue', hold: 'status-hold', todo: 'status-todo', sales: 'status-sales' };
       editingEntry.tasks.forEach(function (t) {
         var scls = STATUS_CLS[t.status] || 'status-todo';
         var stxt = STATUS_TEXT[t.status] || '예정';
@@ -2747,8 +2758,8 @@
           return;
         }
 
-        var STATUS_CLS = { done:'status-done', wip:'status-wip', issue:'status-issue', hold:'status-hold', todo:'status-todo' };
-        var STATUS_TXT = { done:'완료', wip:'진행 중', issue:'이슈', hold:'보류', todo:'예정' };
+        var STATUS_CLS = { done:'status-done', wip:'status-wip', issue:'status-issue', hold:'status-hold', todo:'status-todo', sales:'status-sales' };
+        var STATUS_TXT = { done:'완료', wip:'진행 중', issue:'이슈', hold:'보류', todo:'예정', sales:'영업활동' };
         var tbody = document.getElementById('task-list');
 
         pendingTasks.forEach(function(t) {
@@ -3542,6 +3553,7 @@
           else if (statusEl.classList.contains('status-wip')) taskStatus = 'wip';
           else if (statusEl.classList.contains('status-issue')) taskStatus = 'issue';
           else if (statusEl.classList.contains('status-hold')) taskStatus = 'hold';
+          else if (statusEl.classList.contains('status-sales')) taskStatus = 'sales';
         }
         var pct = parseInt((tr.querySelector('.t-pct') || {}).value || '0') || 0;
         var startBtn = tr.querySelector('.t-start');

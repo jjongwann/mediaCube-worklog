@@ -565,6 +565,7 @@
   .sb-issue  { background: #fdf4ff; color: #9333ea; }
   .sb-review { background: #fdf4ff; color: #9333ea; }
   .sb-todo   { background: #f3f4f6; color: #374151; }
+  .sb-sales  { background: #f0fdfa; color: #0d9488; }
 
   .progress-bar {
     height: 5px;
@@ -1606,6 +1607,10 @@
     <div class="sidebar-item" id="shared-calendar-menu" onclick="openSharedCalendar()" title="시스템 사업부 직원 간 일정 공유 캘린더" style="display:none">
       <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
       업무 공유 캘린더
+    </div>
+    <div class="sidebar-item" id="sidebar-sales-btn" onclick="openSalesActivityPanel()" title="영업 활동 모아보기">
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11h-6"/><path d="M19 8v6"/></svg></span>
+      영업 활동
     </div>
   </div>
 
@@ -4062,6 +4067,7 @@
       + '.status-todo{background:#e0e7ff;color:#4338ca}'
       + '.status-hold{background:#fee2e2;color:#dc2626}'
       + '.status-issue{background:#fef3c7;color:#d97706}'
+      + '.status-sales{background:#ccfbf1;color:#0d9488}'
       + '.doc-textarea-val{width:100%;border:1px solid #e2e8f0;border-radius:7px;padding:11px 13px;font-family:inherit;font-size:15px;color:#475569;line-height:1.8;background:#f8fafc;white-space:pre-wrap;word-break:break-word;min-height:60px}'
       + '.issue-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}'
       + '.issue-card{border-radius:8px;overflow:hidden;border:1px solid #e2e8f0}'
@@ -4075,8 +4081,8 @@
       + '@media print{body{background:#fff;padding:0} .page{box-shadow:none;margin:0;width:100%;border-radius:0;padding:40px 48px;page-break-after:always} .page:last-child{page-break-after:auto} *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
       + '@page{margin:0;size:A4}';
 
-    var STAT_CLS = { done:'status-done', wip:'status-wip', todo:'status-todo', hold:'status-hold', issue:'status-issue' };
-    var STAT_TXT = { done:'완료', wip:'진행', todo:'예정', hold:'보류', issue:'이슈' };
+    var STAT_CLS = { done:'status-done', wip:'status-wip', todo:'status-todo', hold:'status-hold', issue:'status-issue', sales:'status-sales' };
+    var STAT_TXT = { done:'완료', wip:'진행', todo:'예정', hold:'보류', issue:'이슈', sales:'영업활동' };
 
     var pages = data.map(function(j, idx) {
       var tasks   = j.tasks || [];
@@ -4345,7 +4351,8 @@
   // 레거시 데이터 호환: status 없으면 done 불리언으로 폴백.
   function _doneTasks(taskArr) {
     return (taskArr || []).filter(function(t){
-      return (t.status || (t.done ? 'done' : 'todo')) === 'done';
+      var s = t.status || (t.done ? 'done' : 'todo');
+      return s === 'done' || s === 'sales';
     });
   }
 
@@ -4518,8 +4525,8 @@
     var tasksWrap = document.getElementById('d-tasks-wrap');
     var tasksList = document.getElementById('d-tasks-list');
     if (j.tasks && j.tasks.length > 0) {
-      var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정' };
-      var STATUS_CLS  = { done: 'sb-done', wip: 'sb-wip', issue: 'sb-issue', hold: 'sb-hold', todo: 'sb-todo' };
+      var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정', sales: '영업활동' };
+      var STATUS_CLS  = { done: 'sb-done', wip: 'sb-wip', issue: 'sb-issue', hold: 'sb-hold', todo: 'sb-todo', sales: 'sb-sales' };
       var _escDetailHtml = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
       tasksList.innerHTML = '<table style="width:100%;border-collapse:collapse;margin-top:6px;table-layout:fixed">'
         + '<thead><tr>'
@@ -14542,6 +14549,257 @@ function openVendorMenu() {
     _scalChk++;
     if (_scalChk > 20) clearInterval(_scalT);
   }, 600);
+})();
+
+/* ── 영업 활동 (Sales Activity) 패널 ────────────────────────────────────
+   - 사이드바 '영업 활동' 메뉴 → openSalesActivityPanel()
+   - 관리자: 전 직원의 status==='sales' 업무를 직원별로 묶어서 표시
+   - 일반 사용자: 본인의 status==='sales' 업무만 표시
+   - 데이터: 기존 journalCache 재사용 (별도 DB 호출 없음)
+   - 시간 계산: taskMins() 재사용 (점심 12:00~13:30 자동 차감) */
+(function(){
+  var SALES_STATUS = 'sales';
+  var _salesPeriodDays = 90; // 기본 90일
+
+  function _ensureSalesOverlay() {
+    if (document.getElementById('sales-activity-overlay')) return;
+    var div = document.createElement('div');
+    div.id = 'sales-activity-overlay';
+    div.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9990;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto';
+    div.onclick = function(e){ if (e.target === this) closeSalesActivityPanel(); };
+    div.innerHTML = ''+
+      '<div style="width:100%;max-width:1180px;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.25);display:flex;flex-direction:column;font-family:inherit;margin:auto;overflow:hidden">'+
+        '<div style="padding:18px 22px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff">'+
+          '<div style="display:flex;align-items:center;gap:10px">'+
+            '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11h-6"/><path d="M19 8v6"/></svg>'+
+            '<div>'+
+              '<div style="font-size:16px;font-weight:800;letter-spacing:-0.3px">영업 활동</div>'+
+              '<div id="sales-act-subtitle" style="font-size:11px;color:#ccfbf1;margin-top:2px">—</div>'+
+            '</div>'+
+          '</div>'+
+          '<button onclick="closeSalesActivityPanel()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center" onmouseover="this.style.background=\'rgba(255,255,255,0.28)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'">×</button>'+
+        '</div>'+
+        '<div style="padding:14px 22px;display:flex;align-items:center;gap:10px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-wrap:wrap">'+
+          '<span style="font-size:12px;font-weight:700;color:#475569">조회 기간</span>'+
+          '<div id="sales-act-period-tabs" style="display:inline-flex;gap:4px"></div>'+
+          '<div id="sales-act-period-range" style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:#475569"></div>'+
+        '</div>'+
+        '<div id="sales-act-kpis" style="padding:16px 22px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;background:#fff;border-bottom:1px solid #e2e8f0"></div>'+
+        '<div id="sales-act-body" style="padding:18px 22px;max-height:62vh;overflow-y:auto;background:#f8fafc"></div>'+
+      '</div>';
+    document.body.appendChild(div);
+  }
+
+  function _salesUserMeta(uid) {
+    if (!Array.isArray(ALL_USERS)) return { fullName: uid, dept: '' };
+    var u = ALL_USERS.find(function(x){ return x.id === uid; });
+    return u ? { fullName: u.fullName || u.username || uid, dept: u.dept || '', img: u.img || '' }
+             : { fullName: uid || '미확인', dept: '', img: '' };
+  }
+
+  function _salesFmtMins(mins) {
+    if (!mins || mins <= 0) return '0분';
+    var h = Math.floor(mins / 60), m = mins % 60;
+    if (h > 0 && m > 0) return h + '시간 ' + m + '분';
+    if (h > 0) return h + '시간';
+    return m + '분';
+  }
+
+  function _salesGather() {
+    var rows = []; // {uid, date, text, detail, startTime, endTime, mins, journalId}
+    var allJ = (typeof journalCache !== 'undefined' && Array.isArray(journalCache)) ? journalCache : [];
+    var cutoff = null;
+    if (_salesPeriodDays > 0) {
+      var d = new Date();
+      d.setHours(0,0,0,0);
+      d.setDate(d.getDate() - _salesPeriodDays + 1);
+      cutoff = d.toISOString().slice(0, 10);
+    }
+    allJ.forEach(function(j){
+      if (cutoff && j.date && j.date < cutoff) return;
+      var tasks = Array.isArray(j.tasks) ? j.tasks : [];
+      tasks.forEach(function(t){
+        var st = t.status || (t.done ? 'done' : 'todo');
+        if (st !== SALES_STATUS) return;
+        var mins = 0;
+        try { mins = (typeof taskMins === 'function') ? (taskMins(t) || 0) : 0; } catch(e) {}
+        rows.push({
+          uid: j.user_id || '',
+          date: j.date || '',
+          text: t.text || '(제목 없음)',
+          detail: t.detail || '',
+          startTime: t.startTime || '',
+          endTime: t.endTime || '',
+          mins: mins,
+          journalId: j.id || ''
+        });
+      });
+    });
+    return rows;
+  }
+
+  function _salesRenderPeriodTabs() {
+    var box = document.getElementById('sales-act-period-tabs');
+    if (!box) return;
+    var presets = [
+      { d: 30,  label: '최근 30일' },
+      { d: 90,  label: '최근 90일' },
+      { d: 180, label: '최근 6개월' },
+      { d: 365, label: '최근 1년' },
+      { d: 0,   label: '전체' }
+    ];
+    box.innerHTML = '';
+    presets.forEach(function(p){
+      var b = document.createElement('button');
+      var active = (_salesPeriodDays === p.d);
+      b.textContent = p.label;
+      b.style.cssText = 'padding:6px 12px;border-radius:7px;font-size:12px;font-weight:'+(active?'700':'600')+';cursor:pointer;border:1px solid '+(active?'#0d9488':'#e2e8f0')+';background:'+(active?'#0d9488':'#fff')+';color:'+(active?'#fff':'#475569')+';transition:all .12s';
+      b.onclick = function(){ _salesPeriodDays = p.d; _salesRender(); };
+      box.appendChild(b);
+    });
+  }
+
+  function _salesRender() {
+    _salesRenderPeriodTabs();
+    var rows = _salesGather();
+    var isAdmin = !!(typeof _isAdmin !== 'undefined' ? _isAdmin : false);
+    var myId = (typeof _userId !== 'undefined') ? _userId : null;
+
+    // 일반 사용자는 본인 것만
+    if (!isAdmin && myId) rows = rows.filter(function(r){ return r.uid === myId; });
+
+    // 부제 + 기간 라벨
+    var subEl = document.getElementById('sales-act-subtitle');
+    if (subEl) {
+      if (isAdmin) subEl.textContent = '직원별 영업 활동 모아보기';
+      else {
+        var me = _salesUserMeta(myId);
+        subEl.textContent = me.fullName + (me.dept ? ' · ' + me.dept : '') + ' — 내 영업 활동';
+      }
+    }
+    var rangeEl = document.getElementById('sales-act-period-range');
+    if (rangeEl) {
+      if (_salesPeriodDays > 0) {
+        var d = new Date(); d.setHours(0,0,0,0);
+        var e = d.toISOString().slice(0,10);
+        var s = new Date(d.getFullYear(), d.getMonth(), d.getDate() - _salesPeriodDays + 1).toISOString().slice(0,10);
+        rangeEl.textContent = s + ' ~ ' + e;
+      } else rangeEl.textContent = '전체 기간';
+    }
+
+    // KPI
+    var totalCnt = rows.length;
+    var totalMins = rows.reduce(function(s, r){ return s + (r.mins || 0); }, 0);
+    var personCnt = (function(){
+      var m = {}; rows.forEach(function(r){ if (r.uid) m[r.uid] = 1; });
+      return Object.keys(m).length;
+    })();
+    var kpiBox = document.getElementById('sales-act-kpis');
+    if (kpiBox) {
+      var kpiCard = function(label, value, color){
+        return '<div style="padding:14px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;border-left:3px solid '+color+'">'+
+                 '<div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.3px">'+label+'</div>'+
+                 '<div style="font-size:22px;font-weight:800;color:#0f172a;margin-top:4px;letter-spacing:-0.5px">'+value+'</div>'+
+               '</div>';
+      };
+      var html = '';
+      html += kpiCard('총 영업활동 건수', totalCnt + ' 건', '#0d9488');
+      html += kpiCard('총 활동 시간',    _salesFmtMins(totalMins), '#0891b2');
+      html += kpiCard(isAdmin ? '활동 직원 수' : '활동한 날 수',
+                     isAdmin ? (personCnt + ' 명')
+                             : (function(){ var d={}; rows.forEach(function(r){if(r.date)d[r.date]=1;}); return Object.keys(d).length + ' 일'; })(),
+                     '#7c3aed');
+      kpiBox.innerHTML = html;
+    }
+
+    // Body
+    var body = document.getElementById('sales-act-body');
+    if (!body) return;
+    if (!rows.length) {
+      body.innerHTML = '<div style="text-align:center;padding:50px 20px;color:#94a3b8;font-size:13px;background:#fff;border:1px dashed #cbd5e1;border-radius:10px">선택한 기간에 영업 활동 기록이 없습니다.</div>';
+      return;
+    }
+
+    if (isAdmin) {
+      // 직원별 그룹화
+      var byUser = {};
+      rows.forEach(function(r){
+        var key = r.uid || '_';
+        if (!byUser[key]) byUser[key] = [];
+        byUser[key].push(r);
+      });
+      var uids = Object.keys(byUser).sort(function(a, b){
+        return byUser[b].length - byUser[a].length;
+      });
+      var html = '';
+      uids.forEach(function(uid){
+        var meta = _salesUserMeta(uid);
+        var list = byUser[uid].slice().sort(function(a, b){ return (a.date < b.date ? 1 : a.date > b.date ? -1 : 0); });
+        var subTotal = list.reduce(function(s, r){ return s + (r.mins || 0); }, 0);
+        html += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:14px;overflow:hidden">';
+        html +=   '<div style="padding:12px 16px;background:linear-gradient(90deg,#f0fdfa 0%,#fff 100%);border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px">';
+        if (meta.img) html += '<img src="'+meta.img+'" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1.5px solid #0d9488" onerror="this.style.display=\'none\'">';
+        else          html += '<div style="width:30px;height:30px;border-radius:50%;background:#ccfbf1;color:#0d9488;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">'+(meta.fullName.charAt(0)||'?')+'</div>';
+        html +=     '<div style="flex:1;min-width:0">';
+        html +=       '<div style="font-size:13.5px;font-weight:800;color:#0f172a;letter-spacing:-0.2px">'+meta.fullName+'</div>';
+        html +=       '<div style="font-size:10.5px;color:#64748b;margin-top:1px">'+(meta.dept||'—')+'</div>';
+        html +=     '</div>';
+        html +=     '<div style="text-align:right;flex-shrink:0">';
+        html +=       '<div style="font-size:11px;color:#64748b">합계</div>';
+        html +=       '<div style="font-size:13px;font-weight:800;color:#0d9488">'+list.length+'건 · '+_salesFmtMins(subTotal)+'</div>';
+        html +=     '</div>';
+        html +=   '</div>';
+        html +=   _salesRowsHtml(list, /*showWho*/ false);
+        html += '</div>';
+      });
+      body.innerHTML = html;
+    } else {
+      // 본인 — 단일 리스트 (날짜 내림차순)
+      var sorted = rows.slice().sort(function(a, b){ return (a.date < b.date ? 1 : a.date > b.date ? -1 : 0); });
+      body.innerHTML = '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">'+_salesRowsHtml(sorted, false)+'</div>';
+    }
+  }
+
+  function _salesRowsHtml(list, showWho) {
+    var rowsHtml = '';
+    rowsHtml += '<div style="display:grid;grid-template-columns:110px 1fr 140px 90px;gap:0;padding:9px 16px;background:#fafafa;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.3px">';
+    rowsHtml +=   '<div>날짜</div><div>업무명 / 내용</div><div>시간</div><div style="text-align:right">소요</div>';
+    rowsHtml += '</div>';
+    list.forEach(function(r, i){
+      var timeText = (r.startTime && r.endTime) ? (r.startTime + ' ~ ' + r.endTime) : '—';
+      var border = (i === list.length - 1) ? '' : 'border-bottom:1px solid #f1f5f9;';
+      rowsHtml += '<div style="display:grid;grid-template-columns:110px 1fr 140px 90px;gap:0;padding:11px 16px;'+border+'align-items:start">';
+      rowsHtml +=   '<div style="font-size:12px;color:#475569;font-weight:600">'+r.date+'</div>';
+      rowsHtml +=   '<div style="min-width:0">';
+      rowsHtml +=     '<div style="font-size:13px;font-weight:700;color:#0f172a;letter-spacing:-0.2px">'+_salesEsc(r.text)+'</div>';
+      if (r.detail) rowsHtml += '<div style="font-size:11.5px;color:#64748b;margin-top:3px;line-height:1.45;white-space:pre-wrap;word-break:break-word">'+_salesEsc(r.detail)+'</div>';
+      rowsHtml +=   '</div>';
+      rowsHtml +=   '<div style="font-size:11.5px;color:#475569;font-family:Menlo,Consolas,monospace">'+timeText+'</div>';
+      rowsHtml +=   '<div style="text-align:right;font-size:12px;font-weight:800;color:#0d9488">'+_salesFmtMins(r.mins)+'</div>';
+      rowsHtml += '</div>';
+    });
+    return rowsHtml;
+  }
+
+  function _salesEsc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function openSalesActivityPanel() {
+    _ensureSalesOverlay();
+    var ov = document.getElementById('sales-activity-overlay');
+    if (!ov) return;
+    ov.style.display = 'flex';
+    _salesRender();
+  }
+  function closeSalesActivityPanel() {
+    var ov = document.getElementById('sales-activity-overlay');
+    if (ov) ov.style.display = 'none';
+  }
+  window.openSalesActivityPanel = openSalesActivityPanel;
+  window.closeSalesActivityPanel = closeSalesActivityPanel;
 })();
 </script>
 </body>
