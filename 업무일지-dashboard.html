@@ -14768,9 +14768,9 @@ function openVendorMenu() {
     var isAdmin = !!(typeof _isAdmin !== 'undefined' ? _isAdmin : false);
     var myId = (typeof _userId !== 'undefined') ? _userId : null;
 
-    // 관리자에게만 직원 필터 / 커스텀 날짜 UI 노출 — 일반 사용자는 본인 것만 보므로 직원 필터 불필요
-    var adv = document.getElementById('sales-act-adv');
-    if (adv) adv.style.display = isAdmin ? '' : 'none';
+    // 시작/종료 날짜 필터는 모두에게 노출, 직원 셀렉트는 관리자 전용
+    var empWrap = document.getElementById('sales-act-emp-wrap');
+    if (empWrap) empWrap.style.display = isAdmin ? '' : 'none';
     if (isAdmin) _salesPopulateEmpSelect();
 
     var rows = _salesGather();
