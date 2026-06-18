@@ -15120,7 +15120,9 @@ function openVendorMenu() {
     if (document.getElementById('sitemap-overlay')) return;
     var div = document.createElement('div');
     div.id = 'sitemap-overlay';
-    div.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(2,6,23,0.78);z-index:9989;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)';
+    // 오버레이 자체의 backdrop-filter는 큰 모니터에서 스크롤 시 깜빡임을 유발하므로 제거.
+    // 어두운 알파(0.86)만으로도 뒤 배경이 충분히 흐릿하게 보임.
+    div.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(2,6,23,0.86);z-index:9989;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto';
     div.onclick = function(e){ if (e.target === this) closeSitemapPanel(); };
     div.innerHTML = ''+
       '<div style="width:100%;max-width:1280px;border-radius:20px;font-family:inherit;margin:auto;overflow:hidden;display:flex;flex-direction:column;background:radial-gradient(at 0% 0%, #1e1b4b 0%, transparent 40%),radial-gradient(at 100% 0%, #4c1d95 0%, transparent 45%),radial-gradient(at 100% 100%, #831843 0%, transparent 40%),linear-gradient(135deg,#0f0f23 0%, #1a1a2e 50%, #16213e 100%);box-shadow:0 30px 80px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.06)">'+
@@ -15198,10 +15200,10 @@ function openVendorMenu() {
       return html;
     }
 
-    // 카드 공통 스타일 — backdrop-filter 미지원 환경(구형 GPU/일부 모니터 합성기)에서도
-    // 카드 윤곽이 깨지지 않도록 다크 톤 베이스 + 미세한 그라데이션을 명시적으로 둠.
-    // (blur 효과는 추가 장식 — 안 먹혀도 카드 자체는 정상 표시)
-    var CARD = 'background:linear-gradient(160deg,rgba(30,27,75,0.55) 0%,rgba(15,15,35,0.62) 100%);border:1px solid rgba(255,255,255,0.09);border-radius:16px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);overflow:hidden;position:relative;box-shadow:0 4px 14px rgba(0,0,0,0.18)';
+    // 카드 공통 스타일 — backdrop-filter 의존을 제거하고 거의 불투명한 다크 톤으로 통일.
+    // (큰 모니터/일부 GPU 합성기에서 blur가 스크롤 시 깜빡이거나 미작동 → 카드 윤곽 사라지는 이슈 해결)
+    // 사이트맵 배경 보라/마젠타 그라데이션 위에서도 충분히 대비되도록 92~95% 알파 사용.
+    var CARD = 'background:linear-gradient(160deg,rgba(24,21,58,0.92) 0%,rgba(12,11,32,0.95) 100%);border:1px solid rgba(255,255,255,0.13);border-radius:16px;overflow:hidden;position:relative;box-shadow:0 4px 18px rgba(0,0,0,0.32),inset 0 1px 0 rgba(255,255,255,0.04)';
 
     var html = '';
 
