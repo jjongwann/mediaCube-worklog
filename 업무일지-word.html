@@ -1956,7 +1956,13 @@
         if (backup) raw = backup;
       }
       if (!raw) {
-        document.getElementById('doc-date').valueAsDate = new Date();
+        // 로컬(KST) 기준 오늘 날짜. valueAsDate/toISOString은 UTC 기준이라
+        // 한국시간 오전 9시 이전에 열면 어제 날짜로 표시되는 버그가 있어 수동 포맷.
+        var _today = new Date();
+        document.getElementById('doc-date').value =
+          _today.getFullYear() + '-' +
+          String(_today.getMonth() + 1).padStart(2, '0') + '-' +
+          String(_today.getDate()).padStart(2, '0');
         // 신규 작성: 로그인 계정 이름/부서 디폴트
         var d = (_mcSession && _mcSession._display) || null;
         if (d) {

@@ -3972,7 +3972,7 @@
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = '업무일지_' + new Date().toISOString().slice(0,10) + '.html';
+    a.download = '업무일지_' + _localYmd() + '.html';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showToast('📄 문서 파일이 다운로드되었습니다.');
@@ -4026,7 +4026,7 @@
         + '</Row>';
     });
 
-    var today = new Date().toISOString().slice(0,10);
+    var today = _localYmd();
     var xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
       + '<?mso-application progid="Excel.Sheet"?>\n'
       + '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"'
@@ -4368,6 +4368,16 @@
     }, 0);
   }
 
+  // 로컬(KST) 기준 YYYY-MM-DD 문자열.
+  // new Date().toISOString().slice(0,10) / input.valueAsDate=new Date() 은 UTC 기준이라
+  // 한국시간 오전 9시 이전에는 어제 날짜로 잘리는 버그가 있음 — 모든 디폴트 날짜는 이 함수 사용.
+  function _localYmd(d) {
+    d = d || new Date();
+    return d.getFullYear() + '-' +
+           String(d.getMonth() + 1).padStart(2, '0') + '-' +
+           String(d.getDate()).padStart(2, '0');
+  }
+
   // '작업 시간 / 소요 시간 / 누적 시간' 합계는 상태가 '완료'(done)인 업무만 집계.
   // (개별 업무 시간범위 표시 / 상태별 통계(tts) 모달은 영향받지 않음)
   // 레거시 데이터 호환: status 없으면 done 불리언으로 폴백.
@@ -4617,7 +4627,7 @@
   function openModal() {
     editingId = null;
     document.getElementById('f-title').value = '';
-    document.getElementById('f-date').valueAsDate = new Date();
+    document.getElementById('f-date').value = _localYmd();
     document.getElementById('f-author').value = '담당자';
     document.getElementById('f-project').value = '';
     document.getElementById('f-type').value = '개발';
