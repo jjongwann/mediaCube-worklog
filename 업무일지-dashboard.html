@@ -16057,8 +16057,6 @@ function openVendorMenu() {
         var meta = _salesUserMeta(uid);
         var list = byUser[uid].slice().sort(function(a, b){ return (a.date < b.date ? 1 : a.date > b.date ? -1 : 0); });
         var subTotal = list.reduce(function(s, r){ return s + (r.mins || 0); }, 0);
-        var grpExist = list.filter(function(r){ return r.type === 'existing'; }).length;
-        var grpNew   = list.filter(function(r){ return r.type === 'new'; }).length;
         html += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:14px;overflow:hidden">';
         html +=   '<div style="padding:12px 16px;background:linear-gradient(90deg,#f5f3ff 0%,#fff 100%);border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px">';
         if (meta.img) html += '<img src="'+meta.img+'" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1.5px solid #7c3aed" onerror="this.style.display=\'none\'">';
@@ -16067,12 +16065,7 @@ function openVendorMenu() {
         html +=       '<div style="font-size:13.5px;font-weight:800;color:#0f172a;letter-spacing:-0.2px">'+meta.fullName+'</div>';
         html +=       '<div style="font-size:10.5px;color:#64748b;margin-top:1px">'+(meta.dept||'—')+'</div>';
         html +=     '</div>';
-        // 타입 분포 칩 (기존 N · 신규 M)
-        html +=     '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">';
-        if (grpExist > 0) html += '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:5px;background:'+TYPE_META.existing.bg+';color:'+TYPE_META.existing.dark+';font-size:10.5px;font-weight:700">기존 '+grpExist+'</span>';
-        if (grpNew   > 0) html += '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:5px;background:'+TYPE_META.new.bg+';color:'+TYPE_META.new.dark+';font-size:10.5px;font-weight:700">신규 '+grpNew+'</span>';
-        html +=     '</div>';
-        html +=     '<div style="text-align:right;flex-shrink:0;padding-left:4px;border-left:1px solid #e2e8f0;margin-left:2px">';
+        html +=     '<div style="text-align:right;flex-shrink:0">';
         html +=       '<div style="font-size:11px;color:#64748b">합계</div>';
         html +=       '<div style="font-size:13px;font-weight:800;color:#7c3aed">'+list.length+'건 · '+_salesFmtMins(subTotal)+'</div>';
         html +=     '</div>';
