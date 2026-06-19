@@ -2222,7 +2222,8 @@
         <option value="issue">이슈</option>
         <option value="hold">보류</option>
         <option value="todo">예정</option>
-        <option value="sales">영업활동</option>
+        <option value="sales_existing">영업(기존)</option>
+        <option value="sales_new">영업(신규)</option>
       </select>
       <select class="filter-select" id="sort-select" onchange="renderList()">
         <option value="date-desc">최신순</option>
@@ -3078,9 +3079,18 @@
     // Apply status filter dropdown
     var statusFilter = document.getElementById('status-filter').value;
     if (statusFilter) {
-      if (statusFilter === 'sales') {
-        // 일지 자동 상태(j.status)에는 'sales' 가 없으므로,
-        // 일지 내 태스크 중 영업 계열(sales / sales_existing / sales_new) 이 하나라도 있는 일지를 매칭.
+      if (statusFilter === 'sales_existing') {
+        // 영업(기존): sales_existing 또는 레거시 'sales' (기존고객으로 가정) 매칭
+        result = result.filter(function(j){
+          return (j.tasks || []).some(function(t){ return t.status === 'sales_existing' || t.status === 'sales'; });
+        });
+      } else if (statusFilter === 'sales_new') {
+        // 영업(신규): sales_new 만 매칭
+        result = result.filter(function(j){
+          return (j.tasks || []).some(function(t){ return t.status === 'sales_new'; });
+        });
+      } else if (statusFilter === 'sales') {
+        // 레거시 호환: 'sales' 필터 직접 호출 시 3종 모두 매칭
         result = result.filter(function(j){
           return (j.tasks || []).some(function(t){ return _isSalesStatus(t.status); });
         });
@@ -15703,12 +15713,22 @@ function openVendorMenu() {
   // 영업 status 3종 (레거시 + 기존고객 + 신규고객)
   var SALES_STATUSES = ['sales', 'sales_existing', 'sales_new'];
   function _isSales(s) { return SALES_STATUSES.indexOf(s) >= 0; }
+  // 고객 유형 매핑 — 레거시 'sales'는 '기존고객'으로 표시
+  function _salesTypeOf(s) {
+    if (s === 'sales_new') return 'new';
+    return 'existing'; // sales_existing + legacy 'sales'
+  }
+  var TYPE_META = {
+    existing: { label: '기존',  full: '기존고객',  color: '#0891b2', bg: '#ecfeff', dark: '#0e7490' },
+    new:      { label: '신규',  full: '신규고객',  color: '#7c3aed', bg: '#f5f3ff', dark: '#6d28d9' }
+  };
   // 프리셋: 개월 단위로 계산 (예: '최근 30일' → 1개월 전 같은 날짜 ~ 오늘)
   //   0 = 전체, -1 = 커스텀 활성 (date inputs 우선)
   var _salesPeriodMonths = 3;  // 기본 3개월 (최근 90일)
   var _salesCustomFrom = '';   // 'YYYY-MM-DD' — 설정 시 프리셋 무시
   var _salesCustomTo   = '';
   var _salesEmpFilter  = '';   // '' = 전체 직원, user_id = 특정
+  var _salesTypeFilter = '';   // '' = 전체, 'existing', 'new'
 
   // 로컬 시간대 기준 YMD 포맷터 (toISOString은 UTC라서 한국시간과 하루 어긋날 수 있음)
   function _salesYmd(d) {
@@ -15736,10 +15756,13 @@ function openVendorMenu() {
           '</div>'+
           '<button onclick="closeSalesActivityPanel()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center" onmouseover="this.style.background=\'rgba(255,255,255,0.28)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'">×</button>'+
         '</div>'+
-        // 1행: 프리셋 (조회 기간)
+        // 1행: 프리셋 (조회 기간) + 고객 유형 칩
         '<div style="padding:14px 22px 10px;display:flex;align-items:center;gap:10px;background:#f8fafc;border-bottom:1px solid #eef2f7;flex-wrap:wrap">'+
           '<span style="font-size:12px;font-weight:700;color:#475569">조회 기간</span>'+
           '<div id="sales-act-period-tabs" style="display:inline-flex;gap:4px;flex-wrap:wrap"></div>'+
+          '<div style="width:1px;height:18px;background:#e2e8f0;margin:0 4px"></div>'+
+          '<span style="font-size:12px;font-weight:700;color:#475569">고객 유형</span>'+
+          '<div id="sales-act-type-tabs" style="display:inline-flex;gap:4px"></div>'+
           '<div id="sales-act-period-range" style="margin-left:auto;font-size:12px;color:#475569;font-weight:600"></div>'+
         '</div>'+
         // 2행: 시작일 / 종료일 / 초기화 + 직원 필터 (관리자만) — 한 줄 정렬
@@ -15864,6 +15887,7 @@ function openVendorMenu() {
           startTime: t.startTime || '',
           endTime: t.endTime || '',
           mins: mins,
+          type: _salesTypeOf(st),   // 'existing' | 'new'
           journalId: j.id || ''
         });
       });
@@ -15898,8 +15922,31 @@ function openVendorMenu() {
     });
   }
 
+  function _salesRenderTypeTabs() {
+    var box = document.getElementById('sales-act-type-tabs');
+    if (!box) return;
+    var types = [
+      { v: '',         label: '전체',     color: '#475569' },
+      { v: 'existing', label: '기존고객', color: TYPE_META.existing.color },
+      { v: 'new',      label: '신규고객', color: TYPE_META.new.color      }
+    ];
+    box.innerHTML = '';
+    types.forEach(function(t){
+      var b = document.createElement('button');
+      var active = (_salesTypeFilter === t.v);
+      b.textContent = t.label;
+      b.style.cssText = 'padding:6px 12px;border-radius:7px;font-size:12px;font-weight:'+(active?'700':'600')+';cursor:pointer;border:1px solid '+(active?t.color:'#e2e8f0')+';background:'+(active?t.color:'#fff')+';color:'+(active?'#fff':'#475569')+';transition:all .12s';
+      b.onclick = function(){
+        _salesTypeFilter = t.v;
+        _salesRender();
+      };
+      box.appendChild(b);
+    });
+  }
+
   function _salesRender() {
     _salesRenderPeriodTabs();
+    _salesRenderTypeTabs();
     var isAdmin = !!(typeof _isAdmin !== 'undefined' ? _isAdmin : false);
     var myId = (typeof _userId !== 'undefined') ? _userId : null;
 
@@ -15908,11 +15955,16 @@ function openVendorMenu() {
     if (empWrap) empWrap.style.display = isAdmin ? '' : 'none';
     if (isAdmin) _salesPopulateEmpSelect();
 
-    var rows = _salesGather();
+    var rowsAll = _salesGather(); // KPI breakdown 위해 type 필터 적용 전 보관
+    var rows = rowsAll.slice();
     // 일반 사용자는 본인 것만
     if (!isAdmin && myId) rows = rows.filter(function(r){ return r.uid === myId; });
+    if (!isAdmin && myId) rowsAll = rowsAll.filter(function(r){ return r.uid === myId; });
     // 관리자 직원 필터
     if (isAdmin && _salesEmpFilter) rows = rows.filter(function(r){ return r.uid === _salesEmpFilter; });
+    if (isAdmin && _salesEmpFilter) rowsAll = rowsAll.filter(function(r){ return r.uid === _salesEmpFilter; });
+    // 고객 유형 필터 (KPI 카드는 분할 표시, body는 필터 적용)
+    if (_salesTypeFilter) rows = rows.filter(function(r){ return r.type === _salesTypeFilter; });
 
     // 부제 + 기간 라벨
     var subEl = document.getElementById('sales-act-subtitle');
@@ -15936,27 +15988,48 @@ function openVendorMenu() {
       else rangeEl.textContent = '~ ' + r.to;
     }
 
-    // KPI
+    // KPI — 전체 기준 + 기존/신규 분할 (type 필터와 무관하게 항상 분할 표시)
     var totalCnt = rows.length;
     var totalMins = rows.reduce(function(s, r){ return s + (r.mins || 0); }, 0);
+    // breakdown (rowsAll 기준, type 필터 미적용 시 동일)
+    var existingRows = rowsAll.filter(function(r){ return r.type === 'existing'; });
+    var newRows      = rowsAll.filter(function(r){ return r.type === 'new'; });
+    var existingCnt  = existingRows.length;
+    var existingMins = existingRows.reduce(function(s, r){ return s + (r.mins || 0); }, 0);
+    var newCnt       = newRows.length;
+    var newMins      = newRows.reduce(function(s, r){ return s + (r.mins || 0); }, 0);
     var personCnt = (function(){
       var m = {}; rows.forEach(function(r){ if (r.uid) m[r.uid] = 1; });
       return Object.keys(m).length;
     })();
     var kpiBox = document.getElementById('sales-act-kpis');
     if (kpiBox) {
-      var kpiCard = function(label, value, color){
+      var kpiCard = function(label, value, sub, color){
+        var subHtml = sub ? '<div style="font-size:10.5px;color:#64748b;margin-top:6px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+sub+'</div>' : '';
         return '<div style="padding:14px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;border-left:3px solid '+color+'">'+
                  '<div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.3px">'+label+'</div>'+
                  '<div style="font-size:22px;font-weight:800;color:#0f172a;margin-top:4px;letter-spacing:-0.5px">'+value+'</div>'+
+                 subHtml+
                '</div>';
       };
+      // 분할 라벨 (기존 N건 · 신규 M건)
+      var typeChip = function(type, n){
+        var m = TYPE_META[type];
+        return '<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:'+m.color+'"></span>'+m.full+' <b style="color:'+m.dark+'">'+n+'</b></span>';
+      };
+      var typeChipMins = function(type, m){
+        var meta = TYPE_META[type];
+        return '<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:'+meta.color+'"></span>'+meta.full+' <b style="color:'+meta.dark+'">'+_salesFmtMins(m)+'</b></span>';
+      };
+      var subCnt  = typeChip('existing', existingCnt)  + typeChip('new', newCnt);
+      var subMins = typeChipMins('existing', existingMins) + typeChipMins('new', newMins);
       var html = '';
-      html += kpiCard('총 영업활동 건수', totalCnt + ' 건', '#7c3aed');
-      html += kpiCard('총 활동 시간',    _salesFmtMins(totalMins), '#8b5cf6');
+      html += kpiCard('총 영업활동 건수', totalCnt + ' 건', subCnt, '#7c3aed');
+      html += kpiCard('총 활동 시간',    _salesFmtMins(totalMins), subMins, '#8b5cf6');
       html += kpiCard(isAdmin ? '활동 직원 수' : '활동한 날 수',
                      isAdmin ? (personCnt + ' 명')
                              : (function(){ var d={}; rows.forEach(function(r){if(r.date)d[r.date]=1;}); return Object.keys(d).length + ' 일'; })(),
+                     null,
                      '#7c3aed');
       kpiBox.innerHTML = html;
     }
@@ -15985,6 +16058,8 @@ function openVendorMenu() {
         var meta = _salesUserMeta(uid);
         var list = byUser[uid].slice().sort(function(a, b){ return (a.date < b.date ? 1 : a.date > b.date ? -1 : 0); });
         var subTotal = list.reduce(function(s, r){ return s + (r.mins || 0); }, 0);
+        var grpExist = list.filter(function(r){ return r.type === 'existing'; }).length;
+        var grpNew   = list.filter(function(r){ return r.type === 'new'; }).length;
         html += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:14px;overflow:hidden">';
         html +=   '<div style="padding:12px 16px;background:linear-gradient(90deg,#f5f3ff 0%,#fff 100%);border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px">';
         if (meta.img) html += '<img src="'+meta.img+'" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1.5px solid #7c3aed" onerror="this.style.display=\'none\'">';
@@ -15993,7 +16068,12 @@ function openVendorMenu() {
         html +=       '<div style="font-size:13.5px;font-weight:800;color:#0f172a;letter-spacing:-0.2px">'+meta.fullName+'</div>';
         html +=       '<div style="font-size:10.5px;color:#64748b;margin-top:1px">'+(meta.dept||'—')+'</div>';
         html +=     '</div>';
-        html +=     '<div style="text-align:right;flex-shrink:0">';
+        // 타입 분포 칩 (기존 N · 신규 M)
+        html +=     '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">';
+        if (grpExist > 0) html += '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:5px;background:'+TYPE_META.existing.bg+';color:'+TYPE_META.existing.dark+';font-size:10.5px;font-weight:700">기존 '+grpExist+'</span>';
+        if (grpNew   > 0) html += '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:5px;background:'+TYPE_META.new.bg+';color:'+TYPE_META.new.dark+';font-size:10.5px;font-weight:700">신규 '+grpNew+'</span>';
+        html +=     '</div>';
+        html +=     '<div style="text-align:right;flex-shrink:0;padding-left:4px;border-left:1px solid #e2e8f0;margin-left:2px">';
         html +=       '<div style="font-size:11px;color:#64748b">합계</div>';
         html +=       '<div style="font-size:13px;font-weight:800;color:#7c3aed">'+list.length+'건 · '+_salesFmtMins(subTotal)+'</div>';
         html +=     '</div>';
@@ -16011,20 +16091,23 @@ function openVendorMenu() {
 
   function _salesRowsHtml(list, showWho) {
     var rowsHtml = '';
-    rowsHtml += '<div style="display:grid;grid-template-columns:110px 1fr 140px 90px;gap:0;padding:9px 16px;background:#fafafa;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.3px">';
-    rowsHtml +=   '<div>날짜</div><div>업무명 / 내용</div><div>시간</div><div style="text-align:right">소요</div>';
+    // 컬럼: 날짜 100 / 유형 60 / 업무명·내용 1fr / 시간 130 / 소요 80
+    rowsHtml += '<div style="display:grid;grid-template-columns:100px 64px 1fr 130px 80px;gap:0;padding:9px 16px;background:#fafafa;border-bottom:1px solid #e2e8f0;font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.3px">';
+    rowsHtml +=   '<div>날짜</div><div>유형</div><div>업무명 / 내용</div><div>시간</div><div style="text-align:right">소요</div>';
     rowsHtml += '</div>';
     list.forEach(function(r, i){
       var timeText = (r.startTime && r.endTime) ? (r.startTime + ' ~ ' + r.endTime) : '—';
       var border = (i === list.length - 1) ? '' : 'border-bottom:1px solid #f1f5f9;';
-      rowsHtml += '<div style="display:grid;grid-template-columns:110px 1fr 140px 90px;gap:0;padding:11px 16px;'+border+'align-items:start">';
+      var typeMeta = TYPE_META[r.type] || TYPE_META.existing;
+      rowsHtml += '<div style="display:grid;grid-template-columns:100px 64px 1fr 130px 80px;gap:0;padding:11px 16px;'+border+'align-items:start">';
       rowsHtml +=   '<div style="font-size:12px;color:#475569;font-weight:600">'+r.date+'</div>';
+      rowsHtml +=   '<div><span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;background:'+typeMeta.bg+';color:'+typeMeta.dark+';font-size:10.5px;font-weight:700;border:1px solid '+typeMeta.color+'33"><span style="width:5px;height:5px;border-radius:50%;background:'+typeMeta.color+'"></span>'+typeMeta.label+'</span></div>';
       rowsHtml +=   '<div style="min-width:0">';
       rowsHtml +=     '<div style="font-size:13px;font-weight:700;color:#0f172a;letter-spacing:-0.2px">'+_salesEsc(r.text)+'</div>';
       if (r.detail) rowsHtml += '<div style="font-size:11.5px;color:#64748b;margin-top:3px;line-height:1.45;white-space:pre-wrap;word-break:break-word">'+_salesEsc(r.detail)+'</div>';
       rowsHtml +=   '</div>';
       rowsHtml +=   '<div style="font-size:11.5px;color:#475569;font-family:Menlo,Consolas,monospace">'+timeText+'</div>';
-      rowsHtml +=   '<div style="text-align:right;font-size:12px;font-weight:800;color:#7c3aed">'+_salesFmtMins(r.mins)+'</div>';
+      rowsHtml +=   '<div style="text-align:right;font-size:12px;font-weight:800;color:'+typeMeta.dark+'">'+_salesFmtMins(r.mins)+'</div>';
       rowsHtml += '</div>';
     });
     return rowsHtml;
