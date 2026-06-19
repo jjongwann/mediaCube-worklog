@@ -16023,13 +16023,13 @@ function openVendorMenu() {
       var subCnt  = typeChip('existing', existingCnt)  + typeChip('new', newCnt);
       var subMins = typeChipMins('existing', existingMins) + typeChipMins('new', newMins);
       var html = '';
-      html += kpiCard('총 영업활동 건수', totalCnt + ' 건', subCnt, '#7c3aed');
-      html += kpiCard('총 활동 시간',    _salesFmtMins(totalMins), subMins, '#8b5cf6');
+      html += kpiCard('총 영업활동 건수', totalCnt + ' 건', subCnt, '#4f5966');
+      html += kpiCard('총 활동 시간',    _salesFmtMins(totalMins), subMins, '#4f5966');
       html += kpiCard(isAdmin ? '활동 직원 수' : '활동한 날 수',
                      isAdmin ? (personCnt + ' 명')
                              : (function(){ var d={}; rows.forEach(function(r){if(r.date)d[r.date]=1;}); return Object.keys(d).length + ' 일'; })(),
                      null,
-                     '#7c3aed');
+                     '#4f5966');
       kpiBox.innerHTML = html;
     }
 
