@@ -566,6 +566,8 @@
   .sb-review { background: #fdf4ff; color: #9333ea; }
   .sb-todo   { background: #f3f4f6; color: #374151; }
   .sb-sales  { background: #f5f3ff; color: #7c3aed; }
+  .sb-sales-existing { background: #ecfeff; color: #0891b2; }
+  .sb-sales-new      { background: #f5f3ff; color: #7c3aed; }
 
   .progress-bar {
     height: 5px;
@@ -3077,10 +3079,10 @@
     var statusFilter = document.getElementById('status-filter').value;
     if (statusFilter) {
       if (statusFilter === 'sales') {
-        // 일지 자동 상태(j.status)에는 'sales'가 없으므로,
-        // 일지 내 태스크 중 status === 'sales' 가 하나라도 있는 일지를 매칭.
+        // 일지 자동 상태(j.status)에는 'sales' 가 없으므로,
+        // 일지 내 태스크 중 영업 계열(sales / sales_existing / sales_new) 이 하나라도 있는 일지를 매칭.
         result = result.filter(function(j){
-          return (j.tasks || []).some(function(t){ return t.status === 'sales'; });
+          return (j.tasks || []).some(function(t){ return _isSalesStatus(t.status); });
         });
       } else {
         result = result.filter(function(j) { return j.status === statusFilter; });
@@ -4090,6 +4092,8 @@
       + '.status-hold{background:#fee2e2;color:#dc2626}'
       + '.status-issue{background:#fef3c7;color:#d97706}'
       + '.status-sales{background:#ede9fe;color:#7c3aed}'
+      + '.status-sales-existing{background:#cffafe;color:#0891b2}'
+      + '.status-sales-new{background:#ede9fe;color:#7c3aed}'
       + '.doc-textarea-val{width:100%;border:1px solid #e2e8f0;border-radius:7px;padding:11px 13px;font-family:inherit;font-size:15px;color:#475569;line-height:1.8;background:#f8fafc;white-space:pre-wrap;word-break:break-word;min-height:60px}'
       + '.issue-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}'
       + '.issue-card{border-radius:8px;overflow:hidden;border:1px solid #e2e8f0}'
@@ -4103,8 +4107,8 @@
       + '@media print{body{background:#fff;padding:0} .page{box-shadow:none;margin:0;width:100%;border-radius:0;padding:40px 48px;page-break-after:always} .page:last-child{page-break-after:auto} *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
       + '@page{margin:0;size:A4}';
 
-    var STAT_CLS = { done:'status-done', wip:'status-wip', todo:'status-todo', hold:'status-hold', issue:'status-issue', sales:'status-sales' };
-    var STAT_TXT = { done:'완료', wip:'진행', todo:'예정', hold:'보류', issue:'이슈', sales:'영업활동' };
+    var STAT_CLS = { done:'status-done', wip:'status-wip', todo:'status-todo', hold:'status-hold', issue:'status-issue', sales:'status-sales', sales_existing:'status-sales-existing', sales_new:'status-sales-new' };
+    var STAT_TXT = { done:'완료', wip:'진행', todo:'예정', hold:'보류', issue:'이슈', sales:'영업활동', sales_existing:'영업(기존고객)', sales_new:'영업(신규고객)' };
 
     var pages = data.map(function(j, idx) {
       var tasks   = j.tasks || [];
@@ -4381,10 +4385,14 @@
   // '작업 시간 / 소요 시간 / 누적 시간' 합계는 상태가 '완료'(done)인 업무만 집계.
   // (개별 업무 시간범위 표시 / 상태별 통계(tts) 모달은 영향받지 않음)
   // 레거시 데이터 호환: status 없으면 done 불리언으로 폴백.
+  // 영업 계열 status 헬퍼 (레거시 sales + 신규 sales_existing/sales_new)
+  function _isSalesStatus(s) {
+    return s === 'sales' || s === 'sales_existing' || s === 'sales_new';
+  }
   function _doneTasks(taskArr) {
     return (taskArr || []).filter(function(t){
       var s = t.status || (t.done ? 'done' : 'todo');
-      return s === 'done' || s === 'sales';
+      return s === 'done' || _isSalesStatus(s);
     });
   }
 
@@ -4557,8 +4565,8 @@
     var tasksWrap = document.getElementById('d-tasks-wrap');
     var tasksList = document.getElementById('d-tasks-list');
     if (j.tasks && j.tasks.length > 0) {
-      var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정', sales: '영업활동' };
-      var STATUS_CLS  = { done: 'sb-done', wip: 'sb-wip', issue: 'sb-issue', hold: 'sb-hold', todo: 'sb-todo', sales: 'sb-sales' };
+      var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정', sales: '영업활동', sales_existing: '영업(기존고객)', sales_new: '영업(신규고객)' };
+      var STATUS_CLS  = { done: 'sb-done', wip: 'sb-wip', issue: 'sb-issue', hold: 'sb-hold', todo: 'sb-todo', sales: 'sb-sales', sales_existing: 'sb-sales-existing', sales_new: 'sb-sales-new' };
       var _escDetailHtml = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
       tasksList.innerHTML = '<table style="width:100%;border-collapse:collapse;margin-top:6px;table-layout:fixed">'
         + '<thead><tr>'
@@ -14991,7 +14999,8 @@ function openVendorMenu() {
     var n = 0;
     jc.forEach(function(j){
       (j.tasks || []).forEach(function(t){
-        if ((t.status || '') === 'sales') n++;
+        var s = t.status || '';
+        if (s === 'sales' || s === 'sales_existing' || s === 'sales_new') n++;
       });
     });
     return n;
@@ -15686,12 +15695,14 @@ function openVendorMenu() {
 
 /* ── 영업 활동 (Sales Activity) 패널 ────────────────────────────────────
    - 사이드바 '영업 활동' 메뉴 → openSalesActivityPanel()
-   - 관리자: 전 직원의 status==='sales' 업무를 직원별로 묶어서 표시
-   - 일반 사용자: 본인의 status==='sales' 업무만 표시
+   - 관리자: 전 직원의 영업 계열(레거시 sales / sales_existing / sales_new) 업무를 직원별로 묶어서 표시
+   - 일반 사용자: 본인의 영업 계열 업무만 표시
    - 데이터: 기존 journalCache 재사용 (별도 DB 호출 없음)
    - 시간 계산: taskMins() 재사용 (점심 12:00~13:30 자동 차감) */
 (function(){
-  var SALES_STATUS = 'sales';
+  // 영업 status 3종 (레거시 + 기존고객 + 신규고객)
+  var SALES_STATUSES = ['sales', 'sales_existing', 'sales_new'];
+  function _isSales(s) { return SALES_STATUSES.indexOf(s) >= 0; }
   // 프리셋: 개월 단위로 계산 (예: '최근 30일' → 1개월 전 같은 날짜 ~ 오늘)
   //   0 = 전체, -1 = 커스텀 활성 (date inputs 우선)
   var _salesPeriodMonths = 3;  // 기본 3개월 (최근 90일)
@@ -15842,7 +15853,7 @@ function openVendorMenu() {
       var tasks = Array.isArray(j.tasks) ? j.tasks : [];
       tasks.forEach(function(t){
         var st = t.status || (t.done ? 'done' : 'todo');
-        if (st !== SALES_STATUS) return;
+        if (!_isSales(st)) return;
         var mins = 0;
         try { mins = (typeof taskMins === 'function') ? (taskMins(t) || 0) : 0; } catch(e) {}
         rows.push({

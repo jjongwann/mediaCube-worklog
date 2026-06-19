@@ -40,7 +40,7 @@
 
     /* ── Toolbar ── */
     .toolbar {
-      max-width: 1400px;
+      max-width: 1500px;
       margin: 0 auto 16px;
       display: flex;
       align-items: center;
@@ -96,7 +96,7 @@
 
     /* ── Page ── */
     .page {
-      width: 1400px;
+      width: 1500px;
       min-height: 1040px;
       background: #fff;
       margin: 0 auto;
@@ -368,7 +368,7 @@
     .task-item.dragging { opacity: 0.4; }
 
     .col-task-status {
-      width: 100px;
+      width: 140px;
       text-align: center;
     }
 
@@ -570,6 +570,16 @@
     }
 
     .status-sales {
+      background: #f5f3ff;
+      color: #7c3aed;
+    }
+
+    .status-sales-existing {
+      background: #ecfeff;
+      color: #0891b2;
+    }
+
+    .status-sales-new {
       background: #f5f3ff;
       color: #7c3aed;
     }
@@ -1049,7 +1059,7 @@
 
     /* ── Submit Bar ── */
     .submit-bar {
-      max-width: 1400px;
+      max-width: 1500px;
       margin: 16px auto 48px;
       background: #fff;
       border: 1px solid var(--border);
@@ -2129,8 +2139,8 @@
       if (entry.tasks && entry.tasks.length > 0) {
         var taskList = document.getElementById('task-list');
         taskList.innerHTML = '';
-        var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정', sales: '영업활동' };
-        var STATUS_CLS = { done: 'status-done', wip: 'status-wip', issue: 'status-issue', hold: 'status-hold', todo: 'status-todo', sales: 'status-sales' };
+        var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정', sales: '영업활동', sales_existing: '영업(기존고객)', sales_new: '영업(신규고객)' };
+        var STATUS_CLS = { done: 'status-done', wip: 'status-wip', issue: 'status-issue', hold: 'status-hold', todo: 'status-todo', sales: 'status-sales', sales_existing: 'status-sales-existing', sales_new: 'status-sales-new' };
         entry.tasks.forEach(function (t) {
           var scls = STATUS_CLS[t.status] || 'status-todo';
           var stxt = STATUS_TEXT[t.status] || '예정';
@@ -2147,10 +2157,10 @@
         (function (tasks) {
           setTimeout(function () {
             try {
-              // 상태가 '완료'(done) 또는 '영업활동'(sales)인 업무만 총 작업 시간 합계에 반영
+              // 상태가 '완료' 또는 영업 계열(레거시 sales / sales_existing / sales_new) 일 때 총 작업 시간 합계에 반영
               var _isCountableTask = function (t) {
                 var s = t.status || (t.done ? 'done' : 'todo');
-                return s === 'done' || s === 'sales';
+                return s === 'done' || s === 'sales' || s === 'sales_existing' || s === 'sales_new';
               };
               var roIntervals = [];
               tasks.forEach(function (t) {
@@ -2215,7 +2225,9 @@
       { cls: 'status-issue', text: '이슈' },
       { cls: 'status-hold', text: '보류' },
       { cls: 'status-todo', text: '예정' },
-      { cls: 'status-sales', text: '영업활동' }
+      { cls: 'status-sales', text: '영업활동' },             // 레거시 표시용 — 신규 입력은 없음
+      { cls: 'status-sales-existing', text: '영업(기존고객)' },
+      { cls: 'status-sales-new',      text: '영업(신규고객)' }
     ];
 
     // 분(정수) 반환, 저장용 소수시간 변환은 submitJournal에서 /60
@@ -2279,10 +2291,15 @@
         var startVal = startBtn.dataset ? startBtn.dataset.val : '';
         var endVal = endBtn.dataset ? endBtn.dataset.val : '';
         var mins = calcTaskHrs(startVal, endVal);
-        // 상태가 '완료'(status-done) 또는 '영업활동'(status-sales)인 업무만 총 작업 시간 합계에 반영.
-        // per-row 시간 배지(durEl)는 상태와 무관하게 시간 범위 표시 유지.
+        // 상태가 '완료'(status-done) 또는 영업 계열(레거시 status-sales / 신규 status-sales-existing / status-sales-new) 일 때
+        // 총 작업 시간 합계에 반영. per-row 시간 배지(durEl)는 상태와 무관하게 시간 범위 표시 유지.
         var statusEl = tr.querySelector('.task-status');
-        var isCountable = !!(statusEl && (statusEl.classList.contains('status-done') || statusEl.classList.contains('status-sales')));
+        var isCountable = !!(statusEl && (
+          statusEl.classList.contains('status-done') ||
+          statusEl.classList.contains('status-sales') ||
+          statusEl.classList.contains('status-sales-existing') ||
+          statusEl.classList.contains('status-sales-new')
+        ));
         if (durEl) {
           if (mins !== null) {
             durEl.textContent = fmtDuration(mins);
@@ -2310,7 +2327,12 @@
         else if (b.classList.contains('status-wip')) cnt.wip++;
         else if (b.classList.contains('status-issue')) cnt.issue++;
         else if (b.classList.contains('status-hold')) cnt.hold++;
-        else if (b.classList.contains('status-sales')) cnt.sales++;
+        // sales 3종(레거시 + 기존고객 + 신규고객) 모두 sales 카운트로 합산 → 완료와 동등 취급
+        else if (
+          b.classList.contains('status-sales') ||
+          b.classList.contains('status-sales-existing') ||
+          b.classList.contains('status-sales-new')
+        ) cnt.sales++;
       });
       document.getElementById('metric-done').value = cnt.done;
       document.getElementById('metric-wip').value = cnt.wip;
@@ -2390,12 +2412,14 @@
         dropdown.appendChild(labelEl);
 
         // '이슈' 옵션은 제거 (사용자 요청). status-issue 클래스는 레거시 데이터 표시용으로 유지
+        // '영업활동(status-sales)'도 레거시 — 신규 입력은 영업(기존고객)/영업(신규고객)로 세분화
         var options = [
           { cls: 'status-wip', text: '진행 중', dot: '#2563eb' },
           { cls: 'status-hold', text: '보류', dot: '#d97706' },
           { cls: 'status-todo', text: '예정', dot: '#9ca3af' },
           { cls: 'status-done', text: '완료', dot: '#16a34a' },
-          { cls: 'status-sales', text: '영업활동', dot: '#7c3aed' }
+          { cls: 'status-sales-existing', text: '영업(기존고객)', dot: '#0891b2' },
+          { cls: 'status-sales-new',      text: '영업(신규고객)', dot: '#7c3aed' }
         ];
 
         options.forEach(function (opt) {
@@ -2449,8 +2473,8 @@
     if (editingEntry && editingEntry.tasks && editingEntry.tasks.length > 0) {
       var taskList = document.getElementById('task-list');
       taskList.innerHTML = '';
-      var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정', sales: '영업활동' };
-      var STATUS_CLS = { done: 'status-done', wip: 'status-wip', issue: 'status-issue', hold: 'status-hold', todo: 'status-todo', sales: 'status-sales' };
+      var STATUS_TEXT = { done: '완료', wip: '진행', issue: '이슈', hold: '보류', todo: '예정', sales: '영업활동', sales_existing: '영업(기존고객)', sales_new: '영업(신규고객)' };
+      var STATUS_CLS = { done: 'status-done', wip: 'status-wip', issue: 'status-issue', hold: 'status-hold', todo: 'status-todo', sales: 'status-sales', sales_existing: 'status-sales-existing', sales_new: 'status-sales-new' };
       editingEntry.tasks.forEach(function (t) {
         var scls = STATUS_CLS[t.status] || 'status-todo';
         var stxt = STATUS_TEXT[t.status] || '예정';
@@ -2768,8 +2792,8 @@
           return;
         }
 
-        var STATUS_CLS = { done:'status-done', wip:'status-wip', issue:'status-issue', hold:'status-hold', todo:'status-todo', sales:'status-sales' };
-        var STATUS_TXT = { done:'완료', wip:'진행 중', issue:'이슈', hold:'보류', todo:'예정', sales:'영업활동' };
+        var STATUS_CLS = { done:'status-done', wip:'status-wip', issue:'status-issue', hold:'status-hold', todo:'status-todo', sales:'status-sales', sales_existing:'status-sales-existing', sales_new:'status-sales-new' };
+        var STATUS_TXT = { done:'완료', wip:'진행 중', issue:'이슈', hold:'보류', todo:'예정', sales:'영업활동', sales_existing:'영업(기존고객)', sales_new:'영업(신규고객)' };
         var tbody = document.getElementById('task-list');
 
         pendingTasks.forEach(function(t) {
@@ -3563,7 +3587,10 @@
           else if (statusEl.classList.contains('status-wip')) taskStatus = 'wip';
           else if (statusEl.classList.contains('status-issue')) taskStatus = 'issue';
           else if (statusEl.classList.contains('status-hold')) taskStatus = 'hold';
-          else if (statusEl.classList.contains('status-sales')) taskStatus = 'sales';
+          // 영업 — 신규 입력은 sales_existing / sales_new 둘 중 하나, 레거시 'sales'는 편집 시 보존
+          else if (statusEl.classList.contains('status-sales-existing')) taskStatus = 'sales_existing';
+          else if (statusEl.classList.contains('status-sales-new'))      taskStatus = 'sales_new';
+          else if (statusEl.classList.contains('status-sales'))          taskStatus = 'sales';
         }
         var pct = parseInt((tr.querySelector('.t-pct') || {}).value || '0') || 0;
         var startBtn = tr.querySelector('.t-start');
