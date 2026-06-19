@@ -15724,7 +15724,7 @@ function openVendorMenu() {
   };
   // 프리셋: 개월 단위로 계산 (예: '최근 30일' → 1개월 전 같은 날짜 ~ 오늘)
   //   0 = 전체, -1 = 커스텀 활성 (date inputs 우선)
-  var _salesPeriodMonths = 3;  // 기본 3개월 (최근 90일)
+  var _salesPeriodMonths = 1;  // 기본 1개월 (최근 30일)
   var _salesCustomFrom = '';   // 'YYYY-MM-DD' — 설정 시 프리셋 무시
   var _salesCustomTo   = '';
   var _salesEmpFilter  = '';   // '' = 전체 직원, user_id = 특정
@@ -15803,7 +15803,7 @@ function openVendorMenu() {
     });
     document.getElementById('sales-act-reset').addEventListener('click', function(){
       _salesCustomFrom = ''; _salesCustomTo = '';
-      _salesPeriodMonths = 3; // 기본 3개월(최근 90일)로 복귀
+      _salesPeriodMonths = 1; // 기본 1개월(최근 30일)로 복귀
       var f = document.getElementById('sales-act-from'); if (f) f.value = '';
       var t = document.getElementById('sales-act-to');   if (t) t.value = '';
       _salesRender();
@@ -15900,7 +15900,6 @@ function openVendorMenu() {
     if (!box) return;
     var presets = [
       { m: 1,  label: '최근 30일'  },
-      { m: 3,  label: '최근 90일'  },
       { m: 6,  label: '최근 6개월' },
       { m: 12, label: '최근 1년'   },
       { m: 0,  label: '전체'       }
