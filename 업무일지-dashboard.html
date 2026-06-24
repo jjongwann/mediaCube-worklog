@@ -13866,12 +13866,12 @@ function openVendorMenu() {
   var SCAL_DEPT_META = {
     system: {
       label: '시스템 사업부',
-      subtitle: '시스템 사업부 직원 간 일정 공유',
+      subtitle: '직원 간 일정 공유',
       deptKey: '시스템 사업부'
     },
     sound: {
       label: '사운드 컨텐츠 사업부',
-      subtitle: '사운드 컨텐츠 사업부 직원 간 일정 공유',
+      subtitle: '직원 간 일정 공유',
       deptKey: '사운드컨텐츠사업부'
     }
   };
@@ -14077,7 +14077,7 @@ function openVendorMenu() {
     var meta = SCAL_DEPT_META[dept];
     var titleEl = ov.querySelector('[data-scal-title]');
     var subtitleEl = ov.querySelector('[data-scal-subtitle]');
-    if (titleEl) titleEl.textContent = '업무 공유 캘린더 — ' + meta.label;
+    if (titleEl) titleEl.textContent = '업무 공유 캘린더';
     if (subtitleEl) subtitleEl.textContent = meta.subtitle;
     // 색상 범례 dept별 동적 렌더 — 인원 많을 때 컴팩트
     var legend = document.getElementById('shared-cal-legend');
