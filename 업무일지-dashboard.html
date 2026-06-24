@@ -11235,74 +11235,175 @@
 
 <!-- 카테고리 선택 모달 -->
 <!-- 사운드 뷰: 4개 카드 / 시스템 뷰: 6개 카드 (openMenu(deptView) 에서 동적 토글) -->
-<div id="vendor-menu-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:99996;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)__vendor.closeMenu()">
-  <div style="background:#fff;border-radius:18px;max-width:880px;width:100%;padding:28px 30px;box-shadow:0 24px 70px rgba(0,0,0,0.3);font-family:inherit">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+<!-- 카테고리 선택 — 캘린더 chooser와 동일한 디자인 토큰 -->
+<style>
+  .vmenu-card {
+    position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:7px;
+    padding:18px 16px 16px;background:#fff;border:2px solid #e2e8f0;border-radius:14px;
+    cursor:pointer;text-align:left;font-family:inherit;
+    transition:transform .18s,box-shadow .18s,border-color .18s;overflow:hidden;
+  }
+  .vmenu-card-corner {
+    position:absolute;top:0;right:0;width:70px;height:70px;opacity:0.08;
+    border-radius:0 0 0 70px;pointer-events:none;
+  }
+  .vmenu-card-icon {
+    width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;
+  }
+  .vmenu-card-title { font-size:13.5px;font-weight:800;color:#0f172a;letter-spacing:-0.3px;margin-top:2px;line-height:1.25 }
+  .vmenu-card-sub   { font-size:10.5px;color:#64748b;font-weight:500;line-height:1.4 }
+  .vmenu-card-cta {
+    margin-top:auto;padding-top:6px;display:flex;align-items:center;gap:4px;
+    font-size:10.5px;font-weight:700;letter-spacing:-0.1px;
+  }
+</style>
+<div id="vendor-menu-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:99996;align-items:center;justify-content:center;padding:24px" onclick="if(event.target===this)__vendor.closeMenu()">
+  <div style="background:#fff;border-radius:18px;max-width:1100px;width:100%;box-shadow:0 24px 70px rgba(0,0,0,0.3);font-family:inherit;overflow:hidden">
+    <!-- 다크 그라데이션 헤더 -->
+    <div style="padding:18px 22px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#475569,#1e293b);color:#fff">
       <div>
-        <div id="vendor-menu-title" style="font-size:16px;font-weight:800;color:#0f172a">거래처별 매출 분석</div>
-        <div id="vendor-menu-subtitle" style="font-size:11px;color:#64748b;margin-top:2px">분석할 카테고리를 선택하세요</div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:#cbd5e1">SELECT CATEGORY</div>
+        <div id="vendor-menu-title" style="font-size:16px;font-weight:800;margin-top:2px;letter-spacing:-0.3px">거래처별 매출 분석</div>
+        <div id="vendor-menu-subtitle" style="font-size:11px;color:#cbd5e1;margin-top:3px">분석할 카테고리를 선택하세요</div>
       </div>
-      <button onclick="__vendor.closeMenu()" style="background:#f1f5f9;border:none;border-radius:8px;color:#475569;font-size:18px;width:32px;height:32px;cursor:pointer">×</button>
+      <button onclick="__vendor.closeMenu()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">×</button>
     </div>
-    <!-- 사운드 사업부 카테고리 (5개: NEEDLE, 유료 BLANKET, 무료 BLANKET, CMO, 신규 고객) -->
-    <div id="vendor-menu-sound-group" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">
-      <button type="button" onclick="__vendor.pickCat('needle')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#84cc16';this.style.background='#f7fee7';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(132,204,22,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
-        <div style="font-size:30px;margin-bottom:6px">🎵</div>
-        <div style="font-size:13px;font-weight:800;color:#65a30d;margin-bottom:4px">NEEDLE</div>
-        <div style="font-size:10px;color:#64748b;line-height:1.4">곡별 매출 분석<br>오디오 PD 거래처</div>
+    <!-- 사운드 사업부 카테고리 (5개) -->
+    <div id="vendor-menu-sound-group" style="padding:22px;display:grid;grid-template-columns:repeat(5,1fr);gap:12px">
+      <!-- NEEDLE -->
+      <button type="button" class="vmenu-card" onclick="__vendor.pickCat('needle')"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 28px rgba(101,163,13,0.22)';this.style.borderColor='#65a30d'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+        <div class="vmenu-card-corner" style="background:linear-gradient(135deg,#65a30d,#4d7c0f)"></div>
+        <div class="vmenu-card-icon" style="background:linear-gradient(135deg,#65a30d,#4d7c0f);box-shadow:0 4px 10px rgba(101,163,13,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </div>
+        <div class="vmenu-card-title">NEEDLE</div>
+        <div class="vmenu-card-sub">곡별 매출 분석<br>오디오 PD 거래처</div>
+        <div class="vmenu-card-cta" style="color:#65a30d"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
       </button>
-      <button type="button" onclick="__vendor.pickCat('blanket_paid')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#06b6d4';this.style.background='#ecfeff';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(6,182,212,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
-        <div style="font-size:30px;margin-bottom:6px">💎</div>
-        <div style="font-size:13px;font-weight:800;color:#0891b2;margin-bottom:4px">유료 BLANKET</div>
-        <div style="font-size:10px;color:#64748b;line-height:1.4">방송사·광고 녹음실<br>계약 기반 매출</div>
+      <!-- 유료 BLANKET -->
+      <button type="button" class="vmenu-card" onclick="__vendor.pickCat('blanket_paid')"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 28px rgba(8,145,178,0.22)';this.style.borderColor='#0891b2'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+        <div class="vmenu-card-corner" style="background:linear-gradient(135deg,#0891b2,#0e7490)"></div>
+        <div class="vmenu-card-icon" style="background:linear-gradient(135deg,#0891b2,#0e7490);box-shadow:0 4px 10px rgba(8,145,178,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 13L2 9l4-6z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg>
+        </div>
+        <div class="vmenu-card-title">유료 BLANKET</div>
+        <div class="vmenu-card-sub">방송사·광고 녹음실<br>계약 기반 매출</div>
+        <div class="vmenu-card-cta" style="color:#0891b2"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
       </button>
-      <button type="button" onclick="__vendor.pickCat('blanket_free')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#94a3b8';this.style.background='#f8fafc';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(148,163,184,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
-        <div style="font-size:30px;margin-bottom:6px">🆓</div>
-        <div style="font-size:13px;font-weight:800;color:#475569;margin-bottom:4px">무료 BLANKET</div>
-        <div style="font-size:10px;color:#64748b;line-height:1.4">퍼포밍 활성화<br>거래처별 매출</div>
+      <!-- 무료 BLANKET -->
+      <button type="button" class="vmenu-card" onclick="__vendor.pickCat('blanket_free')"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 28px rgba(100,116,139,0.22)';this.style.borderColor='#64748b'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+        <div class="vmenu-card-corner" style="background:linear-gradient(135deg,#64748b,#475569)"></div>
+        <div class="vmenu-card-icon" style="background:linear-gradient(135deg,#64748b,#475569);box-shadow:0 4px 10px rgba(100,116,139,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="vmenu-card-title">무료 BLANKET</div>
+        <div class="vmenu-card-sub">퍼포밍 활성화<br>거래처별 매출</div>
+        <div class="vmenu-card-cta" style="color:#64748b"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
       </button>
-      <button type="button" onclick="__vendor.pickCat('cmo')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#ec4899';this.style.background='#fdf2f8';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(236,72,153,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
-        <div style="font-size:30px;margin-bottom:6px">📣</div>
-        <div style="font-size:13px;font-weight:800;color:#db2777;margin-bottom:4px">CMO 매출</div>
-        <div style="font-size:10px;color:#64748b;line-height:1.4">CMO 채널<br>거래처별 매출</div>
+      <!-- CMO 매출 -->
+      <button type="button" class="vmenu-card" onclick="__vendor.pickCat('cmo')"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 28px rgba(219,39,119,0.22)';this.style.borderColor='#db2777'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+        <div class="vmenu-card-corner" style="background:linear-gradient(135deg,#db2777,#be185d)"></div>
+        <div class="vmenu-card-icon" style="background:linear-gradient(135deg,#db2777,#be185d);box-shadow:0 4px 10px rgba(219,39,119,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+        </div>
+        <div class="vmenu-card-title">CMO 매출</div>
+        <div class="vmenu-card-sub">CMO 채널<br>거래처별 매출</div>
+        <div class="vmenu-card-cta" style="color:#db2777"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
       </button>
-      <button type="button" onclick="__vendor.pickCat('new_customer')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#f59e0b';this.style.background='#fffbeb';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(245,158,11,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
-        <div style="font-size:30px;margin-bottom:6px">🌟</div>
-        <div style="font-size:13px;font-weight:800;color:#d97706;margin-bottom:4px">신규 고객</div>
-        <div style="font-size:10px;color:#64748b;line-height:1.4">최근 1년 이내<br>등록된 신규 거래처</div>
+      <!-- 신규 고객 -->
+      <button type="button" class="vmenu-card" onclick="__vendor.pickCat('new_customer')"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 28px rgba(217,119,6,0.22)';this.style.borderColor='#d97706'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+        <div class="vmenu-card-corner" style="background:linear-gradient(135deg,#d97706,#b45309)"></div>
+        <div class="vmenu-card-icon" style="background:linear-gradient(135deg,#d97706,#b45309);box-shadow:0 4px 10px rgba(217,119,6,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.1L18 9l-4.1 1.9L12 15l-1.9-4.1L6 9l4.1-1.9L12 3z"/></svg>
+        </div>
+        <div class="vmenu-card-title">신규 고객</div>
+        <div class="vmenu-card-sub">최근 1년 이내<br>등록된 신규 거래처</div>
+        <div class="vmenu-card-cta" style="color:#d97706"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
       </button>
     </div>
-    <!-- 시스템 사업부 카테고리 (신규 6개, 기본 숨김) -->
-    <div id="vendor-menu-system-group" style="display:none;grid-template-columns:repeat(3,1fr);gap:12px">
-      <button type="button" onclick="__vendor.pickCat('sys_archiving')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#2563eb';this.style.background='#eff6ff';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(37,99,235,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
-        <div style="font-size:28px;margin-bottom:6px">🎞️</div>
-        <div style="font-size:13px;font-weight:800;color:#2563eb;margin-bottom:4px">AV Archiving</div>
-        <div style="font-size:10px;color:#64748b;line-height:1.4">오디오·비디오<br>아카이빙 거래처</div>
+    <!-- 시스템 사업부 카테고리 (6개, 기본 숨김) -->
+    <div id="vendor-menu-system-group" style="display:none;padding:22px;grid-template-columns:repeat(3,1fr);gap:12px">
+      <!-- AV Archiving -->
+      <button type="button" class="vmenu-card" onclick="__vendor.pickCat('sys_archiving')"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 28px rgba(37,99,235,0.22)';this.style.borderColor='#2563eb'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+        <div class="vmenu-card-corner" style="background:linear-gradient(135deg,#2563eb,#1d4ed8)"></div>
+        <div class="vmenu-card-icon" style="background:linear-gradient(135deg,#2563eb,#1d4ed8);box-shadow:0 4px 10px rgba(37,99,235,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+        </div>
+        <div class="vmenu-card-title">AV Archiving</div>
+        <div class="vmenu-card-sub">오디오·비디오<br>아카이빙 거래처</div>
+        <div class="vmenu-card-cta" style="color:#2563eb"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
       </button>
-      <button type="button" onclick="__vendor.pickCat('sys_restoration')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#7c3aed';this.style.background='#f5f3ff';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(124,58,237,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
-        <div style="font-size:28px;margin-bottom:6px">🔍</div>
-        <div style="font-size:13px;font-weight:800;color:#7c3aed;margin-bottom:4px">AV Restoration / Forensic</div>
-        <div style="font-size:10px;color:#64748b;line-height:1.4">복원 · 디지털<br>포렌식 거래처</div>
+      <!-- AV Restoration / Forensic -->
+      <button type="button" class="vmenu-card" onclick="__vendor.pickCat('sys_restoration')"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 28px rgba(124,58,237,0.22)';this.style.borderColor='#7c3aed'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+        <div class="vmenu-card-corner" style="background:linear-gradient(135deg,#7c3aed,#6d28d9)"></div>
+        <div class="vmenu-card-icon" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);box-shadow:0 4px 10px rgba(124,58,237,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="vmenu-card-title">AV Restoration / Forensic</div>
+        <div class="vmenu-card-sub">복원 · 디지털<br>포렌식 거래처</div>
+        <div class="vmenu-card-cta" style="color:#7c3aed"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
       </button>
-      <button type="button" onclick="__vendor.pickCat('sys_broadcast')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#16a34a';this.style.background='#f0fdf4';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(22,163,74,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
-        <div style="font-size:28px;margin-bottom:6px">📡</div>
-        <div style="font-size:13px;font-weight:800;color:#16a34a;margin-bottom:4px">Broadcast / Pro AV Product</div>
-        <div style="font-size:10px;color:#64748b;line-height:1.4">방송 · 프로 AV<br>제품 거래처</div>
+      <!-- Broadcast / Pro AV Product -->
+      <button type="button" class="vmenu-card" onclick="__vendor.pickCat('sys_broadcast')"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 28px rgba(22,163,74,0.22)';this.style.borderColor='#16a34a'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+        <div class="vmenu-card-corner" style="background:linear-gradient(135deg,#16a34a,#15803d)"></div>
+        <div class="vmenu-card-icon" style="background:linear-gradient(135deg,#16a34a,#15803d);box-shadow:0 4px 10px rgba(22,163,74,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
+        </div>
+        <div class="vmenu-card-title">Broadcast / Pro AV Product</div>
+        <div class="vmenu-card-sub">방송 · 프로 AV<br>제품 거래처</div>
+        <div class="vmenu-card-cta" style="color:#16a34a"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
       </button>
-      <button type="button" onclick="__vendor.pickCat('sys_etc_as')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#4b5563';this.style.background='#f9fafb';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(75,85,99,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
-        <div style="font-size:28px;margin-bottom:6px">🛠️</div>
-        <div style="font-size:13px;font-weight:800;color:#4b5563;margin-bottom:4px">기타 A/S</div>
-        <div style="font-size:10px;color:#64748b;line-height:1.4">분류 외 A/S<br>거래처</div>
+      <!-- 기타 A/S -->
+      <button type="button" class="vmenu-card" onclick="__vendor.pickCat('sys_etc_as')"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 28px rgba(75,85,99,0.22)';this.style.borderColor='#4b5563'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+        <div class="vmenu-card-corner" style="background:linear-gradient(135deg,#4b5563,#374151)"></div>
+        <div class="vmenu-card-icon" style="background:linear-gradient(135deg,#4b5563,#374151);box-shadow:0 4px 10px rgba(75,85,99,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        </div>
+        <div class="vmenu-card-title">기타 A/S</div>
+        <div class="vmenu-card-sub">분류 외 A/S<br>거래처</div>
+        <div class="vmenu-card-cta" style="color:#4b5563"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
       </button>
-      <button type="button" onclick="__vendor.pickCat('sys_acoustic')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#ca8a04';this.style.background='#fefce8';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(202,138,4,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
-        <div style="font-size:28px;margin-bottom:6px">🎧</div>
-        <div style="font-size:13px;font-weight:800;color:#ca8a04;margin-bottom:4px">Acoustic / AV Engineering</div>
-        <div style="font-size:10px;color:#64748b;line-height:1.4">어쿠스틱·AV<br>엔지니어링 거래처</div>
+      <!-- Acoustic / AV Engineering -->
+      <button type="button" class="vmenu-card" onclick="__vendor.pickCat('sys_acoustic')"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 28px rgba(202,138,4,0.22)';this.style.borderColor='#ca8a04'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+        <div class="vmenu-card-corner" style="background:linear-gradient(135deg,#ca8a04,#a16207)"></div>
+        <div class="vmenu-card-icon" style="background:linear-gradient(135deg,#ca8a04,#a16207);box-shadow:0 4px 10px rgba(202,138,4,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+        </div>
+        <div class="vmenu-card-title">Acoustic / AV Engineering</div>
+        <div class="vmenu-card-sub">어쿠스틱·AV<br>엔지니어링 거래처</div>
+        <div class="vmenu-card-cta" style="color:#ca8a04"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
       </button>
-      <button type="button" onclick="__vendor.pickCat('sys_dolby')" style="padding:22px 12px;border-radius:14px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:center;transition:all .18s" onmouseover="this.style.borderColor='#ea580c';this.style.background='#fff7ed';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(234,88,12,0.15)'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='#fff';this.style.transform='';this.style.boxShadow=''">
-        <div style="font-size:28px;margin-bottom:6px">🎬</div>
-        <div style="font-size:13px;font-weight:800;color:#ea580c;margin-bottom:4px">Dolby Production Services</div>
-        <div style="font-size:10px;color:#64748b;line-height:1.4">돌비 프로덕션<br>서비스 거래처</div>
+      <!-- Dolby Production Services -->
+      <button type="button" class="vmenu-card" onclick="__vendor.pickCat('sys_dolby')"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 28px rgba(234,88,12,0.22)';this.style.borderColor='#ea580c'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+        <div class="vmenu-card-corner" style="background:linear-gradient(135deg,#ea580c,#c2410c)"></div>
+        <div class="vmenu-card-icon" style="background:linear-gradient(135deg,#ea580c,#c2410c);box-shadow:0 4px 10px rgba(234,88,12,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+        </div>
+        <div class="vmenu-card-title">Dolby Production Services</div>
+        <div class="vmenu-card-sub">돌비 프로덕션<br>서비스 거래처</div>
+        <div class="vmenu-card-cta" style="color:#ea580c"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
       </button>
     </div>
   </div>
