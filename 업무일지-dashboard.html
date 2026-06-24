@@ -13733,10 +13733,14 @@ function openVendorMenu() {
     ],
     sound: [
       { name: '청록', val: '#0891b2', label: '공동 업무',     desc: '사운드 사업부 공통/협업' },
-      { name: '파랑', val: '#3b82f6', label: '신동원 차장',   desc: '신동원 차장 개인 업무', personalFor: 'soundsales' },
-      { name: '초록', val: '#16a34a', label: '이광순 이사',   desc: '이광순 이사 개인 업무', personalFor: 'sunlee' },
-      { name: '보라', val: '#8b5cf6', label: '김춘화 이사',   desc: '김춘화 이사 개인 업무', personalFor: 'admin' },
-      { name: '주황', val: '#ea580c', label: '기타 업무',     desc: '그 외 분류' }
+      { name: '파랑', val: '#3b82f6', label: '신동원 차장',     desc: '신동원 차장 개인 업무', personalFor: 'soundsales' },
+      { name: '초록', val: '#16a34a', label: '이광순 이사',     desc: '이광순 이사 개인 업무', personalFor: 'sunlee' },
+      { name: '보라', val: '#8b5cf6', label: '김춘화 이사',     desc: '김춘화 이사 개인 업무', personalFor: 'admin' },
+      { name: '핑크', val: '#ec4899', label: '최해현 사원',     desc: '최해현 사원 개인 업무', personalFor: 'webmaster20' },
+      { name: '노랑', val: '#eab308', label: '윤다은 주임',     desc: '윤다은 주임 개인 업무', personalFor: 'soundsupport' },
+      { name: '라임', val: '#84cc16', label: '김태오 과장',     desc: '김태오 과장 개인 업무', personalFor: 'soundstore' },
+      { name: '오렌지', val: '#f97316', label: '김혜진(영업) 사원', desc: '김혜진(영업) 사원 개인 업무', personalFor: 'marketing' },
+      { name: '슬레이트', val: '#64748b', label: '기타 업무',   desc: '그 외 분류' }
     ]
   };
 
@@ -13810,13 +13814,21 @@ function openVendorMenu() {
     var subtitleEl = ov.querySelector('[data-scal-subtitle]');
     if (titleEl) titleEl.textContent = '업무 공유 캘린더 — ' + meta.label;
     if (subtitleEl) subtitleEl.textContent = meta.subtitle;
-    // 색상 범례 dept별 동적 렌더
+    // 색상 범례 dept별 동적 렌더 — 인원 많을 때 컴팩트
     var legend = document.getElementById('shared-cal-legend');
     if (legend) {
-      var html = '<span style="font-size:10.5px;font-weight:700;color:#475569;letter-spacing:0.3px">색상 범례</span>';
-      _scalPalette().forEach(function(c){
-        html += '<span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#0f172a;font-weight:600">'
-              + '<span style="width:11px;height:11px;border-radius:50%;background:'+c.val+';flex-shrink:0;box-shadow:0 1px 2px '+c.val+'59"></span>'
+      var palLegend = _scalPalette();
+      var denseLegend = palLegend.length > 6;
+      // 컨테이너 padding/gap 컴팩트
+      legend.style.gap = denseLegend ? '10px' : '14px';
+      legend.style.padding = denseLegend ? '8px 12px' : '10px 14px';
+      var lblFs = denseLegend ? '10px'   : '10.5px';
+      var itemFs = denseLegend ? '10.5px' : '11.5px';
+      var dotSz = denseLegend ? '9px'    : '11px';
+      var html = '<span style="font-size:'+lblFs+';font-weight:700;color:#475569;letter-spacing:0.3px;flex-shrink:0">색상 범례</span>';
+      palLegend.forEach(function(c){
+        html += '<span style="display:inline-flex;align-items:center;gap:5px;font-size:'+itemFs+';color:#0f172a;font-weight:600">'
+              + '<span style="width:'+dotSz+';height:'+dotSz+';border-radius:50%;background:'+c.val+';flex-shrink:0;box-shadow:0 1px 2px '+c.val+'59"></span>'
               + c.label
               + '</span>';
       });
@@ -14684,10 +14696,19 @@ function openVendorMenu() {
       }
     }
 
-    // 4색(또는 3색)을 카드형 그리드(2열)로 — 색상 원 + 라벨 + 설명
+    // 팔레트 카드형 그리드 — 인원 많을 때(>6) 3열 + 컴팩트 패딩으로 자동 전환
+    var dense = palette.length > 6;
     wrap.style.display = 'grid';
-    wrap.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
-    wrap.style.gap = '8px';
+    wrap.style.gridTemplateColumns = dense
+      ? 'repeat(3, minmax(0, 1fr))'
+      : 'repeat(2, minmax(0, 1fr))';
+    wrap.style.gap = dense ? '6px' : '8px';
+    var padCard      = dense ? '7px 9px'   : '8px 10px';
+    var gapCard      = dense ? '7px'       : '9px';
+    var dotSize      = dense ? 15           : 18;
+    var labelSize    = dense ? '11.5px'    : '12px';
+    var descSize     = dense ? '9.5px'     : '10px';
+    var hideDesc     = dense; // 인원 많을 땐 설명 숨기고 title 툴팁으로 대체
     wrap.innerHTML = palette.map(function(c){
       var isSel = c.val.toLowerCase() === sel;
       var border = isSel ? '2px solid ' + c.val : '1px solid #e2e8f0';
@@ -14697,12 +14718,12 @@ function openVendorMenu() {
       var hoverIn = readOnly ? '' : 'onmouseover="this.style.background=\'' + c.val + '14\'" onmouseout="this.style.background=\'' + bg + '\'"';
       var opacity = readOnly ? (isSel ? '1' : '0.55') : '1';
       return '<button type="button" ' + clickAttr + ' title="' + c.label + ' — ' + c.desc + '" '
-        + 'style="display:flex;align-items:center;gap:9px;padding:8px 10px;border:' + border + ';border-radius:9px;background:' + bg + ';cursor:' + cursor + ';text-align:left;font-family:inherit;transition:background .12s,border-color .12s;opacity:' + opacity + '" '
+        + 'style="display:flex;align-items:center;gap:'+gapCard+';padding:'+padCard+';border:' + border + ';border-radius:9px;background:' + bg + ';cursor:' + cursor + ';text-align:left;font-family:inherit;transition:background .12s,border-color .12s;opacity:' + opacity + '" '
         + hoverIn + '>'
-        + '<span style="display:inline-block;width:18px;height:18px;border-radius:50%;background:' + c.val + ';box-shadow:0 1px 3px rgba(0,0,0,0.18);flex-shrink:0"></span>'
+        + '<span style="display:inline-block;width:'+dotSize+'px;height:'+dotSize+'px;border-radius:50%;background:' + c.val + ';box-shadow:0 1px 3px rgba(0,0,0,0.18);flex-shrink:0"></span>'
         + '<span style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.2;min-width:0">'
-          + '<span style="font-size:12px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">' + c.label + '</span>'
-          + '<span style="font-size:10px;font-weight:500;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">' + c.desc + '</span>'
+          + '<span style="font-size:'+labelSize+';font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">' + c.label + '</span>'
+          + (hideDesc ? '' : '<span style="font-size:'+descSize+';font-weight:500;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">' + c.desc + '</span>')
         + '</span>'
         + '</button>';
     }).join('');
