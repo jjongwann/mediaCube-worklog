@@ -1594,9 +1594,15 @@
       <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11h-6"/><path d="M19 8v6"/></svg></span>
       영업 활동
     </div>
-    <div class="sidebar-item" id="shared-calendar-menu" onclick="openSharedCalendar()" title="시스템 사업부 직원 간 일정 공유 캘린더" style="display:none">
+    <div class="sidebar-item" id="shared-calendar-menu" onclick="openSharedCalendar('system')" title="시스템 사업부 직원 간 일정 공유 캘린더" style="display:none">
       <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
       업무 공유 캘린더
+      <span style="margin-left:auto;font-size:9.5px;color:#94a3b8;font-weight:600;letter-spacing:-0.2px">시스템</span>
+    </div>
+    <div class="sidebar-item" id="shared-calendar-menu-sound" onclick="openSharedCalendar('sound')" title="사운드 컨텐츠 사업부 직원 간 일정 공유 캘린더" style="display:none">
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+      업무 공유 캘린더
+      <span style="margin-left:auto;font-size:9.5px;color:#94a3b8;font-weight:600;letter-spacing:-0.2px">사운드</span>
     </div>
   </div>
 
@@ -9046,8 +9052,8 @@
       <div style="display:flex;align-items:center;gap:10px">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         <div>
-          <div style="font-size:16px;font-weight:800;letter-spacing:-0.3px">업무 공유 캘린더</div>
-          <div style="font-size:11px;color:#cffafe;margin-top:2px">시스템 사업부 직원 간 일정 공유</div>
+          <div data-scal-title style="font-size:16px;font-weight:800;letter-spacing:-0.3px">업무 공유 캘린더</div>
+          <div data-scal-subtitle style="font-size:11px;color:#cffafe;margin-top:2px">시스템 사업부 직원 간 일정 공유</div>
         </div>
       </div>
       <button onclick="closeSharedCalendar()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">×</button>
@@ -9098,21 +9104,7 @@
     <div style="padding:18px 22px">
       <div id="shared-cal-grid" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#fff"></div>
       <div id="shared-cal-table" style="display:none;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#fff"></div>
-      <div style="margin-top:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px">
-        <span style="font-size:10.5px;font-weight:700;color:#475569;letter-spacing:0.3px">색상 범례</span>
-        <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#0f172a;font-weight:600">
-          <span style="width:11px;height:11px;border-radius:50%;background:#0891b2;flex-shrink:0;box-shadow:0 1px 2px rgba(8,145,178,0.35)"></span>공동 업무
-        </span>
-        <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#0f172a;font-weight:600">
-          <span style="width:11px;height:11px;border-radius:50%;background:#3b82f6;flex-shrink:0;box-shadow:0 1px 2px rgba(59,130,246,0.35)"></span>권영재 차장
-        </span>
-        <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#0f172a;font-weight:600">
-          <span style="width:11px;height:11px;border-radius:50%;background:#16a34a;flex-shrink:0;box-shadow:0 1px 2px rgba(22,163,74,0.35)"></span>김세준 차장
-        </span>
-        <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#0f172a;font-weight:600">
-          <span style="width:11px;height:11px;border-radius:50%;background:#ea580c;flex-shrink:0;box-shadow:0 1px 2px rgba(234,88,12,0.35)"></span>기타
-        </span>
-      </div>
+      <div id="shared-cal-legend" style="margin-top:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px"></div>
     </div>
   </div>
 </div>
@@ -13703,6 +13695,7 @@ function openVendorMenu() {
    ═══════════════════════════════════════════════════════════════════ */
 (function() {
   var SCAL_STATE = {
+    dept: 'system', // 'system' | 'sound' — 현재 열린 캘린더의 부서 컨텍스트
     viewYear: new Date().getFullYear(),
     viewMonth: new Date().getMonth(), // 0-based
     viewMode: 'grid', // 'grid' | 'table'
@@ -13711,46 +13704,79 @@ function openVendorMenu() {
     events: [],
     editingId: null,
     dayViewDate: null, // 일자 뷰 모달이 보고 있는 'YYYY-MM-DD' (열려있지 않으면 null)
-    pickedColor: '#0891b2' // 기본값: 청록 (공동 업무)
+    pickedColor: '#0891b2' // 기본값: 청록 (공동 업무) — dept 변경 시 _scalDefaultColor()로 재세팅
   };
-  // 4색 팔레트 — 각 색상별 의미 부여
-  //  · 청록: 공동 업무 (전체 시스템 사업부 협업)
-  //  · 파랑: 권영재 차장(engineer2) 개인 업무 — 본인 + 관리자에게만 노출
-  //  · 초록: 김세준 차장(avsystem) 개인 업무 — 본인 + 관리자에게만 노출
-  //  · 주황: 기타 업무
-  var SCAL_PALETTE = [
-    { name: '청록', val: '#0891b2', label: '공동 업무',     desc: '시스템 사업부 공통/협업' },
-    { name: '파랑', val: '#3b82f6', label: '권영재 차장',   desc: '권영재 차장 개인 업무', personalFor: 'engineer2' },
-    { name: '초록', val: '#16a34a', label: '김세준 차장',   desc: '김세준 차장 개인 업무', personalFor: 'avsystem' },
-    { name: '주황', val: '#ea580c', label: '기타 업무',     desc: '그 외 분류' }
-  ];
+
+  // ── 부서별 캘린더 메타 (DB 키, 헤더 라벨, 부서 직원 dept 문자열) ──
+  var SCAL_DEPT_META = {
+    system: {
+      label: '시스템 사업부',
+      subtitle: '시스템 사업부 직원 간 일정 공유',
+      deptKey: '시스템 사업부'
+    },
+    sound: {
+      label: '사운드 컨텐츠 사업부',
+      subtitle: '사운드 컨텐츠 사업부 직원 간 일정 공유',
+      deptKey: '사운드컨텐츠사업부'
+    }
+  };
+
+  // ── 부서별 색상 팔레트 ──
+  // 시스템 사업부: 공동 + 권영재(파랑) + 김세준(초록) + 기타
+  // 사운드 사업부: 공동 + 신동원(파랑) + 이광순(초록) + 김춘화(보라) + 기타
+  var SCAL_PALETTE_MAP = {
+    system: [
+      { name: '청록', val: '#0891b2', label: '공동 업무',     desc: '시스템 사업부 공통/협업' },
+      { name: '파랑', val: '#3b82f6', label: '권영재 차장',   desc: '권영재 차장 개인 업무', personalFor: 'engineer2' },
+      { name: '초록', val: '#16a34a', label: '김세준 차장',   desc: '김세준 차장 개인 업무', personalFor: 'avsystem' },
+      { name: '주황', val: '#ea580c', label: '기타 업무',     desc: '그 외 분류' }
+    ],
+    sound: [
+      { name: '청록', val: '#0891b2', label: '공동 업무',     desc: '사운드 사업부 공통/협업' },
+      { name: '파랑', val: '#3b82f6', label: '신동원 차장',   desc: '신동원 차장 개인 업무', personalFor: 'soundsales' },
+      { name: '초록', val: '#16a34a', label: '이광순 이사',   desc: '이광순 이사 개인 업무', personalFor: 'sunlee' },
+      { name: '보라', val: '#8b5cf6', label: '김춘화 이사',   desc: '김춘화 이사 개인 업무', personalFor: 'admin' },
+      { name: '주황', val: '#ea580c', label: '기타 업무',     desc: '그 외 분류' }
+    ]
+  };
+
+  // 현재 dept 컨텍스트의 팔레트
+  function _scalPalette() { return SCAL_PALETTE_MAP[SCAL_STATE.dept] || SCAL_PALETTE_MAP.system; }
+  function _scalDefaultColor() { return _scalPalette()[0].val; }
 
   // 현재 사용자에게 보여줄 색상만 반환
   //  · 관리자: 전체 노출
-  //  · 시스템 사업부 직원: 공동/기타 + 본인 색상만 (상대방 개인 색상은 숨김)
+  //  · 해당 부서 직원: 공동/기타 + 본인 색상만 (상대방 개인 색상은 숨김)
   function _scalVisiblePalette() {
     var isAdminUser = (typeof _isAdmin !== 'undefined' && _isAdmin);
-    if (isAdminUser) return SCAL_PALETTE.slice();
+    var palette = _scalPalette();
+    if (isAdminUser) return palette.slice();
     var me = (typeof ALL_USERS !== 'undefined' && _userId)
       ? ALL_USERS.find(function(u){ return u.id === _userId; })
       : null;
     var myUsername = me ? me.username : '';
-    return SCAL_PALETTE.filter(function(c){
+    return palette.filter(function(c){
       if (!c.personalFor) return true; // 공통(청록/주황)은 항상 노출
       return c.personalFor === myUsername; // 개인 색상은 본인에게만
     });
   }
 
-  function _scalCanAccess() {
+  // dept별 접근 권한 — 관리자 또는 해당 부서 소속
+  function _scalCanAccessDept(deptKey) {
     if (typeof _isAdmin !== 'undefined' && _isAdmin) return true;
     if (!_userId || typeof ALL_USERS === 'undefined') return false;
     var me = ALL_USERS.find(function(u){ return u.id === _userId; });
-    return !!(me && me.dept === '시스템 사업부');
+    var meta = SCAL_DEPT_META[deptKey];
+    return !!(me && meta && me.dept === meta.deptKey);
   }
+  // 하위 호환: 기존 _scalCanAccess() 호출은 system 기준으로 동작
+  function _scalCanAccess() { return _scalCanAccessDept('system'); }
 
   function _scalUpdateMenuVisibility() {
-    var el = document.getElementById('shared-calendar-menu');
-    if (el) el.style.display = _scalCanAccess() ? '' : 'none';
+    var elSys = document.getElementById('shared-calendar-menu');
+    if (elSys) elSys.style.display = _scalCanAccessDept('system') ? '' : 'none';
+    var elSnd = document.getElementById('shared-calendar-menu-sound');
+    if (elSnd) elSnd.style.display = _scalCanAccessDept('sound')  ? '' : 'none';
   }
 
   function _scalPad(n) { return n < 10 ? '0' + n : '' + n; }
@@ -13763,10 +13789,39 @@ function openVendorMenu() {
     });
   }
 
-  function openSharedCalendar() {
-    if (!_scalCanAccess()) { alert('이 메뉴는 시스템 사업부 직원 전용입니다.'); return; }
+  function openSharedCalendar(deptArg) {
+    var dept = (deptArg === 'sound') ? 'sound' : 'system';
+    if (!_scalCanAccessDept(dept)) {
+      var meta0 = SCAL_DEPT_META[dept];
+      alert('이 메뉴는 ' + (meta0 ? meta0.label : '해당 부서') + ' 직원 전용입니다.');
+      return;
+    }
+    // dept 컨텍스트 전환 — pickedColor / events 초기화
+    SCAL_STATE.dept = dept;
+    SCAL_STATE.pickedColor = _scalDefaultColor();
+    SCAL_STATE.events = [];
+    SCAL_STATE.editingId = null;
+    SCAL_STATE.dayViewDate = null;
     var ov = document.getElementById('shared-cal-overlay');
     if (!ov) return;
+    // 헤더 부제 dept별로 동기화
+    var meta = SCAL_DEPT_META[dept];
+    var titleEl = ov.querySelector('[data-scal-title]');
+    var subtitleEl = ov.querySelector('[data-scal-subtitle]');
+    if (titleEl) titleEl.textContent = '업무 공유 캘린더 — ' + meta.label;
+    if (subtitleEl) subtitleEl.textContent = meta.subtitle;
+    // 색상 범례 dept별 동적 렌더
+    var legend = document.getElementById('shared-cal-legend');
+    if (legend) {
+      var html = '<span style="font-size:10.5px;font-weight:700;color:#475569;letter-spacing:0.3px">색상 범례</span>';
+      _scalPalette().forEach(function(c){
+        html += '<span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#0f172a;font-weight:600">'
+              + '<span style="width:11px;height:11px;border-radius:50%;background:'+c.val+';flex-shrink:0;box-shadow:0 1px 2px '+c.val+'59"></span>'
+              + c.label
+              + '</span>';
+      });
+      legend.innerHTML = html;
+    }
     // 진입 시 viewDay 기본값(오늘) 보장 — 표 일별 모드 대비
     if (!SCAL_STATE.viewDay) SCAL_STATE.viewDay = _scalToYmd(new Date());
     ov.style.display = 'flex';
@@ -13894,7 +13949,7 @@ function openVendorMenu() {
     var lastDate = new Date(y, m+1, 0);
     var lastDayStr = y + '-' + _scalPad(m+1) + '-' + _scalPad(lastDate.getDate());
     // 현재 월 범위와 겹치는 이벤트: end_date >= firstDay AND start_date <= lastDay
-    var url = SB_URL + '/rest/v1/shared_calendar_events?dept_scope=eq.system'
+    var url = SB_URL + '/rest/v1/shared_calendar_events?dept_scope=eq.' + SCAL_STATE.dept
       + '&end_date=gte.' + firstDayStr
       + '&start_date=lte.' + lastDayStr
       + '&order=start_date.asc';
@@ -13954,8 +14009,9 @@ function openVendorMenu() {
   // 색상 → 분류 라벨 매핑 (팔레트에 없는 색상은 '기타')
   function _scalColorCategory(hex) {
     var h = (hex || '').toLowerCase();
-    for (var i = 0; i < SCAL_PALETTE.length; i++) {
-      if (SCAL_PALETTE[i].val.toLowerCase() === h) return SCAL_PALETTE[i].label;
+    var P = _scalPalette();
+    for (var i = 0; i < P.length; i++) {
+      if (P[i].val.toLowerCase() === h) return P[i].label;
     }
     return '기타';
   }
@@ -14047,8 +14103,9 @@ function openVendorMenu() {
       //  · 3차: 같은 시작일·같은 색이면 길이 큰 것 우선
       function _scalColorPri(hex) {
         var h = (hex || '').toLowerCase();
-        for (var p = 0; p < SCAL_PALETTE.length; p++) {
-          if (SCAL_PALETTE[p].val.toLowerCase() === h) return p;
+        var P = _scalPalette();
+        for (var p = 0; p < P.length; p++) {
+          if (P[p].val.toLowerCase() === h) return p;
         }
         return 99;
       }
@@ -14226,7 +14283,7 @@ function openVendorMenu() {
     html += '</div>';
 
     rows.forEach(function(e, idx){
-      var color = e.color || SCAL_PALETTE[0].val;
+      var color = e.color || _scalDefaultColor();
       var cat = _scalColorCategory(color);
       var safeTitle = _scalEscape(e.title || '');
       var safeDesc = _scalEscape(e.description || '');
@@ -14362,7 +14419,7 @@ function openVendorMenu() {
 
     // 데이터 행
     rows.forEach(function(e, idx){
-      var color = e.color || SCAL_PALETTE[0].val;
+      var color = e.color || _scalDefaultColor();
       var cat = _scalColorCategory(color);
       var creator = _scalCreatorName(e.created_by);
       var isMine = e.created_by === _userId;
@@ -14444,7 +14501,7 @@ function openVendorMenu() {
     }
 
     list.innerHTML = rows.map(function(e){
-      var color = e.color || SCAL_PALETTE[0].val;
+      var color = e.color || _scalDefaultColor();
       var cat = _scalColorCategory(color);
       var safeTitle = _scalEscape(e.title || '');
       var safeDesc = _scalEscape(e.description || '');
@@ -14536,7 +14593,7 @@ function openVendorMenu() {
     document.getElementById('scal-evt-end-time').value = ev && ev.end_time ? ev.end_time.slice(0,5) : '';
     document.getElementById('scal-evt-desc').value = ev ? (ev.description || '') : '';
 
-    var curColor = ev ? (ev.color || SCAL_PALETTE[0].val) : SCAL_PALETTE[0].val;
+    var curColor = ev ? (ev.color || _scalDefaultColor()) : _scalDefaultColor();
     SCAL_STATE.pickedColor = curColor;
 
     var headerEl = document.getElementById('scal-evt-modal-title');
@@ -14614,8 +14671,8 @@ function openVendorMenu() {
     //  · readOnly(타인 일정 보기) → 전체 4색 (실제 색 보존)
     //  · 기존 이벤트 편집(editingId 존재) → 전체 4색 (원본 색 유지/변경 자유)
     //  · 신규 이벤트 작성 → 가시 팔레트만 (본인 + 관리자에게만 개인 색 노출)
-    var palette = (readOnly || SCAL_STATE.editingId) ? SCAL_PALETTE.slice() : _scalVisiblePalette();
-    if (!palette.length) palette = SCAL_PALETTE.slice();
+    var palette = (readOnly || SCAL_STATE.editingId) ? _scalPalette().slice() : _scalVisiblePalette();
+    if (!palette.length) palette = _scalPalette().slice();
     var sel = (selected || SCAL_STATE.pickedColor || palette[0].val).toLowerCase();
 
     // 편집 가능 모드에서 가시 팔레트에 없는 색이 선택돼 있으면 첫 가시 색으로 전환
@@ -14666,7 +14723,7 @@ function openVendorMenu() {
     var startTime = (document.getElementById('scal-evt-start-time').value || '').trim();
     var endTime = (document.getElementById('scal-evt-end-time').value || '').trim();
     var description = (document.getElementById('scal-evt-desc').value || '').trim();
-    var color = SCAL_STATE.pickedColor || SCAL_PALETTE[0].val;
+    var color = SCAL_STATE.pickedColor || _scalDefaultColor();
 
     var nowIso = new Date().toISOString();
     var body = {
@@ -14677,7 +14734,7 @@ function openVendorMenu() {
       start_time: startTime || null,
       end_time: endTime || null,
       color: color,
-      dept_scope: 'system',
+      dept_scope: SCAL_STATE.dept,
       updated_at: nowIso
     };
 
