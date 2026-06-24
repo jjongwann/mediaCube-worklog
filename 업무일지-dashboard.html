@@ -8238,24 +8238,78 @@
   };
 
   // ── 메인 위젯 토글 (한 번 클릭 → 표시, 다시 클릭 → 숨김) ──
-  // 사이드바 'BMAT 모니터링 통계' 메뉴 (#sidebar-bmat-btn) 에서 호출됨.
-  // (stat 카드는 제거되어 더 이상 존재하지 않음)
-  function bmatToggleSection() {
+  // BMAT 위젯을 모달 오버레이로 한 번만 이동 (캘린더 chooser·거래처 메뉴와 동일한 디자인 토큰)
+  function _bmatEnsureModalContainer() {
+    if (document.getElementById('bmat-modal-overlay')) return;
+    var ov = document.createElement('div');
+    ov.id = 'bmat-modal-overlay';
+    // z-index 9996: 사이트맵(9989)·캘린더(9990)보다 위, BMAT 하위 모달(10005/10007)보다 아래
+    ov.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9996;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto';
+    ov.onclick = function(e){ if (e.target === this) closeBmatModal(); };
+
+    var card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border-radius:18px;max-width:1280px;width:100%;box-shadow:0 24px 70px rgba(0,0,0,0.3);font-family:inherit;overflow:hidden;margin:auto;display:flex;flex-direction:column';
+
+    // 다크 그라데이션 헤더 (캘린더/거래처 모달과 동일 톤)
+    var header = document.createElement('div');
+    header.style.cssText = 'padding:18px 22px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#475569,#1e293b);color:#fff;flex-shrink:0';
+    header.innerHTML = ''+
+      '<div>'+
+        '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:#cbd5e1">BMAT MONITORING</div>'+
+        '<div style="font-size:16px;font-weight:800;margin-top:2px;letter-spacing:-0.3px">지상파 모니터링 통계</div>'+
+        '<div style="font-size:11px;color:#cbd5e1;margin-top:3px">지상파 3사 + EBS 등 채널별 월별 카운트·모수·점유율</div>'+
+      '</div>'+
+      '<button onclick="closeBmatModal()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:background .15s" onmouseover="this.style.background=\'rgba(255,255,255,0.28)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'">×</button>';
+    card.appendChild(header);
+
+    // 본문 wrapper — 기존 #bmat-widget 을 이동시킬 컨테이너
+    var body = document.createElement('div');
+    body.id = 'bmat-modal-body';
+    body.style.cssText = 'overflow-y:auto;max-height:calc(92vh - 100px)';
+    card.appendChild(body);
+
+    ov.appendChild(card);
+    document.body.appendChild(ov);
+
+    // 기존 #bmat-widget 을 모달 body 로 이동 (외곽 박스 스타일 제거 — 모달이 외곽 담당)
     var w = document.getElementById('bmat-widget');
-    var btn = document.getElementById('sidebar-bmat-btn');
-    if (!w) return;
-    var isHidden = (w.style.display === 'none' || w.style.display === '');
-    if (isHidden) {
-      w.style.display = 'block';
-      if (btn) btn.classList.add('bmat-active');
-      bmatFetchFromDB().then(function() { _bmatPopulateMonthSel(); renderBmatWidget(); });
-      // 위젯 위치로 스무스 스크롤 (사이드바 클릭이라 메인 화면이 안 보일 수 있음)
-      setTimeout(function(){ try { w.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(e){} }, 60);
-    } else {
-      w.style.display = 'none';
-      if (btn) btn.classList.remove('bmat-active');
+    if (w) {
+      w.style.background = 'transparent';
+      w.style.border = 'none';
+      w.style.borderRadius = '0';
+      w.style.padding = '20px 24px 24px';
+      w.style.marginBottom = '0';
+      w.style.boxShadow = 'none';
+      body.appendChild(w);
     }
   }
+
+  // 사이드바 'BMAT 모니터링 통계' 메뉴 (#sidebar-bmat-btn) 에서 호출됨.
+  function bmatToggleSection() {
+    _bmatEnsureModalContainer();
+    var ov = document.getElementById('bmat-modal-overlay');
+    var w = document.getElementById('bmat-widget');
+    var btn = document.getElementById('sidebar-bmat-btn');
+    if (!ov || !w) return;
+    var isHidden = (ov.style.display === 'none' || ov.style.display === '');
+    if (isHidden) {
+      // 위젯은 모달 안에서 항상 표시 상태로
+      w.style.display = 'block';
+      ov.style.display = 'flex';
+      if (btn) btn.classList.add('bmat-active');
+      bmatFetchFromDB().then(function() { _bmatPopulateMonthSel(); renderBmatWidget(); });
+    } else {
+      closeBmatModal();
+    }
+  }
+  function closeBmatModal() {
+    var ov = document.getElementById('bmat-modal-overlay');
+    var btn = document.getElementById('sidebar-bmat-btn');
+    if (ov) ov.style.display = 'none';
+    if (btn) btn.classList.remove('bmat-active');
+  }
+  // 전역 노출 (모달 닫기 버튼/외부 호출용)
+  window.closeBmatModal = closeBmatModal;
 
   function _bmatPopulateMonthSel() {
     var sel = document.getElementById('bmat-month-sel');
@@ -8895,10 +8949,13 @@
   // ESC 키로 BMAT 모달 닫기
   document.addEventListener('keydown', function(e) {
     if (e.key !== 'Escape') return;
+    // 우선순위: 입력 모달(최상위) → 누계 모달 → BMAT 메인 모달
     var inp = document.getElementById('bmat-input-overlay');
     if (inp && inp.style.display !== 'none' && inp.style.display !== '') { closeBmatInput(); return; }
     var cm = document.getElementById('bmat-cumul-overlay');
-    if (cm && cm.style.display !== 'none' && cm.style.display !== '') { closeBmatCumul(); }
+    if (cm && cm.style.display !== 'none' && cm.style.display !== '') { closeBmatCumul(); return; }
+    var bm = document.getElementById('bmat-modal-overlay');
+    if (bm && bm.style.display !== 'none' && bm.style.display !== '') { closeBmatModal(); }
   });
 </script>
 <style>
