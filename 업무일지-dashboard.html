@@ -16393,8 +16393,19 @@ function openVendorMenu() {
     if (u.dept === SALES_DEPT_META.sound.deptKey)  return 'sound';
     return null;
   }
-  // 부서 접근 권한 (관리자/developer + 본인 소속 부서)
-  var SALES_ALLOW_ALL_USERNAMES = ['developer'];
+  // 부서 접근 권한 (관리자/developer/sunlee + 본인 소속 부서 + 권한 부여받은 직원의 부서)
+  // 화이트리스트 = 선택한 부서의 모든 데이터 열람 (본인 필터 없음)
+  var SALES_ALLOW_ALL_USERNAMES = ['developer', 'sunlee'];
+  function _salesPermittedUserIds() {
+    // 본인 + 권한으로 부여받은 직원들의 uid 집합
+    var ids = _userId ? [_userId] : [];
+    if (typeof _permMap !== 'undefined' && _userId && Array.isArray(_permMap[_userId])) {
+      _permMap[_userId].forEach(function(id){
+        if (id && ids.indexOf(id) < 0) ids.push(id);
+      });
+    }
+    return ids;
+  }
   function _salesCanAccessDept(deptKey) {
     if (typeof _isAdmin !== 'undefined' && _isAdmin) return true;
     if (!_userId || typeof ALL_USERS === 'undefined') return false;
@@ -16402,7 +16413,17 @@ function openVendorMenu() {
     if (!me) return false;
     if (SALES_ALLOW_ALL_USERNAMES.indexOf(me.username) >= 0) return true;
     var meta = SALES_DEPT_META[deptKey];
-    return !!(meta && me.dept === meta.deptKey);
+    if (!meta) return false;
+    // 본인 소속 부서
+    if (me.dept === meta.deptKey) return true;
+    // 권한으로 부여받은 직원 중 해당 부서 소속이 있으면 접근 가능
+    if (typeof _permMap !== 'undefined' && Array.isArray(_permMap[_userId])) {
+      return _permMap[_userId].some(function(id){
+        var u = ALL_USERS.find(function(x){ return x.id === id; });
+        return u && u.dept === meta.deptKey;
+      });
+    }
+    return false;
   }
 
   // 로컬 시간대 기준 YMD 포맷터 (toISOString은 UTC라서 한국시간과 하루 어긋날 수 있음)
@@ -16496,11 +16517,16 @@ function openVendorMenu() {
     sel.innerHTML = '<option value="">전체 직원</option>';
     if (!Array.isArray(ALL_USERS)) return;
     var deptMeta = SALES_DEPT_META[_salesDept];
-    // 관리자(isAdmin=true) 제외 + 현재 부서 컨텍스트 직원만 (부서 매핑 없으면 제외)
+    var isAdminUser = (typeof _isAdmin !== 'undefined' && _isAdmin);
+    var isWl = SALES_ALLOW_ALL_USERNAMES.indexOf(_currentUsername) >= 0;
+    // 권한 부여받은 직원: 본인 + 부여받은 직원만, 그 외(관리자/화이트리스트): 부서 전체
+    var allowedIds = null;
+    if (!isAdminUser && !isWl) allowedIds = _salesPermittedUserIds();
     var list = ALL_USERS.filter(function(u){
       if (u.isAdmin) return false;
-      if (!deptMeta) return true;
-      return u.dept === deptMeta.deptKey;
+      if (deptMeta && u.dept !== deptMeta.deptKey) return false;
+      if (allowedIds && allowedIds.indexOf(u.id) < 0) return false;
+      return true;
     }).slice().sort(function(a, b){
       var na = (a.fullName || a.username || ''), nb = (b.fullName || b.username || '');
       return na < nb ? -1 : na > nb ? 1 : 0;
@@ -16630,19 +16656,32 @@ function openVendorMenu() {
     var isAdmin = !!(typeof _isAdmin !== 'undefined' ? _isAdmin : false);
     var myId = (typeof _userId !== 'undefined') ? _userId : null;
 
-    // 시작/종료 날짜 필터는 모두에게 노출, 직원 셀렉트는 관리자 전용
+    // 직원 셀렉트 노출 조건:
+    //  · 관리자: 항상 노출 (부서 직원 전체)
+    //  · 화이트리스트(developer/sunlee): 항상 노출 (부서 직원 전체)
+    //  · 권한 부여받은 직원: 노출 (본인 + 부여받은 직원만)
+    //  · 그 외 일반 직원: 숨김
+    var hasPermEmployees = (typeof _permMap !== 'undefined' && Array.isArray(_permMap[_userId]) && _permMap[_userId].length > 0);
+    var showEmpSelect = isAdmin || isWhitelisted || hasPermEmployees;
     var empWrap = document.getElementById('sales-act-emp-wrap');
-    if (empWrap) empWrap.style.display = isAdmin ? '' : 'none';
-    if (isAdmin) _salesPopulateEmpSelect();
+    if (empWrap) empWrap.style.display = showEmpSelect ? '' : 'none';
+    if (showEmpSelect) _salesPopulateEmpSelect();
 
     var rowsAll = _salesGather(); // KPI breakdown 위해 type 필터 적용 전 보관
     var rows = rowsAll.slice();
-    // 일반 사용자는 본인 것만
-    if (!isAdmin && myId) rows = rows.filter(function(r){ return r.uid === myId; });
-    if (!isAdmin && myId) rowsAll = rowsAll.filter(function(r){ return r.uid === myId; });
-    // 관리자 직원 필터
-    if (isAdmin && _salesEmpFilter) rows = rows.filter(function(r){ return r.uid === _salesEmpFilter; });
-    if (isAdmin && _salesEmpFilter) rowsAll = rowsAll.filter(function(r){ return r.uid === _salesEmpFilter; });
+    // 비관리자 필터: 화이트리스트(developer/sunlee 등)는 부서 전체 노출,
+    // 그 외는 '본인 + 권한 부여받은 직원' 만 노출
+    var isWhitelisted = SALES_ALLOW_ALL_USERNAMES.indexOf(_currentUsername) >= 0;
+    if (!isAdmin && !isWhitelisted) {
+      var permittedIds = _salesPermittedUserIds();
+      rows    = rows.filter(function(r){ return permittedIds.indexOf(r.uid) >= 0; });
+      rowsAll = rowsAll.filter(function(r){ return permittedIds.indexOf(r.uid) >= 0; });
+    }
+    // 직원 셀렉트 필터 (관리자/화이트리스트/권한 부여받은 직원이 사용 가능)
+    if (showEmpSelect && _salesEmpFilter) {
+      rows    = rows.filter(function(r){ return r.uid === _salesEmpFilter; });
+      rowsAll = rowsAll.filter(function(r){ return r.uid === _salesEmpFilter; });
+    }
     // 고객 유형 필터 (KPI 카드는 분할 표시, body는 필터 적용)
     if (_salesTypeFilter) rows = rows.filter(function(r){ return r.type === _salesTypeFilter; });
 
@@ -16651,7 +16690,8 @@ function openVendorMenu() {
     var deptMetaForSub = SALES_DEPT_META[_salesDept];
     var deptPrefix = deptMetaForSub ? (deptMetaForSub.label + ' · ') : '';
     if (subEl) {
-      if (isAdmin) {
+      // showEmpSelect = 직원별 모아보기 가능한 사용자 (관리자/화이트리스트/권한 직원)
+      if (showEmpSelect) {
         if (_salesEmpFilter) {
           var pm = _salesUserMeta(_salesEmpFilter);
           subEl.textContent = deptPrefix + pm.fullName + ' — 영업 활동';
@@ -16724,8 +16764,8 @@ function openVendorMenu() {
       return;
     }
 
-    if (isAdmin && !_salesEmpFilter) {
-      // 직원별 그룹화 (전체 직원일 때만)
+    if (showEmpSelect && !_salesEmpFilter) {
+      // 직원별 그룹화 (전체 직원일 때만 / 관리자·화이트리스트·권한 부여 직원)
       var byUser = {};
       rows.forEach(function(r){
         var key = r.uid || '_';
