@@ -9405,16 +9405,13 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div>
           <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">시작 시간 <span style="font-size:10px;font-weight:400;color:#94a3b8">(선택)</span></label>
-          <div style="display:flex;gap:6px">
-            <input type="time" id="scal-evt-start-time" style="flex:1;min-width:0;box-sizing:border-box;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
-            <button type="button" onclick="_scalSetTimeUnset('start')" title="시간 미정 (목록 맨 아래로 정렬)" style="flex-shrink:0;padding:0 12px;border:1px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:12px;font-weight:700;border-radius:8px;cursor:pointer;transition:background .12s,border-color .12s,color .12s" onmouseover="this.style.background='#fef3c7';this.style.borderColor='#fde68a';this.style.color='#b45309'" onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e2e8f0';this.style.color='#475569'">미정</button>
-          </div>
+          <input type="time" id="scal-evt-start-time" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
         </div>
         <div>
           <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">종료 시간 <span style="font-size:10px;font-weight:400;color:#94a3b8">(선택)</span></label>
           <div style="display:flex;gap:6px">
             <input type="time" id="scal-evt-end-time" style="flex:1;min-width:0;box-sizing:border-box;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none">
-            <button type="button" onclick="_scalSetTimeUnset('end')" title="시간 미정 (목록 맨 아래로 정렬)" style="flex-shrink:0;padding:0 12px;border:1px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:12px;font-weight:700;border-radius:8px;cursor:pointer;transition:background .12s,border-color .12s,color .12s" onmouseover="this.style.background='#fef3c7';this.style.borderColor='#fde68a';this.style.color='#b45309'" onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e2e8f0';this.style.color='#475569'">미정</button>
+            <button type="button" onclick="_scalSetTimeUnset('both')" title="시작·종료 시간 모두 미정 (목록 맨 아래로 정렬)" style="flex-shrink:0;padding:0 12px;border:1px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:12px;font-weight:700;border-radius:8px;cursor:pointer;transition:background .12s,border-color .12s,color .12s" onmouseover="this.style.background='#fef3c7';this.style.borderColor='#fde68a';this.style.color='#b45309'" onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e2e8f0';this.style.color='#475569'">미정</button>
           </div>
         </div>
       </div>
@@ -15327,13 +15324,19 @@ function openVendorMenu() {
   window._scalOpenEventModal = _scalOpenEventModal;
 
   // 시간 미정 버튼 — input 값을 비워 저장 시 null 로 처리 → 정렬 맨 뒤
+  // which: 'start' | 'end' | 'both' (both는 시작·종료 모두 미정)
   function _scalSetTimeUnset(which) {
-    var id = (which === 'end') ? 'scal-evt-end-time' : 'scal-evt-start-time';
-    var inp = document.getElementById(id);
-    if (inp) {
-      inp.value = '';
-      try { inp.blur(); } catch(e) {}
-    }
+    var targets;
+    if (which === 'both')      targets = ['scal-evt-start-time', 'scal-evt-end-time'];
+    else if (which === 'end')  targets = ['scal-evt-end-time'];
+    else                       targets = ['scal-evt-start-time'];
+    targets.forEach(function(id){
+      var inp = document.getElementById(id);
+      if (inp) {
+        inp.value = '';
+        try { inp.blur(); } catch(e) {}
+      }
+    });
   }
   window._scalSetTimeUnset = _scalSetTimeUnset;
   window._scalCloseEventModal = _scalCloseEventModal;
