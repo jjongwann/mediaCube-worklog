@@ -2771,6 +2771,15 @@
   var _isAdmin = (_currentSession && _currentSession._is_admin) || false;
   var _userId = (_currentSession && _currentSession.user && _currentSession.user.id) || null;
 
+  // 전체 일지 열람 화이트리스트 — 관리자처럼 모든 일지/카운트를 볼 수 있음
+  // 단, 관리자 전용 UI(부서 토글·admin sidebar section 등)는 노출 안 함
+  var JOURNAL_VIEW_ALL_USERNAMES = ['sunlee']; // 이광순 이사
+  function _canViewAllJournals() {
+    if (_isAdmin) return true;
+    if (!_currentUsername) return false;
+    return JOURNAL_VIEW_ALL_USERNAMES.indexOf(_currentUsername) >= 0;
+  }
+
   /* ── 음원팀 버튼: 사운드콘텐츠사업부 소속이면 즉시 표시 ── */
   document.addEventListener('DOMContentLoaded', function() {
     var _soundUsernames = ['soundsupport','webmaster20','soundstore','soundsales','marketing','sunlee','admin','developer'];
@@ -3059,6 +3068,9 @@
     if (_isAdmin) {
       var _vIds = _getDeptUserIds(_viewDeptKey);
       data = data.filter(function(j){ return _vIds.indexOf(j.user_id) !== -1; });
+    } else if (_canViewAllJournals()) {
+      // 전체 일지 열람 화이트리스트 (이광순 이사 등) — 부서 무관 모두 노출
+      // 관리자 전용 UI(부서 토글·admin section 등)는 노출 안 함
     } else {
       var _myName = (_currentSession && _currentSession._display && (_currentSession._display.fullName || _currentSession._display.name)) || '';
       data = data.filter(function(j) {
@@ -3147,6 +3159,8 @@
       // 관리자: 현재 토글된 부서(_viewDeptKey) 기준으로 필터
       var adminIds = _getDeptUserIds(_viewDeptKey);
       all = all.filter(function(j){ return adminIds.indexOf(j.user_id) !== -1; });
+    } else if (_canViewAllJournals()) {
+      // 전체 일지 열람 화이트리스트 — 부서 무관 전체 카운트
     } else {
       // 비관리자(사운드·시스템 동일): 본인 일지만
       var _myName = (_currentSession && _currentSession._display && (_currentSession._display.fullName || _currentSession._display.name)) || '';
