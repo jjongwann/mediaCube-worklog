@@ -7128,7 +7128,7 @@
         var yoyColor = parseFloat(pct) >= 0 ? '#dc2626' : '#2563eb';
         yoyHtml = '<span style="display:inline-flex;align-items:center;font-size:10.5px;font-weight:800;color:'+yoyColor+';font-variant-numeric:tabular-nums">'+arrow+sign+pct+'%</span>';
       }
-      return '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;transition:box-shadow .15s,transform .15s,border-color .15s;cursor:default;display:flex;flex-direction:column;justify-content:space-between;min-height:0" onmouseover="this.style.boxShadow=\'0 6px 18px '+item.color+'1f\';this.style.transform=\'translateY(-2px)\';this.style.borderColor=\''+item.color+'66\'" onmouseout="this.style.boxShadow=\'\';this.style.transform=\'\';this.style.borderColor=\'#e2e8f0\'">'
+      return '<div onclick="openCumulItemDetail(\''+item.key+'\')" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;transition:box-shadow .15s,transform .15s,border-color .15s;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;min-height:0" onmouseover="this.style.boxShadow=\'0 6px 18px '+item.color+'2a\';this.style.transform=\'translateY(-2px)\';this.style.borderColor=\''+item.color+'\'" onmouseout="this.style.boxShadow=\'\';this.style.transform=\'\';this.style.borderColor=\'#e2e8f0\'">'
         + '<div>'
           + '<div style="font-size:11.5px;color:'+item.color+';font-weight:700;letter-spacing:-0.1px;margin-bottom:6px">'+item.label+'</div>'
           + '<div style="font-size:19px;font-weight:800;color:#334155;letter-spacing:-0.5px;font-variant-numeric:tabular-nums">'+fmtCumul(cur)+'</div>'
@@ -7140,6 +7140,203 @@
       + '</div>';
     }).join('');
   }
+
+  // ──────────────────────────────────────────────────────────────
+  // 항목별 누계 카드 클릭 → 상세 모달 (월별 추이 + KPI + 설명)
+  // ──────────────────────────────────────────────────────────────
+  var CUMUL_ITEM_DESC = {
+    annual:  '연간 라이선스 기반 거래처별 매출 — 장기 계약 음원 사용권',
+    needle:  'NEEDLE drop · 곡별 매출 — 오디오 PD 거래처별 단가 정산',
+    buyout:  'BUYOUT 매출 — 단발 라이선스 일회성 거래',
+    custom:  'Custom / 디지털 매출 — 맞춤 음원·디지털 채널 거래',
+    komca:   'KOMCA / KOSCAP — 음저협·실연자협회 분배 매출',
+    youtube: 'Youtube CMS — 콘텐츠 ID 기반 광고 매출',
+    song:    '선곡료 매출 — 음원 기획·큐레이션 수익',
+    fee:     '협회 수수료 — 외부 협회 정산 시 발생하는 비용 (마이너스 의미)'
+  };
+
+  function _ensureCumulItemOverlay() {
+    if (document.getElementById('cumul-item-detail-overlay')) return;
+    var div = document.createElement('div');
+    div.id = 'cumul-item-detail-overlay';
+    div.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:10009;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto';
+    div.onclick = function(e){ if (e.target === this) closeCumulItemDetail(); };
+    var card = document.createElement('div');
+    card.id = 'cumul-item-detail-card';
+    card.style.cssText = 'width:100%;max-width:720px;background:#fff;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,0.35);overflow:hidden;font-family:inherit;margin:auto';
+    div.appendChild(card);
+    document.body.appendChild(div);
+  }
+
+  function _cumulFmtWon(v) {
+    v = v || 0;
+    if (v >= 100000000) return (v/100000000).toFixed(2)+'억';
+    if (v >= 10000) return Math.round(v/10000).toLocaleString()+'만';
+    return v.toLocaleString();
+  }
+  function _cumulFmtWonShort(v) {
+    v = v || 0;
+    if (v >= 100000000) return (v/100000000).toFixed(1)+'억';
+    if (v >= 10000) return Math.round(v/10000)+'만';
+    return v.toLocaleString();
+  }
+
+  function openCumulItemDetail(itemKey) {
+    var item = SALES_ITEMS.find(function(i){ return i.key === itemKey; });
+    if (!item) return;
+    _ensureCumulItemOverlay();
+
+    var fromKey = document.getElementById('cumul-from').value;
+    var toKey   = document.getElementById('cumul-to').value;
+    if (!fromKey || !toKey) return;
+    var fp=fromKey.split('-'), tp=toKey.split('-');
+    var fromN = parseInt(fp[0])*100+parseInt(fp[1]);
+    var toN   = parseInt(tp[0])*100+parseInt(tp[1]);
+    if (fromN > toN) {
+      var tmp=fromKey; fromKey=toKey; toKey=tmp;
+      fromN=parseInt(fromKey.split('-')[0])*100+parseInt(fromKey.split('-')[1]);
+      toN=parseInt(toKey.split('-')[0])*100+parseInt(toKey.split('-')[1]);
+    }
+
+    var data = salesLoadData();
+    var allKeys = Object.keys(data).sort(function(a,b){
+      var ap=a.split('-'),bp=b.split('-');
+      return (parseInt(ap[0])*100+parseInt(ap[1]))-(parseInt(bp[0])*100+parseInt(bp[1]));
+    }).filter(function(k){
+      var p=k.split('-');
+      var n=parseInt(p[0])*100+parseInt(p[1]);
+      return n>=fromN && n<=toN;
+    });
+
+    // 월별 시리즈 (현재 기간)
+    var monthly = allKeys.map(function(k){
+      var e = salesGetEntry(data, k);
+      return {
+        key: k,
+        value: (e[itemKey] || 0),
+        count: ((e._counts||{})[itemKey] || 0),
+        total: e._total || 0
+      };
+    });
+    var total      = monthly.reduce(function(s,m){return s+m.value;}, 0);
+    var grandTotal = monthly.reduce(function(s,m){return s+m.total;}, 0);
+    var avg        = monthly.length ? total / monthly.length : 0;
+    var totalCnt   = monthly.reduce(function(s,m){return s+m.count;}, 0);
+    var sharePct   = grandTotal > 0 ? (total/grandTotal*100).toFixed(2) : '0.00';
+
+    // 비교 동기 누계 (renderCumulChart 와 동일 로직)
+    var cmpSelEl = document.getElementById('cumul-compare-year');
+    var cmpRaw = cmpSelEl ? cmpSelEl.value : '';
+    var fromYearNum = parseInt(fromKey.split('-')[0], 10);
+    var cmpYearNum = cmpRaw ? parseInt(cmpRaw, 10) : (fromYearNum - 1);
+    var yearOffset = fromYearNum - cmpYearNum;
+    var prevTotal = 0;
+    allKeys.forEach(function(k){
+      var p = k.split('-');
+      var pk = (parseInt(p[0]) - yearOffset) + '-' + p[1];
+      if (!data[pk]) return;
+      var e = salesGetEntry(data, pk);
+      prevTotal += (e[itemKey] || 0);
+    });
+    var yoyPct = prevTotal > 0 ? ((total - prevTotal) / prevTotal * 100).toFixed(2) : null;
+    var cmpLabelTxt = (yearOffset === 1) ? '전년 동기' : ((fromYearNum - yearOffset) + '년 동기');
+
+    var periodLabel = fromKey.split('-')[0] + '.' + ('0' + fromKey.split('-')[1]).slice(-2)
+                    + ' ~ ' + toKey.split('-')[0] + '.' + ('0' + toKey.split('-')[1]).slice(-2);
+
+    var yoyHtml = '';
+    if (yoyPct !== null) {
+      var up = parseFloat(yoyPct) >= 0;
+      yoyHtml = '<span style="display:inline-flex;align-items:center;padding:4px 11px;border-radius:8px;font-size:11.5px;font-weight:800;background:'+(up?'#fef2f2':'#eff6ff')+';color:'+(up?'#dc2626':'#2563eb')+';margin-left:10px;font-variant-numeric:tabular-nums">'+(up?'▲ +':'▼ ')+yoyPct+'%</span>';
+    }
+
+    // 미니 KPI 카드
+    function miniKpi(label, val, color){
+      return '<div style="padding:11px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:10px">'+
+               '<div style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:0.3px;text-transform:uppercase">'+label+'</div>'+
+               '<div style="font-size:14px;font-weight:800;color:'+color+';margin-top:5px;font-variant-numeric:tabular-nums">'+val+'</div>'+
+             '</div>';
+    }
+
+    // 월별 미니 막대 차트
+    function monthlyBarsHtml(list, color){
+      if (!list.length) return '<div style="text-align:center;color:#94a3b8;font-size:11px;padding:24px">데이터 없음</div>';
+      var maxV = Math.max.apply(null, list.map(function(m){return m.value;}).concat([1]));
+      function lbl(k){ var p=k.split('-'); return p[0].slice(2)+'.'+('0'+p[1]).slice(-2); }
+      var h2 = '<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:6px;height:110px;padding-top:22px">';
+      list.forEach(function(m){
+        var h = Math.max(4, Math.round(m.value/maxV*82));
+        var hasV = m.value > 0;
+        h2 += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0">'+
+                '<div style="width:100%;max-width:40px;height:'+h+'px;background:linear-gradient(180deg,'+color+' 0%,'+color+'77 100%);border-radius:5px 5px 2px 2px;position:relative" title="'+lbl(m.key)+' · '+m.value.toLocaleString()+'원">'+
+                  (hasV ? '<div style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:'+color+';white-space:nowrap;font-variant-numeric:tabular-nums">'+_cumulFmtWonShort(m.value)+'</div>' : '')+
+                '</div>'+
+                '<div style="font-size:9.5px;color:#94a3b8;font-weight:600;font-variant-numeric:tabular-nums">'+lbl(m.key)+'</div>'+
+              '</div>';
+      });
+      h2 += '</div>';
+      return h2;
+    }
+
+    var html = ''+
+      // 다크 헤더
+      '<div style="padding:18px 22px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#475569,#1e293b);color:#fff">'+
+        '<div>'+
+          '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:#cbd5e1">ITEM DETAIL</div>'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-top:4px">'+
+            '<span style="width:13px;height:13px;border-radius:50%;background:'+item.color+';box-shadow:0 0 0 3px '+item.color+'33"></span>'+
+            '<div style="font-size:18px;font-weight:800;letter-spacing:-0.3px">'+item.label+'</div>'+
+          '</div>'+
+          '<div style="font-size:11px;color:#cbd5e1;margin-top:4px;font-variant-numeric:tabular-nums">'+periodLabel+'</div>'+
+        '</div>'+
+        '<button onclick="closeCumulItemDetail()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:background .15s" onmouseover="this.style.background=\'rgba(255,255,255,0.28)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'">×</button>'+
+      '</div>'+
+      // 본문
+      '<div style="padding:22px 24px">'+
+        // 메인 금액
+        '<div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:4px">'+
+          '<div style="font-size:32px;font-weight:800;color:#0f172a;letter-spacing:-0.8px;font-variant-numeric:tabular-nums">'+_cumulFmtWon(total)+'</div>'+
+          '<div style="font-size:15px;color:#64748b;font-weight:700;margin-left:2px">원</div>'+
+          yoyHtml+
+        '</div>'+
+        '<div style="font-size:11.5px;color:#64748b;font-weight:600;font-variant-numeric:tabular-nums;margin-top:4px">'+
+          (total||0).toLocaleString()+'원'+
+          (prevTotal > 0 ? ' · '+cmpLabelTxt+' '+_cumulFmtWon(prevTotal)+'원' : '')+
+        '</div>'+
+        // KPI 4개
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px">'+
+          miniKpi('월 평균',     _cumulFmtWon(avg)+'원',           item.color)+
+          miniKpi('총매출 비중', sharePct+'%',                     item.color)+
+          miniKpi('누적 건수',   totalCnt.toLocaleString()+'건',   item.color)+
+          miniKpi('조회 개월',   monthly.length+'개월',             item.color)+
+        '</div>'+
+        // 월별 추이 차트
+        '<div style="margin-top:20px;padding:16px 18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+            '<div style="font-size:10.5px;font-weight:700;color:#475569;letter-spacing:0.5px;text-transform:uppercase">월별 추이</div>'+
+            '<div style="font-size:10.5px;color:#94a3b8;font-weight:600">최대 '+_cumulFmtWon(Math.max.apply(null, monthly.map(function(m){return m.value;}).concat([0])))+'원</div>'+
+          '</div>'+
+          monthlyBarsHtml(monthly, item.color)+
+        '</div>'+
+        // 카테고리 설명
+        '<div style="margin-top:14px;padding:12px 14px;background:'+(item.bg||'#f8fafc')+';border-radius:10px;display:flex;align-items:flex-start;gap:8px">'+
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="'+item.color+'" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>'+
+          '<div style="font-size:11.5px;color:#334155;font-weight:600;line-height:1.5">'+(CUMUL_ITEM_DESC[itemKey] || '카테고리 설명 미정')+'</div>'+
+        '</div>'+
+      '</div>';
+
+    document.getElementById('cumul-item-detail-card').innerHTML = html;
+    document.getElementById('cumul-item-detail-overlay').style.display = 'flex';
+  }
+
+  function closeCumulItemDetail() {
+    var ov = document.getElementById('cumul-item-detail-overlay');
+    if (ov) ov.style.display = 'none';
+  }
+
+  // 전역 노출 (카드 onclick 에서 호출)
+  window.openCumulItemDetail  = openCumulItemDetail;
+  window.closeCumulItemDetail = closeCumulItemDetail;
 
   function toggleSalesDetailDrop(e) {
     e.stopPropagation();
