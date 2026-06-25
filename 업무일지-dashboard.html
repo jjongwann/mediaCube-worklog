@@ -9991,9 +9991,12 @@
   input[type="date"].soundteam-date::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.6); }
 </style>
 <script>
-  var ST_STATUS_NAME = { done:'완료', wip:'진행 중', issue:'이슈', hold:'보류', todo:'예정' };
-  var ST_STATUS_BG   = { done:'#f0fdf4', wip:'#eff6ff', issue:'#fdf4ff', hold:'#fffbeb', todo:'#f3f4f6' };
-  var ST_STATUS_CLR  = { done:'#16a34a', wip:'#2563eb', issue:'#9333ea', hold:'#d97706', todo:'#374151' };
+  var ST_STATUS_NAME = { done:'완료', wip:'진행 중', issue:'이슈', hold:'보류', todo:'예정',
+    sales:'영업활동', sales_existing:'영업활동(기존)', sales_new:'영업활동(신규)' };
+  var ST_STATUS_BG   = { done:'#f0fdf4', wip:'#eff6ff', issue:'#fdf4ff', hold:'#fffbeb', todo:'#f3f4f6',
+    sales:'#f5f3ff', sales_existing:'#ecfeff', sales_new:'#f5f3ff' };
+  var ST_STATUS_CLR  = { done:'#16a34a', wip:'#2563eb', issue:'#9333ea', hold:'#d97706', todo:'#374151',
+    sales:'#7c3aed', sales_existing:'#0891b2', sales_new:'#7c3aed' };
 
   function _stEsc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
