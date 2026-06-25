@@ -1625,7 +1625,7 @@
   <!-- 관리자 전용 섹션 -->
   <div id="admin-sidebar-section" style="display:none">
     <div class="sidebar-divider"></div>
-    <div class="sidebar-section">
+    <div class="sidebar-section" id="sidebar-dept-view-section">
       <div class="sidebar-section-label">사업부 보기</div>
       <div class="sidebar-item dept-toggle-item active" id="sidebar-dept-sound" onclick="setViewDept('sound')" title="사운드 컨텐츠 사업부">
         <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
@@ -3355,26 +3355,9 @@
       if (section) section.style.display = '';
       if (empBtn)  empBtn.style.display  = '';
       if (permBtn) permBtn.style.display = 'none';
-      // 부여받은 직원들의 부서만 토글 노출 (부서 직원 0명이면 해당 토글 숨김)
-      var permIds = _permMap[_userId] || [];
-      var hasSound  = permIds.some(function(id){
-        var u = ALL_USERS.find(function(x){ return x.id === id; });
-        return u && u.dept === '사운드컨텐츠사업부';
-      });
-      var hasSystem = permIds.some(function(id){
-        var u = ALL_USERS.find(function(x){ return x.id === id; });
-        return u && u.dept === '시스템 사업부';
-      });
-      var soundBtn0 = document.getElementById('sidebar-dept-sound');
-      var sysBtn0   = document.getElementById('sidebar-dept-system');
-      if (soundBtn0) soundBtn0.style.display = hasSound  ? '' : 'none';
-      if (sysBtn0)   sysBtn0.style.display   = hasSystem ? '' : 'none';
-      // 현재 활성 부서가 빈 부서면 자동 전환
-      if (!hasSound && _viewDeptKey === 'sound' && hasSystem) {
-        try { setViewDept('system'); } catch(e) {}
-      } else if (!hasSystem && _viewDeptKey === 'system' && hasSound) {
-        try { setViewDept('sound'); } catch(e) {}
-      }
+      // 권한 부여받은 직원에게는 "사업부 보기" 섹션 숨김 (관리자 전용)
+      var deptViewSection = document.getElementById('sidebar-dept-view-section');
+      if (deptViewSection) deptViewSection.style.display = 'none';
     } else {
       if (section) section.style.display = 'none';
     }
