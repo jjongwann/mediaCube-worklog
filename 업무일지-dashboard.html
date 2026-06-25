@@ -13920,13 +13920,20 @@ function openVendorMenu() {
     });
   }
 
-  // dept별 접근 권한 — 관리자 또는 해당 부서 소속
+  // 모든 부서 캘린더 접근 가능한 특별 권한 사용자 (관리자와 동일하게 양쪽 메뉴 노출)
+  // - developer: 임종완 주임 (개발팀이지만 부서 전체 일정 관리 권한)
+  var SCAL_ALLOW_ALL_USERNAMES = ['developer'];
+
+  // dept별 접근 권한 — 관리자 / 특별 권한 사용자 / 해당 부서 소속
   function _scalCanAccessDept(deptKey) {
     if (typeof _isAdmin !== 'undefined' && _isAdmin) return true;
     if (!_userId || typeof ALL_USERS === 'undefined') return false;
     var me = ALL_USERS.find(function(u){ return u.id === _userId; });
+    if (!me) return false;
+    // 특별 권한 사용자 — 모든 부서 캘린더 접근
+    if (SCAL_ALLOW_ALL_USERNAMES.indexOf(me.username) >= 0) return true;
     var meta = SCAL_DEPT_META[deptKey];
-    return !!(me && meta && me.dept === meta.deptKey);
+    return !!(meta && me.dept === meta.deptKey);
   }
   // 하위 호환: 기존 _scalCanAccess() 호출은 system 기준으로 동작
   function _scalCanAccess() { return _scalCanAccessDept('system'); }
