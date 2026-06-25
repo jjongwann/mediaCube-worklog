@@ -3355,14 +3355,34 @@
       if (section) section.style.display = '';
       if (empBtn)  empBtn.style.display  = '';
       if (permBtn) permBtn.style.display = 'none';
+      // 부여받은 직원들의 부서만 토글 노출 (부서 직원 0명이면 해당 토글 숨김)
+      var permIds = _permMap[_userId] || [];
+      var hasSound  = permIds.some(function(id){
+        var u = ALL_USERS.find(function(x){ return x.id === id; });
+        return u && u.dept === '사운드컨텐츠사업부';
+      });
+      var hasSystem = permIds.some(function(id){
+        var u = ALL_USERS.find(function(x){ return x.id === id; });
+        return u && u.dept === '시스템 사업부';
+      });
+      var soundBtn0 = document.getElementById('sidebar-dept-sound');
+      var sysBtn0   = document.getElementById('sidebar-dept-system');
+      if (soundBtn0) soundBtn0.style.display = hasSound  ? '' : 'none';
+      if (sysBtn0)   sysBtn0.style.display   = hasSystem ? '' : 'none';
+      // 현재 활성 부서가 빈 부서면 자동 전환
+      if (!hasSound && _viewDeptKey === 'sound' && hasSystem) {
+        try { setViewDept('system'); } catch(e) {}
+      } else if (!hasSystem && _viewDeptKey === 'system' && hasSound) {
+        try { setViewDept('sound'); } catch(e) {}
+      }
     } else {
       if (section) section.style.display = 'none';
     }
     // 전체 일지 열람 화이트리스트(sunlee 등) 사용자는 부서 무관 전체를 보므로
     // '시스템 사업부' 토글 노출 불필요 → 숨김 (관리자는 그대로 노출)
     if (!_isAdmin && JOURNAL_VIEW_ALL_USERNAMES.indexOf(_currentUsername) >= 0) {
-      var sysBtn = document.getElementById('sidebar-dept-system');
-      if (sysBtn) sysBtn.style.display = 'none';
+      var sysBtnW = document.getElementById('sidebar-dept-system');
+      if (sysBtnW) sysBtnW.style.display = 'none';
     }
   }
 
