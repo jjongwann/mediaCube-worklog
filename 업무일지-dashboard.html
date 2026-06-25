@@ -1590,7 +1590,7 @@
       업무 지시
       <span id="directive-badge" style="display:none;margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:700;border-radius:9px;min-width:17px;height:17px;line-height:17px;text-align:center;padding:0 4px"></span>
     </div>
-    <div class="sidebar-item" id="sidebar-sales-btn" onclick="openSalesActivityPanel()" title="영업 활동 모아보기">
+    <div class="sidebar-item" id="sidebar-sales-btn" onclick="openSalesActivityChooser()" title="영업 활동 모아보기">
       <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11h-6"/><path d="M19 8v6"/></svg></span>
       영업 활동
     </div>
@@ -15397,7 +15397,7 @@ function openVendorMenu() {
         { label: '업무 히스토리', desc: '과거 업무 항목 검색·필터',           icon: 'history',  fn: function(){ if (typeof openHistoryPanel==='function') openHistoryPanel(); } },
         { label: '업무 성과',     desc: '직원/카테고리별 성과 추적',           icon: 'trophy',   fn: function(){ if (typeof openAchievementPanel==='function') openAchievementPanel(); } },
         { label: '업무 지시',     desc: '관리자 지시·진행 상태',                icon: 'check2',   fn: function(){ if (typeof openDirectivePanel==='function') openDirectivePanel(); } },
-        { label: '영업 활동',     desc: '직원별 영업활동 모아보기',             icon: 'users',    fn: function(){ if (typeof openSalesActivityPanel==='function') openSalesActivityPanel(); } },
+        { label: '영업 활동',     desc: '직원별 영업활동 모아보기',             icon: 'users',    fn: function(){ if (typeof openSalesActivityChooser==='function') openSalesActivityChooser(); else if (typeof openSalesActivityPanel==='function') openSalesActivityPanel(); } },
         { label: '업무 공유 캘린더', desc: '부서별 일정 공유',                  icon: 'calendar', fn: function(){ if (typeof openSharedCalendarChooser==='function') openSharedCalendarChooser(); else if (typeof openSharedCalendar==='function') openSharedCalendar(); } }
       ]
     },
@@ -16250,7 +16250,7 @@ function openVendorMenu() {
     var ACTIONS = {
       'kpi-achievement': function(){ if (typeof openAchievementPanel==='function') openAchievementPanel(); },
       'kpi-emp':         function(){ var b = document.getElementById('sidebar-emp-btn'); if (b) b.click(); },
-      'kpi-sales':       function(){ if (typeof openSalesActivityPanel==='function') openSalesActivityPanel(); },
+      'kpi-sales':       function(){ if (typeof openSalesActivityChooser==='function') openSalesActivityChooser(); else if (typeof openSalesActivityPanel==='function') openSalesActivityPanel(); },
       'kpi-progress':    function(){
         // 음원팀 업무 현황 우선, 없으면 시스템팀, 둘 다 없으면 진행중 필터로 폴백
         if (typeof openSoundTeamPanel === 'function') openSoundTeamPanel();
@@ -16335,8 +16335,35 @@ function openVendorMenu() {
   var _salesCustomTo   = '';
   var _salesEmpFilter  = '';   // '' = 전체 직원, user_id = 특정
   var _salesTypeFilter = '';   // '' = 전체, 'existing', 'new'
+  var _salesDept       = 'sound'; // 현재 부서 컨텍스트 ('system' | 'sound')
   var _salesExpanded   = {};   // 직원별 펼침 상태: { uid: true } — 'all rows' 표시 여부
   var SALES_ROW_LIMIT  = 5;    // 기본 표시 행 수
+
+  // 부서 메타 (캘린더 SCAL_DEPT_META 와 동일 매핑)
+  var SALES_DEPT_META = {
+    system: { label: '시스템 사업부',         subtitle: 'AV·방송 시스템 영업',  deptKey: '시스템 사업부',     color: '#0891b2' },
+    sound:  { label: '사운드 컨텐츠 사업부',  subtitle: '음원·콘텐츠 영업',     deptKey: '사운드컨텐츠사업부', color: '#7c3aed' }
+  };
+  // 사용자 uid → dept key ('system'|'sound') 매핑
+  function _salesDeptOfUser(uid) {
+    if (!Array.isArray(ALL_USERS)) return null;
+    var u = ALL_USERS.find(function(x){ return x.id === uid; });
+    if (!u || !u.dept) return null;
+    if (u.dept === SALES_DEPT_META.system.deptKey) return 'system';
+    if (u.dept === SALES_DEPT_META.sound.deptKey)  return 'sound';
+    return null;
+  }
+  // 부서 접근 권한 (관리자/developer + 본인 소속 부서)
+  var SALES_ALLOW_ALL_USERNAMES = ['developer'];
+  function _salesCanAccessDept(deptKey) {
+    if (typeof _isAdmin !== 'undefined' && _isAdmin) return true;
+    if (!_userId || typeof ALL_USERS === 'undefined') return false;
+    var me = ALL_USERS.find(function(u){ return u.id === _userId; });
+    if (!me) return false;
+    if (SALES_ALLOW_ALL_USERNAMES.indexOf(me.username) >= 0) return true;
+    var meta = SALES_DEPT_META[deptKey];
+    return !!(meta && me.dept === meta.deptKey);
+  }
 
   // 로컬 시간대 기준 YMD 포맷터 (toISOString은 UTC라서 한국시간과 하루 어긋날 수 있음)
   function _salesYmd(d) {
@@ -16428,17 +16455,20 @@ function openVendorMenu() {
     var current = _salesEmpFilter;
     sel.innerHTML = '<option value="">전체 직원</option>';
     if (!Array.isArray(ALL_USERS)) return;
-    // 관리자(isAdmin=true) 제외하고 정렬 (부서 → 이름)
-    var list = ALL_USERS.filter(function(u){ return !u.isAdmin; }).slice().sort(function(a, b){
-      var da = (a.dept || ''), db = (b.dept || '');
-      if (da !== db) return da < db ? -1 : 1;
+    var deptMeta = SALES_DEPT_META[_salesDept];
+    // 관리자(isAdmin=true) 제외 + 현재 부서 컨텍스트 직원만 (부서 매핑 없으면 제외)
+    var list = ALL_USERS.filter(function(u){
+      if (u.isAdmin) return false;
+      if (!deptMeta) return true;
+      return u.dept === deptMeta.deptKey;
+    }).slice().sort(function(a, b){
       var na = (a.fullName || a.username || ''), nb = (b.fullName || b.username || '');
       return na < nb ? -1 : na > nb ? 1 : 0;
     });
     list.forEach(function(u){
       var opt = document.createElement('option');
       opt.value = u.id;
-      opt.textContent = (u.fullName || u.username) + (u.dept ? ' · ' + u.dept : '');
+      opt.textContent = (u.fullName || u.username);
       if (u.id === current) opt.selected = true;
       sel.appendChild(opt);
     });
@@ -16481,6 +16511,9 @@ function openVendorMenu() {
     allJ.forEach(function(j){
       if (range.from && j.date && j.date < range.from) return;
       if (range.to   && j.date && j.date > range.to)   return;
+      // 부서 컨텍스트 필터 — 작성자의 dept 와 일치하는 일지만
+      var jDept = _salesDeptOfUser(j.user_id);
+      if (_salesDept && jDept !== _salesDept) return;
       var tasks = Array.isArray(j.tasks) ? j.tasks : [];
       tasks.forEach(function(t){
         var st = t.status || (t.done ? 'done' : 'todo');
@@ -16575,12 +16608,14 @@ function openVendorMenu() {
 
     // 부제 + 기간 라벨
     var subEl = document.getElementById('sales-act-subtitle');
+    var deptMetaForSub = SALES_DEPT_META[_salesDept];
+    var deptPrefix = deptMetaForSub ? (deptMetaForSub.label + ' · ') : '';
     if (subEl) {
       if (isAdmin) {
         if (_salesEmpFilter) {
           var pm = _salesUserMeta(_salesEmpFilter);
-          subEl.textContent = pm.fullName + (pm.dept ? ' · ' + pm.dept : '') + ' — 영업 활동';
-        } else subEl.textContent = '직원별 영업 활동 모아보기';
+          subEl.textContent = deptPrefix + pm.fullName + ' — 영업 활동';
+        } else subEl.textContent = deptPrefix + '직원별 영업 활동 모아보기';
       } else {
         var me = _salesUserMeta(myId);
         subEl.textContent = me.fullName + (me.dept ? ' · ' + me.dept : '') + ' — 내 영업 활동';
@@ -16748,7 +16783,20 @@ function openVendorMenu() {
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  function openSalesActivityPanel() {
+  function openSalesActivityPanel(deptArg) {
+    var dept = (deptArg === 'system') ? 'system' : 'sound';
+    if (!_salesCanAccessDept(dept)) {
+      var m0 = SALES_DEPT_META[dept];
+      alert('이 메뉴는 ' + (m0 ? m0.label : '해당 부서') + ' 직원 전용입니다.');
+      return;
+    }
+    // 부서 컨텍스트 전환 → 필터/펼침 상태 리셋 (다른 부서 잔여 데이터 방지)
+    if (_salesDept !== dept) {
+      _salesEmpFilter = '';
+      _salesTypeFilter = '';
+      _salesExpanded = {};
+    }
+    _salesDept = dept;
     _ensureSalesOverlay();
     var ov = document.getElementById('sales-activity-overlay');
     if (!ov) return;
@@ -16759,8 +16807,105 @@ function openVendorMenu() {
     var ov = document.getElementById('sales-activity-overlay');
     if (ov) ov.style.display = 'none';
   }
-  window.openSalesActivityPanel = openSalesActivityPanel;
-  window.closeSalesActivityPanel = closeSalesActivityPanel;
+
+  // ── 부서 선택 chooser 모달 ──
+  function _ensureSalesChooserOverlay() {
+    if (document.getElementById('sales-chooser-overlay')) return;
+    var div = document.createElement('div');
+    div.id = 'sales-chooser-overlay';
+    div.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:10010;align-items:center;justify-content:center;padding:24px';
+    div.onclick = function(e){ if (e.target === this) _salesCloseChooser(); };
+
+    var CARDS = [
+      { dept: 'system', title: '시스템 사업부',         subtitle: 'AV·방송 시스템 영업',
+        color: '#0891b2', gradFrom: '#0891b2', gradTo: '#0e7490',
+        icon: '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>' },
+      { dept: 'sound',  title: '사운드 컨텐츠 사업부',  subtitle: '음원·콘텐츠 영업',
+        color: '#7c3aed', gradFrom: '#7c3aed', gradTo: '#6d28d9',
+        icon: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>' }
+    ];
+
+    var inner = ''+
+      '<div style="width:100%;max-width:640px;background:#fff;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,0.3);overflow:hidden;font-family:inherit">'+
+        '<div style="padding:18px 22px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#475569,#1e293b);color:#fff">'+
+          '<div>'+
+            '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:#cbd5e1">SELECT DEPARTMENT</div>'+
+            '<div style="font-size:16px;font-weight:800;margin-top:2px;letter-spacing:-0.3px">영업 활동 부서 선택</div>'+
+          '</div>'+
+          '<button onclick="_salesCloseChooser()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:background .15s" onmouseover="this.style.background=\'rgba(255,255,255,0.28)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'">×</button>'+
+        '</div>'+
+        '<div id="sales-chooser-cards" style="padding:22px;display:grid;grid-template-columns:1fr 1fr;gap:14px"></div>'+
+      '</div>';
+    div.innerHTML = inner;
+    document.body.appendChild(div);
+
+    var box = div.querySelector('#sales-chooser-cards');
+    CARDS.forEach(function(c){
+      var canAccess = _salesCanAccessDept(c.dept);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.disabled = !canAccess;
+      var grad = 'linear-gradient(135deg,'+c.gradFrom+','+c.gradTo+')';
+      btn.style.cssText = 'position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:22px 20px 20px;background:#fff;border:2px solid #e2e8f0;border-radius:14px;cursor:'+(canAccess?'pointer':'not-allowed')+';text-align:left;font-family:inherit;transition:transform .18s,box-shadow .18s,border-color .18s;overflow:hidden;opacity:'+(canAccess?'1':'0.45');
+      if (canAccess) {
+        btn.onmouseover = function(){
+          this.style.transform = 'translateY(-3px)';
+          this.style.boxShadow = '0 12px 28px '+c.color+'33';
+          this.style.borderColor = c.color;
+        };
+        btn.onmouseout = function(){
+          this.style.transform = '';
+          this.style.boxShadow = '';
+          this.style.borderColor = '#e2e8f0';
+        };
+        btn.onclick = function(){
+          _salesCloseChooser();
+          setTimeout(function(){ openSalesActivityPanel(c.dept); }, 80);
+        };
+      }
+      btn.innerHTML = ''+
+        '<div style="position:absolute;top:0;right:0;width:90px;height:90px;background:'+grad+';opacity:0.08;border-radius:0 0 0 90px;pointer-events:none"></div>'+
+        '<div style="width:48px;height:48px;border-radius:12px;background:'+grad+';display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px '+c.color+'55;color:#fff">'+
+          '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+c.icon+'</svg>'+
+        '</div>'+
+        '<div style="font-size:14.5px;font-weight:800;color:#0f172a;letter-spacing:-0.3px;margin-top:2px">'+c.title+'</div>'+
+        '<div style="font-size:11.5px;color:#64748b;font-weight:500;line-height:1.4">'+c.subtitle+'</div>'+
+        '<div style="margin-top:auto;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:'+c.color+';letter-spacing:-0.1px">'+
+          '<span>'+(canAccess ? '영업 활동 보기' : '권한 없음')+'</span>'+
+          (canAccess ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>' : '')+
+        '</div>';
+      box.appendChild(btn);
+    });
+  }
+  function _salesShowChooser() {
+    _ensureSalesChooserOverlay();
+    var ov = document.getElementById('sales-chooser-overlay');
+    if (ov) ov.style.display = 'flex';
+  }
+  function _salesCloseChooser() {
+    var ov = document.getElementById('sales-chooser-overlay');
+    if (ov) ov.style.display = 'none';
+  }
+
+  // 라우터: 두 부서 모두 접근 가능하면 chooser, 한 부서만이면 바로 진입
+  function openSalesActivityChooser() {
+    var canSys = _salesCanAccessDept('system');
+    var canSnd = _salesCanAccessDept('sound');
+    if (canSys && canSnd) {
+      _salesShowChooser();
+    } else if (canSys) {
+      openSalesActivityPanel('system');
+    } else if (canSnd) {
+      openSalesActivityPanel('sound');
+    } else {
+      alert('영업 활동에 접근할 권한이 없습니다.');
+    }
+  }
+
+  window.openSalesActivityPanel    = openSalesActivityPanel;
+  window.openSalesActivityChooser  = openSalesActivityChooser;
+  window._salesCloseChooser        = _salesCloseChooser;
+  window.closeSalesActivityPanel   = closeSalesActivityPanel;
 })();
 </script>
 </body>
