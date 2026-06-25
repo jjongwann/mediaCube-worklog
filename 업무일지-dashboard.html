@@ -3358,6 +3358,12 @@
     } else {
       if (section) section.style.display = 'none';
     }
+    // 전체 일지 열람 화이트리스트(sunlee 등) 사용자는 부서 무관 전체를 보므로
+    // '시스템 사업부' 토글 노출 불필요 → 숨김 (관리자는 그대로 노출)
+    if (!_isAdmin && JOURNAL_VIEW_ALL_USERNAMES.indexOf(_currentUsername) >= 0) {
+      var sysBtn = document.getElementById('sidebar-dept-system');
+      if (sysBtn) sysBtn.style.display = 'none';
+    }
   }
 
   /* ── 권한 모달 ── */
