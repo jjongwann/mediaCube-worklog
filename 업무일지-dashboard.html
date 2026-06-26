@@ -3583,6 +3583,8 @@
       document.getElementById('emp-task-time-section').style.display = 'none';
     } else {
       adminEmpFilter = uid;
+      // 새 직원 선택 시 디폴트 = 오늘
+      _empTaskSetPreset('today', /*skipRender*/ true);
       renderEmpTaskTimeChart(uid);
     }
     renderAdminStats();
@@ -3592,6 +3594,10 @@
   // 직원별 업무 시간 차트의 기간 필터 상태 ('' = 전체, 'YYYY-MM-DD' = 시작/종료일)
   var _empTaskStartDate = '';
   var _empTaskEndDate = '';
+  // 활성 프리셋: 'today' | 'week' | 'month' | 'all' | 'custom'
+  var _empTaskPreset = 'today';
+  // 사용자 지정 입력 펼침 여부
+  var _empTaskCustomOpen = false;
 
   function setEmpTaskDateRange(start, end) {
     _empTaskStartDate = start || '';
@@ -3602,11 +3608,40 @@
   function applyEmpTaskDateRange() {
     var s = document.getElementById('emp-task-start-date');
     var e = document.getElementById('emp-task-end-date');
+    _empTaskPreset = 'custom';
     setEmpTaskDateRange(s ? s.value : '', e ? e.value : '');
   }
 
-  function clearEmpTaskDateRange() {
-    setEmpTaskDateRange('', '');
+  function _empTaskSetPreset(key, skipRender) {
+    _empTaskPreset = key;
+    _empTaskCustomOpen = false;
+    var now = new Date();
+    var pad = function(n){ return String(n).padStart(2,'0'); };
+    var ymd = function(d){ return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); };
+    if (key === 'today') {
+      var t = ymd(now);
+      _empTaskStartDate = t; _empTaskEndDate = t;
+    } else if (key === 'week') {
+      // 이번 주: 월요일 ~ 일요일
+      var day = now.getDay(); // 0=일,1=월,...
+      var diff = day === 0 ? -6 : 1 - day;
+      var ws = new Date(now); ws.setDate(now.getDate() + diff);
+      var we = new Date(ws); we.setDate(ws.getDate() + 6);
+      _empTaskStartDate = ymd(ws); _empTaskEndDate = ymd(we);
+    } else if (key === 'month') {
+      var y = now.getFullYear(), m = now.getMonth();
+      var ms = new Date(y, m, 1);
+      var me = new Date(y, m+1, 0);
+      _empTaskStartDate = ymd(ms); _empTaskEndDate = ymd(me);
+    } else if (key === 'all') {
+      _empTaskStartDate = ''; _empTaskEndDate = '';
+    }
+    if (!skipRender && adminEmpFilter) renderEmpTaskTimeChart(adminEmpFilter);
+  }
+
+  function _empTaskToggleCustom() {
+    _empTaskCustomOpen = !_empTaskCustomOpen;
+    if (adminEmpFilter) renderEmpTaskTimeChart(adminEmpFilter);
   }
 
   // 직원별 업무 시간 차트 페이지네이션 상태
@@ -3674,18 +3709,50 @@
     var section = document.getElementById('emp-task-time-section');
     var content = document.getElementById('emp-tts-content');
 
-    // 기간 필터 (시작일 ~ 종료일) UI — 데이터 유무 무관 항상 표시
+    // 기간 필터 UI — 프리셋 칩 + 사용자 지정 토글
     var hasRange = !!(sDate || eDate);
-    var inputStyle = 'border:none;background:transparent;font-size:12.5px;font-weight:600;color:#0f172a;outline:none;padding:0;font-family:inherit;cursor:pointer;font-feature-settings:"tnum"';
-    var applyBtnStyle = 'padding:5px 14px;border:none;border-radius:7px;font-size:12px;font-weight:700;background:#2563eb;color:#fff;cursor:pointer;font-family:inherit;letter-spacing:0.2px;transition:background 0.12s';
-    var clearBtnStyle = 'padding:5px 10px;border:none;border-radius:7px;font-size:12px;font-weight:600;background:transparent;color:#64748b;cursor:pointer;font-family:inherit;transition:background 0.12s,color 0.12s';
-    var rangeHtml = '<div style="display:inline-flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:4px 5px 4px 12px;transition:border-color 0.12s,box-shadow 0.12s" onmouseover="this.style.borderColor=\'#cbd5e1\';this.style.boxShadow=\'0 1px 3px rgba(15,23,42,0.05)\'" onmouseout="this.style.borderColor=\'#e2e8f0\';this.style.boxShadow=\'none\'">'
-      + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'
-      + '<input type="date" id="emp-task-start-date" value="' + sDate + '" style="' + inputStyle + '">'
-      + '<span style="color:#94a3b8;font-size:13px;font-weight:500">~</span>'
-      + '<input type="date" id="emp-task-end-date" value="' + eDate + '" style="' + inputStyle + '">'
-      + '<button onclick="applyEmpTaskDateRange()" style="' + applyBtnStyle + '" onmouseover="this.style.background=\'#1d4ed8\'" onmouseout="this.style.background=\'#2563eb\'">조회</button>'
-      + (hasRange ? '<button onclick="clearEmpTaskDateRange()" style="' + clearBtnStyle + '" onmouseover="this.style.background=\'#e2e8f0\';this.style.color=\'#374151\'" onmouseout="this.style.background=\'transparent\';this.style.color=\'#64748b\'">초기화</button>' : '')
+    // input의 기본 캘린더 아이콘 숨김 (전체 영역 클릭 시 picker 열림)
+    if (!document.getElementById('emp-date-style')) {
+      var _eds = document.createElement('style');
+      _eds.id = 'emp-date-style';
+      _eds.textContent = '#emp-task-start-date::-webkit-calendar-picker-indicator,#emp-task-end-date::-webkit-calendar-picker-indicator{opacity:0;position:absolute;left:0;top:0;width:100%;height:100%;cursor:pointer;margin:0;padding:0}#emp-task-start-date,#emp-task-end-date{position:relative}';
+      document.head.appendChild(_eds);
+    }
+    var PRESETS = [
+      { key: 'today', label: '오늘' },
+      { key: 'week',  label: '이번 주' },
+      { key: 'month', label: '이번 달' },
+      { key: 'all',   label: '전체' }
+    ];
+    var chipBase = 'padding:5px 13px;border:1px solid;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.12s;line-height:1.2';
+    var chipOn   = 'background:#7c3aed;color:#fff;border-color:#7c3aed';
+    var chipOff  = 'background:#fff;color:#475569;border-color:#e2e8f0';
+    var chipsHtml = PRESETS.map(function(p){
+      var on = (_empTaskPreset === p.key);
+      return '<button onclick="_empTaskSetPreset(\'' + p.key + '\')" style="' + chipBase + ';' + (on ? chipOn : chipOff) + '"'
+        + (on ? '' : ' onmouseover="this.style.background=\'#f1f5f9\';this.style.borderColor=\'#cbd5e1\'" onmouseout="this.style.background=\'#fff\';this.style.borderColor=\'#e2e8f0\'"')
+        + '>' + p.label + '</button>';
+    }).join('');
+    var customOn = (_empTaskPreset === 'custom' || _empTaskCustomOpen);
+    var customBtn = '<button onclick="_empTaskToggleCustom()" style="' + chipBase + ';display:inline-flex;align-items:center;gap:5px;' + (customOn ? chipOn : chipOff) + '"'
+      + (customOn ? '' : ' onmouseover="this.style.background=\'#f1f5f9\';this.style.borderColor=\'#cbd5e1\'" onmouseout="this.style.background=\'#fff\';this.style.borderColor=\'#e2e8f0\'"')
+      + '><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'
+      + '기간 지정</button>';
+
+    var inputStyle = 'border:none;background:transparent;font-size:12.5px;font-weight:600;color:#0f172a;outline:none;padding:0;font-family:inherit;cursor:pointer;font-feature-settings:"tnum";min-width:108px';
+    var applyBtnStyle = 'padding:4px 12px;border:none;border-radius:6px;font-size:11.5px;font-weight:700;background:#7c3aed;color:#fff;cursor:pointer;font-family:inherit;letter-spacing:0.2px;transition:background 0.12s';
+    var customForm = (_empTaskCustomOpen || _empTaskPreset === 'custom')
+      ? '<div style="display:inline-flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:4px 5px 4px 12px">'
+        + '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'
+        + '<input type="date" id="emp-task-start-date" value="' + sDate + '" style="' + inputStyle + '">'
+        + '<span style="color:#94a3b8;font-size:13px;font-weight:500">~</span>'
+        + '<input type="date" id="emp-task-end-date" value="' + eDate + '" style="' + inputStyle + '">'
+        + '<button onclick="applyEmpTaskDateRange()" style="' + applyBtnStyle + '" onmouseover="this.style.background=\'#6d28d9\'" onmouseout="this.style.background=\'#7c3aed\'">조회</button>'
+        + '</div>'
+      : '';
+
+    var rangeHtml = '<div style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap">'
+      + chipsHtml + customBtn + customForm
       + '</div>';
 
     if (!taskList.length) {
