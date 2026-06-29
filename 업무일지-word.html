@@ -1847,6 +1847,38 @@
                   style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;transition:border-color .12s" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
                 <div style="font-size:10px;color:#94a3b8;margin-top:4px">매출이 어디에서 발생했는지 입력 (선택). 같은 발생처끼리 묶어서 조회할 수 있습니다.</div>
               </div>
+              <!-- 시스템 사업부 전용 입력 (sys_* 진입 시에만 노출) -->
+              <div id="risk-newvendor-sys-wrap" style="display:none">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                  <div>
+                    <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">납품 날짜</label>
+                    <input type="date" id="risk-newvendor-sys-delivery-date" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                  </div>
+                  <div>
+                    <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">계산서 날짜 <span style="font-size:10px;font-weight:500;color:#2563eb">* 매출월 기준</span></label>
+                    <input type="date" id="risk-newvendor-sys-invoice-date" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                  </div>
+                </div>
+                <div style="margin-top:10px">
+                  <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">시리얼 넘버</label>
+                  <input type="text" id="risk-newvendor-sys-serial" placeholder="예: SN-2026-001" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+                  <div>
+                    <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">발주처</label>
+                    <input type="text" id="risk-newvendor-sys-order-from" placeholder="발주한 곳" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                  </div>
+                  <div>
+                    <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">납품처</label>
+                    <input type="text" id="risk-newvendor-sys-delivery-to" placeholder="납품받은 곳" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                  </div>
+                </div>
+                <div style="margin-top:10px">
+                  <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">기타</label>
+                  <textarea id="risk-newvendor-sys-note" placeholder="특이 사항 / 메모" rows="2" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;resize:vertical;font-family:inherit" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+                </div>
+                <div style="font-size:10px;color:#94a3b8;margin-top:6px">시스템 사업부 매출은 계산서 날짜의 YYYY-월을 매출월로 자동 설정합니다.</div>
+              </div>
               <!-- 부속 매출 (NEEDLE/유료 블랭킷 → 선곡 수수료 → song / CMO → 협회 수수료 → fee) -->
               <div id="risk-newvendor-song-wrap" style="display:none">
                 <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">
@@ -3385,6 +3417,18 @@
       if (amtWrap) amtWrap.style.display = isFreeBlanket ? 'none' : '';
       if (freeNote) freeNote.style.display = isFreeBlanket ? 'block' : 'none';
 
+      // 시스템 사업부 분기: 등록일/건수 숨김 + 시스템 전용 필드 노출
+      var isSysCatRisk = (dbCat && dbCat.indexOf('sys_') === 0);
+      var sysWrap = document.getElementById('risk-newvendor-sys-wrap');
+      var regWrap = document.getElementById('risk-newvendor-regdate');
+      if (regWrap && regWrap.parentElement) regWrap.parentElement.style.display = isSysCatRisk ? 'none' : '';
+      if (sysWrap) sysWrap.style.display = isSysCatRisk ? '' : 'none';
+      // 시스템 전용 필드 초기화
+      ['risk-newvendor-sys-delivery-date','risk-newvendor-sys-invoice-date','risk-newvendor-sys-serial','risk-newvendor-sys-order-from','risk-newvendor-sys-delivery-to','risk-newvendor-sys-note'].forEach(function(id){ var el = document.getElementById(id); if (el) el.value = ''; });
+      // 시스템: 건수 input 숨김
+      var cntCell = document.getElementById('risk-newvendor-count');
+      if (cntCell && cntCell.parentElement) cntCell.parentElement.style.display = isSysCatRisk ? 'none' : '';
+
       // 부속 매출 입력 (needle/blanket_paid → 선곡 수수료 / cmo → 협회 수수료)
       var subMeta = _riskSubMetaFor(dbCat);
       var songWrap = document.getElementById('risk-newvendor-song-wrap');
@@ -3523,6 +3567,19 @@
         subAmount = parseInt(songRaw, 10);
         if (isNaN(subAmount) || subAmount < 0) subAmount = 0;
       }
+      // 시스템 사업부 전용 입력값 (vendor_sales.extra 에 저장)
+      var isSysCatSave = (_riskVendorDbCat && _riskVendorDbCat.indexOf('sys_') === 0);
+      var sysExtraSave = null;
+      if (isSysCatSave) {
+        var _rg = function(id){ var el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
+        sysExtraSave = {};
+        var dDate = _rg('risk-newvendor-sys-delivery-date'); if (dDate) sysExtraSave.delivery_date = dDate;
+        var iDate = _rg('risk-newvendor-sys-invoice-date');  if (iDate) sysExtraSave.invoice_date = iDate;
+        var sNo   = _rg('risk-newvendor-sys-serial');        if (sNo)   sysExtraSave.serial_no = sNo;
+        var oFrom = _rg('risk-newvendor-sys-order-from');    if (oFrom) sysExtraSave.order_from = oFrom;
+        var dTo   = _rg('risk-newvendor-sys-delivery-to');   if (dTo)   sysExtraSave.delivery_to = dTo;
+        var note  = _rg('risk-newvendor-sys-note');          if (note)  sysExtraSave.note = note;
+      }
       // 신규 등록일 → created_at (비어있으면 오늘). 대시보드 거래처별 매출 분석의 등록일 입력과 동일 의미.
       var regVal = ((document.getElementById('risk-newvendor-regdate') || {}).value || '').trim();
       var createdAtIso = (function(){
@@ -3535,6 +3592,14 @@
 
       var dbCat = _riskVendorDbCat;
       var monthKey = year + '-' + month;
+      // 시스템 사업부: invoice_date 가 입력되면 month_key 를 invoice_date 의 YYYY-M 으로 자동 설정
+      if (isSysCatSave && sysExtraSave && sysExtraSave.invoice_date) {
+        var parts = sysExtraSave.invoice_date.split('-');
+        if (parts.length >= 2) {
+          var iy = parseInt(parts[0], 10), im = parseInt(parts[1], 10);
+          if (iy && im) monthKey = iy + '-' + im;
+        }
+      }
       var saveBtn = document.getElementById('risk-newvendor-save-btn');
       var origBtnText = saveBtn.textContent;
       saveBtn.disabled = true; saveBtn.textContent = '저장 중...';
@@ -3549,7 +3614,8 @@
         .then(function(r){ if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
         .then(function(rows){
           var activeFlag = _riskNewVendorActive !== false;
-          var existing = (Array.isArray(rows) && rows.length > 0) ? rows[0] : null;
+          // 시스템 사업부: 동일 (name, monthKey) 라도 계산서가 다르므로 항상 신규 POST
+          var existing = isSysCatSave ? null : ((Array.isArray(rows) && rows.length > 0) ? rows[0] : null);
           if (existing) {
             var newAmount = (existing.amount || 0) + amount;
             // 기존 extra 모든 필드(manager/source/count 등) 보존 후 active/source 갱신
@@ -3571,7 +3637,12 @@
             newRowId = _genVendorId();
             var initExtra = { active: activeFlag, created_at: createdAtIso };
             if (source) initExtra.source = source;
-            if (count > 0) initExtra.count = count;
+            // 시스템 사업부 전용 필드 병합 (건수는 시스템에선 사용 안 함)
+            if (sysExtraSave) {
+              Object.assign(initExtra, sysExtraSave);
+            } else if (count > 0) {
+              initExtra.count = count;
+            }
             var row = {
               id: newRowId,
               category: dbCat,

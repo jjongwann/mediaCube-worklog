@@ -11946,6 +11946,10 @@
         <select id="vendor-needle-manager" onchange="__vendor.render()" title="담당자 조회" style="padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none"></select>
         <select id="vendor-needle-typecat-filter" onchange="__vendor.render()" title="매출 유형 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none"></select>
         <select id="vendor-needle-source" onchange="__vendor.render()" title="매출 발생처 조회" style="padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
+        <!-- 시스템 사업부 전용 필터 셀렉트 (시리얼 / 발주처 / 납품처 별 조회) — 다른 카드에서는 자동 숨김 -->
+        <select id="vendor-needle-sys-serial-filter" onchange="__vendor.render()" title="시리얼 넘버 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
+        <select id="vendor-needle-sys-orderfrom-filter" onchange="__vendor.render()" title="발주처 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
+        <select id="vendor-needle-sys-deliveryto-filter" onchange="__vendor.render()" title="납품처 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
         <select id="vendor-needle-song-filter" onchange="__vendor.render()" title="선곡료 보유 여부 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none">
           <option value="">선곡료 전체</option>
           <option value="has">선곡료 있는 거래처</option>
@@ -12196,17 +12200,17 @@
         <button onclick="__vendor.deleteVendor()" style="padding:6px 12px;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">전체 삭제</button>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
-        <label style="font-size:11px;font-weight:700;color:#475569;width:48px;flex-shrink:0">담당자</label>
+        <label style="font-size:11px;font-weight:700;color:#475569;width:64px;flex-shrink:0">담당자</label>
         <select id="vendor-edit-manager" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none;background:#fff" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'"></select>
       </div>
       <div id="vendor-edit-regdate-row" style="display:flex;align-items:center;gap:10px">
-        <label style="font-size:11px;font-weight:700;color:#475569;width:48px;flex-shrink:0">등록일</label>
+        <label style="font-size:11px;font-weight:700;color:#475569;width:64px;flex-shrink:0">등록일</label>
         <input type="date" id="vendor-edit-regdate" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
         <span style="font-size:10px;color:#94a3b8;flex-shrink:0">신규 고객 1년 기준</span>
       </div>
       <!-- 매출 발생처 (선택 입력) -->
       <div style="display:flex;align-items:center;gap:10px;position:relative">
-        <label style="font-size:11px;font-weight:700;color:#475569;width:48px;flex-shrink:0">매출 발생처</label>
+        <label style="font-size:11px;font-weight:700;color:#475569;width:64px;flex-shrink:0;white-space:nowrap">매출 발생처</label>
         <div style="flex:1;position:relative">
           <input type="text" id="vendor-edit-source" autocomplete="off" placeholder="예: 광고 / 방송사 / 프로젝트명 등 (선택)"
             oninput="__vendor._onEditSourceInput()"
@@ -12220,7 +12224,7 @@
           <div id="vendor-edit-source-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);max-height:180px;overflow-y:auto;z-index:100"></div>
         </div>
       </div>
-      <!-- 시스템 사업부 전용 메타 블록 (sys_* 진입 시에만 노출) — 저장 시 해당 연도의 모든 월 row 의 extra 에 동기화 -->
+      <!-- 시스템 사업부 전용 메타 블록 (sys_* 진입 시에만 노출) — 계산서 날짜는 매출 목록 row 에 있음 -->
       <div id="vendor-edit-sys-block" style="display:none;flex-direction:column;gap:8px;padding-top:8px;border-top:1px dashed #cbd5e1">
         <div style="font-size:10.5px;font-weight:700;color:#2563eb;letter-spacing:0.3px">시스템 사업부 전용</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -12229,13 +12233,9 @@
             <input type="date" id="vendor-edit-sys-delivery-date" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none">
           </div>
           <div style="display:flex;align-items:center;gap:8px">
-            <label style="font-size:10.5px;font-weight:600;color:#475569;width:64px;flex-shrink:0">계산서 날짜</label>
-            <input type="date" id="vendor-edit-sys-invoice-date" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none">
+            <label style="font-size:10.5px;font-weight:600;color:#475569;width:64px;flex-shrink:0">시리얼 번호</label>
+            <input type="text" id="vendor-edit-sys-serial" placeholder="예: SN-2026-001" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none">
           </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <label style="font-size:10.5px;font-weight:600;color:#475569;width:64px;flex-shrink:0">시리얼 번호</label>
-          <input type="text" id="vendor-edit-sys-serial" placeholder="예: SN-2026-001" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -12251,7 +12251,9 @@
           <label style="font-size:10.5px;font-weight:600;color:#475569;width:64px;flex-shrink:0;padding-top:5px">기타</label>
           <textarea id="vendor-edit-sys-note" placeholder="특이 사항 / 메모" rows="2" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none;resize:vertical;font-family:inherit"></textarea>
         </div>
-        <div style="font-size:10px;color:#94a3b8">이 필드들은 ' + 신규 거래처 추가' 시 입력한 값과 동일하게 처리됩니다.</div>
+        <div style="font-size:10px;color:#94a3b8">계산서 날짜는 아래 [매출 목록] 의 각 row 에서 별도로 입력합니다.</div>
+        <!-- 호환용: invoice_date 는 sysFieldDelta 에 포함되지 않도록 dummy hidden 유지 -->
+        <input type="hidden" id="vendor-edit-sys-invoice-date" value="">
       </div>
     </div>
     <div style="flex:1;overflow-y:auto;padding:14px 24px">
@@ -13625,9 +13627,44 @@ window.__vendor = (function() {
       }
     }
 
+    // 시스템 사업부 전용 셀렉트 (시리얼/발주처/납품처)
+    var sysSerialSel = document.getElementById('vendor-needle-sys-serial-filter');
+    var sysOrderSel  = document.getElementById('vendor-needle-sys-orderfrom-filter');
+    var sysDelivSel  = document.getElementById('vendor-needle-sys-deliveryto-filter');
+    var sysSerialFilter = '';
+    var sysOrderFilter  = '';
+    var sysDelivFilter  = '';
+    var isSysCatSearch = (_CAT_DEPT[cat] === 'system');
+    if (isSysCatSearch) {
+      // 옵션 동적 채우기 — 해당 카테고리 row 들에서 unique 값 수집
+      var collectField = function(field){
+        var seen = {};
+        _state.rows.forEach(function(r){
+          if (r.category !== cat) return;
+          if (r.extra && r.extra[field]) seen[r.extra[field]] = true;
+        });
+        return Object.keys(seen).sort(function(a,b){ return a.localeCompare(b, 'ko'); });
+      };
+      var fillSel = function(sel, opts, allLabel){
+        if (!sel) return;
+        var prev = sel.value;
+        sel.innerHTML = '<option value="">' + allLabel + '</option>' + opts.map(function(s){ return '<option value="' + _esc(s) + '">' + _esc(s) + '</option>'; }).join('');
+        sel.value = (prev && opts.indexOf(prev) !== -1) ? prev : '';
+        sel.style.display = '';
+      };
+      fillSel(sysSerialSel, collectField('serial_no'),    '시리얼 전체');
+      fillSel(sysOrderSel,  collectField('order_from'),   '발주처 전체');
+      fillSel(sysDelivSel,  collectField('delivery_to'),  '납품처 전체');
+      sysSerialFilter = sysSerialSel ? sysSerialSel.value : '';
+      sysOrderFilter  = sysOrderSel  ? sysOrderSel.value  : '';
+      sysDelivFilter  = sysDelivSel  ? sysDelivSel.value  : '';
+    } else {
+      if (sysSerialSel) { sysSerialSel.style.display = 'none'; sysSerialSel.value = ''; }
+      if (sysOrderSel)  { sysOrderSel.style.display  = 'none'; sysOrderSel.value  = ''; }
+      if (sysDelivSel)  { sysDelivSel.style.display  = 'none'; sysDelivSel.value  = ''; }
+    }
     // 검색 + 담당자 필터 + (song/fee 카드) 매출 유형 필터
     // 시스템 사업부: 거래처명 외에도 시리얼/발주처/납품처/기타/계산서날짜/납품날짜/매출발생처 까지 매칭
-    var isSysCatSearch = (_CAT_DEPT[cat] === 'system');
     var allVendorsAfterFilter = Object.keys(byVendor).filter(function(n){
       if (searchQ) {
         var nameMatch = n.toLowerCase().indexOf(searchQ) !== -1;
@@ -13650,6 +13687,17 @@ window.__vendor = (function() {
       if (isSubCard && typeCatFilter) {
         var sourceCats = _sourceCatsForSubVendor(n, cat);
         if (sourceCats.indexOf(typeCatFilter) < 0) return false;
+      }
+      // 시스템 사업부 셀렉트 필터 — 해당 거래처의 row 중 하나라도 해당 값을 가지면 통과
+      if (isSysCatSearch && (sysSerialFilter || sysOrderFilter || sysDelivFilter)) {
+        var rowsOfV2 = _state.rows.filter(function(r){ return r.category === cat && r.vendor_name === n; });
+        var matches = function(field, target){
+          if (!target) return true;
+          return rowsOfV2.some(function(r){ return (r.extra || {})[field] === target; });
+        };
+        if (!matches('serial_no', sysSerialFilter)) return false;
+        if (!matches('order_from', sysOrderFilter)) return false;
+        if (!matches('delivery_to', sysDelivFilter)) return false;
       }
       return true;
     });
@@ -13800,12 +13848,12 @@ window.__vendor = (function() {
     var hasPrev = prevRangeKeys.length === monthsCount && prevFromIdx >= 0;
     var isFreeBlanket = (cat === 'blanket_free');
     var isSysCardRow = (_CAT_DEPT[cat] === 'system');
-    // 시스템 사업부: '건 수' 제거 + '계산서 날짜' + '시리얼 넘버' 컬럼 추가
+    // 시스템 사업부: '건 수' 제거 + '계산서 날짜' / '시리얼 넘버' / '납품 날짜' / '발주처' / '납품처' 컬럼 추가
     // 매출 발생처 컬럼 추가 (거래처명 옆) — 무료 BLANKET 도 동일하게 노출
     var gridCols = isFreeBlanket
       ? '32px 1fr 1fr 80px 28px'
       : (isSysCardRow
-          ? '32px 1.3fr 1fr 100px 130px 1fr 1.1fr 90px 28px'
+          ? '32px 1.2fr 0.9fr 100px 120px 100px 100px 100px 1fr 90px 28px'
           : (hasSongCol
               ? '32px 1.3fr 1fr 70px 1fr 0.9fr 1.1fr 90px 28px'
               : '32px 1.3fr 1fr 70px 1fr 1.1fr 90px 28px'));
@@ -13817,7 +13865,7 @@ window.__vendor = (function() {
     var headerCells = isFreeBlanket
       ? '<div>#</div><div>거래처명</div><div>매출 발생처</div><div style="text-align:center">상태</div><div></div>'
       : (isSysCardRow
-          ? '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="color:#2563eb">시리얼 넘버</div><div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'
+          ? '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="color:#2563eb">시리얼 넘버</div><div style="text-align:center;color:#2563eb">납품 날짜</div><div style="color:#2563eb">발주처</div><div style="color:#2563eb">납품처</div><div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div></div>'
           : (hasSongCol
               ? '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="text-align:right">기간 합계</div><div style="text-align:right;color:' + renderSubMeta.color + '">' + renderSubMeta.targetLabel + '</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'
               : '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'));
@@ -13873,24 +13921,39 @@ window.__vendor = (function() {
           + statusCell
           + editBtnHtml;
       } else {
-        // 4번째 컬럼 + (시스템 카드의 5번째 컬럼)
+        // 4번째 컬럼 + (시스템 카드의 추가 컬럼들: 시리얼/납품날짜/발주처/납품처)
         var countCellHtml;
         var sysSerialCellHtml = '';
+        var sysDeliveryDateCellHtml = '';
+        var sysOrderFromCellHtml = '';
+        var sysDeliveryToCellHtml = '';
         if (isSysCardRow) {
-          // 시스템: 계산서 날짜 + 시리얼 넘버 (해당 거래처의 가장 최근 값)
+          // 시스템: 계산서 날짜 + 시리얼 넘버 + 납품 날짜 + 발주처 + 납품처 (해당 거래처의 가장 최근 값)
           var sysRowsOfV = _state.rows.filter(function(r){ return r.category === cat && r.vendor_name === v.name; });
           var pickField = function(field){
             var val = '';
             sysRowsOfV.forEach(function(r){ if (r.extra && r.extra[field]) val = r.extra[field]; });
             return val;
           };
-          var invDate = pickField('invoice_date');
-          var serial  = pickField('serial_no');
+          var invDate    = pickField('invoice_date');
+          var serial     = pickField('serial_no');
+          var delDate    = pickField('delivery_date');
+          var orderFrom  = pickField('order_from');
+          var deliveryTo = pickField('delivery_to');
           countCellHtml = invDate
             ? '<div style="text-align:center;font-size:11.5px;color:#2563eb;font-weight:600;font-variant-numeric:tabular-nums">' + _esc(invDate) + '</div>'
             : '<div style="text-align:center;color:#cbd5e1;font-size:11px">-</div>';
           sysSerialCellHtml = serial
             ? '<div title="' + _esc(serial) + '" style="font-size:11.5px;color:#0f172a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums">' + _esc(serial) + '</div>'
+            : '<div style="font-size:11px;color:#cbd5e1">-</div>';
+          sysDeliveryDateCellHtml = delDate
+            ? '<div style="text-align:center;font-size:11.5px;color:#0f172a;font-weight:500;font-variant-numeric:tabular-nums">' + _esc(delDate) + '</div>'
+            : '<div style="text-align:center;color:#cbd5e1;font-size:11px">-</div>';
+          sysOrderFromCellHtml = orderFrom
+            ? '<div title="' + _esc(orderFrom) + '" style="font-size:11.5px;color:#0f172a;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(orderFrom) + '</div>'
+            : '<div style="font-size:11px;color:#cbd5e1">-</div>';
+          sysDeliveryToCellHtml = deliveryTo
+            ? '<div title="' + _esc(deliveryTo) + '" style="font-size:11.5px;color:#0f172a;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(deliveryTo) + '</div>'
             : '<div style="font-size:11px;color:#cbd5e1">-</div>';
         } else if (isSubCard) {
           var sourceCats = _sourceCatsForSubVendor(v.name, cat);
@@ -13914,16 +13977,30 @@ window.__vendor = (function() {
               ? '<div style="text-align:right;font-weight:700;color:' + renderSubMeta.color + ';font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + renderSubMeta.targetLabel + ' ' + v.songCur.toLocaleString() + '원">' + v.songCur.toLocaleString() + '</div>'
               : '<div style="text-align:right;color:#cbd5e1">-</div>')
           : '';
-        rowCells = '<div style="color:#94a3b8;font-weight:600">' + (idx+1) + '</div>'
-          + nameCellHtml
-          + sourceCellHtml
-          + countCellHtml
-          + sysSerialCellHtml
-          + '<div style="text-align:right;font-weight:700;color:' + (v.cur > 0 ? '#0f172a' : '#cbd5e1') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (v.cur > 0 ? v.cur.toLocaleString() : '-') + '</div>'
-          + songCellHtml
-          + '<div style="text-align:right;overflow:hidden">' + deltaHtml + '</div>'
-          + sparkCellHtml
-          + editBtnHtml;
+        if (isSysCardRow) {
+          // 시스템: #/거래처명/매출 발생처/계산서 날짜/시리얼/납품 날짜/발주처/납품처/기간 합계/직전 기간/수정 (11컬럼, 기간 추이 제외)
+          rowCells = '<div style="color:#94a3b8;font-weight:600">' + (idx+1) + '</div>'
+            + nameCellHtml
+            + sourceCellHtml
+            + countCellHtml
+            + sysSerialCellHtml
+            + sysDeliveryDateCellHtml
+            + sysOrderFromCellHtml
+            + sysDeliveryToCellHtml
+            + '<div style="text-align:right;font-weight:700;color:' + (v.cur > 0 ? '#0f172a' : '#cbd5e1') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (v.cur > 0 ? v.cur.toLocaleString() : '-') + '</div>'
+            + '<div style="text-align:right;overflow:hidden">' + deltaHtml + '</div>'
+            + editBtnHtml;
+        } else {
+          rowCells = '<div style="color:#94a3b8;font-weight:600">' + (idx+1) + '</div>'
+            + nameCellHtml
+            + sourceCellHtml
+            + countCellHtml
+            + '<div style="text-align:right;font-weight:700;color:' + (v.cur > 0 ? '#0f172a' : '#cbd5e1') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (v.cur > 0 ? v.cur.toLocaleString() : '-') + '</div>'
+            + songCellHtml
+            + '<div style="text-align:right;overflow:hidden">' + deltaHtml + '</div>'
+            + sparkCellHtml
+            + editBtnHtml;
+        }
       }
       // padding 10px → 12px 로 살짝 늘려 11개 행 기준 600px 가량 — 첫 페이지 11개 노출 후 스크롤
       return '<div style="display:grid;grid-template-columns:' + gridCols + ';gap:8px;padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:12px;align-items:center;transition:background .12s;background:' + rowBg + (showInactiveStyle ? ';opacity:0.9' : '') + '" onmouseover="this.style.background=\'#fafbfc\'" onmouseout="this.style.background=\'' + rowBg + '\'">'
@@ -14839,13 +14916,13 @@ window.__vendor = (function() {
     var hasAnyRow = false; // 거래처에 행이 하나라도 남아있는지 추적
 
     // 시스템 사업부 전용 필드: 입력값 읽기 (편집 모달이 열렸을 때 sys-block 이 보였는지 무관, 값이 있으면 적용)
+    // 단, invoice_date 는 거래처 단위가 아니라 매출 row 단위이므로 sysFieldDelta 에서 제외
     var isSysEditCat = (_CAT_DEPT[ctx.category] === 'system');
     var sysFieldDelta = null; // null = 변경 없음 / 객체 = 변경된 키만 포함
     if (isSysEditCat) {
       var _gv = function(id){ var el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
       sysFieldDelta = {
         delivery_date: _gv('vendor-edit-sys-delivery-date'),
-        invoice_date:  _gv('vendor-edit-sys-invoice-date'),
         serial_no:     _gv('vendor-edit-sys-serial'),
         order_from:    _gv('vendor-edit-sys-order-from'),
         delivery_to:   _gv('vendor-edit-sys-delivery-to'),
