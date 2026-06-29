@@ -1948,11 +1948,11 @@
           </div>
           <button onclick="openSysSalesCumul()" style="display:flex;align-items:center;gap:6px;padding:5px 13px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            연간 누계 통계
+            월별 누계 통계
           </button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <button onclick="openSysSalesInput()" style="display:flex;align-items:center;gap:5px;padding:5px 13px;background:#2563eb;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">
+          <button id="sys-sales-input-btn" onclick="openSysSalesInput()" style="display:none;align-items:center;gap:5px;padding:5px 13px;background:#2563eb;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             데이터 입력
           </button>
@@ -2012,22 +2012,32 @@
       </div>
     </div>
 
-    <!-- 시스템 매출 연간 누계 통계 모달 -->
+    <!-- 시스템 매출 월별 누계 통계 모달 -->
     <div id="sys-sales-cumul-overlay" onclick="if(event.target===this)closeSysSalesCumul()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10007;align-items:center;justify-content:center">
       <div style="background:#fff;border-radius:20px;width:1600px;max-width:97vw;max-height:94vh;overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,0.24);font-family:inherit">
         <div style="display:flex;align-items:center;gap:12px;padding:18px 26px;border-radius:20px 20px 0 0;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          <span style="font-size:15px;font-weight:700;flex:1">시스템 매출 연간 누계 통계</span>
+          <span style="font-size:15px;font-weight:700;flex:1">시스템 매출 월별 누계 통계</span>
           <button onclick="closeSysSalesCumul()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center">×</button>
         </div>
-        <div style="padding:14px 26px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#faf5ff;border-bottom:1px solid #ede9fe">
-          <span style="font-size:12px;font-weight:700;color:#7c3aed">연도 선택</span>
-          <select id="sys-cumul-from-year" style="padding:7px 12px;border:1px solid #ddd6fe;border-radius:8px;font-size:12px;color:#374151;background:#fff;outline:none;font-weight:500"></select>
+        <div style="padding:14px 26px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#faf5ff;border-bottom:1px solid #ede9fe">
+          <span style="font-size:12px;font-weight:700;color:#7c3aed">기간 선택</span>
+          <select id="sys-cumul-from-year" style="padding:7px 10px;border:1px solid #ddd6fe;border-radius:8px;font-size:12px;color:#374151;background:#fff;outline:none;font-weight:500"></select>
+          <select id="sys-cumul-from-month" style="padding:7px 10px;border:1px solid #ddd6fe;border-radius:8px;font-size:12px;color:#374151;background:#fff;outline:none;font-weight:500">
+            <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option><option value="4">4월</option>
+            <option value="5">5월</option><option value="6">6월</option><option value="7">7월</option><option value="8">8월</option>
+            <option value="9">9월</option><option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+          </select>
           <span style="font-size:13px;color:#a78bfa;font-weight:600">~</span>
-          <select id="sys-cumul-to-year" style="padding:7px 12px;border:1px solid #ddd6fe;border-radius:8px;font-size:12px;color:#374151;background:#fff;outline:none;font-weight:500"></select>
+          <select id="sys-cumul-to-year" style="padding:7px 10px;border:1px solid #ddd6fe;border-radius:8px;font-size:12px;color:#374151;background:#fff;outline:none;font-weight:500"></select>
+          <select id="sys-cumul-to-month" style="padding:7px 10px;border:1px solid #ddd6fe;border-radius:8px;font-size:12px;color:#374151;background:#fff;outline:none;font-weight:500">
+            <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option><option value="4">4월</option>
+            <option value="5">5월</option><option value="6">6월</option><option value="7">7월</option><option value="8">8월</option>
+            <option value="9">9월</option><option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+          </select>
           <div style="display:flex;border:1px solid #ddd6fe;border-radius:8px;overflow:hidden;font-size:11px;margin-left:8px">
             <button id="sys-cumul-cmp-none" onclick="setSysCumulCmp('')"    style="padding:6px 14px;border:none;background:#7c3aed;color:#fff;cursor:pointer;font-weight:700">기본</button>
-            <button id="sys-cumul-cmp-yoy"  onclick="setSysCumulCmp('yoy')" style="padding:6px 14px;border:none;background:#fff;color:#7c3aed;cursor:pointer;font-weight:600">전년 대비</button>
+            <button id="sys-cumul-cmp-yoy"  onclick="setSysCumulCmp('yoy')" style="padding:6px 14px;border:none;background:#fff;color:#7c3aed;cursor:pointer;font-weight:600">전년 동기 대비</button>
           </div>
           <button onclick="renderSysSalesCumul()" style="padding:7px 20px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-left:auto">조회</button>
         </div>
@@ -7767,16 +7777,34 @@
     return arr;
   }
 
+  // vendor_sales 의 sys_* 카테고리를 month_key 단위로 합산하여 _sysSalesRows 구성
+  // (사운드 매출 위젯과 동일한 단일 source 원칙 — system_sales_data 테이블은 더 이상 읽지 않음)
+  function _sysRebuildFromVendor() {
+    _sysSalesRows = [];
+    try {
+      if (window.__vendor && typeof window.__vendor.listSystemMonthKeys === 'function') {
+        window.__vendor.listSystemMonthKeys().forEach(function(mk){
+          _sysSalesRows.push(window.__vendor.aggregateSystemSales(mk));
+        });
+      }
+    } catch(e) { console.error('_sysRebuildFromVendor error', e); }
+  }
+  window._sysRebuildFromVendor = _sysRebuildFromVendor; // _afterVendorChange 에서 접근
+
   function sysSalesFetch() {
-    return fetch(SB_URL + '/rest/v1/system_sales_data?select=month_key,archiving,restoration,broadcast,etc_as,acoustic,dolby,updated_at', { headers: SB_HDR })
-      .then(function(r){ if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-      .then(function(rows){
-        _sysSalesRows = Array.isArray(rows) ? rows : [];
-        _sysSalesLoaded = true;
-      }).catch(function(e){
-        console.warn('system_sales_data fetch 실패 (테이블 미존재 가능):', e.message);
-        _sysSalesRows = []; _sysSalesLoaded = false;
-      });
+    // vendor 모듈의 fetchAll 이 완료되면 시스템 매출 row 를 재구성
+    function _after() {
+      _sysRebuildFromVendor();
+      _sysSalesLoaded = true;
+    }
+    try {
+      if (window.__vendor && typeof window.__vendor.fetchAll === 'function') {
+        var p = window.__vendor.fetchAll();
+        if (p && typeof p.then === 'function') return p.then(_after).catch(_after);
+      }
+    } catch(e) { console.error('sysSalesFetch(vendor) error', e); }
+    _after();
+    return Promise.resolve();
   }
 
   function _sysPopulateYearSel() {
@@ -8191,9 +8219,12 @@
 
   function openSysSalesCumul() {
     if (!_sysSalesLoaded) { sysSalesFetch().then(openSysSalesCumul); return; }
-    var fromSel = document.getElementById('sys-cumul-from-year');
-    var toSel   = document.getElementById('sys-cumul-to-year');
-    var curYear = new Date().getFullYear();
+    var fromYSel = document.getElementById('sys-cumul-from-year');
+    var toYSel   = document.getElementById('sys-cumul-to-year');
+    var fromMSel = document.getElementById('sys-cumul-from-month');
+    var toMSel   = document.getElementById('sys-cumul-to-month');
+    var curYear  = new Date().getFullYear();
+    var curMonth = new Date().getMonth() + 1;
     // 범위: 항상 2021 ~ 현재년 포함 + DB 에 존재하는 모든 연도 (과거·미래 포함)
     var dbYears = _sysDisplayYears();
     var minYear = Math.min(2021, dbYears.length > 0 ? dbYears[0] : 2021, curYear);
@@ -8202,10 +8233,13 @@
     for (var y = minYear; y <= maxYear; y++) {
       opts.push('<option value="' + y + '">' + y + '년</option>');
     }
-    fromSel.innerHTML = opts.join('');
-    toSel.innerHTML   = opts.join('');
-    fromSel.value = '2021';            // 기본 시작 = 2021 (사업 시작 연도)
-    toSel.value   = String(curYear);
+    fromYSel.innerHTML = opts.join('');
+    toYSel.innerHTML   = opts.join('');
+    // 기본: 올해 1월 ~ 올해 현재월 (사운드 cumul 모달과 동일 기본값)
+    fromYSel.value = String(curYear);
+    fromMSel.value = '1';
+    toYSel.value   = String(curYear);
+    toMSel.value   = String(curMonth);
     document.getElementById('sys-sales-cumul-overlay').style.display = 'flex';
     setSysCumulCmp('');
   }
@@ -8240,52 +8274,62 @@
     return agg;
   }
 
-  // 연도별 색상 팔레트 (오래된 → 최신: 연한 → 진한)
-  var SYS_YEAR_PALETTE = ['#cbd5e1','#94a3b8','#64748b','#475569','#334155','#1e293b','#0f172a'];
+  // 기간(fromY-fromM ~ toY-toM)의 항목별 합계 — 사운드 cumul 모달과 동일 패턴
+  function _sysPeriodTotal(fromY, fromM, toY, toM, itemKey) {
+    var sum = 0;
+    for (var y = fromY; y <= toY; y++) {
+      var ms = (y === fromY) ? fromM : 1;
+      var me = (y === toY)   ? toM   : 12;
+      for (var m = ms; m <= me; m++) {
+        var row = _sysRowFor(y + '-' + m);
+        if (row) sum += (parseInt(row[itemKey], 10) || 0);
+      }
+    }
+    return sum;
+  }
 
   function renderSysSalesCumul() {
     var fromY = parseInt(document.getElementById('sys-cumul-from-year').value, 10);
+    var fromM = parseInt(document.getElementById('sys-cumul-from-month').value, 10);
     var toY   = parseInt(document.getElementById('sys-cumul-to-year').value, 10);
-    if (!fromY || !toY) return;
-    if (fromY > toY) { var t = fromY; fromY = toY; toY = t; }
+    var toM   = parseInt(document.getElementById('sys-cumul-to-month').value, 10);
+    if (!fromY || !toY || !fromM || !toM) return;
+    // 시작이 종료보다 늦으면 swap
+    if (fromY * 100 + fromM > toY * 100 + toM) {
+      var ty = fromY, tm = fromM;
+      fromY = toY; fromM = toM; toY = ty; toM = tm;
+    }
 
-    var years = []; for (var y = fromY; y <= toY; y++) years.push(y);
-
-    // X축 라벨 = 6개 항목 (2줄 분할 라벨 — 좁은 해상도 겹침 방지)
+    // X축 라벨 = 6개 항목 (2줄 분할 라벨)
     var labels = SYS_SALES_ITEMS.map(function(it){ return it.chartLabel || it.label; });
 
     var ctx = document.getElementById('sys-cumul-chart').getContext('2d');
     if (_sysCumulChart) { try{_sysCumulChart.destroy();}catch(e){} _sysCumulChart = null; }
 
-    // 연도별로 별도 dataset 생성 → 각 항목 그룹 안에 연도별 막대가 나란히 표시
-    // 색상: 가장 최신 연도가 보라(#7c3aed), 이전 연도들은 점점 옅은 톤
-    var n = years.length;
-    var datasets = years.map(function(y, idx){
-      // 최신부터 보라색 진하게, 과거로 갈수록 회색 톤
-      var isLatest = (idx === n - 1);
-      var color = isLatest ? '#7c3aed' : SYS_YEAR_PALETTE[Math.max(0, SYS_YEAR_PALETTE.length - 1 - (n - 1 - idx))];
-      return {
-        label: y + '년',
-        data: SYS_SALES_ITEMS.map(function(it){ return _sysYearTotal(y, it.key); }),
-        backgroundColor: color + 'cc',
-        borderColor: color,
-        borderWidth: 1
-      };
-    });
+    var periodLabel = (fromY === toY && fromM === toM)
+      ? (fromY + '년 ' + fromM + '월')
+      : (fromY + '.' + fromM + ' ~ ' + toY + '.' + toM);
+    var prevPeriodLabel = ((fromY === toY && fromM === toM)
+      ? ((fromY - 1) + '년 ' + fromM + '월')
+      : ((fromY - 1) + '.' + fromM + ' ~ ' + (toY - 1) + '.' + toM));
+    var curData  = SYS_SALES_ITEMS.map(function(it){ return _sysPeriodTotal(fromY, fromM, toY, toM, it.key); });
+    var prevData = SYS_SALES_ITEMS.map(function(it){ return _sysPeriodTotal(fromY - 1, fromM, toY - 1, toM, it.key); });
 
-    // 전년 대비: 각 연도 옆에 'year-1' 데이터를 dataset 으로 추가 (옅은 점선)
+    var datasets = [{
+      label: periodLabel,
+      data: curData,
+      backgroundColor: '#7c3aedcc',
+      borderColor: '#7c3aed',
+      borderWidth: 1
+    }];
     if (_sysCumulCmpMode === 'yoy') {
-      years.forEach(function(y, idx){
-        var isLatest = (idx === n - 1);
-        var color = isLatest ? '#7c3aed' : SYS_YEAR_PALETTE[Math.max(0, SYS_YEAR_PALETTE.length - 1 - (n - 1 - idx))];
-        datasets.push({
-          label: (y - 1) + '년 (전년)',
-          data: SYS_SALES_ITEMS.map(function(it){ return _sysYearTotal(y - 1, it.key); }),
-          backgroundColor: color + '30',
-          borderColor: color + '70',
-          borderWidth: 1,
-          borderDash: [4, 4]
-        });
+      datasets.push({
+        label: prevPeriodLabel + ' (전년 동기)',
+        data: prevData,
+        backgroundColor: '#7c3aed30',
+        borderColor: '#7c3aed70',
+        borderWidth: 1,
+        borderDash: [4, 4]
       });
     }
 
@@ -8317,13 +8361,10 @@
     });
 
     // 항목별 카드 (선택 기간 합계) + 총 합계
-    var periodLabel = (fromY === toY) ? (fromY + '년') : (fromY + '~' + toY + '년');
     var totals = {}; var prevTotals = {};
-    SYS_SALES_ITEMS.forEach(function(it){
-      totals[it.key] = years.reduce(function(s, y){ return s + _sysYearTotal(y, it.key); }, 0);
-      if (_sysCumulCmpMode === 'yoy') {
-        prevTotals[it.key] = years.reduce(function(s, y){ return s + _sysYearTotal(y - 1, it.key); }, 0);
-      }
+    SYS_SALES_ITEMS.forEach(function(it, i){
+      totals[it.key] = curData[i];
+      if (_sysCumulCmpMode === 'yoy') prevTotals[it.key] = prevData[i];
     });
     var grandTotal = SYS_SALES_ITEMS.reduce(function(s, it){ return s + totals[it.key]; }, 0);
     var prevGrand  = _sysCumulCmpMode === 'yoy'
@@ -8383,7 +8424,7 @@
         var gDiffColor = gDiff >= 0 ? '#bbf7d0' : '#fecaca';
         diffBlock = ''
           + '<div style="flex:0 0 auto;text-align:right;padding-left:18px;border-left:1px solid rgba(255,255,255,0.28)">'
-            + '<div style="font-size:10.5px;opacity:0.85;font-weight:600;white-space:nowrap">전년 동기 (' + ((years[0] || 0) - 1) + '~' + ((years[years.length - 1] || 0) - 1) + ')</div>'
+            + '<div style="font-size:10.5px;opacity:0.85;font-weight:600;white-space:nowrap">전년 동기 (' + prevPeriodLabel + ')</div>'
             + '<div style="font-size:11.5px;opacity:0.92;margin-top:2px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap">' + _sysFmtW(prevGrand) + '</div>'
             + '<div style="font-size:15px;font-weight:800;margin-top:5px;color:' + gDiffColor + ';white-space:nowrap">' + gArrow + ' ' + gSign + Math.abs(gDiffPct) + '%</div>'
             + '<div style="font-size:10.5px;opacity:0.85;margin-top:1px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap">' + gSign + _sysFmtW(Math.abs(gDiff)) + '</div>'
@@ -12351,15 +12392,56 @@ window.__vendor = (function() {
     return Object.keys(set);
   }
 
-  // 거래처 입력/수정/삭제 후 음원 매출 위젯 자동 갱신
+  // 시스템 사업부 카테고리 → 시스템 매출 분석 항목 키 매핑
+  // sys_archiving → archiving, sys_restoration → restoration 등 prefix 제거.
+  var VENDOR_TO_SYS_KEY = {
+    sys_archiving:   'archiving',
+    sys_restoration: 'restoration',
+    sys_broadcast:   'broadcast',
+    sys_etc_as:      'etc_as',
+    sys_acoustic:    'acoustic',
+    sys_dolby:       'dolby'
+  };
+
+  // 특정 month_key 의 시스템 매출 6개 항목 합계 row 반환 (시스템 매출 위젯이 사용)
+  function aggregateSystemSales(monthKey) {
+    var out = { month_key: monthKey, archiving:0, restoration:0, broadcast:0, etc_as:0, acoustic:0, dolby:0 };
+    _state.rows.forEach(function(r){
+      if (r.month_key !== monthKey) return;
+      var sysKey = VENDOR_TO_SYS_KEY[r.category];
+      if (!sysKey) return;
+      out[sysKey] += (r.amount || 0);
+    });
+    return out;
+  }
+
+  // 시스템 매출 위젯이 사용할 모든 month_key 목록
+  function listSystemMonthKeys() {
+    var set = {};
+    _state.rows.forEach(function(r){
+      if (VENDOR_TO_SYS_KEY[r.category]) set[r.month_key] = true;
+    });
+    return Object.keys(set);
+  }
+
+  // 거래처 입력/수정/삭제 후 음원/시스템 매출 위젯 자동 갱신
   function _afterVendorChange() {
     try { if (typeof window.renderSalesWidget === 'function') window.renderSalesWidget(); } catch(e){}
     try { if (typeof window.salesUpdateMonthSel === 'function') window.salesUpdateMonthSel(); } catch(e){}
     try {
-      // 월별 누계 매출 통계 모달이 열려있으면 차트 재렌더
+      // 음원 매출 월별 누계 매출 통계 모달이 열려있으면 차트 재렌더
       var cm = document.getElementById('cumul-overlay');
       if (cm && cm.style.display !== 'none' && typeof window.renderCumulChart === 'function') {
         window.renderCumulChart();
+      }
+    } catch(e){}
+    // 시스템 매출 위젯도 vendor 집계 source 이므로 동시 갱신
+    try { if (typeof window._sysRebuildFromVendor === 'function') window._sysRebuildFromVendor(); } catch(e){}
+    try { if (typeof window.renderSystemSalesWidget === 'function') window.renderSystemSalesWidget(); } catch(e){}
+    try {
+      var scm = document.getElementById('sys-sales-cumul-overlay');
+      if (scm && scm.style.display !== 'none' && typeof window.renderSysSalesCumul === 'function') {
+        window.renderSysSalesCumul();
       }
     } catch(e){}
   }
@@ -14611,6 +14693,9 @@ window.__vendor = (function() {
     // 음원 매출 위젯이 사용할 vendor 집계 API
     aggregateSoundSales: aggregateSoundSales,
     listSoundMonthKeys: listSoundMonthKeys,
+    // 시스템 매출 위젯이 사용할 vendor 집계 API
+    aggregateSystemSales: aggregateSystemSales,
+    listSystemMonthKeys: listSystemMonthKeys,
     fetchAll: fetchAll,
     _state: _state,
     openMenu: openMenu,
