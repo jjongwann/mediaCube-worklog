@@ -12199,7 +12199,7 @@
         <label style="font-size:11px;font-weight:700;color:#475569;width:48px;flex-shrink:0">담당자</label>
         <select id="vendor-edit-manager" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none;background:#fff" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'"></select>
       </div>
-      <div style="display:flex;align-items:center;gap:10px">
+      <div id="vendor-edit-regdate-row" style="display:flex;align-items:center;gap:10px">
         <label style="font-size:11px;font-weight:700;color:#475569;width:48px;flex-shrink:0">등록일</label>
         <input type="date" id="vendor-edit-regdate" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
         <span style="font-size:10px;color:#94a3b8;flex-shrink:0">신규 고객 1년 기준</span>
@@ -12255,8 +12255,20 @@
       </div>
     </div>
     <div style="flex:1;overflow-y:auto;padding:14px 24px">
-      <div style="font-size:11px;color:#64748b;margin-bottom:10px">12개월 매출액을 직접 수정할 수 있습니다. 0원 또는 빈 칸은 미발생으로 처리됩니다.</div>
+      <div id="vendor-edit-months-help" style="font-size:11px;color:#64748b;margin-bottom:10px">12개월 매출액을 직접 수정할 수 있습니다. 0원 또는 빈 칸은 미발생으로 처리됩니다.</div>
       <div id="vendor-edit-months" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+      <!-- 시스템 사업부 전용 매출 row 리스트 (계산서 날짜별 각 매출 = 1 row) — sys_* 진입 시에만 표시 -->
+      <div id="vendor-edit-sys-list" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e8f0">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#2563eb">매출 목록 (계산서 날짜별)</div>
+            <div style="font-size:10px;color:#94a3b8;margin-top:3px">한 거래처의 각 계산서가 별도 매출 row 입니다. 계산서 날짜의 YYYY-월 이 자동으로 매출월로 적용됩니다.</div>
+          </div>
+          <button onclick="__vendor._addSysListRow()" type="button" style="padding:6px 14px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:7px;font-size:11.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">+ 매출 추가</button>
+        </div>
+        <div id="vendor-edit-sys-list-rows" style="display:flex;flex-direction:column;gap:8px"></div>
+        <div id="vendor-edit-sys-list-empty" style="display:none;padding:20px;text-align:center;color:#94a3b8;font-size:11.5px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px">아직 등록된 매출이 없습니다. 우측 상단 [+ 매출 추가] 버튼을 클릭해주세요.</div>
+      </div>
       <!-- 부속 매출 (NEEDLE/유료 BLANKET → 선곡 수수료 → song / CMO → 협회 수수료 → fee) -->
       <div id="vendor-edit-song-section" style="display:none;margin-top:18px;padding-top:14px;border-top:1px dashed #e2e8f0">
         <div id="vendor-edit-song-title" style="font-size:12px;font-weight:700;color:#10b981;margin-bottom:4px;display:flex;align-items:center;gap:5px">
@@ -13396,11 +13408,19 @@ window.__vendor = (function() {
     }
 
     var monthKey = year + '-' + month;
+    // 시스템 사업부: invoice_date 가 입력되면 month_key 를 invoice_date 의 YYYY-M 으로 자동 설정
+    // → 기간 조회/누계 통계가 등록일이 아닌 계산서 날짜 기준으로 동작
+    if (sysExtra && sysExtra.invoice_date) {
+      var autoMk = _invoiceDateToMonthKey(sysExtra.invoice_date);
+      if (autoMk) monthKey = autoMk;
+    }
 
     // 기존 동일 (cat, name, monthKey) 행이 있으면 합산
     var existing = _state.rows.find(function(r){
       return r.category === cat && r.vendor_name === name && r.month_key === monthKey;
     });
+    // 시스템 사업부: 같은 month_key 안이라도 각 계산서가 별개 매출이므로 항상 새 row 로 POST
+    if (_CAT_DEPT[cat] === 'system') existing = null;
 
     var sb = _getSb();
     var activeFlag = (_state.addActive !== false); // 토글 상태 (기본 true)
@@ -13606,8 +13626,25 @@ window.__vendor = (function() {
     }
 
     // 검색 + 담당자 필터 + (song/fee 카드) 매출 유형 필터
+    // 시스템 사업부: 거래처명 외에도 시리얼/발주처/납품처/기타/계산서날짜/납품날짜/매출발생처 까지 매칭
+    var isSysCatSearch = (_CAT_DEPT[cat] === 'system');
     var allVendorsAfterFilter = Object.keys(byVendor).filter(function(n){
-      if (searchQ && n.toLowerCase().indexOf(searchQ) === -1) return false;
+      if (searchQ) {
+        var nameMatch = n.toLowerCase().indexOf(searchQ) !== -1;
+        var found = nameMatch;
+        if (!found && isSysCatSearch) {
+          var rowsOfV = _state.rows.filter(function(r){ return r.category === cat && r.vendor_name === n; });
+          for (var i = 0; i < rowsOfV.length && !found; i++) {
+            var ex = rowsOfV[i].extra || {};
+            var fields = ['serial_no','order_from','delivery_to','note','invoice_date','delivery_date','source'];
+            for (var j = 0; j < fields.length; j++) {
+              var fv = (ex[fields[j]] || '').toString().toLowerCase();
+              if (fv && fv.indexOf(searchQ) !== -1) { found = true; break; }
+            }
+          }
+        }
+        if (!found) return false;
+      }
       if (!isSubCard && mgrFilter && _getVendorManager(n) !== mgrFilter) return false;
       if (srcFilter && _getVendorSource(n, cat) !== srcFilter) return false;
       if (isSubCard && typeCatFilter) {
@@ -14403,6 +14440,18 @@ window.__vendor = (function() {
 
   function _recomputeEditTotal() {
     var sum = 0, songSum = 0;
+    // 시스템 사업부 모드: sys-list 의 매출 합계
+    if (_editCtx && _CAT_DEPT[_editCtx.category] === 'system') {
+      var allRows = (_editCtx.sysList || []).concat(_editCtx._sysNewRows || []);
+      allRows.forEach(function(r){
+        if (r._deleted) return;
+        var amt = parseInt(r.amount, 10);
+        if (!isNaN(amt) && amt > 0) sum += amt;
+      });
+      var totEl0 = document.getElementById('vendor-edit-total');
+      if (totEl0) totEl0.textContent = '전체 매출 합계: ' + sum.toLocaleString() + '원';
+      return;
+    }
     for (var m = 1; m <= 12; m++) {
       var el = document.getElementById('vedit-m-' + m);
       if (el) {
@@ -14424,6 +14473,109 @@ window.__vendor = (function() {
       }
       totEl.textContent = txt;
     }
+  }
+
+  // 시스템 사업부 매출 row 리스트 (수정 모달용)
+  function _invoiceDateToMonthKey(invDate) {
+    // 'YYYY-MM-DD' → 'YYYY-M'
+    if (!invDate || typeof invDate !== 'string') return null;
+    var parts = invDate.split('-');
+    if (parts.length < 2) return null;
+    var y = parseInt(parts[0], 10);
+    var m = parseInt(parts[1], 10);
+    if (!y || !m) return null;
+    return y + '-' + m;
+  }
+  function _renderSysListRows() {
+    if (!_editCtx) return;
+    var cat  = _editCtx.category;
+    var name = _editCtx.vendorName;
+    // 해당 거래처의 모든 sys_* row 를 invoice_date(없으면 month_key) 오름차순으로 로드
+    var rows = _state.rows.filter(function(r){ return r.category === cat && r.vendor_name === name; });
+    rows.sort(function(a, b){
+      var aDate = (a.extra && a.extra.invoice_date) || a.month_key || '';
+      var bDate = (b.extra && b.extra.invoice_date) || b.month_key || '';
+      return aDate.localeCompare(bDate);
+    });
+    _editCtx.sysList = rows.map(function(r){
+      var inv = (r.extra && r.extra.invoice_date) || '';
+      return {
+        id: r.id,
+        invoice_date: inv,
+        amount: r.amount || 0,
+        _orig: { invoice_date: inv, amount: r.amount || 0 },
+        _deleted: false
+      };
+    });
+    _editCtx._sysNewRows = [];
+    _redrawSysListDom();
+    _recomputeEditTotal();
+  }
+  function _redrawSysListDom() {
+    var body = document.getElementById('vendor-edit-sys-list-rows');
+    var empty = document.getElementById('vendor-edit-sys-list-empty');
+    if (!body || !_editCtx) return;
+    var existing = (_editCtx.sysList || []).filter(function(r){ return !r._deleted; });
+    var fresh    = _editCtx._sysNewRows || [];
+    var all = existing.concat(fresh);
+    if (!all.length) {
+      body.innerHTML = '';
+      if (empty) empty.style.display = 'block';
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    body.innerHTML = all.map(function(r){
+      var isNew = !!r._new;
+      var bg    = isNew ? '#eff6ff' : '#f8fafc';
+      var brd   = isNew ? '#bfdbfe' : '#e2e8f0';
+      var amtStr = (r.amount || 0).toLocaleString();
+      return '<div style="display:grid;grid-template-columns:140px 1fr 28px;gap:8px;align-items:center;background:' + bg + ';border:1px solid ' + brd + ';border-radius:8px;padding:8px 10px">'
+        + '<div style="display:flex;flex-direction:column;gap:2px"><label style="font-size:10px;font-weight:600;color:#64748b">계산서 날짜</label>'
+        + '<input type="date" data-sys-row-id="' + r.id + '" data-sys-field="invoice_date" value="' + (r.invoice_date || '') + '" oninput="window.__vendor._updateSysListField(this)" style="padding:5px 7px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none" onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#e2e8f0\'">'
+        + '</div>'
+        + '<div style="display:flex;flex-direction:column;gap:2px"><label style="font-size:10px;font-weight:600;color:#64748b">매출액 (원)</label>'
+        + '<div style="display:flex;align-items:center;gap:5px"><input type="text" data-sys-row-id="' + r.id + '" data-sys-field="amount" value="' + amtStr + '" oninput="this.value=this.value.replace(/[^0-9]/g,\'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g,\',\');window.__vendor._updateSysListField(this);window.__vendor._recomputeEditTotal()" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;text-align:right;outline:none;font-weight:600" onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#e2e8f0\'">'
+        + '<span style="font-size:10px;color:#94a3b8">원</span></div>'
+        + '</div>'
+        + '<button onclick="window.__vendor._deleteSysListRow(\'' + r.id + '\')" type="button" title="삭제" style="background:none;border:none;color:#cbd5e1;font-size:16px;cursor:pointer;padding:6px 4px;border-radius:5px" onmouseover="this.style.color=\'#dc2626\';this.style.background=\'#fee2e2\'" onmouseout="this.style.color=\'#cbd5e1\';this.style.background=\'none\'">×</button>'
+        + '</div>';
+    }).join('');
+  }
+  function _updateSysListField(inp) {
+    if (!_editCtx) return;
+    var rowId = inp.getAttribute('data-sys-row-id');
+    var field = inp.getAttribute('data-sys-field');
+    var val = inp.value;
+    if (field === 'amount') val = parseInt((val || '').replace(/,/g, ''), 10) || 0;
+    var all = (_editCtx.sysList || []).concat(_editCtx._sysNewRows || []);
+    var r = all.find(function(x){ return x.id === rowId; });
+    if (r) r[field] = val;
+  }
+  function _addSysListRow() {
+    if (!_editCtx) return;
+    _editCtx._sysNewRows = _editCtx._sysNewRows || [];
+    _editCtx._sysNewRows.push({
+      id: 'new_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      invoice_date: '',
+      amount: 0,
+      _new: true
+    });
+    _redrawSysListDom();
+  }
+  function _deleteSysListRow(rowId) {
+    if (!_editCtx) return;
+    var sysList = _editCtx.sysList || [];
+    var newRows = _editCtx._sysNewRows || [];
+    var newIdx = -1;
+    for (var i = 0; i < newRows.length; i++) { if (newRows[i].id === rowId) { newIdx = i; break; } }
+    if (newIdx >= 0) {
+      newRows.splice(newIdx, 1);
+    } else {
+      var r = sysList.find(function(x){ return x.id === rowId; });
+      if (r) r._deleted = true;
+    }
+    _redrawSysListDom();
+    _recomputeEditTotal();
   }
 
   // 선택 연도의 12개월 매출/건수 행을 _editCtx 에 로드하고 그리드 렌더 (연도 전환 시 재호출)
@@ -14474,6 +14626,20 @@ window.__vendor = (function() {
         + '</div>';
     }
     document.getElementById('vendor-edit-months').innerHTML = monthsHtml;
+
+    // 시스템 사업부 분기: 등록일/12개월 그리드 숨김 + sys-list 표시 (매출 row = 1 계산서)
+    var isSysCatEdit2 = (_CAT_DEPT[cat] === 'system');
+    var regRow = document.getElementById('vendor-edit-regdate-row');
+    var monthsHelpEl = document.getElementById('vendor-edit-months-help');
+    var monthsContainer = document.getElementById('vendor-edit-months');
+    var sysListEl = document.getElementById('vendor-edit-sys-list');
+    var yearSelEl = document.getElementById('vendor-edit-year');
+    if (regRow) regRow.style.display = isSysCatEdit2 ? 'none' : 'flex';
+    if (monthsHelpEl) monthsHelpEl.style.display = isSysCatEdit2 ? 'none' : 'block';
+    if (monthsContainer) monthsContainer.style.display = isSysCatEdit2 ? 'none' : 'grid';
+    if (sysListEl) sysListEl.style.display = isSysCatEdit2 ? 'block' : 'none';
+    if (yearSelEl) yearSelEl.style.display = isSysCatEdit2 ? 'none' : '';
+    if (isSysCatEdit2) _renderSysListRows();
 
     // 부속 매출 섹션 렌더 (라벨/색상은 cat 에 따라 동적)
     var songSec = document.getElementById('vendor-edit-song-section');
@@ -14704,7 +14870,57 @@ window.__vendor = (function() {
       return ex;
     }
 
-    for (var m = 1; m <= 12; m++) {
+    // 시스템 사업부 분기: sysList + _sysNewRows 기반 ops 빌드 (12개월 그리드 로직 우회)
+    if (isSysEditCat && ctx.sysList) {
+      // 기존 row 처리 (수정/삭제)
+      ctx.sysList.forEach(function(r){
+        if (r._deleted) {
+          ops.push({ type: 'delete', id: r.id });
+          return;
+        }
+        var origRow = _state.rows.find(function(x){ return x.id === r.id; });
+        var origExtra = (origRow && origRow.extra) || {};
+        var newExtra = _buildExtra(origExtra);
+        // invoice_date 변경 반영
+        if (r.invoice_date) newExtra.invoice_date = r.invoice_date;
+        else delete newExtra.invoice_date;
+        var newMk = _invoiceDateToMonthKey(r.invoice_date) || (origRow ? origRow.month_key : null);
+        var changed = (r.amount !== r._orig.amount)
+                   || (r.invoice_date !== r._orig.invoice_date)
+                   || (newName !== ctx.vendorName)
+                   || mgrChanged || srcChanged || activeChanged || regChanged
+                   || (sysFieldDelta && Object.keys(sysFieldDelta).length);
+        if (changed) {
+          var body = { amount: r.amount, vendor_name: newName, extra: newExtra, updated_at: new Date().toISOString() };
+          if (newMk) body.month_key = newMk;
+          ops.push({ type: 'patch', id: r.id, body: body });
+        }
+        hasAnyRow = true;
+      });
+      // 신규 row (사용자가 '+ 매출 추가' 로 추가한 것)
+      (ctx._sysNewRows || []).forEach(function(r){
+        if (!r.invoice_date) return; // 계산서 날짜 필수
+        var mk = _invoiceDateToMonthKey(r.invoice_date);
+        if (!mk) return;
+        var initExtra = { active: (newActive !== null ? newActive : true), invoice_date: r.invoice_date };
+        if (newMgr) initExtra.manager = newMgr;
+        if (newSrc) initExtra.source = newSrc;
+        if (effectiveRegIso) initExtra.created_at = effectiveRegIso;
+        if (sysFieldDelta) {
+          Object.keys(sysFieldDelta).forEach(function(k){ if (sysFieldDelta[k]) initExtra[k] = sysFieldDelta[k]; });
+        }
+        ops.push({ type: 'post', body: { id: _genId(), category: ctx.category, vendor_name: newName, month_key: mk, amount: r.amount || 0, extra: initExtra, updated_at: new Date().toISOString() } });
+        hasAnyRow = true;
+      });
+      // 시스템은 12개월 그리드 로직 건너뛰고 sub/other-year sync 단계로 이동
+      // (아래 for(m) 루프와 부속(song/fee) 처리도 시스템은 무관 — break out)
+    }
+    if (isSysEditCat) {
+      // 12개월 로직 우회 → 부속 카테고리(song/fee) 처리도 시스템엔 해당 없음
+      // (subTarget = null)
+    }
+
+    for (var m = 1; !isSysEditCat && m <= 12; m++) {
       var el = document.getElementById('vedit-m-' + m);
       var raw = el ? (el.value||'').replace(/,/g,'').trim() : '';
       var newAmt = parseInt(raw, 10);
@@ -14786,7 +15002,8 @@ window.__vendor = (function() {
     }
 
     // 거래처의 다른 년도 모든 행에 대해 rename / 담당자 / active 플래그 동기화
-    var otherYearRows = _state.rows.filter(function(r){
+    // 시스템 사업부는 sysList 가 이미 모든 year row 를 포함하므로 이 단계 건너뜀
+    var otherYearRows = isSysEditCat ? [] : _state.rows.filter(function(r){
       return r.category === ctx.category && r.vendor_name === ctx.vendorName
         && (r.month_key||'').split('-')[0] != String(ctx.year);
     });
@@ -14870,14 +15087,23 @@ window.__vendor = (function() {
 
   function deleteVendor() {
     if (!_editCtx) return;
-    if (!confirm('[' + _editCtx.vendorName + ']\n이 거래처의 ' + _editCtx.year + '년 매출 기록 전체를 삭제할까요?\n(다른 년도 데이터는 유지됩니다)')) return;
+    var isSysDel = (_CAT_DEPT[_editCtx.category] === 'system');
+    var confirmMsg = isSysDel
+      ? '[' + _editCtx.vendorName + ']\n이 거래처의 모든 매출 기록을 삭제할까요?\n(전체 계산서 row 가 삭제됩니다)'
+      : '[' + _editCtx.vendorName + ']\n이 거래처의 ' + _editCtx.year + '년 매출 기록 전체를 삭제할까요?\n(다른 년도 데이터는 유지됩니다)';
+    if (!confirm(confirmMsg)) return;
     var sb = _getSb();
     var ids = [];
-    for (var m = 1; m <= 12; m++) {
-      var existing = _editCtx.monthRows[m];
-      if (existing) {
-        ids.push(existing.id);
-        (existing.dupIds||[]).forEach(function(d){ ids.push(d); });
+    if (isSysDel) {
+      // 시스템 사업부: 거래처의 모든 row 삭제
+      _state.rows.filter(function(r){ return r.category === _editCtx.category && r.vendor_name === _editCtx.vendorName; }).forEach(function(r){ ids.push(r.id); });
+    } else {
+      for (var m = 1; m <= 12; m++) {
+        var existing = _editCtx.monthRows[m];
+        if (existing) {
+          ids.push(existing.id);
+          (existing.dupIds||[]).forEach(function(d){ ids.push(d); });
+        }
       }
     }
     if (!ids.length) { closeEdit(); return; }
@@ -14924,6 +15150,9 @@ window.__vendor = (function() {
     toggleAddActive: toggleAddActive,
     _onEditYearChange: _onEditYearChange,
     _recomputeEditTotal: _recomputeEditTotal,
+    _updateSysListField: _updateSysListField,
+    _addSysListRow: _addSysListRow,
+    _deleteSysListRow: _deleteSysListRow,
     _onAddNameInput: _onAddNameInput,
     _openAddNameDrop: _openAddNameDrop,
     _toggleAddNameDrop: _toggleAddNameDrop,
