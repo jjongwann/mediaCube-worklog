@@ -7853,22 +7853,27 @@
   }
 
   // 차트 모드용 연도+월 드롭다운 채우기
+  // 기본값: 현재 월의 '전월' (예: 6월이면 5월, 1월이면 전년 12월)
   function _sysPopulateViewYearSel() {
     var sel = document.getElementById('sys-view-year-sel');
     if (!sel) return;
     var years = _sysDisplayYears().slice().sort(function(a,b){ return b - a; }); // 최신 → 오래된
+    // 전월 계산 (자동으로 1월 → 전년 12월 처리)
+    var now = new Date();
+    var prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    var defY = prevDate.getFullYear();
+    var defM = prevDate.getMonth() + 1;
     var prev = sel.value;
     sel.innerHTML = years.map(function(y){ return '<option value="' + y + '">' + y + '년</option>'; }).join('');
     if (prev && years.indexOf(parseInt(prev, 10)) !== -1) {
       sel.value = prev;
     } else {
-      // 기본값: 현재 연도
-      var defY = new Date().getFullYear();
+      // 기본값: 전월의 연도 — 없으면 목록 첫 번째
       sel.value = years.indexOf(defY) !== -1 ? String(defY) : String(years[0]);
     }
-    // 월 셀렉트 — 기본값: 현재 월
+    // 월 셀렉트 — 기본값: 전월
     var mSel = document.getElementById('sys-view-month-sel');
-    if (mSel && !mSel.value) mSel.value = String(new Date().getMonth() + 1);
+    if (mSel && !mSel.value) mSel.value = String(defM);
   }
 
   // 차트/표 토글
