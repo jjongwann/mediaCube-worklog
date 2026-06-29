@@ -7854,6 +7854,8 @@
 
   // 차트 모드용 연도+월 드롭다운 채우기
   // 기본값: 현재 월의 '전월' (예: 6월이면 5월, 1월이면 전년 12월)
+  // 첫 진입 한 번만 자동 설정 — 사용자가 변경한 후엔 그 값 유지
+  var _sysViewInitDone = false;
   function _sysPopulateViewYearSel() {
     var sel = document.getElementById('sys-view-year-sel');
     if (!sel) return;
@@ -7865,15 +7867,21 @@
     var defM = prevDate.getMonth() + 1;
     var prev = sel.value;
     sel.innerHTML = years.map(function(y){ return '<option value="' + y + '">' + y + '년</option>'; }).join('');
-    if (prev && years.indexOf(parseInt(prev, 10)) !== -1) {
-      sel.value = prev;
-    } else {
-      // 기본값: 전월의 연도 — 없으면 목록 첫 번째
-      sel.value = years.indexOf(defY) !== -1 ? String(defY) : String(years[0]);
-    }
-    // 월 셀렉트 — 기본값: 전월
     var mSel = document.getElementById('sys-view-month-sel');
-    if (mSel && !mSel.value) mSel.value = String(defM);
+    if (!_sysViewInitDone) {
+      // 첫 진입: 전월의 연/월 강제 설정 (select 자동 첫옵션 선택 우회)
+      sel.value = years.indexOf(defY) !== -1 ? String(defY) : String(years[0]);
+      if (mSel) mSel.value = String(defM);
+      _sysViewInitDone = true;
+    } else {
+      // 사용자가 이전에 선택한 값 유지 (옵션에 없으면 폴백)
+      if (prev && years.indexOf(parseInt(prev, 10)) !== -1) {
+        sel.value = prev;
+      } else {
+        sel.value = years.indexOf(defY) !== -1 ? String(defY) : String(years[0]);
+      }
+      // 월 셀렉트는 사용자 선택 그대로 (변경 안 함)
+    }
   }
 
   // 차트/표 토글
