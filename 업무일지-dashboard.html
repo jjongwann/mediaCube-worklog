@@ -11873,6 +11873,7 @@
         <button id="vendor-needle-allbtn" onclick="__vendor.toggleAllVendors()" title="활성/비활성 모든 거래처 표시" style="padding:5px 9px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:7px;color:#fff;font-size:10px;cursor:pointer;font-weight:600">전체 거래처</button>
         <input type="text" id="vendor-needle-search" placeholder="거래처 검색..." oninput="__vendor.render()" style="flex:0 1 160px;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;outline:none">
         <select id="vendor-needle-manager" onchange="__vendor.render()" title="담당자 조회" style="padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none"></select>
+        <select id="vendor-needle-typecat-filter" onchange="__vendor.render()" title="매출 유형 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none"></select>
         <select id="vendor-needle-source" onchange="__vendor.render()" title="매출 발생처 조회" style="padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
         <select id="vendor-needle-song-filter" onchange="__vendor.render()" title="선곡료 보유 여부 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none">
           <option value="">선곡료 전체</option>
@@ -13039,6 +13040,27 @@ window.__vendor = (function() {
     document.getElementById('vendor-add-overlay').style.display = 'none';
   }
 
+  // 부속 카테고리(song/fee)의 부모 카테고리 매핑 — 선곡료/협회 수수료 카드의 '매출 유형' 컬럼·필터에 사용
+  function _parentCatsForSub(subCat) {
+    if (subCat === 'song') return ['needle', 'blanket_paid'];
+    if (subCat === 'fee')  return ['cmo'];
+    return [];
+  }
+  // 카테고리 → 짧은 표시 라벨 (매출 유형 컬럼/필터용)
+  var _CAT_SHORT_LABEL = { needle: 'NEEDLE', blanket_paid: '유료 BLANKET', cmo: 'CMO' };
+  var _CAT_SHORT_COLOR = { needle: '#65a30d', blanket_paid: '#0891b2', cmo: '#db2777' };
+  // 거래처가 어느 메인 카테고리에서 부속 매출(song/fee)을 발생시켰는지 (vendor_sales 에 동일 vendor_name 의 부모 카테고리 row 존재 여부)
+  function _sourceCatsForSubVendor(vendorName, subCat) {
+    var parents = _parentCatsForSub(subCat);
+    var found = [];
+    parents.forEach(function(pc){
+      if (_state.rows.some(function(r){ return r.category === pc && r.vendor_name === vendorName; })) {
+        found.push(pc);
+      }
+    });
+    return found;
+  }
+
   // 카테고리별 '부속 입력 필드' 메타
   //  - needle / blanket_paid 진입: 선곡 수수료 → song 카테고리로 저장 → 음원 매출 '선곡료' 합산
   //  - cmo 진입             : 협회 수수료 → fee  카테고리로 저장 → 음원 매출 '협회 수수료' 합산
@@ -13293,7 +13315,33 @@ window.__vendor = (function() {
       byVendor[r.vendor_name].ids[r.month_key] = r.id;
     });
 
-    // 부속 매출 집계 (needle/blanket_paid → song / cmo → fee)
+    // 선곡료/협회 수수료 카드 진입 여부 (부속 카테고리 자체를 보는 화면)
+    var isSubCard = (cat === 'song' || cat === 'fee');
+    // 매출 유형 필터 (song/fee 카드에서만 노출, 담당자 셀렉트 대체)
+    var mgrSelEl = document.getElementById('vendor-needle-manager');
+    var typeCatSelEl = document.getElementById('vendor-needle-typecat-filter');
+    var typeCatFilter = '';
+    if (typeCatSelEl) {
+      if (isSubCard) {
+        if (mgrSelEl) mgrSelEl.style.display = 'none';
+        typeCatSelEl.style.display = '';
+        // 옵션 채우기 (부모 카테고리들)
+        var parents = _parentCatsForSub(cat);
+        var curVal = typeCatSelEl.value || '';
+        var opts = '<option value="">매출 유형 전체</option>'
+          + parents.map(function(pc){ return '<option value="' + pc + '">' + (_CAT_SHORT_LABEL[pc] || pc) + '</option>'; }).join('');
+        typeCatSelEl.innerHTML = opts;
+        // 이전 선택값 복원 (옵션에 있을 때만)
+        if (parents.indexOf(curVal) >= 0) typeCatSelEl.value = curVal;
+        typeCatFilter = typeCatSelEl.value || '';
+      } else {
+        typeCatSelEl.style.display = 'none';
+        typeCatSelEl.value = '';
+        if (mgrSelEl) mgrSelEl.style.display = '';
+      }
+    }
+
+    // 부속 매출 집계 (needle/blanket_paid → song / cmo → fee) — 메인 카드에서 song/fee 컬럼·필터에 사용
     var renderSubMeta = _subMetaFor(cat);
     var hasSongCol = !!renderSubMeta;
     var songByVendor = {}; // { vendor_name: { months: {month_key: amt} } }
@@ -13320,11 +13368,15 @@ window.__vendor = (function() {
       }
     }
 
-    // 검색 + 담당자 필터
+    // 검색 + 담당자 필터 + (song/fee 카드) 매출 유형 필터
     var allVendorsAfterFilter = Object.keys(byVendor).filter(function(n){
       if (searchQ && n.toLowerCase().indexOf(searchQ) === -1) return false;
-      if (mgrFilter && _getVendorManager(n) !== mgrFilter) return false;
+      if (!isSubCard && mgrFilter && _getVendorManager(n) !== mgrFilter) return false;
       if (srcFilter && _getVendorSource(n, cat) !== srcFilter) return false;
+      if (isSubCard && typeCatFilter) {
+        var sourceCats = _sourceCatsForSubVendor(n, cat);
+        if (sourceCats.indexOf(typeCatFilter) < 0) return false;
+      }
       return true;
     });
     // 거래처별 명시적 active 플래그 수집 (extra.active)
@@ -13481,11 +13533,15 @@ window.__vendor = (function() {
       : (hasSongCol
           ? '32px 1.3fr 1fr 70px 1fr 0.9fr 1.1fr 90px 28px'
           : '32px 1.3fr 1fr 70px 1fr 1.1fr 90px 28px');
+    // 4번째 컬럼: 일반 카드는 '건 수', 부속 카드(선곡료/협회 수수료)는 '매출 유형'
+    var fourthHdr = isSubCard
+      ? '<div style="text-align:center">매출 유형</div>'
+      : '<div style="text-align:right">건 수</div>';
     var headerCells = isFreeBlanket
       ? '<div>#</div><div>거래처명</div><div>매출 발생처</div><div style="text-align:center">상태</div><div></div>'
       : (hasSongCol
-          ? '<div>#</div><div>거래처명</div><div>매출 발생처</div><div style="text-align:right">건 수</div><div style="text-align:right">기간 합계</div><div style="text-align:right;color:' + renderSubMeta.color + '">' + renderSubMeta.targetLabel + '</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'
-          : '<div>#</div><div>거래처명</div><div>매출 발생처</div><div style="text-align:right">건 수</div><div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>');
+          ? '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="text-align:right">기간 합계</div><div style="text-align:right;color:' + renderSubMeta.color + '">' + renderSubMeta.targetLabel + '</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'
+          : '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>');
     var rowsHtml = ''
       + '<div style="display:grid;grid-template-columns:' + gridCols + ';gap:8px;padding:10px 14px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;position:sticky;top:0;z-index:2">'
       +   headerCells
@@ -13538,9 +13594,25 @@ window.__vendor = (function() {
           + statusCell
           + editBtnHtml;
       } else {
-        var countCellHtml = (v.curCount > 0)
-          ? '<div style="text-align:right;font-weight:700;color:#0f172a;font-variant-numeric:tabular-nums">' + v.curCount.toLocaleString() + '<span style="font-size:10px;color:#94a3b8;font-weight:500;margin-left:2px">건</span></div>'
-          : '<div style="text-align:right;color:#cbd5e1">-</div>';
+        // 4번째 컬럼: 일반 카드는 '건 수', 부속 카드(song/fee)는 '매출 유형' 칩
+        var countCellHtml;
+        if (isSubCard) {
+          var sourceCats = _sourceCatsForSubVendor(v.name, cat);
+          if (sourceCats.length) {
+            var chips = sourceCats.map(function(pc){
+              var lbl = _CAT_SHORT_LABEL[pc] || pc;
+              var clr = _CAT_SHORT_COLOR[pc] || '#64748b';
+              return '<span style="font-size:10px;font-weight:700;color:' + clr + ';background:' + clr + '14;border:1px solid ' + clr + '55;border-radius:10px;padding:2px 8px;white-space:nowrap">' + lbl + '</span>';
+            }).join('<span style="margin:0 3px;color:#cbd5e1">·</span>');
+            countCellHtml = '<div style="text-align:center;display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap">' + chips + '</div>';
+          } else {
+            countCellHtml = '<div style="text-align:center;color:#cbd5e1;font-size:11px">-</div>';
+          }
+        } else {
+          countCellHtml = (v.curCount > 0)
+            ? '<div style="text-align:right;font-weight:700;color:#0f172a;font-variant-numeric:tabular-nums">' + v.curCount.toLocaleString() + '<span style="font-size:10px;color:#94a3b8;font-weight:500;margin-left:2px">건</span></div>'
+            : '<div style="text-align:right;color:#cbd5e1">-</div>';
+        }
         var songCellHtml = hasSongCol
           ? ((v.songCur > 0)
               ? '<div style="text-align:right;font-weight:700;color:' + renderSubMeta.color + ';font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + renderSubMeta.targetLabel + ' ' + v.songCur.toLocaleString() + '원">' + v.songCur.toLocaleString() + '</div>'
