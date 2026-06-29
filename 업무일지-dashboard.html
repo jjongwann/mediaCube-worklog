@@ -12023,6 +12023,15 @@
         </div>
         <div style="font-size:10px;color:#94a3b8;margin-top:4px">기존 거래처+동일 월 입력 시 매출과 건 수가 합산됩니다.</div>
       </div>
+      <!-- 선곡 수수료 (NEEDLE / 유료 BLANKET / CMO 에서만 노출) — 입력 시 '선곡료' 카테고리(song) 로 자동 분리 저장 -->
+      <div id="vendor-add-song-wrap" style="display:none">
+        <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">
+          선곡 수수료 (원)
+          <span style="font-size:10px;font-weight:500;color:#10b981;margin-left:4px">→ '선곡료' 카테고리로 자동 연동</span>
+        </label>
+        <input type="text" id="vendor-add-song" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-weight:600" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e2e8f0'">
+        <div style="font-size:10px;color:#94a3b8;margin-top:4px">동일 거래처명+동일 월의 '선곡료' 매출에 합산 저장됩니다. 음원 매출 분석의 '선곡료' 항목에 즉시 반영됩니다.</div>
+      </div>
       <!-- 매출 발생처 (선택 입력) — 카테고리 필터의 source 옵션과 연동됨 -->
       <div id="vendor-add-source-wrap">
         <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">매출 발생처</label>
@@ -12849,6 +12858,8 @@ window.__vendor = (function() {
     document.getElementById('vendor-add-amount').value = '';
     var addCntEl = document.getElementById('vendor-add-count');
     if (addCntEl) addCntEl.value = '';
+    var addSongEl = document.getElementById('vendor-add-song');
+    if (addSongEl) addSongEl.value = '';
     // 신규 등록일 기본값: 오늘
     var addRegEl = document.getElementById('vendor-add-regdate');
     if (addRegEl) addRegEl.value = _isoToDateInput(new Date().toISOString());
@@ -12893,6 +12904,12 @@ window.__vendor = (function() {
     var freeNote = document.getElementById('vendor-add-freenote');
     if (amtWrap)  amtWrap.style.display  = isFreeBlanket ? 'none' : '';
     if (freeNote) freeNote.style.display = isFreeBlanket ? 'block' : 'none';
+    // 선곡 수수료 입력: NEEDLE / 유료 BLANKET / CMO 진입 시에만 노출
+    var songWrap = document.getElementById('vendor-add-song-wrap');
+    if (songWrap) {
+      var showSong = (cat === 'needle' || cat === 'blanket_paid' || cat === 'cmo');
+      songWrap.style.display = showSong ? '' : 'none';
+    }
 
     // 기존 거래처명 캐시 — 선택된 cat 기준 (신규 고객 모드에서 cat='' 이면 빈 리스트)
     _addNameOptions = [];
@@ -13000,6 +13017,51 @@ window.__vendor = (function() {
     document.getElementById('vendor-add-overlay').style.display = 'none';
   }
 
+  // 선곡 수수료 row(category='song') upsert — saveAdd 의 메인 카테고리 저장 후 호출
+  function _upsertSongRow(vendorName, monthKey, songAmount, activeFlag, createdAtIso, source, onDone) {
+    if (!songAmount || songAmount <= 0) { if (onDone) onDone(); return; }
+    var sb = _getSb();
+    var existing = _state.rows.find(function(r){
+      return r.category === 'song' && r.vendor_name === vendorName && r.month_key === monthKey;
+    });
+    function _finish(ok){
+      if (ok) _afterVendorChange();
+      if (onDone) onDone();
+    }
+    if (existing) {
+      var newAmount = (existing.amount || 0) + songAmount;
+      var patchExtra = Object.assign({}, existing.extra || {}, { active: activeFlag });
+      if (source) patchExtra.source = source;
+      if (!patchExtra.created_at) patchExtra.created_at = createdAtIso;
+      fetch(sb.url + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(existing.id), {
+        method: 'PATCH',
+        headers: Object.assign({}, sb.hdr, { 'Prefer': 'return=minimal' }),
+        body: JSON.stringify({ amount: newAmount, extra: patchExtra, updated_at: new Date().toISOString() })
+      }).then(function(r){
+        if (r.ok) { existing.amount = newAmount; existing.extra = patchExtra; _finish(true); }
+        else { r.text().then(function(t){ console.error('song patch failed', r.status, t); _toast('선곡 수수료 저장 실패: ' + r.status); }); _finish(false); }
+      }).catch(function(e){ console.error(e); _toast('선곡 수수료 네트워크 오류'); _finish(false); });
+    } else {
+      var songInitExtra = { active: activeFlag, created_at: createdAtIso };
+      if (source) songInitExtra.source = source;
+      var songRow = {
+        id: _genId(),
+        category: 'song',
+        vendor_name: vendorName,
+        month_key: monthKey,
+        amount: songAmount,
+        extra: songInitExtra,
+        updated_at: new Date().toISOString()
+      };
+      fetch(sb.url + '/rest/v1/vendor_sales', {
+        method: 'POST', headers: sb.hdr, body: JSON.stringify(songRow)
+      }).then(function(r){
+        if (r.ok || r.status === 201) { _state.rows.push(songRow); _finish(true); }
+        else { r.text().then(function(t){ console.error('song post failed', r.status, t); _toast('선곡 수수료 저장 실패: ' + r.status); }); _finish(false); }
+      }).catch(function(e){ console.error(e); _toast('선곡 수수료 네트워크 오류'); _finish(false); });
+    }
+  }
+
   function saveAdd() {
     var name = (document.getElementById('vendor-add-name').value || '').trim();
     var year = parseInt(document.getElementById('vendor-add-year').value);
@@ -13030,6 +13092,16 @@ window.__vendor = (function() {
 
     if (!name) { _toast('거래처명을 입력하세요'); return; }
     if (!year || !month) { _toast('년도/월을 선택하세요'); return; }
+
+    // 선곡 수수료 (cat 이 needle / blanket_paid / cmo 일 때만 의미 있음)
+    var songAmount = 0;
+    var canSong = (cat === 'needle' || cat === 'blanket_paid' || cat === 'cmo');
+    if (canSong) {
+      var songEl = document.getElementById('vendor-add-song');
+      var songRaw = (songEl ? songEl.value : '').replace(/,/g,'').trim();
+      songAmount = parseInt(songRaw, 10);
+      if (isNaN(songAmount) || songAmount < 0) songAmount = 0;
+    }
 
     var monthKey = year + '-' + month;
 
@@ -13070,6 +13142,10 @@ window.__vendor = (function() {
           render(viewCat); // 신규 고객 패널 진입 시에는 그대로 머물러 새 거래처 카드 즉시 표시
           _afterVendorChange();
           _toast('기존 거래처에 합산 저장되었습니다 (' + _fmtW(newAmount) + ')');
+          // 선곡 수수료 동시 저장 (입력값 있을 때만, NEEDLE/유료 BLANKET/CMO 진입에서만 유효)
+          _upsertSongRow(name, monthKey, songAmount, activeFlag, createdAtIso, source, function(){
+            if (songAmount > 0) _toast('선곡료 ' + _fmtW(songAmount) + ' 도 함께 저장되었습니다');
+          });
         } else {
           r.text().then(function(t){ console.error('vendor patch failed', r.status, t); _toast('저장 실패: ' + r.status); });
         }
@@ -13096,6 +13172,10 @@ window.__vendor = (function() {
           render(viewCat); // 신규 고객 패널 진입 시에는 그대로 머물러 새 거래처 카드 즉시 표시
           _afterVendorChange();
           _toast('신규 거래처 매출이 저장되었습니다');
+          // 선곡 수수료 동시 저장 (입력값 있을 때만, NEEDLE/유료 BLANKET/CMO 진입에서만 유효)
+          _upsertSongRow(name, monthKey, songAmount, activeFlag, createdAtIso, source, function(){
+            if (songAmount > 0) _toast('선곡료 ' + _fmtW(songAmount) + ' 도 함께 저장되었습니다');
+          });
         } else {
           r.text().then(function(t){ console.error('vendor save failed', r.status, t); _toast('저장 실패: ' + r.status + ' (테이블 권한 확인)'); });
         }
