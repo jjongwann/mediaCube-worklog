@@ -12081,7 +12081,7 @@
         </select>
         <div style="font-size:10px;color:#94a3b8;margin-top:4px">선택한 카테고리에 신규 거래처가 등록됩니다.</div>
       </div>
-      <div style="display:flex;gap:10px">
+      <div id="vendor-add-yearmonth-wrap" style="display:flex;gap:10px">
         <div style="flex:1">
           <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">년도 *</label>
           <select id="vendor-add-year" style="width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none"></select>
@@ -13136,18 +13136,21 @@ window.__vendor = (function() {
     var freeNote = document.getElementById('vendor-add-freenote');
     if (amtWrap)  amtWrap.style.display  = isFreeBlanket ? 'none' : '';
     if (freeNote) freeNote.style.display = isFreeBlanket ? 'block' : 'none';
-    // 시스템 사업부 분기: 건수/등록일 숨김 + 시스템 전용 필드 노출
+    // 시스템 사업부 분기: 건수/등록일/년도·월 숨김 + 시스템 전용 필드 노출
     var isSysCat = !!(cat && _CAT_DEPT[cat] === 'system');
     var sysWrap = document.getElementById('vendor-add-sys-wrap');
     var regWrap = document.getElementById('vendor-add-regdate-wrap');
     var countCell = document.getElementById('vendor-add-count-cell');
     var amtGrid = document.getElementById('vendor-add-amt-count-grid');
     var amtHelp = document.getElementById('vendor-add-amt-help');
+    var ymWrap = document.getElementById('vendor-add-yearmonth-wrap');
     if (sysWrap)   sysWrap.style.display   = isSysCat ? '' : 'none';
     if (regWrap)   regWrap.style.display   = isSysCat ? 'none' : '';
     if (countCell) countCell.style.display = isSysCat ? 'none' : '';
     if (amtGrid)   amtGrid.style.gridTemplateColumns = isSysCat ? '1fr' : '2fr 1fr';
-    if (amtHelp)   amtHelp.textContent     = isSysCat ? '기존 거래처+동일 월 입력 시 매출이 합산됩니다.' : '기존 거래처+동일 월 입력 시 매출과 건 수가 합산됩니다.';
+    if (amtHelp)   amtHelp.textContent     = isSysCat ? '계산서 날짜의 YYYY-월 이 매출월로 자동 적용됩니다.' : '기존 거래처+동일 월 입력 시 매출과 건 수가 합산됩니다.';
+    // 시스템 사업부: 년도/월 셀렉트는 invoice_date 로 자동 결정되므로 숨김
+    if (ymWrap)    ymWrap.style.display    = isSysCat ? 'none' : 'flex';
     // 부속 매출 입력: NEEDLE/유료 BLANKET → 선곡 수수료 / CMO → 협회 수수료
     var songWrap = document.getElementById('vendor-add-song-wrap');
     if (songWrap) {
@@ -13385,7 +13388,7 @@ window.__vendor = (function() {
     }
 
     if (!name) { _toast('거래처명을 입력하세요'); return; }
-    if (!year || !month) { _toast('년도/월을 선택하세요'); return; }
+    if (_CAT_DEPT[cat] !== 'system' && (!year || !month)) { _toast('년도/월을 선택하세요'); return; }
 
     // 부속 매출 (needle/blanket_paid → 선곡료, cmo → 협회 수수료)
     var subAmount = 0;
@@ -13408,6 +13411,8 @@ window.__vendor = (function() {
       var of = _readVal('vendor-add-sys-order-from');    if (of) sysExtra.order_from = of;
       var dt = _readVal('vendor-add-sys-delivery-to');   if (dt) sysExtra.delivery_to = dt;
       var nt = _readVal('vendor-add-sys-note');          if (nt) sysExtra.note = nt;
+      // 시스템 사업부: 계산서 날짜는 매출월 결정 기준이므로 필수
+      if (!sysExtra.invoice_date) { _toast('계산서 날짜를 입력하세요 (매출월 기준)'); return; }
     }
 
     var monthKey = year + '-' + month;
