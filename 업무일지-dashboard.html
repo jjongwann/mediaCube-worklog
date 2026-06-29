@@ -12434,6 +12434,7 @@ window.__vendor = (function() {
   }
 
   // 거래처별 매출 발생처 (extra.source). 카테고리 내에서 최근 row 기준.
+  // 부속 카테고리(song/fee) row 에 source 가 없으면 부모 카테고리(needle/blanket_paid/cmo)에서 fallback.
   function _getVendorSource(name, cat) {
     var found = '';
     _state.rows.forEach(function(r){
@@ -12441,15 +12442,26 @@ window.__vendor = (function() {
         found = r.extra.source;
       }
     });
+    if (!found && (cat === 'song' || cat === 'fee')) {
+      var parents = _parentCatsForSub(cat);
+      _state.rows.forEach(function(r){
+        if (r.vendor_name === name && parents.indexOf(r.category) >= 0 && r.extra && r.extra.source) {
+          found = r.extra.source;
+        }
+      });
+    }
     return found;
   }
 
   // 현재 카테고리에서 사용된 모든 매출 발생처 목록 (중복 제거, 정렬)
+  // 부속 카테고리(song/fee) 진입 시 부모 카테고리 source 도 함께 수집
   function _collectSources(cat) {
     var seen = {};
     // 신규 고객(new_customer)은 가상 카테고리 — 사운드 사업부 전 카테고리의
     // 등록일 365일 이내 신규 거래처 행에서 매출 발생처를 수집한다.
     var isNewCustomer = (cat === 'new_customer');
+    var isSub = (cat === 'song' || cat === 'fee');
+    var subParents = isSub ? _parentCatsForSub(cat) : null;
     var ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
     var nowTs = Date.now();
     _state.rows.forEach(function(r){
@@ -12461,6 +12473,8 @@ window.__vendor = (function() {
         var ts = new Date(r.extra.created_at).getTime();
         if (isNaN(ts) || (nowTs - ts) > ONE_YEAR_MS) return;
         matched = true;
+      } else if (isSub) {
+        matched = (r.category === cat) || (subParents.indexOf(r.category) >= 0);
       } else {
         matched = (r.category === cat);
       }
