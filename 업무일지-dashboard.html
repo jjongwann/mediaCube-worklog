@@ -1940,10 +1940,15 @@
             <button id="sys-view-chart" onclick="setSysViewMode('chart')" style="padding:5px 14px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:700">차트</button>
             <button id="sys-view-table" onclick="setSysViewMode('table')" style="padding:5px 14px;border:none;background:#f8fafc;color:#64748b;cursor:pointer;font-weight:600">표</button>
           </div>
-          <!-- 연도 선택 + 조회 (차트 모드에서만 보임) -->
+          <!-- 연도+월 선택 + 조회 (차트 모드에서만 보임) — 월별 합계 조회 -->
           <div id="sys-year-picker-wrap" style="display:flex;align-items:center;gap:6px">
-            <span style="font-size:11px;font-weight:700;color:#475569">연도</span>
+            <span style="font-size:11px;font-weight:700;color:#475569">기간</span>
             <select id="sys-view-year-sel" style="padding:5px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;font-weight:600;color:#374151;background:#f8fafc;outline:none"></select>
+            <select id="sys-view-month-sel" style="padding:5px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;font-weight:600;color:#374151;background:#f8fafc;outline:none">
+              <option value="1">1월</option><option value="2">2월</option><option value="3">3월</option><option value="4">4월</option>
+              <option value="5">5월</option><option value="6">6월</option><option value="7">7월</option><option value="8">8월</option>
+              <option value="9">9월</option><option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+            </select>
             <button onclick="renderSystemSalesWidget()" style="padding:5px 12px;background:#2563eb;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">조회</button>
           </div>
           <button onclick="openSysSalesCumul()" style="display:flex;align-items:center;gap:6px;padding:5px 13px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">
@@ -7845,7 +7850,7 @@
     return sum;
   }
 
-  // 차트 모드용 연도 드롭다운 채우기
+  // 차트 모드용 연도+월 드롭다운 채우기
   function _sysPopulateViewYearSel() {
     var sel = document.getElementById('sys-view-year-sel');
     if (!sel) return;
@@ -7855,10 +7860,13 @@
     if (prev && years.indexOf(parseInt(prev, 10)) !== -1) {
       sel.value = prev;
     } else {
-      // 기본값: 현재 연도 - 1 (작년)
-      var defY = new Date().getFullYear() - 1;
+      // 기본값: 현재 연도
+      var defY = new Date().getFullYear();
       sel.value = years.indexOf(defY) !== -1 ? String(defY) : String(years[0]);
     }
+    // 월 셀렉트 — 기본값: 현재 월
+    var mSel = document.getElementById('sys-view-month-sel');
+    if (mSel && !mSel.value) mSel.value = String(new Date().getMonth() + 1);
   }
 
   // 차트/표 토글
@@ -7898,15 +7906,24 @@
     else _sysRenderTableView();
   }
 
-  // 차트 보기 — 선택된 연도의 6개 항목을 색상별 막대로 표시
+  // 특정 연-월 의 항목 합계 (vendor 집계 결과의 month_key='YYYY-M' row 1개에서 직접 읽음)
+  function _sysMonthTotal(year, month, itemKey) {
+    var row = _sysRowFor(year + '-' + month);
+    return row ? (parseInt(row[itemKey], 10) || 0) : 0;
+  }
+
+  // 차트 보기 — 선택된 연-월의 6개 항목을 색상별 막대로 표시
   function _sysRenderChartView() {
-    var sel = document.getElementById('sys-view-year-sel');
-    var year = sel && sel.value ? parseInt(sel.value, 10) : (new Date().getFullYear() - 1);
-    if (isNaN(year)) year = new Date().getFullYear() - 1;
+    var ySel = document.getElementById('sys-view-year-sel');
+    var mSel = document.getElementById('sys-view-month-sel');
+    var year  = ySel && ySel.value ? parseInt(ySel.value, 10) : new Date().getFullYear();
+    var month = mSel && mSel.value ? parseInt(mSel.value, 10) : (new Date().getMonth() + 1);
+    if (isNaN(year))  year  = new Date().getFullYear();
+    if (isNaN(month)) month = new Date().getMonth() + 1;
 
     // 차트 라벨은 2줄 분할 형태로 사용 → 좁은 해상도에서도 겹침 없이 표시
     var labels = SYS_SALES_ITEMS.map(function(it){ return it.chartLabel || it.label; });
-    var data   = SYS_SALES_ITEMS.map(function(it){ return _sysYearTotal(year, it.key); });
+    var data   = SYS_SALES_ITEMS.map(function(it){ return _sysMonthTotal(year, month, it.key); });
     var colors = SYS_SALES_ITEMS.map(function(it){ return it.color; });
 
     var ctx = document.getElementById('sys-year-chart').getContext('2d');
@@ -7916,7 +7933,7 @@
       data: {
         labels: labels,
         datasets: [{
-          label: year + '년 매출',
+          label: year + '년 ' + month + '월 매출',
           data: data,
           backgroundColor: colors.map(function(c){ return c + 'cc'; }),
           borderColor: colors,
@@ -7957,7 +7974,7 @@
     var summary = document.getElementById('sys-chart-summary');
     summary.innerHTML = SYS_SALES_ITEMS.map(function(it, i){
       var v = data[i];
-      var prevV = _sysYearTotal(year - 1, it.key);
+      var prevV = _sysMonthTotal(year - 1, month, it.key); // 전년 동월
       var diff = v - prevV;
       var diffPct = prevV > 0 ? Math.round(diff / prevV * 100) : (v > 0 ? 100 : 0);
       var hasData = v > 0 || prevV > 0;
@@ -7988,21 +8005,21 @@
     var grandEl = document.getElementById('sys-grand-card');
     if (grandEl) {
       grandEl.innerHTML = ''
-        + '<div style="font-size:11.5px;font-weight:700;line-height:1.3;letter-spacing:-0.1px;opacity:0.95">' + year + '년 합계</div>'
+        + '<div style="font-size:11.5px;font-weight:700;line-height:1.3;letter-spacing:-0.1px;opacity:0.95">' + year + '년 ' + month + '월 합계</div>'
         + '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:6px;margin-top:5px;flex-wrap:nowrap;min-width:0">'
           + '<div style="font-size:15px;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums">' + _sysFmtW(grandTotal) + '</div>'
           + '<div style="font-size:10.5px;font-weight:600;opacity:0.9;white-space:nowrap;font-variant-numeric:tabular-nums">' + grandTotal.toLocaleString() + '원</div>'
         + '</div>';
     }
 
-    // 우측 KPI 패널 (총 매출 / 평균 매출 / 전년 대비)
+    // 우측 KPI 패널 (총 매출 / 평균 매출 / 전년 동월 대비)
     var kpiEl = document.getElementById('sys-kpi-panel');
     if (kpiEl) {
       var nonZeroCount = SYS_SALES_ITEMS.reduce(function(c, it, i){ return c + (data[i] > 0 ? 1 : 0); }, 0);
       // 평균: 매출 발생 항목 평균 (0 인 항목은 제외). 매출 항목이 0개면 전체 6개로 나눔
       var avgVal = nonZeroCount > 0 ? Math.round(grandTotal / nonZeroCount) : Math.round(grandTotal / SYS_SALES_ITEMS.length);
       var prevYear = year - 1;
-      var prevTotal = SYS_SALES_ITEMS.reduce(function(s, it){ return s + _sysYearTotal(prevYear, it.key); }, 0);
+      var prevTotal = SYS_SALES_ITEMS.reduce(function(s, it){ return s + _sysMonthTotal(prevYear, month, it.key); }, 0);
       var yoyDiff = grandTotal - prevTotal;
       var yoyPct  = prevTotal > 0 ? Math.round(yoyDiff / prevTotal * 100) : (grandTotal > 0 ? 100 : 0);
       var yoyColor   = yoyDiff >= 0 ? '#16a34a' : '#dc2626';
@@ -8010,7 +8027,7 @@
       var yoySign    = yoyDiff >= 0 ? '+' : '-';
 
       kpiEl.innerHTML = ''
-        + '<div style="font-size:10.5px;font-weight:700;color:#7c3aed;letter-spacing:0.3px;padding-bottom:4px;border-bottom:1px solid #ddd6fe">' + year + '년 KPI 요약</div>'
+        + '<div style="font-size:10.5px;font-weight:700;color:#7c3aed;letter-spacing:0.3px;padding-bottom:4px;border-bottom:1px solid #ddd6fe">' + year + '년 ' + month + '월 KPI 요약</div>'
         + '<div style="background:#fff;border:1px solid #ede9fe;border-radius:9px;padding:8px 11px">'
           + '<div style="font-size:10.5px;color:#64748b;font-weight:600">총 매출</div>'
           + '<div style="font-size:16px;font-weight:800;color:#7c3aed;margin-top:1px;white-space:nowrap">' + _sysFmtW(grandTotal) + '</div>'
@@ -8022,9 +8039,9 @@
           + '<div style="font-size:10px;color:#94a3b8;margin-top:1px">' + (nonZeroCount > 0 ? nonZeroCount + '개 항목 평균' : SYS_SALES_ITEMS.length + '개 항목 평균') + '</div>'
         + '</div>'
         + '<div style="background:#fff;border:1px solid ' + (yoyDiff >= 0 ? '#bbf7d0' : '#fecaca') + ';border-radius:9px;padding:8px 11px">'
-          + '<div style="font-size:10.5px;color:#64748b;font-weight:600">전년 대비</div>'
+          + '<div style="font-size:10.5px;color:#64748b;font-weight:600">전년 동월 대비</div>'
           + '<div style="font-size:14px;font-weight:800;color:' + yoyColor + ';margin-top:1px">' + yoyArrow + ' ' + yoySign + Math.abs(yoyPct) + '%</div>'
-          + '<div style="font-size:10px;color:#475569;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">전년(' + prevYear + '): ' + _sysFmtW(prevTotal) + '</div>'
+          + '<div style="font-size:10px;color:#475569;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">전년 동월(' + prevYear + '.' + month + '): ' + _sysFmtW(prevTotal) + '</div>'
         + '</div>';
     }
   }
@@ -8219,6 +8236,19 @@
 
   function openSysSalesCumul() {
     if (!_sysSalesLoaded) { sysSalesFetch().then(openSysSalesCumul); return; }
+    // 진입 시점에 vendor 캐시를 한 번 더 동기화 — 다른 화면에서 거래처를 추가/수정한 직후에도 최신 데이터 보장
+    try {
+      if (window.__vendor && typeof window.__vendor.fetchAll === 'function') {
+        window.__vendor.fetchAll().then(function(){
+          _sysRebuildFromVendor();
+          _openSysSalesCumulUI();
+        }).catch(function(){ _openSysSalesCumulUI(); });
+        return;
+      }
+    } catch(e) {}
+    _openSysSalesCumulUI();
+  }
+  function _openSysSalesCumulUI() {
     var fromYSel = document.getElementById('sys-cumul-from-year');
     var toYSel   = document.getElementById('sys-cumul-to-year');
     var fromMSel = document.getElementById('sys-cumul-from-month');
@@ -12055,23 +12085,54 @@
           </select>
         </div>
       </div>
-      <div>
+      <div id="vendor-add-regdate-wrap">
         <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">신규 등록일 <span style="font-size:10px;font-weight:400;color:#94a3b8">(신규 고객 1년 기준일)</span></label>
         <input type="date" id="vendor-add-regdate" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
         <div style="font-size:10px;color:#94a3b8;margin-top:4px">이 날짜부터 1년간 '신규 고객' 패널에 노출됩니다. (기본: 오늘)</div>
       </div>
       <div id="vendor-add-amount-wrap">
-        <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px">
+        <div id="vendor-add-amt-count-grid" style="display:grid;grid-template-columns:2fr 1fr;gap:10px">
           <div>
             <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">매출액 (원) *</label>
             <input type="text" id="vendor-add-amount" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-weight:600" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
           </div>
-          <div>
+          <div id="vendor-add-count-cell">
             <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">건 수</label>
             <input type="text" id="vendor-add-count" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-weight:600" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
           </div>
         </div>
-        <div style="font-size:10px;color:#94a3b8;margin-top:4px">기존 거래처+동일 월 입력 시 매출과 건 수가 합산됩니다.</div>
+        <div id="vendor-add-amt-help" style="font-size:10px;color:#94a3b8;margin-top:4px">기존 거래처+동일 월 입력 시 매출과 건 수가 합산됩니다.</div>
+      </div>
+      <!-- 시스템 사업부 전용 입력 필드 (sys_* 카테고리 진입 시에만 노출) -->
+      <div id="vendor-add-sys-wrap" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">납품 날짜</label>
+            <input type="date" id="vendor-add-sys-delivery-date" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">계산서 날짜</label>
+            <input type="date" id="vendor-add-sys-invoice-date" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">시리얼 넘버</label>
+          <input type="text" id="vendor-add-sys-serial" placeholder="예: SN-2026-001" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">발주처</label>
+            <input type="text" id="vendor-add-sys-order-from" placeholder="발주한 곳" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">납품처</label>
+            <input type="text" id="vendor-add-sys-delivery-to" placeholder="납품받은 곳" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">기타</label>
+          <textarea id="vendor-add-sys-note" placeholder="특이 사항, 메모 등" rows="2" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;resize:vertical;font-family:inherit" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+        </div>
       </div>
       <!-- 부속 매출 (NEEDLE/유료 BLANKET → 선곡 수수료 → song / CMO → 협회 수수료 → fee) -->
       <div id="vendor-add-song-wrap" style="display:none">
@@ -12158,6 +12219,39 @@
           </button>
           <div id="vendor-edit-source-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);max-height:180px;overflow-y:auto;z-index:100"></div>
         </div>
+      </div>
+      <!-- 시스템 사업부 전용 메타 블록 (sys_* 진입 시에만 노출) — 저장 시 해당 연도의 모든 월 row 의 extra 에 동기화 -->
+      <div id="vendor-edit-sys-block" style="display:none;flex-direction:column;gap:8px;padding-top:8px;border-top:1px dashed #cbd5e1">
+        <div style="font-size:10.5px;font-weight:700;color:#2563eb;letter-spacing:0.3px">시스템 사업부 전용</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:10.5px;font-weight:600;color:#475569;width:64px;flex-shrink:0">납품 날짜</label>
+            <input type="date" id="vendor-edit-sys-delivery-date" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:10.5px;font-weight:600;color:#475569;width:64px;flex-shrink:0">계산서 날짜</label>
+            <input type="date" id="vendor-edit-sys-invoice-date" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none">
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <label style="font-size:10.5px;font-weight:600;color:#475569;width:64px;flex-shrink:0">시리얼 번호</label>
+          <input type="text" id="vendor-edit-sys-serial" placeholder="예: SN-2026-001" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:10.5px;font-weight:600;color:#475569;width:64px;flex-shrink:0">발주처</label>
+            <input type="text" id="vendor-edit-sys-order-from" placeholder="발주한 곳" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:10.5px;font-weight:600;color:#475569;width:64px;flex-shrink:0">납품처</label>
+            <input type="text" id="vendor-edit-sys-delivery-to" placeholder="납품받은 곳" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none">
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <label style="font-size:10.5px;font-weight:600;color:#475569;width:64px;flex-shrink:0;padding-top:5px">기타</label>
+          <textarea id="vendor-edit-sys-note" placeholder="특이 사항 / 메모" rows="2" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none;resize:vertical;font-family:inherit"></textarea>
+        </div>
+        <div style="font-size:10px;color:#94a3b8">이 필드들은 ' + 신규 거래처 추가' 시 입력한 값과 동일하게 처리됩니다.</div>
       </div>
     </div>
     <div style="flex:1;overflow-y:auto;padding:14px 24px">
@@ -12974,6 +13068,9 @@ window.__vendor = (function() {
     if (addCntEl) addCntEl.value = '';
     var addSongEl = document.getElementById('vendor-add-song');
     if (addSongEl) addSongEl.value = '';
+    // 시스템 사업부 전용 입력 필드 초기화
+    var sysIds = ['vendor-add-sys-delivery-date','vendor-add-sys-invoice-date','vendor-add-sys-serial','vendor-add-sys-order-from','vendor-add-sys-delivery-to','vendor-add-sys-note'];
+    sysIds.forEach(function(id){ var el = document.getElementById(id); if (el) el.value = ''; });
     // 신규 등록일 기본값: 오늘
     var addRegEl = document.getElementById('vendor-add-regdate');
     if (addRegEl) addRegEl.value = _isoToDateInput(new Date().toISOString());
@@ -13018,6 +13115,18 @@ window.__vendor = (function() {
     var freeNote = document.getElementById('vendor-add-freenote');
     if (amtWrap)  amtWrap.style.display  = isFreeBlanket ? 'none' : '';
     if (freeNote) freeNote.style.display = isFreeBlanket ? 'block' : 'none';
+    // 시스템 사업부 분기: 건수/등록일 숨김 + 시스템 전용 필드 노출
+    var isSysCat = !!(cat && _CAT_DEPT[cat] === 'system');
+    var sysWrap = document.getElementById('vendor-add-sys-wrap');
+    var regWrap = document.getElementById('vendor-add-regdate-wrap');
+    var countCell = document.getElementById('vendor-add-count-cell');
+    var amtGrid = document.getElementById('vendor-add-amt-count-grid');
+    var amtHelp = document.getElementById('vendor-add-amt-help');
+    if (sysWrap)   sysWrap.style.display   = isSysCat ? '' : 'none';
+    if (regWrap)   regWrap.style.display   = isSysCat ? 'none' : '';
+    if (countCell) countCell.style.display = isSysCat ? 'none' : '';
+    if (amtGrid)   amtGrid.style.gridTemplateColumns = isSysCat ? '1fr' : '2fr 1fr';
+    if (amtHelp)   amtHelp.textContent     = isSysCat ? '기존 거래처+동일 월 입력 시 매출이 합산됩니다.' : '기존 거래처+동일 월 입력 시 매출과 건 수가 합산됩니다.';
     // 부속 매출 입력: NEEDLE/유료 BLANKET → 선곡 수수료 / CMO → 협회 수수료
     var songWrap = document.getElementById('vendor-add-song-wrap');
     if (songWrap) {
@@ -13267,6 +13376,19 @@ window.__vendor = (function() {
       if (isNaN(subAmount) || subAmount < 0) subAmount = 0;
     }
 
+    // 시스템 사업부 전용 입력값 (vendor_sales.extra 에 저장)
+    var sysExtra = null;
+    if (_CAT_DEPT[cat] === 'system') {
+      sysExtra = {};
+      var _readVal = function(id){ var el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
+      var dd = _readVal('vendor-add-sys-delivery-date'); if (dd) sysExtra.delivery_date = dd;
+      var id = _readVal('vendor-add-sys-invoice-date');  if (id) sysExtra.invoice_date = id;
+      var sn = _readVal('vendor-add-sys-serial');        if (sn) sysExtra.serial_no = sn;
+      var of = _readVal('vendor-add-sys-order-from');    if (of) sysExtra.order_from = of;
+      var dt = _readVal('vendor-add-sys-delivery-to');   if (dt) sysExtra.delivery_to = dt;
+      var nt = _readVal('vendor-add-sys-note');          if (nt) sysExtra.note = nt;
+    }
+
     var monthKey = year + '-' + month;
 
     // 기존 동일 (cat, name, monthKey) 행이 있으면 합산
@@ -13286,6 +13408,8 @@ window.__vendor = (function() {
       if (newCount > 0) patchExtra.count = newCount;
       // 기존 행 합산 시: created_at 이 없을 때만 선택한 등록일로 백필 (기존 등록일 보존)
       if (!patchExtra.created_at) patchExtra.created_at = createdAtIso;
+      // 시스템 사업부: 입력된 시스템 전용 필드는 항상 최신값으로 덮어쓰기
+      if (sysExtra) Object.assign(patchExtra, sysExtra);
       fetch(sb.url + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(existing.id), {
         method: 'PATCH',
         headers: Object.assign({}, sb.hdr, { 'Prefer': 'return=minimal' }),
@@ -13320,6 +13444,8 @@ window.__vendor = (function() {
       var initExtra = { active: activeFlag, created_at: createdAtIso };
       if (source) initExtra.source = source;
       if (count > 0) initExtra.count = count;
+      // 시스템 사업부 전용 필드 병합
+      if (sysExtra) Object.assign(initExtra, sysExtra);
       var row = {
         id: _genId(),
         category: cat,
@@ -14402,6 +14528,27 @@ window.__vendor = (function() {
     if (editSrcDrop) editSrcDrop.style.display = 'none';
     _refreshEditSourceOptions(cat);
 
+    // 시스템 사업부 전용 메타 블록 가시성 + prefill
+    var sysBlock = document.getElementById('vendor-edit-sys-block');
+    var isSysCatEdit = (_CAT_DEPT[cat] === 'system');
+    if (sysBlock) sysBlock.style.display = isSysCatEdit ? 'flex' : 'none';
+    if (isSysCatEdit) {
+      // 가장 최근 row 에서 시스템 전용 필드 값을 가져옴
+      var sysRows = _state.rows.filter(function(r){ return r.category === cat && r.vendor_name === name; });
+      var pickSysVal = function(field){
+        var v = '';
+        sysRows.forEach(function(r){ if (r.extra && r.extra[field]) v = r.extra[field]; });
+        return v;
+      };
+      var setEditVal = function(id, v){ var el = document.getElementById(id); if (el) el.value = v || ''; };
+      setEditVal('vendor-edit-sys-delivery-date', pickSysVal('delivery_date'));
+      setEditVal('vendor-edit-sys-invoice-date',  pickSysVal('invoice_date'));
+      setEditVal('vendor-edit-sys-serial',        pickSysVal('serial_no'));
+      setEditVal('vendor-edit-sys-order-from',    pickSysVal('order_from'));
+      setEditVal('vendor-edit-sys-delivery-to',   pickSysVal('delivery_to'));
+      setEditVal('vendor-edit-sys-note',          pickSysVal('note'));
+    }
+
     // 활성/비활성 토글 표시
     var toggleBtn = document.getElementById('vendor-edit-active-toggle');
     if (toggleBtn) {
@@ -14496,13 +14643,35 @@ window.__vendor = (function() {
     var ops = []; // [{type, ...}]
     var hasAnyRow = false; // 거래처에 행이 하나라도 남아있는지 추적
 
-    // 새 extra 빌드 (담당자 + active + 매출 발생처 + 등록일)
+    // 시스템 사업부 전용 필드: 입력값 읽기 (편집 모달이 열렸을 때 sys-block 이 보였는지 무관, 값이 있으면 적용)
+    var isSysEditCat = (_CAT_DEPT[ctx.category] === 'system');
+    var sysFieldDelta = null; // null = 변경 없음 / 객체 = 변경된 키만 포함
+    if (isSysEditCat) {
+      var _gv = function(id){ var el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
+      sysFieldDelta = {
+        delivery_date: _gv('vendor-edit-sys-delivery-date'),
+        invoice_date:  _gv('vendor-edit-sys-invoice-date'),
+        serial_no:     _gv('vendor-edit-sys-serial'),
+        order_from:    _gv('vendor-edit-sys-order-from'),
+        delivery_to:   _gv('vendor-edit-sys-delivery-to'),
+        note:          _gv('vendor-edit-sys-note')
+      };
+    }
+
+    // 새 extra 빌드 (담당자 + active + 매출 발생처 + 등록일 + 시스템 전용)
     function _buildExtra(baseExtra) {
       var ex = Object.assign({}, baseExtra || {});
       if (mgrChanged) ex.manager = newMgr;
       if (srcChanged) ex.source = newSrc;
       if (activeChanged) ex.active = newActive;
       if (regChanged) ex.created_at = newRegIso;
+      // 시스템 전용: 빈 값이면 키 제거, 있으면 덮어쓰기 (거래처 전체에 동기화)
+      if (sysFieldDelta) {
+        Object.keys(sysFieldDelta).forEach(function(k){
+          if (sysFieldDelta[k]) ex[k] = sysFieldDelta[k];
+          else delete ex[k];
+        });
+      }
       return ex;
     }
 
@@ -14528,7 +14697,7 @@ window.__vendor = (function() {
       if (existing) {
         if (newAmt > 0) {
           var patchBody = { amount: newAmt, vendor_name: newName, updated_at: new Date().toISOString() };
-          if (mgrChanged || srcChanged || activeChanged || cntChanged || regChanged) {
+          if (mgrChanged || srcChanged || activeChanged || cntChanged || regChanged || isSysEditCat) {
             var _origRow = _state.rows.find(function(rr){ return rr.id === existing.id; });
             var baseExtra = (_origRow && _origRow.extra) ? Object.assign({}, _origRow.extra) : { manager: ctx.prevManager, source: ctx.prevSource };
             var nextExtra = _buildExtra(baseExtra);
@@ -14596,12 +14765,18 @@ window.__vendor = (function() {
       var body = { updated_at: new Date().toISOString() };
       var changed = false;
       if (newName !== ctx.vendorName) { body.vendor_name = newName; changed = true; }
-      if (mgrChanged || srcChanged || activeChanged || regChanged) {
+      if (mgrChanged || srcChanged || activeChanged || regChanged || isSysEditCat) {
         var ex = Object.assign({}, r.extra || {});
         if (mgrChanged) ex.manager = newMgr;
         if (srcChanged) ex.source = newSrc;
         if (activeChanged) ex.active = newActive;
         if (regChanged) ex.created_at = newRegIso;
+        if (sysFieldDelta) {
+          Object.keys(sysFieldDelta).forEach(function(k){
+            if (sysFieldDelta[k]) ex[k] = sysFieldDelta[k];
+            else delete ex[k];
+          });
+        }
         body.extra = ex;
         changed = true;
       }
