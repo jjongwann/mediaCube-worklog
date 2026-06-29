@@ -6416,10 +6416,10 @@
 
   function salesGetEntry(data, key) {
     var e = data[key] || {};
-    // 총 매출 = 8개 항목 합산 (자동)
+    // 총 매출 = 8개 항목 합산 (선곡료·협회 수수료 포함)
     var total = (e.annual||0)+(e.needle||0)+(e.buyout||0)+(e.custom||0)+(e.komca||0)+(e.youtube||0)+(e.song||0)+(e.fee||0);
-    // 실 매출 = 수동 입력값 (없으면 0)
-    var real = e.real !== undefined ? e.real : 0;
+    // 실 매출 = 음원 라이선스 합계 (선곡료 song · 협회 수수료 fee 제외)
+    var real = (e.annual||0)+(e.needle||0)+(e.buyout||0)+(e.custom||0)+(e.komca||0)+(e.youtube||0);
     var counts = e._counts || {};
     return Object.assign({}, e, { _real: real, _total: total, _counts: counts });
   }
