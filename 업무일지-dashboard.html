@@ -2972,6 +2972,8 @@
     if (typeof renderCharts === 'function') renderCharts();
     // 시스템 사업부 보기로 전환 시 매출 분석 표를 강제 렌더
     if (deptKey === 'system' && typeof renderSystemSalesWidget === 'function') {
+      // vendor 가 이미 로드되어 있다면 최신 데이터로 _sysSalesRows 재구성 (Race condition 보호)
+      try { if (typeof _sysRebuildFromVendor === 'function') _sysRebuildFromVendor(); } catch(e){}
       if (typeof _sysSalesLoaded !== 'undefined' && !_sysSalesLoaded) {
         sysSalesFetch().then(renderSystemSalesWidget);
       } else {
@@ -15246,14 +15248,19 @@ window.__vendor = (function() {
   };
 })();
 
-// 페이지 로드 시 vendor_sales 1회 prefetch → 음원 매출 위젯이 vendor 집계로 즉시 렌더되도록
+// 페이지 로드 시 vendor_sales 1회 prefetch → 음원/시스템 매출 위젯이 vendor 집계로 즉시 렌더되도록
 (function() {
   function _bootstrapVendor() {
     if (!window.__vendor || typeof window.__vendor.fetchAll !== 'function') {
       return setTimeout(_bootstrapVendor, 100);
     }
     window.__vendor.fetchAll().then(function(){
+      // 음원 매출 위젯
       try { if (typeof window.renderSalesWidget === 'function') { window.salesUpdateMonthSel && window.salesUpdateMonthSel(); window.renderSalesWidget(); } } catch(e){}
+      // 시스템 매출 위젯: vendor 가 IIFE 정의 전에 sysSalesFetch 가 먼저 호출된 경우 _sysSalesRows 가 비어있을 수 있음
+      // → vendor 로드 완료 시점에 강제로 _sysRebuildFromVendor + 시스템 위젯 재렌더
+      try { if (typeof window._sysRebuildFromVendor === 'function') window._sysRebuildFromVendor(); } catch(e){}
+      try { if (typeof window.renderSystemSalesWidget === 'function') window.renderSystemSalesWidget(); } catch(e){}
     }).catch(function(){});
   }
   _bootstrapVendor();
