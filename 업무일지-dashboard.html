@@ -11917,7 +11917,7 @@
               표
             </button>
           </div>
-          <button onclick="__vendor.openAdd()" style="padding:7px 14px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">+ 신규 거래처 추가</button>
+          <button id="vendor-add-trigger-btn" onclick="__vendor.openAdd()" style="padding:7px 14px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">+ 신규 거래처 추가</button>
           <button onclick="__vendor.closePanel()" style="background:rgba(255,255,255,0.15);border:none;border-radius:8px;color:#fff;font-size:18px;width:32px;height:32px;cursor:pointer">✕</button>
         </div>
       </div>
@@ -12034,7 +12034,7 @@
 <div id="vendor-add-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:99997;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)__vendor.closeAdd()">
   <div style="background:#fff;border-radius:14px;max-width:440px;width:100%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.3);font-family:inherit">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:8px">
-      <div style="font-size:15px;font-weight:800;color:#0f172a;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">+ 신규 거래처 매출 입력</div>
+      <div id="vendor-add-modal-title" style="font-size:15px;font-weight:800;color:#0f172a;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">+ 신규 거래처 매출 입력</div>
       <button id="vendor-add-active-toggle" onclick="__vendor.toggleAddActive()" type="button" style="padding:5px 12px;border-radius:20px;border:1px solid #16a34a;background:#dcfce7;color:#16a34a;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s;flex-shrink:0" title="등록 시 활성/비활성 선택">
         <span id="vendor-add-active-dot" style="width:7px;height:7px;border-radius:50%;background:#16a34a;display:inline-block"></span>
         <span id="vendor-add-active-label">활성</span>
@@ -12550,6 +12550,12 @@ window.__vendor = (function() {
     if (icon) icon.textContent = meta.icon;
     if (title) title.textContent = meta.name;
     if (sub) sub.textContent = meta.subtitle;
+    // 시스템 사업부 진입 시: 트리거 버튼 / 입력 모달 제목 텍스트에서 '신규' 제거
+    var isSysCat = (_CAT_DEPT[cat] === 'system');
+    var addBtn = document.getElementById('vendor-add-trigger-btn');
+    if (addBtn) addBtn.textContent = isSysCat ? '+ 거래처 추가' : '+ 신규 거래처 추가';
+    var addTitle = document.getElementById('vendor-add-modal-title');
+    if (addTitle) addTitle.textContent = isSysCat ? '+ 거래처 매출 입력' : '+ 신규 거래처 매출 입력';
     // 스크롤바 동적 스타일
     var styleEl = document.getElementById('vendor-scroll-dynamic-style');
     if (!styleEl) {
@@ -13756,23 +13762,28 @@ window.__vendor = (function() {
     }
     var hasPrev = prevRangeKeys.length === monthsCount && prevFromIdx >= 0;
     var isFreeBlanket = (cat === 'blanket_free');
+    var isSysCardRow = (_CAT_DEPT[cat] === 'system');
+    // 시스템 사업부: '건 수' 제거 + '계산서 날짜' + '시리얼 넘버' 컬럼 추가
     // 매출 발생처 컬럼 추가 (거래처명 옆) — 무료 BLANKET 도 동일하게 노출
-    // 건 수 컬럼은 매출 발생처와 기간 합계 사이에 고정폭으로 삽입
-    // hasSongCol(NEEDLE/유료 BLANKET/CMO) 진입 시: 기간 합계 옆에 '선곡료' 컬럼 1개 추가 (총 9컬럼)
     var gridCols = isFreeBlanket
       ? '32px 1fr 1fr 80px 28px'
-      : (hasSongCol
-          ? '32px 1.3fr 1fr 70px 1fr 0.9fr 1.1fr 90px 28px'
-          : '32px 1.3fr 1fr 70px 1fr 1.1fr 90px 28px');
-    // 4번째 컬럼: 일반 카드는 '건 수', 부속 카드(선곡료/협회 수수료)는 '매출 유형'
-    var fourthHdr = isSubCard
-      ? '<div style="text-align:center">매출 유형</div>'
-      : '<div style="text-align:right">건 수</div>';
+      : (isSysCardRow
+          ? '32px 1.3fr 1fr 100px 130px 1fr 1.1fr 90px 28px'
+          : (hasSongCol
+              ? '32px 1.3fr 1fr 70px 1fr 0.9fr 1.1fr 90px 28px'
+              : '32px 1.3fr 1fr 70px 1fr 1.1fr 90px 28px'));
+    // 4번째 컬럼: 일반 카드는 '건 수', 부속 카드(선곡료/협회 수수료)는 '매출 유형', 시스템 카드는 '계산서 날짜'
+    var fourthHdr;
+    if (isSysCardRow)      fourthHdr = '<div style="text-align:center;color:#2563eb">계산서 날짜</div>';
+    else if (isSubCard)    fourthHdr = '<div style="text-align:center">매출 유형</div>';
+    else                   fourthHdr = '<div style="text-align:right">건 수</div>';
     var headerCells = isFreeBlanket
       ? '<div>#</div><div>거래처명</div><div>매출 발생처</div><div style="text-align:center">상태</div><div></div>'
-      : (hasSongCol
-          ? '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="text-align:right">기간 합계</div><div style="text-align:right;color:' + renderSubMeta.color + '">' + renderSubMeta.targetLabel + '</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'
-          : '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>');
+      : (isSysCardRow
+          ? '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="color:#2563eb">시리얼 넘버</div><div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'
+          : (hasSongCol
+              ? '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="text-align:right">기간 합계</div><div style="text-align:right;color:' + renderSubMeta.color + '">' + renderSubMeta.targetLabel + '</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'
+              : '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'));
     var rowsHtml = ''
       + '<div style="display:grid;grid-template-columns:' + gridCols + ';gap:8px;padding:10px 14px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;position:sticky;top:0;z-index:2">'
       +   headerCells
@@ -13825,9 +13836,26 @@ window.__vendor = (function() {
           + statusCell
           + editBtnHtml;
       } else {
-        // 4번째 컬럼: 일반 카드는 '건 수', 부속 카드(song/fee)는 '매출 유형' 칩
+        // 4번째 컬럼 + (시스템 카드의 5번째 컬럼)
         var countCellHtml;
-        if (isSubCard) {
+        var sysSerialCellHtml = '';
+        if (isSysCardRow) {
+          // 시스템: 계산서 날짜 + 시리얼 넘버 (해당 거래처의 가장 최근 값)
+          var sysRowsOfV = _state.rows.filter(function(r){ return r.category === cat && r.vendor_name === v.name; });
+          var pickField = function(field){
+            var val = '';
+            sysRowsOfV.forEach(function(r){ if (r.extra && r.extra[field]) val = r.extra[field]; });
+            return val;
+          };
+          var invDate = pickField('invoice_date');
+          var serial  = pickField('serial_no');
+          countCellHtml = invDate
+            ? '<div style="text-align:center;font-size:11.5px;color:#2563eb;font-weight:600;font-variant-numeric:tabular-nums">' + _esc(invDate) + '</div>'
+            : '<div style="text-align:center;color:#cbd5e1;font-size:11px">-</div>';
+          sysSerialCellHtml = serial
+            ? '<div title="' + _esc(serial) + '" style="font-size:11.5px;color:#0f172a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums">' + _esc(serial) + '</div>'
+            : '<div style="font-size:11px;color:#cbd5e1">-</div>';
+        } else if (isSubCard) {
           var sourceCats = _sourceCatsForSubVendor(v.name, cat);
           if (sourceCats.length) {
             var chips = sourceCats.map(function(pc){
@@ -13853,6 +13881,7 @@ window.__vendor = (function() {
           + nameCellHtml
           + sourceCellHtml
           + countCellHtml
+          + sysSerialCellHtml
           + '<div style="text-align:right;font-weight:700;color:' + (v.cur > 0 ? '#0f172a' : '#cbd5e1') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (v.cur > 0 ? v.cur.toLocaleString() : '-') + '</div>'
           + songCellHtml
           + '<div style="text-align:right;overflow:hidden">' + deltaHtml + '</div>'
