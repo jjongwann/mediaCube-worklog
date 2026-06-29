@@ -13059,13 +13059,19 @@ window.__vendor = (function() {
 
   // 부속 카테고리(song/fee)의 부모 카테고리 매핑 — 선곡료/협회 수수료 카드의 '매출 유형' 컬럼·필터에 사용
   function _parentCatsForSub(subCat) {
-    if (subCat === 'song') return ['needle', 'blanket_paid'];
+    if (subCat === 'song') return ['needle', 'blanket_paid', 'buyout', 'custom', 'youtube'];
     if (subCat === 'fee')  return ['cmo'];
     return [];
   }
   // 카테고리 → 짧은 표시 라벨 (매출 유형 컬럼/필터용)
-  var _CAT_SHORT_LABEL = { needle: 'NEEDLE', blanket_paid: '유료 BLANKET', cmo: 'CMO' };
-  var _CAT_SHORT_COLOR = { needle: '#65a30d', blanket_paid: '#0891b2', cmo: '#db2777' };
+  var _CAT_SHORT_LABEL = {
+    needle: 'NEEDLE', blanket_paid: '유료 BLANKET', cmo: 'CMO',
+    buyout: 'Buyout', custom: 'Custom/디지털', youtube: 'Youtube'
+  };
+  var _CAT_SHORT_COLOR = {
+    needle: '#65a30d', blanket_paid: '#0891b2', cmo: '#db2777',
+    buyout: '#06b6d4', custom: '#ca8a04', youtube: '#ef4444'
+  };
   // 거래처가 어느 메인 카테고리에서 부속 매출(song/fee)을 발생시켰는지 (vendor_sales 에 동일 vendor_name 의 부모 카테고리 row 존재 여부)
   function _sourceCatsForSubVendor(vendorName, subCat) {
     var parents = _parentCatsForSub(subCat);
@@ -13079,10 +13085,10 @@ window.__vendor = (function() {
   }
 
   // 카테고리별 '부속 입력 필드' 메타
-  //  - needle / blanket_paid 진입: 선곡 수수료 → song 카테고리로 저장 → 음원 매출 '선곡료' 합산
-  //  - cmo 진입             : 협회 수수료 → fee  카테고리로 저장 → 음원 매출 '협회 수수료' 합산
+  //  - needle / blanket_paid / buyout / custom / youtube 진입: 선곡 수수료 → song 카테고리로 저장 → 음원 매출 '선곡료' 합산
+  //  - cmo 진입                                            : 협회 수수료 → fee 카테고리로 저장 → 음원 매출 '협회 수수료' 합산
   function _subMetaFor(cat) {
-    if (cat === 'needle' || cat === 'blanket_paid') {
+    if (cat === 'needle' || cat === 'blanket_paid' || cat === 'buyout' || cat === 'custom' || cat === 'youtube') {
       return { target: 'song', label: '선곡 수수료', targetLabel: '선곡료',
                color: '#10b981', bgLight: '#d1fae5', borderLight: '#a7f3d0' };
     }
