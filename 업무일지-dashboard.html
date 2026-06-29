@@ -6367,49 +6367,51 @@
   // 차트에는 항목만 (실매출·총매출은 통계 패널로)
   var SALES_CHART_ITEMS = SALES_ITEMS;
 
-  // 기본 데이터 (2026년 1월)
-  var SALES_DEFAULT = {
-    '2025-1': { annual:8900000, needle:94200000, buyout:0, custom:326596, komca:87100963, youtube:989130, song:22000000, fee:301307, real:191516689 },
-    '2026-1': { annual:40081818, needle:72990000, buyout:0, custom:560350, komca:171861, youtube:830908, song:41750000, fee:28534, real:114634937 }
-  };
+  // 음원 매출은 더 이상 sales_data 테이블에 저장하지 않고, vendor_sales 의 자동 집계 결과를 사용한다.
+  // SALES_DEFAULT 는 유지하되 빈 객체로 둠 (이전 하드코딩 데이터는 단일 소스 원칙에 따라 제거)
+  var SALES_DEFAULT = {};
 
-  var _salesCache  = null; // 병합된 데이터 (SALES_DEFAULT + DB)
-  var _salesDbKeys = new Set(); // DB에 실제 저장된 month_key 집합
+  var _salesCache  = null; // vendor 집계 결과 (key=month_key)
+  var _salesDbKeys = new Set(); // (구) sales_data 삭제 버튼 노출 판단용 — vendor 기반에서는 항상 빈 집합
 
-  async function salesFetchFromDB() {
+  // vendor_sales 를 source 로 음원 매출 8개 항목을 month_key 별로 집계해 캐시에 적재
+  function _rebuildSalesCacheFromVendor() {
+    var data = {};
     try {
-      var res = await fetch(SB_URL + '/rest/v1/sales_data?select=*', { headers: SB_HDR });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      var rows = await res.json();
-      var data = JSON.parse(JSON.stringify(SALES_DEFAULT));
-      _salesDbKeys = new Set();
-      if (Array.isArray(rows)) {
-        rows.forEach(function(r) {
-          var cnts = r.item_counts || {};
-          if (typeof cnts === 'string') { try { cnts = JSON.parse(cnts); } catch(e){ cnts = {}; } }
-          data[r.month_key] = {
-            annual: r.annual||0, needle: r.needle||0, buyout: r.buyout||0,
-            custom: r.custom||0, komca: r.komca||0, youtube: r.youtube||0,
-            song: r.song||0, fee: r.fee||0, real: r.real||0,
-            _counts: cnts
-          };
-          _salesDbKeys.add(r.month_key);
+      if (window.__vendor && typeof window.__vendor.listSoundMonthKeys === 'function') {
+        window.__vendor.listSoundMonthKeys().forEach(function(mk){
+          data[mk] = window.__vendor.aggregateSoundSales(mk);
         });
       }
-      _salesCache = data;
-    } catch(e) {
-      console.error('salesFetchFromDB error', e);
-      if (!_salesCache) _salesCache = JSON.parse(JSON.stringify(SALES_DEFAULT));
+    } catch(e) { console.error('_rebuildSalesCacheFromVendor error', e); }
+    _salesCache = data;
+  }
+
+  function salesFetchFromDB() {
+    // vendor 모듈의 fetchAll 이 완료되면 집계 후 위젯 재렌더
+    function _afterVendor() {
+      _rebuildSalesCacheFromVendor();
+      var sel = document.getElementById('sales-month-sel');
+      if (sel) sel.value = '';
+      salesUpdateMonthSel();
+      renderSalesWidget();
     }
-    // DB 로드 후 항상 가장 최신 월 선택
-    var sel = document.getElementById('sales-month-sel');
-    if (sel) sel.value = '';
-    salesUpdateMonthSel();
-    renderSalesWidget();
+    try {
+      if (window.__vendor && typeof window.__vendor.fetchAll === 'function') {
+        var p = window.__vendor.fetchAll();
+        if (p && typeof p.then === 'function') {
+          return p.then(_afterVendor).catch(_afterVendor);
+        }
+      }
+    } catch(e) { console.error('salesFetchFromDB(vendor) error', e); }
+    _afterVendor();
+    return Promise.resolve();
   }
 
   function salesLoadData() {
-    return _salesCache || JSON.parse(JSON.stringify(SALES_DEFAULT));
+    // 매 호출마다 vendor 캐시를 재집계 (vendor 입력 직후에도 즉시 반영되도록)
+    _rebuildSalesCacheFromVendor();
+    return _salesCache;
   }
 
   function salesGetEntry(data, key) {
@@ -7692,14 +7694,14 @@
   }
 
   function salesInit() {
-    // 관리자 또는 info(회계·경리팀) 계정만 데이터 입력 버튼 표시
+    // 음원 매출은 거래처별 매출 분석에서만 입력 → 데이터 입력 버튼은 항상 숨김
     var btn = document.getElementById('sales-input-btn');
-    if (btn && (_isAdmin || _currentUsername === 'info' || _currentUsername === 'developer')) { btn.style.display = 'flex'; }
-    // 기본 데이터로 먼저 렌더 후 Supabase에서 실제 데이터 로드
+    if (btn) btn.style.display = 'none';
+    // 기본 데이터로 먼저 렌더 후 vendor_sales 에서 실제 데이터 집계
     _salesCache = JSON.parse(JSON.stringify(SALES_DEFAULT));
     salesUpdateMonthSel();
     renderSalesWidget();
-    salesFetchFromDB(); // 비동기로 DB 데이터 로드 후 재렌더
+    salesFetchFromDB(); // vendor 모듈의 fetchAll 완료 후 위젯 재렌더
   }
 
   // ESC로 매출 모달 닫기
@@ -11683,6 +11685,66 @@
         <div class="vmenu-card-sub">최근 1년 이내<br>등록된 신규 거래처</div>
         <div class="vmenu-card-cta" style="color:#d97706"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
       </button>
+      <!-- Buyout -->
+      <button type="button" class="vmenu-card" onclick="__vendor.pickCat('buyout')"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 28px rgba(6,182,212,0.22)';this.style.borderColor='#06b6d4'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+        <div class="vmenu-card-corner" style="background:linear-gradient(135deg,#06b6d4,#0891b2)"></div>
+        <div class="vmenu-card-icon" style="background:linear-gradient(135deg,#06b6d4,#0891b2);box-shadow:0 4px 10px rgba(6,182,212,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"/></svg>
+        </div>
+        <div class="vmenu-card-title">Buyout</div>
+        <div class="vmenu-card-sub">벌크 라이선스<br>거래처별 매출</div>
+        <div class="vmenu-card-cta" style="color:#06b6d4"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </button>
+      <!-- Custom/디지털 -->
+      <button type="button" class="vmenu-card" onclick="__vendor.pickCat('custom')"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 28px rgba(234,179,8,0.22)';this.style.borderColor='#eab308'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+        <div class="vmenu-card-corner" style="background:linear-gradient(135deg,#eab308,#ca8a04)"></div>
+        <div class="vmenu-card-icon" style="background:linear-gradient(135deg,#eab308,#ca8a04);box-shadow:0 4px 10px rgba(234,179,8,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        </div>
+        <div class="vmenu-card-title">Custom/디지털</div>
+        <div class="vmenu-card-sub">커스텀·디지털<br>거래처별 매출</div>
+        <div class="vmenu-card-cta" style="color:#ca8a04"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </button>
+      <!-- Youtube -->
+      <button type="button" class="vmenu-card" onclick="__vendor.pickCat('youtube')"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 28px rgba(239,68,68,0.22)';this.style.borderColor='#ef4444'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+        <div class="vmenu-card-corner" style="background:linear-gradient(135deg,#ef4444,#dc2626)"></div>
+        <div class="vmenu-card-icon" style="background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 10px rgba(239,68,68,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg>
+        </div>
+        <div class="vmenu-card-title">Youtube</div>
+        <div class="vmenu-card-sub">Youtube 채널<br>거래처별 매출</div>
+        <div class="vmenu-card-cta" style="color:#ef4444"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </button>
+      <!-- 선곡료 -->
+      <button type="button" class="vmenu-card" onclick="__vendor.pickCat('song')"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 28px rgba(16,185,129,0.22)';this.style.borderColor='#10b981'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+        <div class="vmenu-card-corner" style="background:linear-gradient(135deg,#10b981,#059669)"></div>
+        <div class="vmenu-card-icon" style="background:linear-gradient(135deg,#10b981,#059669);box-shadow:0 4px 10px rgba(16,185,129,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><path d="M9 9l12-2"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </div>
+        <div class="vmenu-card-title">선곡료</div>
+        <div class="vmenu-card-sub">선곡료<br>거래처별 매출</div>
+        <div class="vmenu-card-cta" style="color:#10b981"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </button>
+      <!-- 협회 수수료 -->
+      <button type="button" class="vmenu-card" onclick="__vendor.pickCat('fee')"
+        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 28px rgba(100,116,139,0.22)';this.style.borderColor='#64748b'"
+        onmouseout="this.style.transform='';this.style.boxShadow='';this.style.borderColor='#e2e8f0'">
+        <div class="vmenu-card-corner" style="background:linear-gradient(135deg,#64748b,#475569)"></div>
+        <div class="vmenu-card-icon" style="background:linear-gradient(135deg,#64748b,#475569);box-shadow:0 4px 10px rgba(100,116,139,0.4)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>
+        </div>
+        <div class="vmenu-card-title">협회 수수료</div>
+        <div class="vmenu-card-sub">협회 수수료<br>거래처별 매출</div>
+        <div class="vmenu-card-cta" style="color:#64748b"><span>분석 보기</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </button>
     </div>
     <!-- 시스템 사업부 카테고리 (6개, 기본 숨김) -->
     <div id="vendor-menu-system-group" style="display:none;padding:22px;grid-template-columns:repeat(3,1fr);gap:12px">
@@ -12126,6 +12188,47 @@ window.__vendor = (function() {
       lineFill: 'rgba(251,191,36,0.12)',
       scrollTrack: '#fef3c7', scrollThumb: '#a8a29e', scrollThumbHover: '#78716c', scrollThumbActive: '#57534e', scrollThumbBorder: '#fef3c7'
     },
+    // 사운드 사업부 신규 카테고리 (5종) — 음원 매출 분석 항목과 1:1 대응
+    'buyout': {
+      name: 'Buyout 매출 분석', icon: '💠', subtitle: '벌크 라이선스 거래처별 매출',
+      gradFrom: '#06b6d4', gradTo: '#0891b2',
+      primary: '#06b6d4', barFill: '#06b6d4cc', barBorder: '#0891b2',
+      bgLight: '#ecfeff', borderLight: '#a5f3fc',
+      lineFill: 'rgba(6,182,212,0.12)',
+      scrollTrack: '#cffafe', scrollThumb: '#22d3ee', scrollThumbHover: '#06b6d4', scrollThumbActive: '#0891b2', scrollThumbBorder: '#cffafe'
+    },
+    'custom': {
+      name: 'Custom/디지털 매출 분석', icon: '🎚️', subtitle: '커스텀·디지털 거래처별 매출',
+      gradFrom: '#eab308', gradTo: '#ca8a04',
+      primary: '#eab308', barFill: '#eab308cc', barBorder: '#ca8a04',
+      bgLight: '#fefce8', borderLight: '#fef08a',
+      lineFill: 'rgba(234,179,8,0.12)',
+      scrollTrack: '#fef9c3', scrollThumb: '#facc15', scrollThumbHover: '#eab308', scrollThumbActive: '#ca8a04', scrollThumbBorder: '#fef9c3'
+    },
+    'youtube': {
+      name: 'Youtube 매출 분석', icon: '▶️', subtitle: 'Youtube 채널 거래처별 매출',
+      gradFrom: '#f87171', gradTo: '#ef4444',
+      primary: '#ef4444', barFill: '#f87171cc', barBorder: '#ef4444',
+      bgLight: '#fee2e2', borderLight: '#fecaca',
+      lineFill: 'rgba(248,113,113,0.12)',
+      scrollTrack: '#fee2e2', scrollThumb: '#f87171', scrollThumbHover: '#ef4444', scrollThumbActive: '#dc2626', scrollThumbBorder: '#fee2e2'
+    },
+    'song': {
+      name: '선곡료 매출 분석', icon: '🎼', subtitle: '선곡료 거래처별 매출',
+      gradFrom: '#34d399', gradTo: '#10b981',
+      primary: '#10b981', barFill: '#34d399cc', barBorder: '#10b981',
+      bgLight: '#d1fae5', borderLight: '#a7f3d0',
+      lineFill: 'rgba(52,211,153,0.12)',
+      scrollTrack: '#d1fae5', scrollThumb: '#34d399', scrollThumbHover: '#10b981', scrollThumbActive: '#059669', scrollThumbBorder: '#d1fae5'
+    },
+    'fee': {
+      name: '협회 수수료 매출 분석', icon: '🏛️', subtitle: '협회 수수료 거래처별 매출',
+      gradFrom: '#94a3b8', gradTo: '#64748b',
+      primary: '#64748b', barFill: '#94a3b8cc', barBorder: '#64748b',
+      bgLight: '#f1f5f9', borderLight: '#e2e8f0',
+      lineFill: 'rgba(148,163,184,0.12)',
+      scrollTrack: '#f1f5f9', scrollThumb: '#94a3b8', scrollThumbHover: '#64748b', scrollThumbActive: '#475569', scrollThumbBorder: '#f1f5f9'
+    },
     // 시스템 사업부 카테고리 (6개) — 색상은 SYS_SALES_ITEMS 와 동일 (시각적 일관성)
     'sys_archiving': {
       name: 'AV Archiving 매출 분석', icon: '🎞️', subtitle: '오디오·비디오 아카이빙 거래처별 매출',
@@ -12180,9 +12283,59 @@ window.__vendor = (function() {
   // 카테고리 → 부서 매핑 (메뉴 그룹 토글 / 데이터 격리 검증용)
   var _CAT_DEPT = {
     needle: 'sound', blanket_paid: 'sound', blanket_free: 'sound', cmo: 'sound', new_customer: 'sound',
+    buyout: 'sound', custom: 'sound', youtube: 'sound', song: 'sound', fee: 'sound',
     sys_archiving: 'system', sys_restoration: 'system', sys_broadcast: 'system',
     sys_etc_as: 'system', sys_acoustic: 'system', sys_dolby: 'system'
   };
+
+  // 거래처 카테고리 → 음원 매출 분석 항목 키 매핑
+  // 음원 매출(sales 위젯)은 이 매핑을 통해 vendor_sales 에서 자동 집계됨.
+  // blanket_free, new_customer 는 의도적으로 매출 합산 제외.
+  var VENDOR_TO_SOUND_KEY = {
+    needle:       'needle',  // NEEDLE        → Needle drop
+    blanket_paid: 'annual',  // 유료 BLANKET  → Annual
+    cmo:          'komca',   // CMO 매출      → KOMCA/Koscap
+    buyout:       'buyout',
+    custom:       'custom',
+    youtube:      'youtube',
+    song:         'song',
+    fee:          'fee'
+  };
+
+  // 특정 month_key 의 음원 매출 8개 항목 합계 + real(총 매출) 반환
+  function aggregateSoundSales(monthKey) {
+    var out = { annual:0, needle:0, buyout:0, custom:0, komca:0, youtube:0, song:0, fee:0 };
+    _state.rows.forEach(function(r){
+      if (r.month_key !== monthKey) return;
+      var soundKey = VENDOR_TO_SOUND_KEY[r.category];
+      if (!soundKey) return;
+      out[soundKey] += (r.amount || 0);
+    });
+    out.real = out.annual + out.needle + out.buyout + out.custom + out.komca + out.youtube + out.song + out.fee;
+    return out;
+  }
+
+  // vendor_sales 가 source 인 모든 month_key 목록 (음원 위젯의 월 셀렉트용)
+  function listSoundMonthKeys() {
+    var set = {};
+    _state.rows.forEach(function(r){
+      if (VENDOR_TO_SOUND_KEY[r.category]) set[r.month_key] = true;
+    });
+    return Object.keys(set);
+  }
+
+  // 거래처 입력/수정/삭제 후 음원 매출 위젯 자동 갱신
+  function _afterVendorChange() {
+    try { if (typeof window.renderSalesWidget === 'function') window.renderSalesWidget(); } catch(e){}
+    try { if (typeof window.salesUpdateMonthSel === 'function') window.salesUpdateMonthSel(); } catch(e){}
+    try {
+      // 월별 누계 매출 통계 모달이 열려있으면 차트 재렌더
+      var cm = document.getElementById('cumul-overlay');
+      if (cm && cm.style.display !== 'none' && typeof window.renderCumulChart === 'function') {
+        window.renderCumulChart();
+      }
+    } catch(e){}
+  }
 
   function _applyCatTheme(cat) {
     var meta = _CAT_META[cat] || _CAT_META.needle;
@@ -12915,6 +13068,7 @@ window.__vendor = (function() {
           });
           closeAdd();
           render(viewCat); // 신규 고객 패널 진입 시에는 그대로 머물러 새 거래처 카드 즉시 표시
+          _afterVendorChange();
           _toast('기존 거래처에 합산 저장되었습니다 (' + _fmtW(newAmount) + ')');
         } else {
           r.text().then(function(t){ console.error('vendor patch failed', r.status, t); _toast('저장 실패: ' + r.status); });
@@ -12940,6 +13094,7 @@ window.__vendor = (function() {
           _state.rows.push(row);
           closeAdd();
           render(viewCat); // 신규 고객 패널 진입 시에는 그대로 머물러 새 거래처 카드 즉시 표시
+          _afterVendorChange();
           _toast('신규 거래처 매출이 저장되었습니다');
         } else {
           r.text().then(function(t){ console.error('vendor save failed', r.status, t); _toast('저장 실패: ' + r.status + ' (테이블 권한 확인)'); });
@@ -14051,7 +14206,7 @@ window.__vendor = (function() {
         _toast('수정 완료');
       }
       closeEdit();
-      fetchAll().then(function(){ render(_state.currentCat); });
+      fetchAll().then(function(){ render(_state.currentCat); _afterVendorChange(); });
     }).catch(function(e){
       console.error('saveEdit error', e); _toast('저장 오류'); closeEdit();
     });
@@ -14078,11 +14233,16 @@ window.__vendor = (function() {
     Promise.all(promises).then(function(){
       _toast('삭제 완료');
       closeEdit();
-      fetchAll().then(function(){ render(_state.currentCat); });
+      fetchAll().then(function(){ render(_state.currentCat); _afterVendorChange(); });
     }).catch(function(e){ console.error(e); _toast('삭제 오류'); });
   }
 
   return {
+    // 음원 매출 위젯이 사용할 vendor 집계 API
+    aggregateSoundSales: aggregateSoundSales,
+    listSoundMonthKeys: listSoundMonthKeys,
+    fetchAll: fetchAll,
+    _state: _state,
     openMenu: openMenu,
     closeMenu: closeMenu,
     pickCat: pickCat,
@@ -14126,6 +14286,19 @@ window.__vendor = (function() {
     _pickEditSource: _pickEditSource,
     _onEditSourceKey: _onEditSourceKey
   };
+})();
+
+// 페이지 로드 시 vendor_sales 1회 prefetch → 음원 매출 위젯이 vendor 집계로 즉시 렌더되도록
+(function() {
+  function _bootstrapVendor() {
+    if (!window.__vendor || typeof window.__vendor.fetchAll !== 'function') {
+      return setTimeout(_bootstrapVendor, 100);
+    }
+    window.__vendor.fetchAll().then(function(){
+      try { if (typeof window.renderSalesWidget === 'function') { window.salesUpdateMonthSel && window.salesUpdateMonthSel(); window.renderSalesWidget(); } } catch(e){}
+    }).catch(function(){});
+  }
+  _bootstrapVendor();
 })();
 
 // 사이드바 진입점 (전역 함수)
