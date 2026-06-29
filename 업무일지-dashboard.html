@@ -11874,6 +11874,11 @@
         <input type="text" id="vendor-needle-search" placeholder="거래처 검색..." oninput="__vendor.render()" style="flex:0 1 160px;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;outline:none">
         <select id="vendor-needle-manager" onchange="__vendor.render()" title="담당자 조회" style="padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none"></select>
         <select id="vendor-needle-source" onchange="__vendor.render()" title="매출 발생처 조회" style="padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
+        <select id="vendor-needle-song-filter" onchange="__vendor.render()" title="선곡료 보유 여부 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none">
+          <option value="">선곡료 전체</option>
+          <option value="has">선곡료 있는 거래처</option>
+          <option value="none">선곡료 없는 거래처</option>
+        </select>
         <button id="vendor-needle-refresh-btn" onclick="__vendor.refresh()" title="새로고침" style="padding:5px 10px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);border-radius:7px;color:#fff;font-size:11px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:opacity .15s"><span class="vendor-refresh-icon" style="display:inline-block">↻</span><span>새로고침</span></button>
       </div>
     </div>
@@ -12113,6 +12118,15 @@
     <div style="flex:1;overflow-y:auto;padding:14px 24px">
       <div style="font-size:11px;color:#64748b;margin-bottom:10px">12개월 매출액을 직접 수정할 수 있습니다. 0원 또는 빈 칸은 미발생으로 처리됩니다.</div>
       <div id="vendor-edit-months" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+      <!-- 선곡 수수료 (NEEDLE / 유료 BLANKET / CMO 진입 시에만 노출) — song 카테고리로 별도 저장 -->
+      <div id="vendor-edit-song-section" style="display:none;margin-top:18px;padding-top:14px;border-top:1px dashed #e2e8f0">
+        <div style="font-size:12px;font-weight:700;color:#10b981;margin-bottom:4px;display:flex;align-items:center;gap:5px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          선곡 수수료 (12개월)
+        </div>
+        <div style="font-size:10.5px;color:#64748b;margin-bottom:10px">동일 거래처명의 '선곡료' 카테고리 매출입니다. 음원 매출 분석의 '선곡료' 항목에 합산됩니다.</div>
+        <div id="vendor-edit-song-months" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px"></div>
+      </div>
     </div>
     <div style="padding:14px 24px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:#f8fafc">
       <div id="vendor-edit-total" style="font-size:12px;color:#475569"></div>
@@ -13252,6 +13266,24 @@ window.__vendor = (function() {
       byVendor[r.vendor_name].ids[r.month_key] = r.id;
     });
 
+    // 선곡료 집계 (NEEDLE / 유료 BLANKET / CMO 카드에서만 별도 컬럼/필터로 사용)
+    var hasSongCol = (cat === 'needle' || cat === 'blanket_paid' || cat === 'cmo');
+    var songByVendor = {}; // { vendor_name: { months: {month_key: amt} } }
+    if (hasSongCol) {
+      _state.rows.filter(function(r){ return r.category === 'song'; }).forEach(function(r){
+        if (!songByVendor[r.vendor_name]) songByVendor[r.vendor_name] = { months: {} };
+        songByVendor[r.vendor_name].months[r.month_key] = (songByVendor[r.vendor_name].months[r.month_key] || 0) + (r.amount || 0);
+      });
+    }
+    // 상단 필터: 선곡료 보유 여부 ('' | 'has' | 'none') — NEEDLE/유료 BLANKET/CMO 진입 시에만 노출
+    var songFilter = '';
+    var songSelEl = document.getElementById('vendor-needle-song-filter');
+    if (songSelEl) {
+      songSelEl.style.display = hasSongCol ? '' : 'none';
+      if (hasSongCol) songFilter = songSelEl.value || '';
+      else songSelEl.value = '';
+    }
+
     // 검색 + 담당자 필터
     var allVendorsAfterFilter = Object.keys(byVendor).filter(function(n){
       if (searchQ && n.toLowerCase().indexOf(searchQ) === -1) return false;
@@ -13297,6 +13329,13 @@ window.__vendor = (function() {
       prevRangeKeys.forEach(function(k){ prev += (months[k] || 0); });
       Object.keys(months).forEach(function(k){ allTime += (months[k] || 0); });
 
+      // 선곡료 기간 합계 (NEEDLE/유료 BLANKET/CMO 에서만 의미)
+      var songCur = 0;
+      if (hasSongCol && songByVendor[n]) {
+        var sMonths = songByVendor[n].months;
+        rangeKeys.forEach(function(k){ songCur += (sMonths[k] || 0); });
+      }
+
       // 트렌드: 기간이 짧으면 trailing 6개월, 기간이 길면 그 기간을 6구간으로 압축
       var trend;
       if (monthsCount <= 6) {
@@ -13319,13 +13358,22 @@ window.__vendor = (function() {
         name: n,
         cur: cur,
         curCount: curCount,
+        songCur: songCur,
         prev: prev,
         delta: cur - prev,
         deltaPct: prev > 0 ? ((cur - prev)/prev * 100) : (cur > 0 ? null : 0),
         allTime: allTime,
         trend: trend
       };
-    }).sort(function(a,b){ return b.cur - a.cur; });
+    })
+    .filter(function(v){
+      // 선곡료 보유 여부 필터 ('' | 'has' | 'none')
+      if (!hasSongCol || !songFilter) return true;
+      if (songFilter === 'has')  return v.songCur > 0;
+      if (songFilter === 'none') return v.songCur <= 0;
+      return true;
+    })
+    .sort(function(a,b){ return b.cur - a.cur; });
 
     // ── KPI ──
     var totalCur = 0, totalAll = 0;
@@ -13391,12 +13439,17 @@ window.__vendor = (function() {
     var isFreeBlanket = (cat === 'blanket_free');
     // 매출 발생처 컬럼 추가 (거래처명 옆) — 무료 BLANKET 도 동일하게 노출
     // 건 수 컬럼은 매출 발생처와 기간 합계 사이에 고정폭으로 삽입
+    // hasSongCol(NEEDLE/유료 BLANKET/CMO) 진입 시: 기간 합계 옆에 '선곡료' 컬럼 1개 추가 (총 9컬럼)
     var gridCols = isFreeBlanket
       ? '32px 1fr 1fr 80px 28px'
-      : '32px 1.3fr 1fr 70px 1fr 1.1fr 90px 28px';
+      : (hasSongCol
+          ? '32px 1.3fr 1fr 70px 1fr 0.9fr 1.1fr 90px 28px'
+          : '32px 1.3fr 1fr 70px 1fr 1.1fr 90px 28px');
     var headerCells = isFreeBlanket
       ? '<div>#</div><div>거래처명</div><div>매출 발생처</div><div style="text-align:center">상태</div><div></div>'
-      : '<div>#</div><div>거래처명</div><div>매출 발생처</div><div style="text-align:right">건 수</div><div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>';
+      : (hasSongCol
+          ? '<div>#</div><div>거래처명</div><div>매출 발생처</div><div style="text-align:right">건 수</div><div style="text-align:right">기간 합계</div><div style="text-align:right;color:#10b981">선곡료</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'
+          : '<div>#</div><div>거래처명</div><div>매출 발생처</div><div style="text-align:right">건 수</div><div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>');
     var rowsHtml = ''
       + '<div style="display:grid;grid-template-columns:' + gridCols + ';gap:8px;padding:10px 14px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;position:sticky;top:0;z-index:2">'
       +   headerCells
@@ -13452,11 +13505,17 @@ window.__vendor = (function() {
         var countCellHtml = (v.curCount > 0)
           ? '<div style="text-align:right;font-weight:700;color:#0f172a;font-variant-numeric:tabular-nums">' + v.curCount.toLocaleString() + '<span style="font-size:10px;color:#94a3b8;font-weight:500;margin-left:2px">건</span></div>'
           : '<div style="text-align:right;color:#cbd5e1">-</div>';
+        var songCellHtml = hasSongCol
+          ? ((v.songCur > 0)
+              ? '<div style="text-align:right;font-weight:700;color:#10b981;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="선곡료 ' + v.songCur.toLocaleString() + '원">' + v.songCur.toLocaleString() + '</div>'
+              : '<div style="text-align:right;color:#cbd5e1">-</div>')
+          : '';
         rowCells = '<div style="color:#94a3b8;font-weight:600">' + (idx+1) + '</div>'
           + nameCellHtml
           + sourceCellHtml
           + countCellHtml
           + '<div style="text-align:right;font-weight:700;color:' + (v.cur > 0 ? '#0f172a' : '#cbd5e1') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (v.cur > 0 ? v.cur.toLocaleString() : '-') + '</div>'
+          + songCellHtml
           + '<div style="text-align:right;overflow:hidden">' + deltaHtml + '</div>'
           + sparkCellHtml
           + editBtnHtml;
@@ -13972,16 +14031,25 @@ window.__vendor = (function() {
   var _editCtx = null; // { vendorName, year, monthRows: { 1: {id, amount}, ... } }
 
   function _recomputeEditTotal() {
-    var sum = 0;
+    var sum = 0, songSum = 0;
     for (var m = 1; m <= 12; m++) {
       var el = document.getElementById('vedit-m-' + m);
       if (el) {
         var v = parseInt((el.value||'').replace(/,/g,''), 10);
         if (!isNaN(v) && v > 0) sum += v;
       }
+      var sEl = document.getElementById('vedit-s-' + m);
+      if (sEl) {
+        var sv = parseInt((sEl.value||'').replace(/,/g,''), 10);
+        if (!isNaN(sv) && sv > 0) songSum += sv;
+      }
     }
     var totEl = document.getElementById('vendor-edit-total');
-    if (totEl) totEl.textContent = '연 합계: ' + sum.toLocaleString() + '원';
+    if (totEl) {
+      var txt = '연 합계: ' + sum.toLocaleString() + '원';
+      if (songSum > 0) txt += ' · 선곡료 ' + songSum.toLocaleString() + '원';
+      totEl.textContent = txt;
+    }
   }
 
   // 선택 연도의 12개월 매출/건수 행을 _editCtx 에 로드하고 그리드 렌더 (연도 전환 시 재호출)
@@ -14003,6 +14071,20 @@ window.__vendor = (function() {
     _editCtx.year = year;
     _editCtx.monthRows = monthRows;
 
+    // 선곡 수수료 (song 카테고리) 동일 거래처 + 해당 연도 행
+    var songMonthRows = {};
+    var canSong = (cat === 'needle' || cat === 'blanket_paid' || cat === 'cmo');
+    if (canSong) {
+      _state.rows.filter(function(r){
+        return r.category === 'song' && r.vendor_name === name && (r.month_key||'').split('-')[0] == String(year);
+      }).forEach(function(r){
+        var m = parseInt((r.month_key||'').split('-')[1]);
+        if (!songMonthRows[m]) songMonthRows[m] = { id: r.id, amount: r.amount || 0, dupIds: [] };
+        else { songMonthRows[m].amount += (r.amount || 0); songMonthRows[m].dupIds.push(r.id); }
+      });
+    }
+    _editCtx.songMonthRows = songMonthRows;
+
     var monthsHtml = '';
     for (var m = 1; m <= 12; m++) {
       var existing = monthRows[m];
@@ -14017,6 +14099,25 @@ window.__vendor = (function() {
         + '</div>';
     }
     document.getElementById('vendor-edit-months').innerHTML = monthsHtml;
+
+    // 선곡 수수료 섹션 렌더
+    var songSec = document.getElementById('vendor-edit-song-section');
+    if (songSec) songSec.style.display = canSong ? '' : 'none';
+    if (canSong) {
+      var songHtml = '';
+      for (var sm = 1; sm <= 12; sm++) {
+        var sExisting = songMonthRows[sm];
+        var sVal = sExisting ? sExisting.amount.toLocaleString() : '';
+        songHtml += '<div style="display:flex;align-items:center;gap:5px;background:' + (sExisting ? '#d1fae5' : '#f8fafc') + ';border:1px solid ' + (sExisting ? '#a7f3d0' : '#e2e8f0') + ';border-radius:8px;padding:6px 10px">'
+          + '<div style="font-size:11px;font-weight:700;color:#10b981;width:26px;flex-shrink:0">' + sm + '월</div>'
+          + '<input type="text" id="vedit-s-' + sm + '" placeholder="0" value="' + sVal + '" oninput="this.value=this.value.replace(/[^0-9]/g,\'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g,\',\');window.__vendor._recomputeEditTotal()" style="flex:1;min-width:0;padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;text-align:right;outline:none" onfocus="this.style.borderColor=\'#10b981\'" onblur="this.style.borderColor=\'#e2e8f0\'">'
+          + '<span style="font-size:10px;color:#94a3b8;flex-shrink:0">원</span>'
+          + '</div>';
+      }
+      var songMonthsEl = document.getElementById('vendor-edit-song-months');
+      if (songMonthsEl) songMonthsEl.innerHTML = songHtml;
+    }
+
     _recomputeEditTotal();
   }
 
@@ -14226,6 +14327,40 @@ window.__vendor = (function() {
       }
     }
 
+    // 선곡 수수료 12개월 처리 (song 카테고리) — needle/blanket_paid/cmo 진입 시에만
+    var canSongEdit = (ctx.category === 'needle' || ctx.category === 'blanket_paid' || ctx.category === 'cmo');
+    if (canSongEdit) {
+      var songRows = ctx.songMonthRows || {};
+      for (var sm = 1; sm <= 12; sm++) {
+        var sEl = document.getElementById('vedit-s-' + sm);
+        var sRaw = sEl ? (sEl.value||'').replace(/,/g,'').trim() : '';
+        var sAmt = parseInt(sRaw, 10);
+        if (isNaN(sAmt) || sAmt < 0) sAmt = 0;
+        var sExisting = songRows[sm];
+        var sMonthKey = ctx.year + '-' + sm;
+
+        if (sExisting && (sExisting.dupIds||[]).length) {
+          sExisting.dupIds.forEach(function(dupId){ ops.push({ type:'delete', id: dupId }); });
+        }
+
+        if (sExisting) {
+          if (sAmt > 0) {
+            if (sAmt !== sExisting.amount || newName !== ctx.vendorName) {
+              var sPatchBody = { amount: sAmt, vendor_name: newName, updated_at: new Date().toISOString() };
+              ops.push({ type: 'patch', id: sExisting.id, body: sPatchBody });
+            }
+          } else {
+            ops.push({ type: 'delete', id: sExisting.id });
+          }
+        } else if (sAmt > 0) {
+          // 신규 song row — extra 는 메인 카테고리의 active/created_at 만 최소 복제
+          var sExtra = { active: newActive !== null ? newActive : true };
+          if (effectiveRegIso) sExtra.created_at = effectiveRegIso;
+          ops.push({ type: 'post', body: { id: _genId(), category: 'song', vendor_name: newName, month_key: sMonthKey, amount: sAmt, extra: sExtra, updated_at: new Date().toISOString() } });
+        }
+      }
+    }
+
     // 거래처의 다른 년도 모든 행에 대해 rename / 담당자 / active 플래그 동기화
     var otherYearRows = _state.rows.filter(function(r){
       return r.category === ctx.category && r.vendor_name === ctx.vendorName
@@ -14247,6 +14382,17 @@ window.__vendor = (function() {
       if (changed) ops.push({ type: 'patch', id: r.id, body: body });
       hasAnyRow = true;
     });
+
+    // 거래처명 변경 시 song 카테고리의 모든 행도 vendor_name 동기화
+    if (canSongEdit && newName !== ctx.vendorName) {
+      _state.rows.filter(function(r){
+        return r.category === 'song' && r.vendor_name === ctx.vendorName;
+      }).forEach(function(r){
+        // 현재 연도의 song rows 는 위에서 patch 됨 — 다른 연도만 처리
+        if ((r.month_key||'').split('-')[0] == String(ctx.year)) return;
+        ops.push({ type: 'patch', id: r.id, body: { vendor_name: newName, updated_at: new Date().toISOString() } });
+      });
+    }
 
     // 행이 하나도 남지 않는데 active/담당자/발생처/등록일 변경이 필요한 경우 → 자리표시용 0원 행 생성 (1월)
     if (!hasAnyRow && (activeChanged || mgrChanged || srcChanged || regChanged)) {
