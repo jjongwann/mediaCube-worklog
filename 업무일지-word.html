@@ -1847,6 +1847,15 @@
                   style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;transition:border-color .12s" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
                 <div style="font-size:10px;color:#94a3b8;margin-top:4px">매출이 어디에서 발생했는지 입력 (선택). 같은 발생처끼리 묶어서 조회할 수 있습니다.</div>
               </div>
+              <!-- 부속 매출 (NEEDLE/유료 블랭킷 → 선곡 수수료 → song / CMO → 협회 수수료 → fee) -->
+              <div id="risk-newvendor-song-wrap" style="display:none">
+                <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">
+                  <span id="risk-newvendor-song-label">선곡 수수료</span> (원)
+                  <span id="risk-newvendor-song-hint" style="font-size:10px;font-weight:500;color:#10b981;margin-left:4px">→ '선곡료' 카테고리로 자동 연동</span>
+                </label>
+                <input type="text" id="risk-newvendor-song" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'').replace(/\B(?=(\d{3})+(?!\d))/g,',')" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-weight:600" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e2e8f0'">
+                <div id="risk-newvendor-song-note" style="font-size:10px;color:#94a3b8;margin-top:4px">동일 거래처명+동일 월의 '선곡료' 매출에 합산 저장됩니다. 음원 매출 분석의 '선곡료' 항목에 즉시 반영됩니다.</div>
+              </div>
               <div id="risk-newvendor-freenote" style="display:none;font-size:11px;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px">
                 💡 무료 블랭킷은 매출액 없이 거래처만 등록됩니다 (자동 비활성 분류).
               </div>
@@ -2975,18 +2984,24 @@
       { key: '기타',            icon: '📌', color: '#64748b', bg: '#f1f5f9' }
     ];
 
-    // 2차 카테고리 구조 — 사운드 사업부 (NEEDLE, 유료/무료 BLANKET, CMO)
+    // 2차 카테고리 구조 — 사운드 사업부 (NEEDLE, 유료/무료 BLANKET, CMO, Buyout, Custom/디지털, Youtube)
     var RISK_SUBCATS_SOUND = {
       '신규고객 확보': [
         { key: '유료 블랭킷',  icon: '💎', desc: '방송사, 광고 녹음실' },
         { key: '무료 블랭킷',  icon: '🆓', desc: '퍼포밍 목적 활성화' },
         { key: 'Needle Drop', icon: '🎵', desc: '곡별 매출' },
-        { key: 'CMO',         icon: '📣', desc: 'CMO 채널 거래처' }
+        { key: 'CMO',         icon: '📣', desc: 'CMO 채널 거래처' },
+        { key: 'Buyout',         icon: '💠', desc: '벌크 라이선스' },
+        { key: 'Custom/디지털',  icon: '🎚️', desc: '커스텀·디지털' },
+        { key: 'Youtube',        icon: '▶️', desc: 'Youtube 채널' }
       ],
       '기존 고객 관리': [
         { key: '무료 블랭킷',  icon: '🆓', desc: '퍼포밍 목적 활성화' },
         { key: 'Needle Drop', icon: '🎵', desc: '곡별 매출' },
-        { key: 'CMO',         icon: '📣', desc: 'CMO 채널 거래처' }
+        { key: 'CMO',         icon: '📣', desc: 'CMO 채널 거래처' },
+        { key: 'Buyout',         icon: '💠', desc: '벌크 라이선스' },
+        { key: 'Custom/디지털',  icon: '🎚️', desc: '커스텀·디지털' },
+        { key: 'Youtube',        icon: '▶️', desc: 'Youtube 채널' }
       ]
     };
 
@@ -3117,10 +3132,13 @@
     // 서브카테고리 → vendor_sales 테이블 카테고리 매핑 (사운드 + 시스템)
     var _RISK_SUB_TO_VENDOR_CAT = {
       // 사운드 사업부
-      'Needle Drop': 'needle',
-      '유료 블랭킷': 'blanket_paid',
-      '무료 블랭킷': 'blanket_free',
-      'CMO':        'cmo',
+      'Needle Drop':     'needle',
+      '유료 블랭킷':     'blanket_paid',
+      '무료 블랭킷':     'blanket_free',
+      'CMO':             'cmo',
+      'Buyout':          'buyout',
+      'Custom/디지털':   'custom',
+      'Youtube':         'youtube',
       // 시스템 사업부 (6개)
       'AV Archiving':                'sys_archiving',
       'AV Restoration / Forensic':   'sys_restoration',
@@ -3318,6 +3336,19 @@
         });
     }
 
+    // 부속 매출 메타 (dashboard 의 _subMetaFor 와 동일 규칙)
+    //  needle / blanket_paid → 선곡 수수료 → song
+    //  cmo                  → 협회 수수료 → fee
+    function _riskSubMetaFor(dbCat) {
+      if (dbCat === 'needle' || dbCat === 'blanket_paid') {
+        return { target: 'song', label: '선곡 수수료', targetLabel: '선곡료', color: '#10b981' };
+      }
+      if (dbCat === 'cmo') {
+        return { target: 'fee', label: '협회 수수료', targetLabel: '협회 수수료', color: '#64748b' };
+      }
+      return null;
+    }
+
     // ── 4차 모달: 신규 거래처 추가 (신규고객 확보 전용) ──
     function openRiskNewVendorModal(parentKey, subKey, dbCat) {
       var parent = RISK_CATS.find(function(c){ return c.key === parentKey; });
@@ -3353,6 +3384,23 @@
       var freeNote = document.getElementById('risk-newvendor-freenote');
       if (amtWrap) amtWrap.style.display = isFreeBlanket ? 'none' : '';
       if (freeNote) freeNote.style.display = isFreeBlanket ? 'block' : 'none';
+
+      // 부속 매출 입력 (needle/blanket_paid → 선곡 수수료 / cmo → 협회 수수료)
+      var subMeta = _riskSubMetaFor(dbCat);
+      var songWrap = document.getElementById('risk-newvendor-song-wrap');
+      var songInp  = document.getElementById('risk-newvendor-song');
+      if (songInp) songInp.value = '';
+      if (songWrap) {
+        songWrap.style.display = subMeta ? '' : 'none';
+        if (subMeta) {
+          var lbl = document.getElementById('risk-newvendor-song-label');
+          var hint = document.getElementById('risk-newvendor-song-hint');
+          var note = document.getElementById('risk-newvendor-song-note');
+          if (lbl) lbl.textContent = subMeta.label;
+          if (hint) { hint.textContent = "→ '" + subMeta.targetLabel + "' 카테고리로 자동 연동"; hint.style.color = subMeta.color; }
+          if (note) note.textContent = "동일 거래처명+동일 월의 '" + subMeta.targetLabel + "' 매출에 합산 저장됩니다. 음원 매출 분석의 '" + subMeta.targetLabel + "' 항목에 즉시 반영됩니다.";
+        }
+      }
 
       // 활성/비활성 토글 초기화 (기본 활성)
       _riskNewVendorActive = true;
@@ -3404,6 +3452,55 @@
     // submitJournal 성공 시 source_journal_id 로 일지와 연결됨
     var _sessionVendorIds = [];
 
+    // 부속 카테고리(song/fee) row upsert — 동일 vendor_name+month_key 의 row 가 있으면 PATCH(합산), 없으면 POST
+    function _riskUpsertSubRow(targetCat, vendorName, monthKey, subAmount, activeFlag, createdAtIso, source) {
+      if (!targetCat || !subAmount || subAmount <= 0) return Promise.resolve();
+      var qUrl = SB_URL + '/rest/v1/vendor_sales?select=id,amount,extra&category=eq.' + encodeURIComponent(targetCat)
+        + '&vendor_name=eq.' + encodeURIComponent(vendorName)
+        + '&month_key=eq.' + encodeURIComponent(monthKey);
+      return fetch(qUrl, { headers: SB_HDR })
+        .then(function(r){ if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+        .then(function(rows){
+          var existing = (Array.isArray(rows) && rows.length > 0) ? rows[0] : null;
+          if (existing) {
+            var newAmt = (existing.amount || 0) + subAmount;
+            var patchExtra = Object.assign({}, existing.extra || {}, { active: activeFlag });
+            if (source) patchExtra.source = source;
+            if (!patchExtra.created_at) patchExtra.created_at = createdAtIso;
+            return fetch(SB_URL + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(existing.id), {
+              method: 'PATCH',
+              headers: Object.assign({}, SB_HDR, { 'Prefer': 'return=minimal' }),
+              body: JSON.stringify({ amount: newAmt, extra: patchExtra, updated_at: new Date().toISOString() })
+            });
+          } else {
+            var subRowId = _genVendorId();
+            var initExtra = { active: activeFlag, created_at: createdAtIso };
+            if (source) initExtra.source = source;
+            var subRow = {
+              id: subRowId,
+              category: targetCat,
+              vendor_name: vendorName,
+              month_key: monthKey,
+              amount: subAmount,
+              extra: initExtra,
+              updated_at: new Date().toISOString()
+            };
+            // 부속 row 도 세션 리스트에 추가 (일지와 연결)
+            _sessionVendorIds.push(subRowId);
+            return fetch(SB_URL + '/rest/v1/vendor_sales', {
+              method: 'POST', headers: SB_HDR, body: JSON.stringify(subRow)
+            });
+          }
+        })
+        .then(function(r){
+          if (r && !r.ok && r.status !== 201 && r.status !== 204) {
+            return r.text().then(function(t){ throw new Error('부속 저장 실패 ' + r.status + ': ' + t); });
+          }
+          // 캐시 무효화
+          _riskVendorCache[targetCat] = null;
+        });
+    }
+
     function saveRiskNewVendor() {
       var name = (document.getElementById('risk-newvendor-name').value || '').trim();
       var year = parseInt(document.getElementById('risk-newvendor-year').value, 10);
@@ -3417,6 +3514,15 @@
       var count = parseInt(countRaw, 10);
       if (isNaN(count) || count < 0) count = 0;
       var source = ((document.getElementById('risk-newvendor-source') || {}).value || '').trim();
+      // 부속 매출 (선곡 수수료/협회 수수료) — needle/blanket_paid/cmo 일 때만 의미
+      var subMetaSave = _riskSubMetaFor(_riskVendorDbCat);
+      var subAmount = 0;
+      if (subMetaSave) {
+        var songEl = document.getElementById('risk-newvendor-song');
+        var songRaw = (songEl ? songEl.value : '').replace(/,/g,'').trim();
+        subAmount = parseInt(songRaw, 10);
+        if (isNaN(subAmount) || subAmount < 0) subAmount = 0;
+      }
       // 신규 등록일 → created_at (비어있으면 오늘). 대시보드 거래처별 매출 분석의 등록일 입력과 동일 의미.
       var regVal = ((document.getElementById('risk-newvendor-regdate') || {}).value || '').trim();
       var createdAtIso = (function(){
@@ -3488,6 +3594,13 @@
           if (newRowId) _sessionVendorIds.push(newRowId);
           // 캐시 무효화 (다음 모달 진입 시 재조회)
           _riskVendorCache[dbCat] = null;
+          // 부속 매출 (선곡 수수료/협회 수수료) 동시 저장 — 입력값 있을 때만
+          if (subMetaSave && subAmount > 0) {
+            return _riskUpsertSubRow(subMetaSave.target, name, monthKey, subAmount, (_riskNewVendorActive !== false), createdAtIso, source);
+          }
+          return null;
+        })
+        .then(function(){
           // 일지의 업무 성과 카테고리에 거래처명 반영
           var fullKey = _riskParentSel + ' - ' + _riskSubSel + ' - ' + name;
           _applyRiskSelection(fullKey, _riskParentSel, _riskSubSel, name);
