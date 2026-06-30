@@ -12114,6 +12114,11 @@
         </div>
         <div id="vendor-add-amt-help" style="font-size:10px;color:#94a3b8;margin-top:4px">기존 거래처+동일 월 입력 시 매출과 건 수가 합산됩니다.</div>
       </div>
+      <!-- 시스템 사업부 전용 프로젝트명 (거래처명 위에 노출되도록 가장 위) -->
+      <div id="vendor-add-sys-project-wrap" style="display:none">
+        <label style="font-size:11px;font-weight:700;color:#2563eb;display:block;margin-bottom:5px">프로젝트명</label>
+        <input type="text" id="vendor-add-sys-project" placeholder="예: AV 시스템 구축 - 2026 신청사" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
       <!-- 시스템 사업부 전용 입력 필드 (sys_* 카테고리 진입 시에만 노출) -->
       <div id="vendor-add-sys-wrap" style="display:none">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -12126,9 +12131,16 @@
             <input type="date" id="vendor-add-sys-invoice-date" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
           </div>
         </div>
+        <!-- 장비명 / 시리얼 넘버 동적 행 (한 프로젝트에 여러 장비) -->
         <div style="margin-top:10px">
-          <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">시리얼 넘버</label>
-          <input type="text" id="vendor-add-sys-serial" placeholder="예: SN-2026-001" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:5px">
+            <label style="font-size:11px;font-weight:700;color:#374151">장비명</label>
+            <label style="font-size:11px;font-weight:700;color:#374151">시리얼 넘버</label>
+          </div>
+          <div id="vendor-add-sys-equip-list" style="display:flex;flex-direction:column;gap:8px"></div>
+          <!-- 호환용 hidden — 기존 코드 일부에서 직접 참조하던 경우 안전망 -->
+          <input type="hidden" id="vendor-add-sys-serial" value="">
+          <button type="button" onclick="__vendor._addSysEquipRow()" style="margin-top:8px;padding:6px 14px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:7px;font-size:11.5px;font-weight:700;cursor:pointer" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">+ 추가</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
           <div>
@@ -12568,9 +12580,9 @@ window.__vendor = (function() {
     // 시스템 사업부 진입 시: 트리거 버튼 / 입력 모달 제목 텍스트에서 '신규' 제거
     var isSysCat = (_CAT_DEPT[cat] === 'system');
     var addBtn = document.getElementById('vendor-add-trigger-btn');
-    if (addBtn) addBtn.textContent = isSysCat ? '+ 거래처 추가' : '+ 신규 거래처 추가';
+    if (addBtn) addBtn.textContent = isSysCat ? '+ 매출 건 추가' : '+ 신규 거래처 추가';
     var addTitle = document.getElementById('vendor-add-modal-title');
-    if (addTitle) addTitle.textContent = isSysCat ? '+ 거래처 매출 입력' : '+ 신규 거래처 매출 입력';
+    if (addTitle) addTitle.textContent = isSysCat ? '+ 매출 건 입력' : '+ 신규 거래처 매출 입력';
     // 스크롤바 동적 스타일
     var styleEl = document.getElementById('vendor-scroll-dynamic-style');
     if (!styleEl) {
@@ -13090,8 +13102,10 @@ window.__vendor = (function() {
     var addSongEl = document.getElementById('vendor-add-song');
     if (addSongEl) addSongEl.value = '';
     // 시스템 사업부 전용 입력 필드 초기화
-    var sysIds = ['vendor-add-sys-delivery-date','vendor-add-sys-invoice-date','vendor-add-sys-serial','vendor-add-sys-order-from','vendor-add-sys-delivery-to','vendor-add-sys-note'];
+    var sysIds = ['vendor-add-sys-delivery-date','vendor-add-sys-invoice-date','vendor-add-sys-serial','vendor-add-sys-order-from','vendor-add-sys-delivery-to','vendor-add-sys-note','vendor-add-sys-project'];
     sysIds.forEach(function(id){ var el = document.getElementById(id); if (el) el.value = ''; });
+    // 장비 행 1개로 리셋
+    _resetSysEquipList();
     // 신규 등록일 기본값: 오늘
     var addRegEl = document.getElementById('vendor-add-regdate');
     if (addRegEl) addRegEl.value = _isoToDateInput(new Date().toISOString());
@@ -13139,18 +13153,30 @@ window.__vendor = (function() {
     // 시스템 사업부 분기: 건수/등록일/년도·월 숨김 + 시스템 전용 필드 노출
     var isSysCat = !!(cat && _CAT_DEPT[cat] === 'system');
     var sysWrap = document.getElementById('vendor-add-sys-wrap');
+    var sysProjectWrap = document.getElementById('vendor-add-sys-project-wrap');
     var regWrap = document.getElementById('vendor-add-regdate-wrap');
     var countCell = document.getElementById('vendor-add-count-cell');
     var amtGrid = document.getElementById('vendor-add-amt-count-grid');
     var amtHelp = document.getElementById('vendor-add-amt-help');
     var ymWrap = document.getElementById('vendor-add-yearmonth-wrap');
-    if (sysWrap)   sysWrap.style.display   = isSysCat ? '' : 'none';
+    if (sysWrap)        sysWrap.style.display        = isSysCat ? '' : 'none';
+    if (sysProjectWrap) sysProjectWrap.style.display = isSysCat ? '' : 'none';
     if (regWrap)   regWrap.style.display   = isSysCat ? 'none' : '';
     if (countCell) countCell.style.display = isSysCat ? 'none' : '';
     if (amtGrid)   amtGrid.style.gridTemplateColumns = isSysCat ? '1fr' : '2fr 1fr';
     if (amtHelp)   amtHelp.textContent     = isSysCat ? '계산서 날짜의 YYYY-월 이 매출월로 자동 적용됩니다.' : '기존 거래처+동일 월 입력 시 매출과 건 수가 합산됩니다.';
     // 시스템 사업부: 년도/월 셀렉트는 invoice_date 로 자동 결정되므로 숨김
     if (ymWrap)    ymWrap.style.display    = isSysCat ? 'none' : 'flex';
+    // 시스템 사업부: 프로젝트명 wrap 을 거래처명 입력 row 의 바로 위로 이동
+    if (isSysCat && sysProjectWrap) {
+      var nameWrap = document.getElementById('vendor-add-name');
+      if (nameWrap && nameWrap.parentElement && nameWrap.parentElement.parentElement) {
+        var nameRow = nameWrap.parentElement.parentElement; // <div> 거래처명 row
+        if (sysProjectWrap.nextSibling !== nameRow) {
+          nameRow.parentElement.insertBefore(sysProjectWrap, nameRow);
+        }
+      }
+    }
     // 부속 매출 입력: NEEDLE/유료 BLANKET → 선곡 수수료 / CMO → 협회 수수료
     var songWrap = document.getElementById('vendor-add-song-wrap');
     if (songWrap) {
@@ -13299,6 +13325,41 @@ window.__vendor = (function() {
     return found;
   }
 
+  // 시스템 사업부 입력 모달: 장비명/시리얼 동적 행 관리
+  function _addSysEquipRow(name, serial) {
+    var list = document.getElementById('vendor-add-sys-equip-list');
+    if (!list) return;
+    var rowHtml = '<div class="sys-equip-row" style="display:grid;grid-template-columns:1fr 1fr 28px;gap:8px;align-items:center">'
+      + '<input type="text" data-equip-field="name" placeholder="예: 믹서, 스피커" value="' + _esc(name || '') + '" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12.5px;outline:none" onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#e2e8f0\'">'
+      + '<input type="text" data-equip-field="serial" placeholder="예: SN-2026-001" value="' + _esc(serial || '') + '" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12.5px;outline:none" onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#e2e8f0\'">'
+      + '<button type="button" onclick="window.__vendor._removeSysEquipRow(this)" title="이 행 삭제" style="background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:14px;padding:4px;border-radius:5px" onmouseover="this.style.color=\'#dc2626\';this.style.background=\'#fee2e2\'" onmouseout="this.style.color=\'#cbd5e1\';this.style.background=\'none\'">×</button>'
+      + '</div>';
+    list.insertAdjacentHTML('beforeend', rowHtml);
+  }
+  function _removeSysEquipRow(btn) {
+    var row = btn && btn.closest ? btn.closest('.sys-equip-row') : null;
+    if (row) row.remove();
+    // 최소 1개 유지 — 모두 삭제되면 빈 행 1개 추가
+    var list = document.getElementById('vendor-add-sys-equip-list');
+    if (list && list.children.length === 0) _addSysEquipRow();
+  }
+  function _resetSysEquipList() {
+    var list = document.getElementById('vendor-add-sys-equip-list');
+    if (list) list.innerHTML = '';
+    _addSysEquipRow(); // 빈 행 1개로 시작
+  }
+  function _readSysEquipments() {
+    var rows = document.querySelectorAll('#vendor-add-sys-equip-list .sys-equip-row');
+    var out = [];
+    rows.forEach(function(row){
+      var n = (row.querySelector('[data-equip-field="name"]') || {}).value || '';
+      var s = (row.querySelector('[data-equip-field="serial"]') || {}).value || '';
+      n = n.trim(); s = s.trim();
+      if (n || s) out.push({ name: n, serial: s });
+    });
+    return out;
+  }
+
   // 카테고리별 '부속 입력 필드' 메타
   //  - needle / blanket_paid / buyout / custom / youtube 진입: 선곡 수수료 → song 카테고리로 저장 → 음원 매출 '선곡료' 합산
   //  - cmo 진입                                            : 협회 수수료 → fee 카테고리로 저장 → 음원 매출 '협회 수수료' 합산
@@ -13405,12 +13466,20 @@ window.__vendor = (function() {
     if (_CAT_DEPT[cat] === 'system') {
       sysExtra = {};
       var _readVal = function(id){ var el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
+      var pn = _readVal('vendor-add-sys-project');       if (pn) sysExtra.project_name = pn;
       var dd = _readVal('vendor-add-sys-delivery-date'); if (dd) sysExtra.delivery_date = dd;
       var id = _readVal('vendor-add-sys-invoice-date');  if (id) sysExtra.invoice_date = id;
-      var sn = _readVal('vendor-add-sys-serial');        if (sn) sysExtra.serial_no = sn;
       var of = _readVal('vendor-add-sys-order-from');    if (of) sysExtra.order_from = of;
       var dt = _readVal('vendor-add-sys-delivery-to');   if (dt) sysExtra.delivery_to = dt;
       var nt = _readVal('vendor-add-sys-note');          if (nt) sysExtra.note = nt;
+      // 장비 배열 (장비명/시리얼 동적 행)
+      var equips = _readSysEquipments();
+      if (equips.length) {
+        sysExtra.equipments = equips;
+        // 호환: 첫 번째 장비를 기존 키에도 저장 (표·필터·검색에서 사용)
+        if (equips[0].name)   sysExtra.equipment_name = equips[0].name;
+        if (equips[0].serial) sysExtra.serial_no      = equips[0].serial;
+      }
       // 시스템 사업부: 계산서 날짜는 매출월 결정 기준이므로 필수
       if (!sysExtra.invoice_date) { _toast('계산서 날짜를 입력하세요 (매출월 기준)'); return; }
     }
@@ -13854,12 +13923,12 @@ window.__vendor = (function() {
     var hasPrev = prevRangeKeys.length === monthsCount && prevFromIdx >= 0;
     var isFreeBlanket = (cat === 'blanket_free');
     var isSysCardRow = (_CAT_DEPT[cat] === 'system');
-    // 시스템 사업부: '건 수' 제거 + '계산서 날짜' / '시리얼 넘버' / '납품 날짜' / '발주처' / '납품처' 컬럼 추가
+    // 시스템 사업부: '건 수' 제거 + '프로젝트명' / '계산서 날짜' / '장비명' / '시리얼 넘버' / '납품 날짜' / '발주처' / '납품처' 컬럼 추가 (13컬럼)
     // 매출 발생처 컬럼 추가 (거래처명 옆) — 무료 BLANKET 도 동일하게 노출
     var gridCols = isFreeBlanket
       ? '32px 1fr 1fr 80px 28px'
       : (isSysCardRow
-          ? '32px 1.2fr 0.9fr 100px 120px 100px 100px 100px 1fr 90px 28px'
+          ? '32px 1.1fr 1fr 0.9fr 100px 1fr 100px 100px 90px 90px 1fr 90px 28px'
           : (hasSongCol
               ? '32px 1.3fr 1fr 70px 1fr 0.9fr 1.1fr 90px 28px'
               : '32px 1.3fr 1fr 70px 1fr 1.1fr 90px 28px'));
@@ -13871,7 +13940,7 @@ window.__vendor = (function() {
     var headerCells = isFreeBlanket
       ? '<div>#</div><div>거래처명</div><div>매출 발생처</div><div style="text-align:center">상태</div><div></div>'
       : (isSysCardRow
-          ? '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="color:#2563eb">시리얼 넘버</div><div style="text-align:center;color:#2563eb">납품 날짜</div><div style="color:#2563eb">발주처</div><div style="color:#2563eb">납품처</div><div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div></div>'
+          ? '<div>#</div><div style="color:#2563eb">프로젝트명</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="color:#2563eb">장비명</div><div style="color:#2563eb">시리얼 넘버</div><div style="text-align:center;color:#2563eb">납품 날짜</div><div style="color:#2563eb">발주처</div><div style="color:#2563eb">납품처</div><div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div></div>'
           : (hasSongCol
               ? '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="text-align:right">기간 합계</div><div style="text-align:right;color:' + renderSubMeta.color + '">' + renderSubMeta.targetLabel + '</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'
               : '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'));
@@ -13934,23 +14003,47 @@ window.__vendor = (function() {
         var sysOrderFromCellHtml = '';
         var sysDeliveryToCellHtml = '';
         if (isSysCardRow) {
-          // 시스템: 계산서 날짜 + 시리얼 넘버 + 납품 날짜 + 발주처 + 납품처 (해당 거래처의 가장 최근 값)
+          // 시스템: 프로젝트명 + 계산서 날짜 + 장비명 + 시리얼 + 납품 날짜 + 발주처 + 납품처
           var sysRowsOfV = _state.rows.filter(function(r){ return r.category === cat && r.vendor_name === v.name; });
           var pickField = function(field){
             var val = '';
             sysRowsOfV.forEach(function(r){ if (r.extra && r.extra[field]) val = r.extra[field]; });
             return val;
           };
-          var invDate    = pickField('invoice_date');
-          var serial     = pickField('serial_no');
-          var delDate    = pickField('delivery_date');
-          var orderFrom  = pickField('order_from');
-          var deliveryTo = pickField('delivery_to');
+          // 장비명: equipments 배열의 모든 name 을 콤마로 join (호환: 없으면 equipment_name 단일 폴백)
+          var pickEquipList = function(fieldKey){
+            var seen = {}; var out = [];
+            sysRowsOfV.forEach(function(r){
+              var ex = r.extra || {};
+              if (Array.isArray(ex.equipments)) {
+                ex.equipments.forEach(function(eq){
+                  var v = (eq && eq[fieldKey]) ? String(eq[fieldKey]).trim() : '';
+                  if (v && !seen[v]) { seen[v] = true; out.push(v); }
+                });
+              } else if (ex[fieldKey === 'name' ? 'equipment_name' : 'serial_no']) {
+                var v = String(ex[fieldKey === 'name' ? 'equipment_name' : 'serial_no']).trim();
+                if (v && !seen[v]) { seen[v] = true; out.push(v); }
+              }
+            });
+            return out;
+          };
+          var projectName = pickField('project_name');
+          var invDate     = pickField('invoice_date');
+          var equipNames  = pickEquipList('name');
+          var serials     = pickEquipList('serial');
+          var delDate     = pickField('delivery_date');
+          var orderFrom   = pickField('order_from');
+          var deliveryTo  = pickField('delivery_to');
+          var equipText   = equipNames.join(', ');
+          var serialText  = serials.join(', ');
           countCellHtml = invDate
             ? '<div style="text-align:center;font-size:11.5px;color:#2563eb;font-weight:600;font-variant-numeric:tabular-nums">' + _esc(invDate) + '</div>'
             : '<div style="text-align:center;color:#cbd5e1;font-size:11px">-</div>';
-          sysSerialCellHtml = serial
-            ? '<div title="' + _esc(serial) + '" style="font-size:11.5px;color:#0f172a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums">' + _esc(serial) + '</div>'
+          var equipCellHtml = equipText
+            ? '<div title="' + _esc(equipText) + '" style="font-size:11.5px;color:#0f172a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(equipText) + '</div>'
+            : '<div style="font-size:11px;color:#cbd5e1">-</div>';
+          sysSerialCellHtml = serialText
+            ? '<div title="' + _esc(serialText) + '" style="font-size:11.5px;color:#0f172a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums">' + _esc(serialText) + '</div>'
             : '<div style="font-size:11px;color:#cbd5e1">-</div>';
           sysDeliveryDateCellHtml = delDate
             ? '<div style="text-align:center;font-size:11.5px;color:#0f172a;font-weight:500;font-variant-numeric:tabular-nums">' + _esc(delDate) + '</div>'
@@ -13961,6 +14054,12 @@ window.__vendor = (function() {
           sysDeliveryToCellHtml = deliveryTo
             ? '<div title="' + _esc(deliveryTo) + '" style="font-size:11.5px;color:#0f172a;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(deliveryTo) + '</div>'
             : '<div style="font-size:11px;color:#cbd5e1">-</div>';
+          // 프로젝트명 셀 — 신규 변수 (rowCells 조립 시 사용)
+          var sysProjectCellHtml = projectName
+            ? '<div title="' + _esc(projectName) + '" style="font-size:11.5px;color:#2563eb;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(projectName) + '</div>'
+            : '<div style="font-size:11px;color:#cbd5e1">-</div>';
+          v._sysProjectCellHtml = sysProjectCellHtml;
+          v._sysEquipCellHtml   = equipCellHtml;
         } else if (isSubCard) {
           var sourceCats = _sourceCatsForSubVendor(v.name, cat);
           if (sourceCats.length) {
@@ -13984,11 +14083,13 @@ window.__vendor = (function() {
               : '<div style="text-align:right;color:#cbd5e1">-</div>')
           : '';
         if (isSysCardRow) {
-          // 시스템: #/거래처명/매출 발생처/계산서 날짜/시리얼/납품 날짜/발주처/납품처/기간 합계/직전 기간/수정 (11컬럼, 기간 추이 제외)
+          // 시스템: #/프로젝트명/거래처명/매출 발생처/계산서 날짜/장비명/시리얼/납품 날짜/발주처/납품처/기간 합계/직전 기간/수정 (13컬럼)
           rowCells = '<div style="color:#94a3b8;font-weight:600">' + (idx+1) + '</div>'
+            + (v._sysProjectCellHtml || '<div style="font-size:11px;color:#cbd5e1">-</div>')
             + nameCellHtml
             + sourceCellHtml
             + countCellHtml
+            + (v._sysEquipCellHtml   || '<div style="font-size:11px;color:#cbd5e1">-</div>')
             + sysSerialCellHtml
             + sysDeliveryDateCellHtml
             + sysOrderFromCellHtml
@@ -15235,6 +15336,8 @@ window.__vendor = (function() {
     _updateSysListField: _updateSysListField,
     _addSysListRow: _addSysListRow,
     _deleteSysListRow: _deleteSysListRow,
+    _addSysEquipRow: _addSysEquipRow,
+    _removeSysEquipRow: _removeSysEquipRow,
     _onAddNameInput: _onAddNameInput,
     _openAddNameDrop: _openAddNameDrop,
     _toggleAddNameDrop: _toggleAddNameDrop,
