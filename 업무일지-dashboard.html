@@ -12212,13 +12212,20 @@
         <button onclick="__vendor.closeEdit()" style="background:#f1f5f9;border:none;border-radius:7px;color:#475569;font-size:18px;width:30px;height:30px;cursor:pointer">×</button>
       </div>
     </div>
-    <div style="padding:14px 24px;border-bottom:1px solid #f1f5f9;display:flex;flex-direction:column;gap:8px;flex-shrink:0;background:#f8fafc">
-      <div style="display:flex;align-items:center;gap:10px">
-        <label style="font-size:11px;font-weight:700;color:#475569;width:48px;flex-shrink:0">거래처명</label>
+    <div id="vendor-edit-meta-area" style="padding:14px 24px;border-bottom:1px solid #f1f5f9;display:flex;flex-direction:column;gap:8px;flex-shrink:0;background:#f8fafc">
+      <!-- 프로젝트명 (시스템 사업부 진입 시에만 표시 — editVendor 에서 DOM 이동/표시) -->
+      <div id="vendor-edit-project-row" style="display:none;align-items:center;gap:10px">
+        <label style="font-size:11px;font-weight:700;color:#2563eb;width:64px;flex-shrink:0">프로젝트명</label>
+        <input type="text" id="vendor-edit-project-input" placeholder="예: AV 시스템 구축 - 2026 신청사" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div id="vendor-edit-name-row" style="display:flex;align-items:center;gap:10px">
+        <label style="font-size:11px;font-weight:700;color:#475569;width:64px;flex-shrink:0">거래처명</label>
         <input type="text" id="vendor-edit-name-input" placeholder="거래처명" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
         <button onclick="__vendor.deleteVendor()" style="padding:6px 12px;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">전체 삭제</button>
       </div>
-      <div style="display:flex;align-items:center;gap:10px">
+      <!-- 담당자 + 매출 발생처 — 시스템 사업부일 때 한 줄 2칸 grid 로 토글 -->
+      <div id="vendor-edit-mgr-src-wrap" style="display:flex;flex-direction:column;gap:8px">
+      <div id="vendor-edit-mgr-row" style="display:flex;align-items:center;gap:10px">
         <label style="font-size:11px;font-weight:700;color:#475569;width:64px;flex-shrink:0">담당자</label>
         <select id="vendor-edit-manager" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none;background:#fff" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'"></select>
       </div>
@@ -12228,7 +12235,7 @@
         <span style="font-size:10px;color:#94a3b8;flex-shrink:0">신규 고객 1년 기준</span>
       </div>
       <!-- 매출 발생처 (선택 입력) -->
-      <div style="display:flex;align-items:center;gap:10px;position:relative">
+      <div id="vendor-edit-src-row" style="display:flex;align-items:center;gap:10px;position:relative">
         <label style="font-size:11px;font-weight:700;color:#475569;width:64px;flex-shrink:0;white-space:nowrap">매출 발생처</label>
         <div style="flex:1;position:relative">
           <input type="text" id="vendor-edit-source" autocomplete="off" placeholder="예: 광고 / 방송사 / 프로젝트명 등 (선택)"
@@ -12243,13 +12250,11 @@
           <div id="vendor-edit-source-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);max-height:180px;overflow-y:auto;z-index:100"></div>
         </div>
       </div>
+      </div>
       <!-- 시스템 사업부 전용 메타 블록 (sys_* 진입 시에만 노출) — 계산서 날짜는 매출 목록 row 에 있음 -->
       <div id="vendor-edit-sys-block" style="display:none;flex-direction:column;gap:8px;padding-top:8px;border-top:1px dashed #cbd5e1">
-        <!-- 프로젝트명 (단독 1줄) -->
-        <div style="display:flex;align-items:center;gap:8px">
-          <label style="font-size:10.5px;font-weight:700;color:#2563eb;width:80px;flex-shrink:0">프로젝트명</label>
-          <input type="text" id="vendor-edit-sys-project" placeholder="예: AV 시스템 구축 - 2026 신청사" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
-        </div>
+        <!-- 프로젝트명 input 은 모달 최상단(거래처명 위)으로 이동됨 — 호환용 hidden 유지 -->
+        <input type="hidden" id="vendor-edit-sys-project" value="">
         <!-- 납품 날짜 / 발주처 (한 줄 2칸) -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -14967,6 +14972,23 @@ window.__vendor = (function() {
     var sysBlock = document.getElementById('vendor-edit-sys-block');
     var isSysCatEdit = (_CAT_DEPT[cat] === 'system');
     if (sysBlock) sysBlock.style.display = isSysCatEdit ? 'flex' : 'none';
+    // 프로젝트명 row (최상단) + 담당자/매출 발생처 한 줄 2칸 토글 — 시스템 사업부 진입 시에만
+    var projectRow = document.getElementById('vendor-edit-project-row');
+    var mgrSrcWrap = document.getElementById('vendor-edit-mgr-src-wrap');
+    if (projectRow) projectRow.style.display = isSysCatEdit ? 'flex' : 'none';
+    if (mgrSrcWrap) {
+      if (isSysCatEdit) {
+        // 담당자/매출 발생처를 한 줄 2칸 grid 로 (시스템 사업부)
+        mgrSrcWrap.style.display = 'grid';
+        mgrSrcWrap.style.gridTemplateColumns = '1fr 1fr';
+        mgrSrcWrap.style.gap = '10px';
+      } else {
+        mgrSrcWrap.style.display = 'flex';
+        mgrSrcWrap.style.flexDirection = 'column';
+        mgrSrcWrap.style.gridTemplateColumns = '';
+        mgrSrcWrap.style.gap = '8px';
+      }
+    }
     if (isSysCatEdit) {
       // 가장 최근 row 에서 시스템 전용 필드 값을 가져옴
       var sysRows = _state.rows.filter(function(r){ return r.category === cat && r.vendor_name === name; });
@@ -14976,6 +14998,8 @@ window.__vendor = (function() {
         return v;
       };
       var setEditVal = function(id, v){ var el = document.getElementById(id); if (el) el.value = v || ''; };
+      // 프로젝트명: 모달 최상단 input + hidden (호환) 모두에 채움
+      setEditVal('vendor-edit-project-input',     pickSysVal('project_name'));
       setEditVal('vendor-edit-sys-project',       pickSysVal('project_name'));
       setEditVal('vendor-edit-sys-delivery-date', pickSysVal('delivery_date'));
       setEditVal('vendor-edit-sys-invoice-date',  pickSysVal('invoice_date'));
@@ -15100,8 +15124,9 @@ window.__vendor = (function() {
     var sysFieldDelta = null; // null = 변경 없음 / 객체 = 변경된 키만 포함
     if (isSysEditCat) {
       var _gv = function(id){ var el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
+      // 프로젝트명: 모달 최상단 input 우선 (DOM 이동된 input), 없으면 hidden 폴백
       sysFieldDelta = {
-        project_name:  _gv('vendor-edit-sys-project'),
+        project_name:  (_gv('vendor-edit-project-input') || _gv('vendor-edit-sys-project')),
         delivery_date: _gv('vendor-edit-sys-delivery-date'),
         order_from:    _gv('vendor-edit-sys-order-from'),
         delivery_to:   _gv('vendor-edit-sys-delivery-to'),
