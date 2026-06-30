@@ -12864,8 +12864,15 @@ window.__vendor = (function() {
   }
 
   function _toast(msg) {
-    if (typeof window.showToast === 'function') window.showToast(msg);
-    else alert(msg);
+    // 1) 전역 showToast 가 있으면 우선 사용 (시각적 토스트)
+    try {
+      if (typeof window.showToast === 'function') {
+        window.showToast(msg);
+        return;
+      }
+    } catch(e) { console.warn('[_toast] showToast 실패, alert 로 폴백:', e); }
+    // 2) showToast 미정의 / 에러 시 alert 로 강제 알림 (검증 메시지가 사용자에게 반드시 보이도록)
+    try { alert(msg); } catch(e) { console.warn('[_toast]', msg); }
   }
 
   function _fmtW(v) {
