@@ -13978,19 +13978,19 @@ window.__vendor = (function() {
     var gridCols = isFreeBlanket
       ? '32px 1fr 1fr 80px 28px'
       : (isSysCardRow
-          ? '32px 1.1fr 1fr 0.9fr 100px 1fr 100px 100px 90px 90px 1fr 90px 28px'
+          ? '32px 1.4fr 0.9fr 0.9fr 100px 1.1fr 1.1fr 100px 0.9fr 0.9fr 1.1fr 100px 28px'
           : (hasSongCol
               ? '32px 1.3fr 1fr 70px 1fr 0.9fr 1.1fr 90px 28px'
               : '32px 1.3fr 1fr 70px 1fr 1.1fr 90px 28px'));
     // 4번째 컬럼: 일반 카드는 '건 수', 부속 카드(선곡료/협회 수수료)는 '매출 유형', 시스템 카드는 '계산서 날짜'
     var fourthHdr;
-    if (isSysCardRow)      fourthHdr = '<div style="text-align:center;color:#2563eb">계산서 날짜</div>';
+    if (isSysCardRow)      fourthHdr = '<div style="text-align:center">계산서 날짜</div>';
     else if (isSubCard)    fourthHdr = '<div style="text-align:center">매출 유형</div>';
     else                   fourthHdr = '<div style="text-align:right">건 수</div>';
     var headerCells = isFreeBlanket
       ? '<div>#</div><div>거래처명</div><div>매출 발생처</div><div style="text-align:center">상태</div><div></div>'
       : (isSysCardRow
-          ? '<div>#</div><div style="color:#2563eb">프로젝트명</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="color:#2563eb">장비명</div><div style="color:#2563eb">시리얼 넘버</div><div style="text-align:center;color:#2563eb">납품 날짜</div><div style="color:#2563eb">발주처</div><div style="color:#2563eb">납품처</div><div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div></div>'
+          ? '<div>#</div><div>프로젝트명</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div>장비명</div><div>시리얼 넘버</div><div style="text-align:center">납품 날짜</div><div>발주처</div><div>납품처</div><div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div></div>'
           : (hasSongCol
               ? '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="text-align:right">기간 합계</div><div style="text-align:right;color:' + renderSubMeta.color + '">' + renderSubMeta.targetLabel + '</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'
               : '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'));
@@ -14025,20 +14025,21 @@ window.__vendor = (function() {
       var rowBg = showInactiveStyle ? '#fafafa' : '';
       var sparkCellHtml = '<div style="text-align:center">' + _spark(v.trend, 80, 24) + '</div>';
       var editBtnHtml = '<div style="text-align:center"><button onclick="__vendor.editVendor(\'' + nameEsc + '\')" title="수정" style="background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:5px" onmouseover="this.style.color=\'#65a30d\';this.style.background=\'#f7fee7\'" onmouseout="this.style.color=\'#cbd5e1\';this.style.background=\'none\'">✎</button></div>';
-      // 시스템 사업부에서는 거래처명 클릭 트리거 제거 (프로젝트명 셀로 이동)
+      // 시스템 사업부에서는 거래처명 클릭 트리거 제거 (프로젝트명 셀로 이동) + 색상 rgb(15,23,42) 통일
       var nameCellHtml = isSysCardRow
         ? ('<div style="min-width:0;overflow:hidden">'
-            + '<div style="font-weight:700;color:' + (showInactiveStyle ? '#475569' : '#0f172a') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(v.name) + inactiveChip + '</div>'
+            + '<div style="font-weight:700;color:' + (showInactiveStyle ? '#475569' : 'rgb(15,23,42)') + ';font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(v.name) + inactiveChip + '</div>'
             + mgrChip
           + '</div>')
         : ('<div onclick="__vendor.editVendor(\'' + nameEsc + '\')" title="클릭하여 매출 수정" style="cursor:pointer;min-width:0;overflow:hidden">'
             + '<div style="font-weight:700;color:' + (showInactiveStyle ? '#475569' : '#0f172a') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .12s" onmouseover="this.style.color=\'#65a30d\'" onmouseout="this.style.color=\'' + (showInactiveStyle ? '#475569' : '#0f172a') + '\'">' + _esc(v.name) + inactiveChip + '</div>'
             + mgrChip
           + '</div>');
-      // 매출 발생처 셀 (현재 카테고리 기준 extra.source)
+      // 매출 발생처 셀 (현재 카테고리 기준 extra.source) — 시스템은 rgb(15,23,42) 통일
       var srcVal = _getVendorSource(v.name, cat);
+      var srcColor = isSysCardRow ? 'rgb(15,23,42)' : '#475569';
       var sourceCellHtml = srcVal
-        ? '<div title="' + _esc(srcVal) + '" style="font-size:11.5px;color:#475569;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(srcVal) + '</div>'
+        ? '<div title="' + _esc(srcVal) + '" style="font-size:11.5px;color:' + srcColor + ';font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(srcVal) + '</div>'
         : '<div style="font-size:11px;color:#cbd5e1">-</div>';
       var rowCells;
       if (isFreeBlanket) {
@@ -14093,24 +14094,24 @@ window.__vendor = (function() {
           var equipText   = equipNames.join(', ');
           var serialText  = serials.join(', ');
           countCellHtml = invDate
-            ? '<div style="text-align:center;font-size:11.5px;color:#2563eb;font-weight:600;font-variant-numeric:tabular-nums">' + _esc(invDate) + '</div>'
+            ? '<div style="text-align:center;font-size:11.5px;color:rgb(15,23,42);font-weight:600;font-variant-numeric:tabular-nums">' + _esc(invDate) + '</div>'
             : '<div style="text-align:center;color:#cbd5e1;font-size:11px">-</div>';
           var equipCellHtml = equipText
-            ? '<div title="' + _esc(equipText) + '" style="font-size:11.5px;color:#0f172a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(equipText) + '</div>'
+            ? '<div title="' + _esc(equipText) + '" style="font-size:11.5px;color:rgb(15,23,42);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(equipText) + '</div>'
             : '<div style="font-size:11px;color:#cbd5e1">-</div>';
           sysSerialCellHtml = serialText
-            ? '<div title="' + _esc(serialText) + '" style="font-size:11.5px;color:#0f172a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums">' + _esc(serialText) + '</div>'
+            ? '<div title="' + _esc(serialText) + '" style="font-size:11.5px;color:rgb(15,23,42);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums">' + _esc(serialText) + '</div>'
             : '<div style="font-size:11px;color:#cbd5e1">-</div>';
           sysDeliveryDateCellHtml = delDate
-            ? '<div style="text-align:center;font-size:11.5px;color:#0f172a;font-weight:500;font-variant-numeric:tabular-nums">' + _esc(delDate) + '</div>'
+            ? '<div style="text-align:center;font-size:11.5px;color:rgb(15,23,42);font-weight:500;font-variant-numeric:tabular-nums">' + _esc(delDate) + '</div>'
             : '<div style="text-align:center;color:#cbd5e1;font-size:11px">-</div>';
           sysOrderFromCellHtml = orderFrom
-            ? '<div title="' + _esc(orderFrom) + '" style="font-size:11.5px;color:#0f172a;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(orderFrom) + '</div>'
+            ? '<div title="' + _esc(orderFrom) + '" style="font-size:11.5px;color:rgb(15,23,42);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(orderFrom) + '</div>'
             : '<div style="font-size:11px;color:#cbd5e1">-</div>';
           sysDeliveryToCellHtml = deliveryTo
-            ? '<div title="' + _esc(deliveryTo) + '" style="font-size:11.5px;color:#0f172a;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(deliveryTo) + '</div>'
+            ? '<div title="' + _esc(deliveryTo) + '" style="font-size:11.5px;color:rgb(15,23,42);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(deliveryTo) + '</div>'
             : '<div style="font-size:11px;color:#cbd5e1">-</div>';
-          // 프로젝트명 셀 — 클릭 시 수정 모달 진입 (시스템 사업부에서 수정 진입점)
+          // 프로젝트명 셀 — 클릭 시 수정 모달 진입 (유일하게 파란색 #2563eb 유지)
           var sysProjectCellHtml = projectName
             ? '<div onclick="__vendor.editVendor(\'' + nameEsc + '\')" title="클릭하여 매출 수정" style="cursor:pointer;font-size:11.5px;color:#2563eb;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .12s" onmouseover="this.style.color=\'#1d4ed8\';this.style.textDecoration=\'underline\'" onmouseout="this.style.color=\'#2563eb\';this.style.textDecoration=\'none\'">' + _esc(projectName) + '</div>'
             : '<div onclick="__vendor.editVendor(\'' + nameEsc + '\')" title="클릭하여 매출 수정" style="cursor:pointer;font-size:11px;color:#cbd5e1">-</div>';
@@ -14150,7 +14151,7 @@ window.__vendor = (function() {
             + sysDeliveryDateCellHtml
             + sysOrderFromCellHtml
             + sysDeliveryToCellHtml
-            + '<div style="text-align:right;font-weight:700;color:' + (v.cur > 0 ? '#0f172a' : '#cbd5e1') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (v.cur > 0 ? v.cur.toLocaleString() : '-') + '</div>'
+            + '<div style="text-align:right;font-weight:700;font-size:11.5px;color:' + (v.cur > 0 ? 'rgb(15,23,42)' : '#cbd5e1') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (v.cur > 0 ? v.cur.toLocaleString() : '-') + '</div>'
             + '<div style="text-align:right;overflow:hidden">' + deltaHtml + '</div>'
             + editBtnHtml;
         } else {
