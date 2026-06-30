@@ -3365,6 +3365,16 @@
       if (empBtn)  empBtn.style.display  = '';
       return;
     }
+    // info 계정(회계·경리팀): 사업부 보기 섹션 노출 (양 부서 매출 모두 조회 필요)
+    //  - 직원별 현황/권한 메뉴는 노출하지 않음 (관리자 전용)
+    if (typeof _currentUsername !== 'undefined' && _currentUsername === 'info') {
+      if (section) section.style.display = '';
+      var deptViewSectionInfo = document.getElementById('sidebar-dept-view-section');
+      if (deptViewSectionInfo) deptViewSectionInfo.style.display = '';
+      if (permBtn) permBtn.style.display = 'none';
+      if (empBtn)  empBtn.style.display  = 'none';
+      return;
+    }
     var hasPerm = _userId && Array.isArray(_permMap[_userId]) && _permMap[_userId].length > 0;
     if (hasPerm) {
       if (section) section.style.display = '';
@@ -15575,13 +15585,13 @@ window.__vendor = (function() {
 
 // 사이드바 진입점 (전역 함수)
 function openVendorMenu() {
-  // info 계정(회계·경리팀)은 양 부서 매출을 모두 볼 수 있어야 함 → 부서 선택 chooser 모달 표시
-  if (typeof _currentUsername !== 'undefined' && _currentUsername === 'info') {
+  // 관리자 + info 계정(회계·경리팀)은 양 부서 매출을 모두 볼 수 있어야 함 → 부서 선택 chooser 모달 표시
+  if (_isAdmin || (typeof _currentUsername !== 'undefined' && _currentUsername === 'info')) {
     _showVendorChooser();
     return;
   }
-  // 부서 컨텍스트 판단: 관리자는 토글 상태(_viewDeptKey), 비관리자는 본인 부서
-  var deptView = _isAdmin ? _viewDeptKey : (_userDeptKey(_userId) || 'sound');
+  // 그 외 일반 직원: 본인 부서로 자동 진입
+  var deptView = _userDeptKey(_userId) || 'sound';
   window.__vendor.openMenu(deptView);
 }
 
