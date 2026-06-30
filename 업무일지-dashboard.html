@@ -11953,7 +11953,8 @@
         <select id="vendor-needle-manager" onchange="__vendor.render()" title="담당자 조회" style="padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none"></select>
         <select id="vendor-needle-typecat-filter" onchange="__vendor.render()" title="매출 유형 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none"></select>
         <select id="vendor-needle-source" onchange="__vendor.render()" title="매출 발생처 조회" style="padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
-        <!-- 시스템 사업부 전용 필터 셀렉트 (시리얼 / 발주처 / 납품처 별 조회) — 다른 카드에서는 자동 숨김 -->
+        <!-- 시스템 사업부 전용 필터 셀렉트 (장비명 / 시리얼 / 발주처 / 납품처 별 조회) — 다른 카드에서는 자동 숨김 -->
+        <select id="vendor-needle-sys-equip-filter" onchange="__vendor.render()" title="장비명 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
         <select id="vendor-needle-sys-serial-filter" onchange="__vendor.render()" title="시리얼 넘버 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
         <select id="vendor-needle-sys-orderfrom-filter" onchange="__vendor.render()" title="발주처 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
         <select id="vendor-needle-sys-deliveryto-filter" onchange="__vendor.render()" title="납품처 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
@@ -12197,11 +12198,11 @@
 <div id="vendor-edit-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:99998;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)__vendor.closeEdit()">
   <div style="background:#fff;border-radius:14px;max-width:720px;width:100%;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);font-family:inherit">
     <div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
-      <div>
-        <div style="font-size:11px;font-weight:600;color:#65a30d;margin-bottom:3px">거래처 매출 수정</div>
-        <div style="font-size:16px;font-weight:800;color:#0f172a;display:flex;align-items:center;gap:8px">
+      <div style="flex:1;min-width:0">
+        <div id="vendor-edit-header-label" style="font-size:11px;font-weight:600;color:#65a30d;margin-bottom:3px">거래처 매출 수정</div>
+        <div style="font-size:16px;font-weight:800;color:#0f172a;display:flex;align-items:center;gap:8px;min-width:0">
           <span id="vendor-edit-name" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
-          <select id="vendor-edit-year" onchange="__vendor._onEditYearChange()" title="수정할 연도 선택" style="font-size:11px;font-weight:700;background:#f7fee7;color:#65a30d;padding:3px 8px;border-radius:20px;border:1px solid #d9f99d;outline:none;cursor:pointer;font-family:inherit"></select>
+          <select id="vendor-edit-year" onchange="__vendor._onEditYearChange()" title="수정할 연도 선택" style="font-size:11px;font-weight:700;background:#f7fee7;color:#65a30d;padding:3px 8px;border-radius:20px;border:1px solid #d9f99d;outline:none;cursor:pointer;font-family:inherit;flex-shrink:0"></select>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
@@ -12219,31 +12220,31 @@
         <input type="text" id="vendor-edit-project-input" placeholder="예: AV 시스템 구축 - 2026 신청사" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
       </div>
       <div id="vendor-edit-name-row" style="display:flex;align-items:center;gap:10px">
-        <label style="font-size:11px;font-weight:700;color:#475569;width:64px;flex-shrink:0">거래처명</label>
-        <input type="text" id="vendor-edit-name-input" placeholder="거래처명" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
+        <label style="font-size:11px;font-weight:600;color:#64748b;width:64px;flex-shrink:0">거래처명</label>
+        <input type="text" id="vendor-edit-name-input" placeholder="거래처명" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;color:rgb(15,23,42);outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
         <button onclick="__vendor.deleteVendor()" style="padding:6px 12px;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">전체 삭제</button>
       </div>
       <!-- 담당자 + 매출 발생처 — 시스템 사업부일 때 한 줄 2칸 grid 로 토글 -->
       <div id="vendor-edit-mgr-src-wrap" style="display:flex;flex-direction:column;gap:8px">
       <div id="vendor-edit-mgr-row" style="display:flex;align-items:center;gap:10px">
-        <label style="font-size:11px;font-weight:700;color:#475569;width:64px;flex-shrink:0">담당자</label>
-        <select id="vendor-edit-manager" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none;background:#fff" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'"></select>
+        <label style="font-size:11px;font-weight:600;color:#64748b;width:64px;flex-shrink:0">담당자</label>
+        <select id="vendor-edit-manager" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;color:rgb(15,23,42);outline:none;background:#fff" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></select>
       </div>
       <div id="vendor-edit-regdate-row" style="display:flex;align-items:center;gap:10px">
-        <label style="font-size:11px;font-weight:700;color:#475569;width:64px;flex-shrink:0">등록일</label>
-        <input type="date" id="vendor-edit-regdate" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none" onfocus="this.style.borderColor='#65a30d'" onblur="this.style.borderColor='#e2e8f0'">
+        <label style="font-size:11px;font-weight:600;color:#64748b;width:64px;flex-shrink:0">등록일</label>
+        <input type="date" id="vendor-edit-regdate" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;color:rgb(15,23,42);outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
         <span style="font-size:10px;color:#94a3b8;flex-shrink:0">신규 고객 1년 기준</span>
       </div>
       <!-- 매출 발생처 (선택 입력) -->
       <div id="vendor-edit-src-row" style="display:flex;align-items:center;gap:10px;position:relative">
-        <label style="font-size:11px;font-weight:700;color:#475569;width:64px;flex-shrink:0;white-space:nowrap">매출 발생처</label>
+        <label style="font-size:11px;font-weight:600;color:#64748b;width:64px;flex-shrink:0;white-space:nowrap">매출 발생처</label>
         <div style="flex:1;position:relative">
           <input type="text" id="vendor-edit-source" autocomplete="off" placeholder="예: 광고 / 방송사 / 프로젝트명 등 (선택)"
             oninput="__vendor._onEditSourceInput()"
             onfocus="__vendor._openEditSourceDrop()"
             onkeydown="__vendor._onEditSourceKey(event)"
             onblur="setTimeout(__vendor._closeEditSourceDrop,150)"
-            style="width:100%;box-sizing:border-box;padding:6px 28px 6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none;transition:border-color .12s" onfocusin="this.style.borderColor='#65a30d'">
+            style="width:100%;box-sizing:border-box;padding:6px 28px 6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;color:rgb(15,23,42);outline:none;transition:border-color .12s" onfocusin="this.style.borderColor='#2563eb'">
           <button type="button" onclick="__vendor._toggleEditSourceDrop()" style="position:absolute;right:2px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:5px;color:#94a3b8;display:flex;align-items:center;justify-content:center" tabindex="-1">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
@@ -12253,35 +12254,38 @@
       </div>
       <!-- 시스템 사업부 전용 메타 블록 (sys_* 진입 시에만 노출) — 계산서 날짜는 매출 목록 row 에 있음 -->
       <div id="vendor-edit-sys-block" style="display:none;flex-direction:column;gap:8px;padding-top:8px;border-top:1px dashed #cbd5e1">
-        <!-- 프로젝트명 input 은 모달 최상단(거래처명 위)으로 이동됨 — 호환용 hidden 유지 -->
-        <input type="hidden" id="vendor-edit-sys-project" value="">
+        <!-- 프로젝트명 (수정 가능) — 헤더에는 표시용 제목, 여기서는 편집 -->
+        <div style="display:flex;align-items:center;gap:8px">
+          <label style="font-size:10.5px;font-weight:600;color:#64748b;width:80px;flex-shrink:0">프로젝트명</label>
+          <input type="text" id="vendor-edit-sys-project" placeholder="예: AV 시스템 구축 - 2026 신청사" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;color:rgb(15,23,42);outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+        </div>
         <!-- 납품 날짜 / 발주처 (한 줄 2칸) -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div style="display:flex;align-items:center;gap:8px">
-            <label style="font-size:10.5px;font-weight:600;color:#475569;width:80px;flex-shrink:0">납품 날짜</label>
-            <input type="date" id="vendor-edit-sys-delivery-date" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none">
+            <label style="font-size:10.5px;font-weight:600;color:#64748b;width:80px;flex-shrink:0">납품 날짜</label>
+            <input type="date" id="vendor-edit-sys-delivery-date" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;color:rgb(15,23,42);outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
           </div>
           <div style="display:flex;align-items:center;gap:8px">
-            <label style="font-size:10.5px;font-weight:600;color:#475569;width:80px;flex-shrink:0">발주처</label>
-            <input type="text" id="vendor-edit-sys-order-from" placeholder="발주한 곳" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none">
+            <label style="font-size:10.5px;font-weight:600;color:#64748b;width:80px;flex-shrink:0">발주처</label>
+            <input type="text" id="vendor-edit-sys-order-from" placeholder="발주한 곳" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;color:rgb(15,23,42);outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
           </div>
         </div>
         <!-- 납품처 / 기타 (한 줄 2칸) -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div style="display:flex;align-items:center;gap:8px">
-            <label style="font-size:10.5px;font-weight:600;color:#475569;width:80px;flex-shrink:0">납품처</label>
-            <input type="text" id="vendor-edit-sys-delivery-to" placeholder="납품받은 곳" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none">
+            <label style="font-size:10.5px;font-weight:600;color:#64748b;width:80px;flex-shrink:0">납품처</label>
+            <input type="text" id="vendor-edit-sys-delivery-to" placeholder="납품받은 곳" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;color:rgb(15,23,42);outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
           </div>
           <div style="display:flex;align-items:center;gap:8px">
-            <label style="font-size:10.5px;font-weight:600;color:#475569;width:80px;flex-shrink:0">기타</label>
-            <input type="text" id="vendor-edit-sys-note" placeholder="특이 사항 / 메모" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none">
+            <label style="font-size:10.5px;font-weight:600;color:#64748b;width:80px;flex-shrink:0">기타</label>
+            <input type="text" id="vendor-edit-sys-note" placeholder="특이 사항 / 메모" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;color:rgb(15,23,42);outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
           </div>
         </div>
         <!-- 장비명 / 시리얼 동적 행 + '+ 추가' 버튼 -->
         <div style="margin-top:4px;padding-top:8px;border-top:1px dashed #e2e8f0">
           <div style="display:grid;grid-template-columns:1fr 1fr 28px;gap:8px;margin-bottom:5px;align-items:center">
-            <label style="font-size:10.5px;font-weight:700;color:#2563eb">장비명</label>
-            <label style="font-size:10.5px;font-weight:700;color:#2563eb">시리얼 번호</label>
+            <label style="font-size:10.5px;font-weight:600;color:#64748b">장비명</label>
+            <label style="font-size:10.5px;font-weight:600;color:#64748b">시리얼 번호</label>
             <span></span>
           </div>
           <div id="vendor-edit-sys-equip-list" style="display:flex;flex-direction:column;gap:6px"></div>
@@ -13757,10 +13761,12 @@ window.__vendor = (function() {
       }
     }
 
-    // 시스템 사업부 전용 셀렉트 (시리얼/발주처/납품처)
+    // 시스템 사업부 전용 셀렉트 (장비명/시리얼/발주처/납품처)
+    var sysEquipSel  = document.getElementById('vendor-needle-sys-equip-filter');
     var sysSerialSel = document.getElementById('vendor-needle-sys-serial-filter');
     var sysOrderSel  = document.getElementById('vendor-needle-sys-orderfrom-filter');
     var sysDelivSel  = document.getElementById('vendor-needle-sys-deliveryto-filter');
+    var sysEquipFilter  = '';
     var sysSerialFilter = '';
     var sysOrderFilter  = '';
     var sysDelivFilter  = '';
@@ -13775,6 +13781,19 @@ window.__vendor = (function() {
         });
         return Object.keys(seen).sort(function(a,b){ return a.localeCompare(b, 'ko'); });
       };
+      // 장비명: equipments 배열의 모든 name + equipment_name 폴백
+      var collectEquipNames = function(){
+        var seen = {};
+        _state.rows.forEach(function(r){
+          if (r.category !== cat) return;
+          var ex = r.extra || {};
+          if (Array.isArray(ex.equipments)) {
+            ex.equipments.forEach(function(eq){ if (eq && eq.name) seen[eq.name] = true; });
+          }
+          if (ex.equipment_name) seen[ex.equipment_name] = true;
+        });
+        return Object.keys(seen).sort(function(a,b){ return a.localeCompare(b, 'ko'); });
+      };
       var fillSel = function(sel, opts, allLabel){
         if (!sel) return;
         var prev = sel.value;
@@ -13782,13 +13801,16 @@ window.__vendor = (function() {
         sel.value = (prev && opts.indexOf(prev) !== -1) ? prev : '';
         sel.style.display = '';
       };
-      fillSel(sysSerialSel, collectField('serial_no'),    '시리얼 전체');
-      fillSel(sysOrderSel,  collectField('order_from'),   '발주처 전체');
-      fillSel(sysDelivSel,  collectField('delivery_to'),  '납품처 전체');
+      fillSel(sysEquipSel,  collectEquipNames(),         '장비명 전체');
+      fillSel(sysSerialSel, collectField('serial_no'),   '시리얼 전체');
+      fillSel(sysOrderSel,  collectField('order_from'),  '발주처 전체');
+      fillSel(sysDelivSel,  collectField('delivery_to'), '납품처 전체');
+      sysEquipFilter  = sysEquipSel  ? sysEquipSel.value  : '';
       sysSerialFilter = sysSerialSel ? sysSerialSel.value : '';
       sysOrderFilter  = sysOrderSel  ? sysOrderSel.value  : '';
       sysDelivFilter  = sysDelivSel  ? sysDelivSel.value  : '';
     } else {
+      if (sysEquipSel)  { sysEquipSel.style.display  = 'none'; sysEquipSel.value  = ''; }
       if (sysSerialSel) { sysSerialSel.style.display = 'none'; sysSerialSel.value = ''; }
       if (sysOrderSel)  { sysOrderSel.style.display  = 'none'; sysOrderSel.value  = ''; }
       if (sysDelivSel)  { sysDelivSel.style.display  = 'none'; sysDelivSel.value  = ''; }
@@ -13819,12 +13841,23 @@ window.__vendor = (function() {
         if (sourceCats.indexOf(typeCatFilter) < 0) return false;
       }
       // 시스템 사업부 셀렉트 필터 — 해당 거래처의 row 중 하나라도 해당 값을 가지면 통과
-      if (isSysCatSearch && (sysSerialFilter || sysOrderFilter || sysDelivFilter)) {
+      if (isSysCatSearch && (sysEquipFilter || sysSerialFilter || sysOrderFilter || sysDelivFilter)) {
         var rowsOfV2 = _state.rows.filter(function(r){ return r.category === cat && r.vendor_name === n; });
         var matches = function(field, target){
           if (!target) return true;
           return rowsOfV2.some(function(r){ return (r.extra || {})[field] === target; });
         };
+        // 장비명: equipments 배열 + equipment_name 폴백
+        var matchesEquip = function(target){
+          if (!target) return true;
+          return rowsOfV2.some(function(r){
+            var ex = r.extra || {};
+            if (Array.isArray(ex.equipments) && ex.equipments.some(function(eq){ return eq && eq.name === target; })) return true;
+            if (ex.equipment_name === target) return true;
+            return false;
+          });
+        };
+        if (!matchesEquip(sysEquipFilter)) return false;
         if (!matches('serial_no', sysSerialFilter)) return false;
         if (!matches('order_from', sysOrderFilter)) return false;
         if (!matches('delivery_to', sysDelivFilter)) return false;
@@ -14972,10 +15005,10 @@ window.__vendor = (function() {
     var sysBlock = document.getElementById('vendor-edit-sys-block');
     var isSysCatEdit = (_CAT_DEPT[cat] === 'system');
     if (sysBlock) sysBlock.style.display = isSysCatEdit ? 'flex' : 'none';
-    // 프로젝트명 row (최상단) + 담당자/매출 발생처 한 줄 2칸 토글 — 시스템 사업부 진입 시에만
+    // 프로젝트명 row 는 더 이상 표시하지 않음 (헤더 제목으로 이동)
     var projectRow = document.getElementById('vendor-edit-project-row');
     var mgrSrcWrap = document.getElementById('vendor-edit-mgr-src-wrap');
-    if (projectRow) projectRow.style.display = isSysCatEdit ? 'flex' : 'none';
+    if (projectRow) projectRow.style.display = 'none';
     if (mgrSrcWrap) {
       if (isSysCatEdit) {
         // 담당자/매출 발생처를 한 줄 2칸 grid 로 (시스템 사업부)
@@ -14988,6 +15021,17 @@ window.__vendor = (function() {
         mgrSrcWrap.style.gridTemplateColumns = '';
         mgrSrcWrap.style.gap = '8px';
       }
+    }
+    // 시스템 사업부: 헤더의 거래처명 자리에 프로젝트명을 큰 제목으로 + 부제로 거래처명 표시
+    var hdrLabel = document.getElementById('vendor-edit-header-label');
+    var hdrNameSpan = document.getElementById('vendor-edit-name');
+    if (isSysCatEdit) {
+      var pn = pickSysVal('project_name') || name;
+      if (hdrNameSpan) hdrNameSpan.textContent = pn;
+      if (hdrLabel) hdrLabel.textContent = '거래처: ' + name;
+    } else {
+      if (hdrLabel) hdrLabel.textContent = '거래처 매출 수정';
+      if (hdrNameSpan) hdrNameSpan.textContent = name;
     }
     if (isSysCatEdit) {
       // 가장 최근 row 에서 시스템 전용 필드 값을 가져옴
