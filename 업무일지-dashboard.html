@@ -15575,9 +15575,88 @@ window.__vendor = (function() {
 
 // 사이드바 진입점 (전역 함수)
 function openVendorMenu() {
+  // info 계정(회계·경리팀)은 양 부서 매출을 모두 볼 수 있어야 함 → 부서 선택 chooser 모달 표시
+  if (typeof _currentUsername !== 'undefined' && _currentUsername === 'info') {
+    _showVendorChooser();
+    return;
+  }
   // 부서 컨텍스트 판단: 관리자는 토글 상태(_viewDeptKey), 비관리자는 본인 부서
   var deptView = _isAdmin ? _viewDeptKey : (_userDeptKey(_userId) || 'sound');
   window.__vendor.openMenu(deptView);
+}
+
+// ── 부서 선택 chooser (info 계정 전용) ──
+function _closeVendorChooser() {
+  var ov = document.getElementById('vendor-chooser-overlay');
+  if (ov) ov.style.display = 'none';
+}
+function _ensureVendorChooserOverlay() {
+  if (document.getElementById('vendor-chooser-overlay')) return;
+  var div = document.createElement('div');
+  div.id = 'vendor-chooser-overlay';
+  div.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:99996;align-items:center;justify-content:center;padding:24px';
+  div.onclick = function(e){ if (e.target === this) _closeVendorChooser(); };
+
+  var CARDS = [
+    { dept: 'system', title: '시스템 사업부',        subtitle: 'AV·방송 시스템 거래처별 매출',
+      color: '#0891b2', gradFrom: '#0891b2', gradTo: '#0e7490',
+      icon: '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>' },
+    { dept: 'sound',  title: '사운드 컨텐츠 사업부', subtitle: '음원·콘텐츠 거래처별 매출',
+      color: '#7c3aed', gradFrom: '#7c3aed', gradTo: '#6d28d9',
+      icon: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>' }
+  ];
+
+  div.innerHTML = ''+
+    '<div style="width:100%;max-width:640px;background:#fff;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,0.3);overflow:hidden;font-family:inherit">'+
+      '<div style="padding:18px 22px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#475569,#1e293b);color:#fff">'+
+        '<div>'+
+          '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:#cbd5e1">SELECT DEPARTMENT</div>'+
+          '<div style="font-size:16px;font-weight:800;margin-top:2px;letter-spacing:-0.3px">거래처별 매출 분석 부서 선택</div>'+
+        '</div>'+
+        '<button onclick="_closeVendorChooser()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:background .15s" onmouseover="this.style.background=\'rgba(255,255,255,0.28)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'">×</button>'+
+      '</div>'+
+      '<div id="vendor-chooser-cards" style="padding:22px;display:grid;grid-template-columns:1fr 1fr;gap:14px"></div>'+
+    '</div>';
+  document.body.appendChild(div);
+
+  var box = div.querySelector('#vendor-chooser-cards');
+  CARDS.forEach(function(c){
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    var grad = 'linear-gradient(135deg,'+c.gradFrom+','+c.gradTo+')';
+    btn.style.cssText = 'position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:22px 20px 20px;background:#fff;border:2px solid #e2e8f0;border-radius:14px;cursor:pointer;text-align:left;font-family:inherit;transition:transform .18s,box-shadow .18s,border-color .18s;overflow:hidden';
+    btn.onmouseover = function(){
+      this.style.transform = 'translateY(-3px)';
+      this.style.boxShadow = '0 12px 28px '+c.color+'33';
+      this.style.borderColor = c.color;
+    };
+    btn.onmouseout = function(){
+      this.style.transform = '';
+      this.style.boxShadow = '';
+      this.style.borderColor = '#e2e8f0';
+    };
+    btn.onclick = function(){
+      _closeVendorChooser();
+      setTimeout(function(){ if (window.__vendor) window.__vendor.openMenu(c.dept); }, 80);
+    };
+    btn.innerHTML = ''+
+      '<div style="position:absolute;top:0;right:0;width:90px;height:90px;background:'+grad+';opacity:0.08;border-radius:0 0 0 90px;pointer-events:none"></div>'+
+      '<div style="width:48px;height:48px;border-radius:12px;background:'+grad+';display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px '+c.color+'55;color:#fff">'+
+        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+c.icon+'</svg>'+
+      '</div>'+
+      '<div style="font-size:14.5px;font-weight:800;color:#0f172a;letter-spacing:-0.3px;margin-top:2px">'+c.title+'</div>'+
+      '<div style="font-size:11.5px;color:#64748b;font-weight:500;line-height:1.4">'+c.subtitle+'</div>'+
+      '<div style="margin-top:auto;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:'+c.color+';letter-spacing:-0.1px">'+
+        '<span>매출 분석 보기</span>'+
+        '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>'+
+      '</div>';
+    box.appendChild(btn);
+  });
+}
+function _showVendorChooser() {
+  _ensureVendorChooserOverlay();
+  var ov = document.getElementById('vendor-chooser-overlay');
+  if (ov) ov.style.display = 'flex';
 }
 
 /* ═══════════════════════════════════════════════════════════════════
