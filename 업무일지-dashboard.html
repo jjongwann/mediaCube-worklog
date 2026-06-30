@@ -15023,18 +15023,11 @@ window.__vendor = (function() {
       }
     }
     // 시스템 사업부: 헤더의 거래처명 자리에 프로젝트명을 큰 제목으로 + 부제로 거래처명 표시
+    //              + 시스템 메타 블록 prefill (sysRows / pickSysVal 을 먼저 정의 후 사용)
     var hdrLabel = document.getElementById('vendor-edit-header-label');
     var hdrNameSpan = document.getElementById('vendor-edit-name');
     if (isSysCatEdit) {
-      var pn = pickSysVal('project_name') || name;
-      if (hdrNameSpan) hdrNameSpan.textContent = pn;
-      if (hdrLabel) hdrLabel.textContent = '거래처: ' + name;
-    } else {
-      if (hdrLabel) hdrLabel.textContent = '거래처 매출 수정';
-      if (hdrNameSpan) hdrNameSpan.textContent = name;
-    }
-    if (isSysCatEdit) {
-      // 가장 최근 row 에서 시스템 전용 필드 값을 가져옴
+      // 가장 최근 row 에서 시스템 전용 필드 값을 가져오는 헬퍼 (헤더 prefill 보다 먼저 정의되어야 함)
       var sysRows = _state.rows.filter(function(r){ return r.category === cat && r.vendor_name === name; });
       var pickSysVal = function(field){
         var v = '';
@@ -15042,7 +15035,11 @@ window.__vendor = (function() {
         return v;
       };
       var setEditVal = function(id, v){ var el = document.getElementById(id); if (el) el.value = v || ''; };
-      // 프로젝트명: 모달 최상단 input + hidden (호환) 모두에 채움
+      // 헤더: 큰 제목 = 프로젝트명 (없으면 거래처명) / 부제 = 거래처명
+      var pn = pickSysVal('project_name') || name;
+      if (hdrNameSpan) hdrNameSpan.textContent = pn;
+      if (hdrLabel) hdrLabel.textContent = '거래처: ' + name;
+      // 시스템 메타 블록 prefill — 프로젝트명 input + 기타 시스템 필드
       setEditVal('vendor-edit-project-input',     pickSysVal('project_name'));
       setEditVal('vendor-edit-sys-project',       pickSysVal('project_name'));
       setEditVal('vendor-edit-sys-delivery-date', pickSysVal('delivery_date'));
@@ -15066,6 +15063,9 @@ window.__vendor = (function() {
         }
       });
       _resetEditSysEquipList(equipList);
+    } else {
+      if (hdrLabel) hdrLabel.textContent = '거래처 매출 수정';
+      if (hdrNameSpan) hdrNameSpan.textContent = name;
     }
 
     // 활성/비활성 토글 표시
