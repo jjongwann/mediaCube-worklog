@@ -12254,11 +12254,8 @@
       </div>
       <!-- 시스템 사업부 전용 메타 블록 (sys_* 진입 시에만 노출) — 계산서 날짜는 매출 목록 row 에 있음 -->
       <div id="vendor-edit-sys-block" style="display:none;flex-direction:column;gap:8px;padding-top:8px;border-top:1px dashed #cbd5e1">
-        <!-- 프로젝트명 (수정 가능) — 헤더에는 표시용 제목, 여기서는 편집 -->
-        <div style="display:flex;align-items:center;gap:8px">
-          <label style="font-size:10.5px;font-weight:600;color:#64748b;width:80px;flex-shrink:0">프로젝트명</label>
-          <input type="text" id="vendor-edit-sys-project" placeholder="예: AV 시스템 구축 - 2026 신청사" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;color:rgb(15,23,42);outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
-        </div>
+        <!-- 프로젝트명 input 은 모달 상단(거래처명 위) vendor-edit-project-input 으로 이동됨. 호환용 hidden 만 유지 -->
+        <input type="hidden" id="vendor-edit-sys-project" value="">
         <!-- 납품 날짜 / 발주처 (한 줄 2칸) -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -13507,8 +13504,8 @@ window.__vendor = (function() {
       cat = viewCat;
     }
 
-    if (!name) { _toast('거래처명을 입력하세요'); return; }
-    if (_CAT_DEPT[cat] !== 'system' && (!year || !month)) { _toast('년도/월을 선택하세요'); return; }
+    if (!name) { _toast('거래처명을 입력해주세요'); return; }
+    if (_CAT_DEPT[cat] !== 'system' && (!year || !month)) { _toast('년도/월을 선택해주세요'); return; }
 
     // 부속 매출 (needle/blanket_paid → 선곡료, cmo → 협회 수수료)
     var subAmount = 0;
@@ -13539,8 +13536,9 @@ window.__vendor = (function() {
         if (equips[0].name)   sysExtra.equipment_name = equips[0].name;
         if (equips[0].serial) sysExtra.serial_no      = equips[0].serial;
       }
-      // 시스템 사업부: 계산서 날짜는 매출월 결정 기준이므로 필수
-      if (!sysExtra.invoice_date) { _toast('계산서 날짜를 입력하세요 (매출월 기준)'); return; }
+      // 시스템 사업부 필수 검증
+      if (!sysExtra.project_name) { _toast('프로젝트명을 입력해주세요'); return; }
+      if (!sysExtra.invoice_date) { _toast('계산서 날짜를 입력해주세요 (매출월 기준)'); return; }
     }
 
     var monthKey = year + '-' + month;
@@ -15005,10 +15003,10 @@ window.__vendor = (function() {
     var sysBlock = document.getElementById('vendor-edit-sys-block');
     var isSysCatEdit = (_CAT_DEPT[cat] === 'system');
     if (sysBlock) sysBlock.style.display = isSysCatEdit ? 'flex' : 'none';
-    // 프로젝트명 row 는 더 이상 표시하지 않음 (헤더 제목으로 이동)
+    // 프로젝트명 row — 시스템 사업부 진입 시에만 표시 (거래처명 위)
     var projectRow = document.getElementById('vendor-edit-project-row');
     var mgrSrcWrap = document.getElementById('vendor-edit-mgr-src-wrap');
-    if (projectRow) projectRow.style.display = 'none';
+    if (projectRow) projectRow.style.display = isSysCatEdit ? 'flex' : 'none';
     if (mgrSrcWrap) {
       if (isSysCatEdit) {
         // 담당자/매출 발생처를 한 줄 2칸 grid 로 (시스템 사업부)
@@ -15144,7 +15142,13 @@ window.__vendor = (function() {
     if (!_editCtx) return;
     var ctx = _editCtx;
     var newName = (document.getElementById('vendor-edit-name-input').value || '').trim();
-    if (!newName) { _toast('거래처명을 입력하세요'); return; }
+    if (!newName) { _toast('거래처명을 입력해주세요'); return; }
+    // 시스템 사업부: 프로젝트명 필수
+    if (_CAT_DEPT[ctx.category] === 'system') {
+      var newProj = (document.getElementById('vendor-edit-project-input') || {}).value || '';
+      newProj = newProj.trim();
+      if (!newProj) { _toast('프로젝트명을 입력해주세요'); return; }
+    }
     var newMgr = (document.getElementById('vendor-edit-manager').value || '').trim();
     var mgrChanged = (newMgr || '') !== (ctx.prevManager || '');
     var newSrc = ((document.getElementById('vendor-edit-source') || {}).value || '').trim();
