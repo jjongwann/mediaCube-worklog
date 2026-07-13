@@ -13563,17 +13563,27 @@ window.__vendor = (function() {
         if (equips[0].name)   sysExtra.equipment_name = equips[0].name;
         if (equips[0].serial) sysExtra.serial_no      = equips[0].serial;
       }
-      // 시스템 사업부 필수 검증
+      // 시스템 사업부 필수 검증 — 프로젝트명만 필수
+      // 계산서 날짜는 필수 아님 (미확정 상태로 등록 가능, 목록에서 '-' 표시 후 수정 모달에서 채움)
       if (!sysExtra.project_name) { _toast('프로젝트명을 입력해주세요'); return; }
-      if (!sysExtra.invoice_date) { _toast('계산서 날짜를 입력해주세요 (매출월 기준)'); return; }
     }
 
-    var monthKey = year + '-' + month;
-    // 시스템 사업부: invoice_date 가 입력되면 month_key 를 invoice_date 의 YYYY-M 으로 자동 설정
-    // → 기간 조회/누계 통계가 등록일이 아닌 계산서 날짜 기준으로 동작
-    if (sysExtra && sysExtra.invoice_date) {
-      var autoMk = _invoiceDateToMonthKey(sysExtra.invoice_date);
-      if (autoMk) monthKey = autoMk;
+    var monthKey;
+    if (_CAT_DEPT[cat] === 'system') {
+      // 시스템 사업부: month_key 결정 우선순위 = 계산서 날짜 > 납품 날짜 > 오늘
+      // (상단 년도/월 셀렉트는 시스템 진입 시 숨김 상태라 year/month 는 무의미)
+      var sysDate = (sysExtra && sysExtra.invoice_date) || (sysExtra && sysExtra.delivery_date) || '';
+      if (!sysDate) {
+        var t = new Date();
+        sysDate = t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+      }
+      monthKey = _invoiceDateToMonthKey(sysDate);
+      if (!monthKey) {
+        var t2 = new Date();
+        monthKey = t2.getFullYear() + '-' + (t2.getMonth()+1);
+      }
+    } else {
+      monthKey = year + '-' + month;
     }
 
     // 기존 동일 (cat, name, monthKey) 행이 있으면 합산
