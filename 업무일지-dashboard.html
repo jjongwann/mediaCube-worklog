@@ -3015,10 +3015,12 @@
     if (systemTeamBtn) {
       systemTeamBtn.style.display = isSystemUser ? '' : 'none';
     }
-    // 견적 관리: 관리자 OR 시스템 사업부 사용자에게 노출 (info/사운드 직원은 숨김)
+    // 견적 관리: 관리자 OR 시스템 사업부 사용자 OR info(회계·경리팀) 에게 노출
     var quoteBtn = document.getElementById('quote-sidebar-btn');
     if (quoteBtn) {
-      var canSeeQuote = _isAdmin || (_userDeptKey(_userId) === 'system');
+      var canSeeQuote = _isAdmin
+        || (_userDeptKey(_userId) === 'system')
+        || (typeof _currentUsername !== 'undefined' && _currentUsername === 'info');
       quoteBtn.style.display = canSeeQuote ? '' : 'none';
     }
   }
