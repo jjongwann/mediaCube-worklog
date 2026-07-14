@@ -13161,16 +13161,21 @@ window.__vendor = (function() {
     fee:          'fee'
   };
 
-  // 특정 month_key 의 음원 매출 8개 항목 합계 + real(총 매출) 반환
+  // 특정 month_key 의 음원 매출 8개 항목 합계 + real(총 매출) + 항목별 건수 반환
+  // - _counts 는 월별 누계 통계 모달(item detail 포함)에서 '누적 건수' 표시에 사용
+  // - 원천은 거래처 카드의 '건 수' 컬럼과 동일 (vendor_sales.extra.count)
   function aggregateSoundSales(monthKey) {
     var out = { annual:0, needle:0, buyout:0, custom:0, komca:0, youtube:0, song:0, fee:0 };
+    var counts = { annual:0, needle:0, buyout:0, custom:0, komca:0, youtube:0, song:0, fee:0 };
     _state.rows.forEach(function(r){
       if (r.month_key !== monthKey) return;
       var soundKey = VENDOR_TO_SOUND_KEY[r.category];
       if (!soundKey) return;
       out[soundKey] += (r.amount || 0);
+      counts[soundKey] += (r.extra && r.extra.count) || 0;
     });
     out.real = out.annual + out.needle + out.buyout + out.custom + out.komca + out.youtube + out.song + out.fee;
+    out._counts = counts;
     return out;
   }
 
