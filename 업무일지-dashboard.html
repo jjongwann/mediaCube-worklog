@@ -2088,6 +2088,7 @@
           <div style="display:flex;border:1px solid #e2e8f0;border-radius:7px;overflow:hidden;font-size:11px">
             <button id="sales-btn-bar" onclick="salesSetType('bar')" style="padding:4px 14px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:600">막대</button>
             <button id="sales-btn-line" onclick="salesSetType('line')" style="padding:4px 14px;border:none;background:#f8fafc;color:#64748b;cursor:pointer;font-weight:600">꺾은선</button>
+            <button id="sales-btn-table" onclick="salesSetType('table')" style="padding:4px 14px;border:none;background:#f8fafc;color:#64748b;cursor:pointer;font-weight:600">표</button>
           </div>
           <button id="sales-input-btn" onclick="openSalesInput()" style="display:none;align-items:center;gap:5px;padding:5px 13px;background:#2563eb;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -2095,8 +2096,8 @@
           </button>
         </div>
       </div>
-      <!-- 차트 + 통계 패널 2단 -->
-      <div style="display:grid;grid-template-columns:1fr 250px;gap:16px;align-items:stretch">
+      <!-- 차트 + 통계 패널 2단 (막대/꺾은선 뷰) -->
+      <div id="sales-chart-wrap" style="display:grid;grid-template-columns:1fr 250px;gap:16px;align-items:stretch">
         <!-- 왼쪽: 차트 + 요약 카드 -->
         <div style="display:flex;flex-direction:column;gap:10px">
           <div style="position:relative;flex:1;min-height:200px">
@@ -2108,6 +2109,15 @@
         </div>
         <!-- 오른쪽: 통계 패널 -->
         <div id="sales-stat-panel" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;font-size:12px"></div>
+      </div>
+      <!-- 표 뷰 (표 토글 시 표시) -->
+      <div id="sales-table-view" style="display:none;overflow-x:auto">
+        <table id="sales-table" style="width:100%;border-collapse:collapse;font-size:13px;min-width:760px">
+          <thead>
+            <tr id="sales-thead-row" style="background:linear-gradient(180deg,#f8fafc,#f1f5f9)"></tr>
+          </thead>
+          <tbody id="sales-tbody"></tbody>
+        </table>
       </div>
     </div>
 
@@ -6519,11 +6529,100 @@
 
   function salesSetType(type) {
     _salesType = type;
-    document.getElementById('sales-btn-bar').style.background  = type === 'bar'  ? '#2563eb' : '#f8fafc';
-    document.getElementById('sales-btn-bar').style.color       = type === 'bar'  ? '#fff'    : '#64748b';
-    document.getElementById('sales-btn-line').style.background = type === 'line' ? '#2563eb' : '#f8fafc';
-    document.getElementById('sales-btn-line').style.color      = type === 'line' ? '#fff'    : '#64748b';
+    // 3-way 토글 스타일 (막대 / 꺾은선 / 표)
+    var btnBar   = document.getElementById('sales-btn-bar');
+    var btnLine  = document.getElementById('sales-btn-line');
+    var btnTable = document.getElementById('sales-btn-table');
+    var setBtn = function(btn, active){
+      if (!btn) return;
+      btn.style.background = active ? '#2563eb' : '#f8fafc';
+      btn.style.color      = active ? '#fff'    : '#64748b';
+    };
+    setBtn(btnBar,   type === 'bar');
+    setBtn(btnLine,  type === 'line');
+    setBtn(btnTable, type === 'table');
+    // 표 뷰 / 차트 뷰 컨테이너 show/hide
+    var chartWrap = document.getElementById('sales-chart-wrap');
+    var tableView = document.getElementById('sales-table-view');
+    if (type === 'table') {
+      if (chartWrap) chartWrap.style.display = 'none';
+      if (tableView) tableView.style.display = '';
+      // 차트 인스턴스 정리 — 표 뷰로 전환 시 canvas 는 다음에 다시 만들 것
+      if (_salesChart) { try { _salesChart.destroy(); } catch(e){} _salesChart = null; }
+    } else {
+      if (chartWrap) chartWrap.style.display = 'grid';
+      if (tableView) tableView.style.display = 'none';
+    }
     renderSalesWidget();
+  }
+
+  // ── 표 뷰 헬퍼 ──
+  // 최근 6년 + _salesCache 에 존재하는 모든 연도 (오름차순)
+  function _salesDisplayYears() {
+    var cy = new Date().getFullYear();
+    var seen = {};
+    for (var y = cy - 5; y <= cy; y++) seen[y] = true;
+    var data = _salesCache || {};
+    Object.keys(data).forEach(function(k){
+      var t = (k || '').split('-')[0];
+      if (/^\d{4}$/.test(t)) seen[parseInt(t, 10)] = true;
+    });
+    return Object.keys(seen).map(Number).sort(function(a,b){ return a - b; });
+  }
+  // 특정 연도의 항목 합계 (12개월 순회)
+  function _salesYearTotal(year, itemKey) {
+    var sum = 0;
+    var data = _salesCache || {};
+    for (var m = 1; m <= 12; m++) {
+      var e = data[year + '-' + m];
+      if (e) sum += (parseInt(e[itemKey], 10) || 0);
+    }
+    return sum;
+  }
+  // 표 렌더 (항목 × 연도 매트릭스 + 합계 행/열)
+  function salesRenderTableView() {
+    salesLoadData(); // _salesCache 최신화
+    var years = _salesDisplayYears();
+
+    var theadRow = document.getElementById('sales-thead-row');
+    if (!theadRow) return;
+    var headCells = '<th style="padding:10px 12px;text-align:left;color:#475569;font-size:12.5px;font-weight:700;border-bottom:1px solid #e2e8f0">항목</th>';
+    years.forEach(function(y){
+      headCells += '<th style="padding:10px 12px;text-align:right;color:#475569;font-size:12px;font-weight:700;border-bottom:1px solid #e2e8f0">' + y + '</th>';
+    });
+    headCells += '<th style="padding:10px 12px;text-align:right;color:#7c3aed;font-size:12.5px;font-weight:800;border-bottom:1px solid #e2e8f0;background:#faf5ff">합계</th>';
+    theadRow.innerHTML = headCells;
+
+    var tbody = document.getElementById('sales-tbody');
+    if (!tbody) return;
+    var yearTotals = {}; years.forEach(function(y){ yearTotals[y] = 0; });
+    var grandTotal = 0;
+    var html = '';
+    SALES_ITEMS.forEach(function(item){
+      var rowHtml = '<tr style="background:' + item.bg + '33">'
+        + '<td onclick="openCumulItemDetail(\'' + item.key + '\')" title="클릭하여 월별 상세 보기" style="padding:11px 12px;font-weight:700;color:' + item.color + ';font-size:12.5px;border-bottom:1px solid #f1f5f9;cursor:pointer" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">' + item.label + '</td>';
+      var rowTotal = 0;
+      years.forEach(function(y){
+        var v = _salesYearTotal(y, item.key);
+        rowTotal += v;
+        yearTotals[y] += v;
+        rowHtml += '<td style="padding:11px 12px;text-align:right;font-size:12.5px;color:#374151;font-weight:600;border-bottom:1px solid #f1f5f9;font-variant-numeric:tabular-nums">' + (v ? v.toLocaleString() : '<span style="color:#cbd5e1">0</span>') + '</td>';
+      });
+      grandTotal += rowTotal;
+      rowHtml += '<td style="padding:11px 12px;text-align:right;font-size:12.5px;font-weight:800;color:#7c3aed;background:#faf5ff;border-bottom:1px solid #f1f5f9;font-variant-numeric:tabular-nums">' + (rowTotal ? rowTotal.toLocaleString() : '<span style="color:#cbd5e1">0</span>') + '</td>';
+      rowHtml += '</tr>';
+      html += rowHtml;
+    });
+    // 합계 행
+    html += '<tr style="background:linear-gradient(180deg,#f8fafc,#f1f5f9);font-weight:800">'
+      + '<td style="padding:13px 12px;font-size:13px;color:#0f172a;border-top:2px solid #cbd5e1">합계</td>';
+    years.forEach(function(y){
+      var yt = yearTotals[y];
+      html += '<td style="padding:13px 12px;text-align:right;font-size:12.5px;color:#0f172a;border-top:2px solid #cbd5e1;font-variant-numeric:tabular-nums">' + (yt ? yt.toLocaleString() : '<span style="color:#cbd5e1">0</span>') + '</td>';
+    });
+    html += '<td style="padding:13px 12px;text-align:right;font-size:13.5px;color:#fff;background:#7c3aed;border-top:2px solid #5b21b6;font-variant-numeric:tabular-nums">' + grandTotal.toLocaleString() + '</td>';
+    html += '</tr>';
+    tbody.innerHTML = html;
   }
 
   var _salesDropOpen = false;
@@ -7513,6 +7612,11 @@
   });
 
   function renderSalesWidget() {
+    // 표 뷰 분기 — 차트/요약/통계 패널 대신 항목×연도 매트릭스 렌더
+    if (_salesType === 'table') {
+      salesRenderTableView();
+      return;
+    }
     var data    = salesLoadData();
     var sel     = document.getElementById('sales-month-sel');
     var selKey  = sel ? sel.value : '';
