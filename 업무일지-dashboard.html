@@ -6363,10 +6363,18 @@
     if (_notiPermission() !== 'granted') return;
     // 사이트가 활성 상태(포커스 있음)면 사이트 내 팝업으로 충분 — OS 알림 스킵
     try { if (document.hasFocus && document.hasFocus()) return; } catch(e){}
-    var title = msg.sender_name || '새 메시지';
-    var body  = (msg.body || '').replace(/\n/g, ' ').slice(0, 120);
-    if (!body && msg.attachments && msg.attachments.length) body = '📎 파일 ' + msg.attachments.length + '개';
-    if (!body) body = '(내용 없음)';
+    // 제목: 📩 아이콘 + 발신자 이름 — 업무일지 메시지임을 한눈에 인지
+    var sender = msg.sender_name || '새 메시지';
+    var title  = '📩 ' + sender;
+    // 본문: 파일만 있으면 파일 개수, 텍스트 있으면 본문 앞에 [업무일지] 태그
+    var body = '';
+    if (msg.body) {
+      body = msg.body.replace(/\n/g, ' ').slice(0, 120);
+    } else if (msg.attachments && msg.attachments.length) {
+      body = '📎 파일 ' + msg.attachments.length + '개를 보냈습니다';
+    } else {
+      body = '(내용 없음)';
+    }
     var icon = '';
     try { icon = (_userIdImgMap && _userIdImgMap[msg.sender_id]) || ''; } catch(e){}
     try {
