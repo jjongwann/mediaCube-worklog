@@ -5992,7 +5992,7 @@
             var bg = extColors[ext] || '#64748b';
             var sizeStr = a.size > 1024*1024 ? (a.size/1024/1024).toFixed(1)+'MB' : Math.round((a.size||0)/1024)+'KB';
             var isImg = /\.(png|jpe?g|gif|webp)$/i.test(a.name);
-            return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.85);border-radius:8px;border:1px solid rgba(0,0,0,0.06);cursor:pointer" onclick="chatDownload(\'' + escHtml(a.url) + '\',\'' + escHtml(a.name) + '\')">'
+            return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.85);border-radius:8px;border:1px solid rgba(0,0,0,0.06);cursor:pointer" data-att-url="' + escHtml(a.url) + '" data-att-name="' + escHtml(a.name) + '" onclick="chatDownloadFromEl(this)">'
               + (isImg
                 ? '<img src="' + escHtml(a.url) + '" style="width:32px;height:32px;object-fit:cover;border-radius:5px;flex-shrink:0">'
                 : '<div style="width:32px;height:32px;border-radius:6px;background:' + bg + ';color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + ext + '</div>')
@@ -6105,6 +6105,15 @@
         setTimeout(function() { URL.revokeObjectURL(u); }, 1000);
       }).catch(function(e) { alert('다운로드 오류: ' + e.message); });
   }
+  // data-* 속성에서 url/name 을 안전하게 읽어 다운로드
+  // (파일명에 작은따옴표(') 등 특수문자가 있어도 onclick 문자열 파싱 실패 없이 동작)
+  function chatDownloadFromEl(el) {
+    if (!el) return;
+    var url  = el.getAttribute('data-att-url');
+    var name = el.getAttribute('data-att-name');
+    if (url) chatDownload(url, name || 'download');
+  }
+  window.chatDownloadFromEl = chatDownloadFromEl;
 
   // (기존 openMsgDetail은 위에서 재정의됨)
   function _old_openMsgDetail(idx) {
