@@ -12552,6 +12552,11 @@
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
+          <button onclick="__quote.uploadExcel()" title="원본 견적서 엑셀 파일을 업로드하여 자동 등록" style="padding:8px 14px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);border-radius:8px;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Excel 업로드
+          </button>
+          <input type="file" id="quote-excel-input" accept=".xlsx,.xls,.xlsm" style="display:none" onchange="__quote._onExcelSelected(event)">
           <button onclick="__quote.openAdd()" style="padding:8px 16px;background:#fff;border:none;border-radius:8px;color:#4338ca;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px" title="새 견적 추가">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             견적 추가
@@ -13138,6 +13143,148 @@ window.__quote = (function() {
     });
   }
 
+  // ── 엑셀 업로드 (원본 견적서 → 견적 자동 등록) ──
+  // SheetJS(xlsx) 를 첫 클릭 시에만 CDN 에서 동적 로드 (다른 사용자 무영향)
+  function _loadSheetJs() {
+    return new Promise(function(resolve, reject) {
+      if (typeof window.XLSX !== 'undefined') return resolve();
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload = function() { resolve(); };
+      s.onerror = function() { reject(new Error('SheetJS 라이브러리 로드 실패')); };
+      document.head.appendChild(s);
+    });
+  }
+
+  // 엑셀 시트에서 라벨 옆(오른쪽 셀 또는 아래 셀)의 값 찾기
+  function _findLabelValue(rows, labelPatterns) {
+    var norm = function(s) { return String(s || '').replace(/\s+/g, ''); };
+    for (var r = 0; r < rows.length; r++) {
+      if (!rows[r]) continue;
+      for (var c = 0; c < rows[r].length; c++) {
+        var cell = norm(rows[r][c]);
+        if (!cell) continue;
+        var matched = labelPatterns.some(function(p){ return cell.indexOf(p) !== -1 && cell.length <= p.length + 4; });
+        if (!matched) continue;
+        // 우측 셀 스캔
+        for (var cc = c + 1; cc < (rows[r].length || 0) + 20; cc++) {
+          var next = rows[r][cc];
+          if (next !== '' && next !== null && next !== undefined) return next;
+        }
+      }
+    }
+    return '';
+  }
+  // 시트 내 특정 라벨(총합계 등)의 같은 행/근방 라인에서 숫자 값 찾기
+  function _findTotalValue(rows) {
+    var patterns = ['총합계', '총 합계', '합계'];
+    var latest = ''; // 문서 뒤쪽에 있는 '총합계' 를 우선 채택 (헤더보다)
+    for (var r = 0; r < rows.length; r++) {
+      if (!rows[r]) continue;
+      for (var c = 0; c < rows[r].length; c++) {
+        var cell = String(rows[r][c] || '').replace(/\s+/g, '');
+        if (!cell) continue;
+        if (patterns.indexOf(cell) === -1) continue;
+        // 같은 행 오른쪽 셀들에서 숫자 찾기
+        for (var cc = c + 1; cc < rows[r].length; cc++) {
+          var v = rows[r][cc];
+          if (typeof v === 'number' && v > 0) { latest = v; break; }
+          if (typeof v === 'string') {
+            var n = parseInt(v.replace(/[^0-9]/g, ''), 10);
+            if (!isNaN(n) && n > 0) { latest = n; break; }
+          }
+        }
+      }
+    }
+    return latest;
+  }
+
+  // 제출 번호 문자열에서 한글 부분(가장 긴 연속 한글) 추출
+  function _extractKoreanVendor(submitNum) {
+    if (!submitNum) return '';
+    var s = String(submitNum);
+    var matches = s.match(/[가-힣][가-힣0-9()\s·・\-]*/g);
+    if (!matches || !matches.length) return '';
+    matches.sort(function(a, b){ return b.length - a.length; });
+    return matches[0].trim();
+  }
+
+  // '2026. 06. 10' / '2026.06.10' / '2026-06-10' / Date 객체 → 'YYYY-MM-DD'
+  function _parseDateCell(cell) {
+    if (!cell && cell !== 0) return '';
+    if (cell instanceof Date) {
+      var y = cell.getFullYear();
+      if (isNaN(y)) return '';
+      return y + '-' + String(cell.getMonth()+1).padStart(2,'0') + '-' + String(cell.getDate()).padStart(2,'0');
+    }
+    var str = String(cell).trim();
+    // 엑셀 시리얼 숫자 (윤년 이슈 처리 위해 SheetJS 의 SSF 사용 가능하나, cellDates 옵션으로 이미 Date 로 변환됨)
+    var m = str.match(/(\d{4})[.\-\/\s]+(\d{1,2})[.\-\/\s]+(\d{1,2})/);
+    if (m) return m[1] + '-' + m[2].padStart(2,'0') + '-' + m[3].padStart(2,'0');
+    return '';
+  }
+
+  function _parseQuoteExcel(file) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          var wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+          if (!wb.SheetNames.length) return reject(new Error('시트가 없습니다'));
+          var sheet = wb.Sheets[wb.SheetNames[0]];
+          var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', blankrows: false });
+
+          var submitDateCell = _findLabelValue(rows, ['제출날짜', '제출일자', '제출일']);
+          var submitNumCell  = _findLabelValue(rows, ['제출번호']);
+          var projectCell    = _findLabelValue(rows, ['프로젝트']);
+          var totalCell      = _findTotalValue(rows);
+
+          var extracted = {
+            quote_date:   _parseDateCell(submitDateCell),
+            vendor_name:  _extractKoreanVendor(submitNumCell),
+            quote_title:  String(projectCell || '').trim(),
+            quote_amount: (typeof totalCell === 'number') ? totalCell : (parseInt(String(totalCell || '').replace(/[^0-9]/g, ''), 10) || 0)
+          };
+          resolve(extracted);
+        } catch(err) { reject(err); }
+      };
+      reader.onerror = function() { reject(new Error('파일 읽기 실패')); };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function uploadExcel() {
+    var input = document.getElementById('quote-excel-input');
+    if (!input) return;
+    input.value = ''; // 같은 파일 재선택 허용
+    input.click();
+  }
+
+  function _onExcelSelected(e) {
+    var file = e && e.target && e.target.files && e.target.files[0];
+    if (!file) return;
+    _loadSheetJs().then(function() {
+      return _parseQuoteExcel(file);
+    }).then(function(data) {
+      // 기존 견적 추가 모달 열기 + 프리필
+      openAdd();
+      var setVal = function(id, v) { var el = document.getElementById(id); if (el) el.value = v; };
+      if (data.quote_date)  setVal('quote-input-date',  data.quote_date);
+      if (data.vendor_name) setVal('quote-input-vendor', data.vendor_name);
+      if (data.quote_title) setVal('quote-input-title',  data.quote_title);
+      if (data.quote_amount > 0) setVal('quote-input-amount', data.quote_amount.toLocaleString());
+      setVal('quote-input-category', '');    // 견적 분류: 선택 안함
+      setVal('quote-input-status',   'wip'); // 진행 현황: 진행
+      setVal('quote-input-note',     '');    // 비고: 빈 값
+      var titleEl = document.getElementById('quote-add-title');
+      if (titleEl) titleEl.textContent = '📄 엑셀 업로드 — 확인 후 저장';
+      _toast('엑셀에서 견적 정보를 읽어왔습니다. 확인 후 저장해주세요.');
+    }).catch(function(err) {
+      console.error('quote excel parse error', err);
+      _toast('엑셀 업로드 실패: ' + (err && err.message ? err.message : '알 수 없는 오류'));
+    });
+  }
+
   return {
     openPanel: openPanel,
     closePanel: closePanel,
@@ -13150,6 +13297,8 @@ window.__quote = (function() {
     closeAdd: closeAdd,
     saveAdd: saveAdd,
     deleteQuote: deleteQuote,
+    uploadExcel: uploadExcel,
+    _onExcelSelected: _onExcelSelected,
     _state: _state
   };
 })();
