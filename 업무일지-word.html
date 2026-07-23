@@ -2198,10 +2198,10 @@
         (function (tasks) {
           setTimeout(function () {
             try {
-              // 상태가 '완료' 또는 영업 계열(레거시 sales / sales_existing / sales_new) 일 때 총 작업 시간 합계에 반영
+              // 상태가 '완료' / '진행' / 영업 계열(레거시 sales / sales_existing / sales_new) 일 때 총 작업 시간 합계에 반영
               var _isCountableTask = function (t) {
                 var s = t.status || (t.done ? 'done' : 'todo');
-                return s === 'done' || s === 'sales' || s === 'sales_existing' || s === 'sales_new';
+                return s === 'done' || s === 'wip' || s === 'sales' || s === 'sales_existing' || s === 'sales_new';
               };
               var roIntervals = [];
               tasks.forEach(function (t) {
@@ -2332,11 +2332,12 @@
         var startVal = startBtn.dataset ? startBtn.dataset.val : '';
         var endVal = endBtn.dataset ? endBtn.dataset.val : '';
         var mins = calcTaskHrs(startVal, endVal);
-        // 상태가 '완료'(status-done) 또는 영업 계열(레거시 status-sales / 신규 status-sales-existing / status-sales-new) 일 때
+        // 상태가 '완료'(status-done) / '진행'(status-wip) / 영업 계열(레거시 status-sales / 신규 status-sales-existing / status-sales-new) 일 때
         // 총 작업 시간 합계에 반영. per-row 시간 배지(durEl)는 상태와 무관하게 시간 범위 표시 유지.
         var statusEl = tr.querySelector('.task-status');
         var isCountable = !!(statusEl && (
           statusEl.classList.contains('status-done') ||
+          statusEl.classList.contains('status-wip') ||
           statusEl.classList.contains('status-sales') ||
           statusEl.classList.contains('status-sales-existing') ||
           statusEl.classList.contains('status-sales-new')

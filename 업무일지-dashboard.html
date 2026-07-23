@@ -4546,7 +4546,7 @@
            String(d.getDate()).padStart(2, '0');
   }
 
-  // '작업 시간 / 소요 시간 / 누적 시간' 합계는 상태가 '완료'(done)인 업무만 집계.
+  // '작업 시간 / 소요 시간 / 누적 시간' 합계는 상태가 '완료'(done) / '진행'(wip) / 영업 계열인 업무를 집계.
   // (개별 업무 시간범위 표시 / 상태별 통계(tts) 모달은 영향받지 않음)
   // 레거시 데이터 호환: status 없으면 done 불리언으로 폴백.
   // 영업 계열 status 헬퍼 (레거시 sales + 신규 sales_existing/sales_new)
@@ -4556,7 +4556,7 @@
   function _doneTasks(taskArr) {
     return (taskArr || []).filter(function(t){
       var s = t.status || (t.done ? 'done' : 'todo');
-      return s === 'done' || _isSalesStatus(s);
+      return s === 'done' || s === 'wip' || _isSalesStatus(s);
     });
   }
 
