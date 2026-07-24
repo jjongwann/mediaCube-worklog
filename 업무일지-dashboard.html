@@ -14798,7 +14798,15 @@ window.__vendor = (function() {
     var hasSongCol = !!renderSubMeta;
     var songByVendor = {}; // { vendor_name: { months: {month_key: amt} } }
     if (renderSubMeta) {
-      _state.rows.filter(function(r){ return r.category === renderSubMeta.target; }).forEach(function(r){
+      // 부속 매출(song/fee)을 vendor 별로 집계 — 부모 카테고리별 독립 관리를 위해
+      // parent_cat 마킹된 row 는 현재 카드(cat) 와 일치할 때만 포함,
+      // legacy(parent_cat 없음)는 하위 호환을 위해 계속 포함.
+      _state.rows.filter(function(r){
+        if (r.category !== renderSubMeta.target) return false;
+        var rParent = r.extra && r.extra.parent_cat;
+        if (rParent && rParent !== cat) return false;
+        return true;
+      }).forEach(function(r){
         if (!songByVendor[r.vendor_name]) songByVendor[r.vendor_name] = { months: {} };
         songByVendor[r.vendor_name].months[r.month_key] = (songByVendor[r.vendor_name].months[r.month_key] || 0) + (r.amount || 0);
       });
