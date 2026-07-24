@@ -14432,12 +14432,20 @@ window.__vendor = (function() {
   }
 
   // 부속 카테고리(target) row upsert — saveAdd 의 메인 카테고리 저장 후 호출
-  function _upsertSubRow(targetCat, vendorName, monthKey, subAmount, activeFlag, createdAtIso, source, onDone) {
+  // 부속 매출(선곡료/협회수수료) 저장 헬퍼
+  // parentCat: 이 부속 매출을 저장한 부모 카테고리 (needle/blanket_paid/cmo 등)
+  //  → extra.parent_cat 에 마킹하여 편집 시 부모별로 독립 관리
+  //  → legacy(parent_cat 없음) row 는 하위 호환을 위해 계속 매칭 허용
+  function _upsertSubRow(targetCat, vendorName, monthKey, subAmount, activeFlag, createdAtIso, source, parentCat, onDone) {
     if (!subAmount || subAmount <= 0 || !targetCat) { if (onDone) onDone(); return; }
     var sb = _getSb();
-    var existing = _state.rows.find(function(r){
+    // 기존 row 검색: 우선순위 = 정확한 parent_cat 일치 > legacy(parent_cat 없음)
+    var candidates = _state.rows.filter(function(r){
       return r.category === targetCat && r.vendor_name === vendorName && r.month_key === monthKey;
     });
+    var existing = candidates.find(function(r){ return (r.extra && r.extra.parent_cat) === parentCat; })
+                 || candidates.find(function(r){ return !r.extra || !r.extra.parent_cat; })
+                 || null;
     function _finish(ok){
       if (ok) _afterVendorChange();
       if (onDone) onDone();
@@ -14447,6 +14455,7 @@ window.__vendor = (function() {
       var patchExtra = Object.assign({}, existing.extra || {}, { active: activeFlag });
       if (source) patchExtra.source = source;
       if (!patchExtra.created_at) patchExtra.created_at = createdAtIso;
+      if (parentCat) patchExtra.parent_cat = parentCat; // legacy 도 이 시점부터 부모 마킹
       fetch(sb.url + '/rest/v1/vendor_sales?id=eq.' + encodeURIComponent(existing.id), {
         method: 'PATCH',
         headers: Object.assign({}, sb.hdr, { 'Prefer': 'return=minimal' }),
@@ -14458,6 +14467,7 @@ window.__vendor = (function() {
     } else {
       var subInitExtra = { active: activeFlag, created_at: createdAtIso };
       if (source) subInitExtra.source = source;
+      if (parentCat) subInitExtra.parent_cat = parentCat;
       var subRow = {
         id: _genId(),
         category: targetCat,
@@ -14612,7 +14622,7 @@ window.__vendor = (function() {
           _toast('기존 거래처에 합산 저장되었습니다 (' + _fmtW(newAmount) + ')');
           // 부속 매출 동시 저장 (입력값 있을 때만, NEEDLE/유료 BLANKET → 선곡료 / CMO → 협회 수수료)
           if (subMeta) {
-            _upsertSubRow(subMeta.target, name, monthKey, subAmount, activeFlag, createdAtIso, source, function(){
+            _upsertSubRow(subMeta.target, name, monthKey, subAmount, activeFlag, createdAtIso, source, cat, function(){
               if (subAmount > 0) _toast(subMeta.targetLabel + ' ' + _fmtW(subAmount) + ' 도 함께 저장되었습니다');
             });
           }
@@ -14646,7 +14656,7 @@ window.__vendor = (function() {
           _toast('신규 거래처 매출이 저장되었습니다');
           // 부속 매출 동시 저장 (입력값 있을 때만, NEEDLE/유료 BLANKET → 선곡료 / CMO → 협회 수수료)
           if (subMeta) {
-            _upsertSubRow(subMeta.target, name, monthKey, subAmount, activeFlag, createdAtIso, source, function(){
+            _upsertSubRow(subMeta.target, name, monthKey, subAmount, activeFlag, createdAtIso, source, cat, function(){
               if (subAmount > 0) _toast(subMeta.targetLabel + ' ' + _fmtW(subAmount) + ' 도 함께 저장되었습니다');
             });
           }
@@ -15959,11 +15969,18 @@ window.__vendor = (function() {
     _editCtx.monthRows = monthRows;
 
     // 부속 카테고리 행 로드 (needle/blanket_paid → song / cmo → fee)
+    // parent_cat 마킹된 row 는 현재 편집중인 부모 카테고리와 일치할 때만 표시.
+    // legacy(parent_cat 없음) 는 하위 호환을 위해 계속 표시 → 저장 시점에 자동 마킹됨.
     var songMonthRows = {};
     var editSubMeta = _subMetaFor(cat);
     if (editSubMeta) {
       _state.rows.filter(function(r){
-        return r.category === editSubMeta.target && r.vendor_name === name && (r.month_key||'').split('-')[0] == String(year);
+        if (r.category !== editSubMeta.target) return false;
+        if (r.vendor_name !== name) return false;
+        if ((r.month_key||'').split('-')[0] != String(year)) return false;
+        var rParent = r.extra && r.extra.parent_cat;
+        if (rParent && rParent !== cat) return false; // 다른 부모 카테고리 소속이면 스킵
+        return true;
       }).forEach(function(r){
         var m = parseInt((r.month_key||'').split('-')[1]);
         if (!songMonthRows[m]) songMonthRows[m] = { id: r.id, amount: r.amount || 0, dupIds: [] };
@@ -16436,16 +16453,24 @@ window.__vendor = (function() {
 
         if (sExisting) {
           if (sAmt > 0) {
-            if (sAmt !== sExisting.amount || newName !== ctx.vendorName) {
+            var _origSubRow = _state.rows.find(function(rr){ return rr.id === sExisting.id; });
+            var _origSubExtra = (_origSubRow && _origSubRow.extra) || {};
+            var _isLegacy = !_origSubExtra.parent_cat;
+            if (sAmt !== sExisting.amount || newName !== ctx.vendorName || _isLegacy) {
               var sPatchBody = { amount: sAmt, vendor_name: newName, updated_at: new Date().toISOString() };
+              // legacy row 는 이번 편집 시점에 부모 카테고리를 확정
+              if (_isLegacy) {
+                var _nextSubExtra = Object.assign({}, _origSubExtra, { parent_cat: ctx.category });
+                sPatchBody.extra = _nextSubExtra;
+              }
               ops.push({ type: 'patch', id: sExisting.id, body: sPatchBody });
             }
           } else {
             ops.push({ type: 'delete', id: sExisting.id });
           }
         } else if (sAmt > 0) {
-          // 신규 부속 row — extra 는 메인 카테고리의 active/created_at 만 최소 복제
-          var sExtra = { active: newActive !== null ? newActive : true };
+          // 신규 부속 row — extra 는 메인 카테고리의 active/created_at + parent_cat 만 최소 복제
+          var sExtra = { active: newActive !== null ? newActive : true, parent_cat: ctx.category };
           if (effectiveRegIso) sExtra.created_at = effectiveRegIso;
           ops.push({ type: 'post', body: { id: _genId(), category: subTarget, vendor_name: newName, month_key: sMonthKey, amount: sAmt, extra: sExtra, updated_at: new Date().toISOString() } });
         }
@@ -16492,10 +16517,14 @@ window.__vendor = (function() {
       hasAnyRow = true;
     });
 
-    // 거래처명 변경 시 부속 카테고리의 모든 행도 vendor_name 동기화
+    // 거래처명 변경 시 부속 카테고리의 다른 년도 행 vendor_name 동기화
+    // parent_cat 마킹된 row 는 현재 편집 부모 카테고리와 일치할 때만 rename (다른 부모 소속 데이터 보호)
     if (subTarget && newName !== ctx.vendorName) {
       _state.rows.filter(function(r){
-        return r.category === subTarget && r.vendor_name === ctx.vendorName;
+        if (r.category !== subTarget || r.vendor_name !== ctx.vendorName) return false;
+        var rParent = r.extra && r.extra.parent_cat;
+        if (rParent && rParent !== ctx.category) return false; // 다른 부모 소속이면 rename 스킵
+        return true;
       }).forEach(function(r){
         // 현재 연도의 부속 rows 는 위에서 patch 됨 — 다른 연도만 처리
         if ((r.month_key||'').split('-')[0] == String(ctx.year)) return;
