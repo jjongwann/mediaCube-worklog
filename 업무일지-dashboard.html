@@ -6483,10 +6483,15 @@
           var stStatusMatch = m.body.match(/【변경 상태】(.+)/);
           var stTitle = stMatch ? stMatch[1].trim() : '업무';
           var stStatus = stStatusMatch ? stStatusMatch[1].trim() : '변경';
-          // 지시자 측: 완료 메시지 수신 시 done 시각 기록 (24h 카운트 즉시 시작)
-          if (stStatus === '완료' && typeof _saveDoneTime === 'function' && typeof _directives !== 'undefined') {
+          // 지시자 측: 완료 메시지 수신 시 캐시에 완료 상태 즉시 반영
+          // (실제 완료 시각/24h 카운트는 DB completed_at 이 서버에 저장되어 있으므로
+          //  다음 _fetchDirectives 호출 시 자동 반영됨)
+          if (stStatus === '완료' && typeof _directives !== 'undefined') {
             var matchDir = _directives.find(function(x){ return x.title === stTitle; });
-            if (matchDir) { matchDir.status = 'done'; _saveDoneTime(matchDir.id); }
+            if (matchDir) {
+              matchDir.status = 'done';
+              if (!matchDir.completed_at) matchDir.completed_at = new Date().toISOString();
+            }
           }
           if (typeof showTaskStatusNotif === 'function') showTaskStatusNotif(stTitle, m.sender_name || '알 수 없음', stStatus);
           return;
@@ -11372,19 +11377,11 @@
   var _directives = [];
   var _directiveView = 'form'; // 'form' | 'given' | 'receiver'
 
-  /* ── 완료 시각 추적 (localStorage) ── */
-  function _getDoneTimes() {
-    try { return JSON.parse(localStorage.getItem('_dirDoneAt_' + _userId) || '{}'); } catch(e) { return {}; }
-  }
-  function _saveDoneTime(id) {
-    var times = _getDoneTimes();
-    if (!times[id]) { times[id] = Date.now(); try { localStorage.setItem('_dirDoneAt_' + _userId, JSON.stringify(times)); } catch(e) {} }
-  }
-  function _purgeDoneTimes() {
-    var times = _getDoneTimes(); var now = Date.now(); var changed = false;
-    Object.keys(times).forEach(function(k){ if (now - times[k] > 25 * 3600 * 1000) { delete times[k]; changed = true; } });
-    if (changed) try { localStorage.setItem('_dirDoneAt_' + _userId, JSON.stringify(times)); } catch(e) {}
-  }
+  /* ── 완료 시각 추적: DB task_directives.completed_at 서버 저장 방식으로 이관됨 ──
+     기존 localStorage 기반 _getDoneTimes/_saveDoneTime/_purgeDoneTimes 는
+     "완료 후 24h 자동 삭제" 가 무한 롤링되어 동작하지 않던 버그의 원인이라
+     완전 폐기함. 완료 시각은 이제 updateDirectiveStatus 에서 서버 PATCH 로 저장되고,
+     24h 초과 항목은 _cleanupExpiredDone 이 실제 DELETE 로 정리함. */
 
   /* ── 읽음 처리 (localStorage로 seen ID 관리) ── */
   function _getSeenIds() {
@@ -11459,10 +11456,34 @@
       .then(function(r) { return r.json(); })
       .then(function(rows) {
         _directives = Array.isArray(rows) ? rows : [];
-        // status=done인 항목의 완료 시각이 없으면 현재 시각으로 등록 (다른 기기에서 완료된 경우)
-        _directives.forEach(function(d){ if (d.status === 'done') _saveDoneTime(d.id); });
-        _purgeDoneTimes();
+        // 24시간 지난 완료 항목은 DB에서 실제 DELETE (UI 문구 '자동으로 사라집니다' 실현)
+        _cleanupExpiredDone();
       });
+  }
+
+  // 완료된 지 24시간 이상 지난 항목을 서버에서 하드 삭제
+  // (지시자/수신자 아무나 이 패널을 열거나 뱃지 갱신 시점에 자동 실행됨)
+  function _cleanupExpiredDone() {
+    if (!Array.isArray(_directives) || !_directives.length) return;
+    var now = Date.now();
+    var limit = 24 * 3600 * 1000;
+    var expiredIds = _directives.filter(function(d){
+      if (d.status !== 'done') return false;
+      if (!d.completed_at) return false; // 완료 시각 미상은 안전상 유지 (사용자 확인 후 마이그레이션)
+      var t = new Date(d.completed_at).getTime();
+      if (isNaN(t)) return false;
+      return (now - t) > limit;
+    }).map(function(d){ return d.id; });
+    if (!expiredIds.length) return;
+    // 클라이언트 캐시에서 즉시 제거
+    _directives = _directives.filter(function(d){ return expiredIds.indexOf(d.id) === -1; });
+    // 서버 DELETE (병렬)
+    expiredIds.forEach(function(id){
+      fetch(SB_URL + '/rest/v1/task_directives?id=eq.' + encodeURIComponent(id), {
+        method: 'DELETE',
+        headers: SB_DEL_HDR
+      }).catch(function(e){ console.warn('[task_directives] expired delete failed', id, e); });
+    });
   }
 
   function _tabBtn(view, label) {
@@ -11547,13 +11568,19 @@
     });
   }
 
+  // 완료 항목 필터링: DB 의 completed_at 기준
+  //  · 24시간 이상 경과 → 리스트에서 숨김 (실제 DELETE 는 _cleanupExpiredDone 에서 실행)
+  //  · completed_at 없는 legacy done → 안전상 유지 (다음 상태 변경 시 자동 세팅됨)
   function _splitByDone(list) {
-    var doneTimes = _getDoneTimes(); var now = Date.now(); var limit = 24 * 3600 * 1000;
+    var now = Date.now();
+    var limit = 24 * 3600 * 1000;
     var active = [], done = [];
     list.forEach(function(d) {
       if (d.status === 'done') {
-        var t = doneTimes[d.id];
-        if (t && now - t > limit) return; // 24시간 초과 → 숨김
+        if (d.completed_at) {
+          var t = new Date(d.completed_at).getTime();
+          if (!isNaN(t) && (now - t) > limit) return; // 24시간 초과 → 숨김
+        }
         done.push(d);
       } else { active.push(d); }
     });
@@ -11717,11 +11744,22 @@
     if (!d) return;
     d.status = newStatus;
 
+    // status 와 함께 completed_at 도 관리:
+    // - done 으로 바뀔 때 → 완료 시각 기록 (기존에 값이 있으면 유지)
+    // - done 에서 다른 상태로 되돌릴 때 → null 로 초기화
+    var patchBody = { status: newStatus };
+    if (newStatus === 'done') {
+      var nowIso = new Date().toISOString();
+      if (!d.completed_at) d.completed_at = nowIso;
+      patchBody.completed_at = d.completed_at;
+    } else {
+      d.completed_at = null;
+      patchBody.completed_at = null;
+    }
     fetch(SB_URL + '/rest/v1/task_directives?id=eq.' + encodeURIComponent(id), {
-      method:'PATCH', headers:SB_DEL_HDR, body:JSON.stringify({ status:newStatus })
+      method:'PATCH', headers:SB_DEL_HDR, body:JSON.stringify(patchBody)
     }).then(function(r){ if (!r.ok) r.text().then(function(t){ console.error('updateDirectiveStatus', r.status, t); }); });
 
-    if (newStatus === 'done') _saveDoneTime(id);
     var statusLabels = { pending:'대기', in_progress:'진행중', done:'완료' };
     var myUser   = (ALL_USERS||[]).find(function(u){ return u.id === _userId; });
     var myName   = myUser ? myUser.fullName : _currentUsername;
