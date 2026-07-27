@@ -6358,6 +6358,34 @@
   window.askNotiPermission = askNotiPermission;
   window.dismissNotiBanner = _dismissNotiBanner;
 
+  // 업무 지시(신규/상태 변경) 도착 시 OS 토스트 알림
+  // - type: 'assign' (신규 지시) | 'status' (상태 변경)
+  // - taskTitle: 업무 제목 · otherName: 지시자 or 담당자 이름 · statusLabel: 변경 상태(옵션)
+  function _showOsTaskNotification(type, taskTitle, otherName, statusLabel) {
+    if (_notiPermission() !== 'granted') return;
+    try { if (document.hasFocus && document.hasFocus()) return; } catch(e){}
+    var title, body;
+    if (type === 'status') {
+      title = '📋 업무 상태 변경' + (statusLabel ? ' · ' + statusLabel : '');
+      body  = '[' + (taskTitle || '업무') + ']' + (otherName ? ' · ' + otherName : '');
+    } else {
+      title = '📋 새 업무 지시';
+      body  = '[' + (taskTitle || '업무') + ']' + (otherName ? ' · ' + otherName + ' 지시' : '');
+    }
+    try {
+      var n = new Notification(title, {
+        body: body,
+        tag: 'mc-task-' + (taskTitle || '') + '-' + (type || ''),
+        renotify: true
+      });
+      n.onclick = function() {
+        try { window.focus(); } catch(e){}
+        try { if (typeof window.openDirectivePanel === 'function') window.openDirectivePanel(); } catch(e){}
+        try { n.close(); } catch(e){}
+      };
+    } catch(e) { console.warn('[task noti] show failed', e); }
+  }
+
   // 새 메시지 도착 시 OS 토스트 알림 표시
   function _showOsNotification(msg) {
     if (_notiPermission() !== 'granted') return;
@@ -6494,12 +6522,14 @@
             }
           }
           if (typeof showTaskStatusNotif === 'function') showTaskStatusNotif(stTitle, m.sender_name || '알 수 없음', stStatus);
+          try { _showOsTaskNotification('status', stTitle, m.sender_name || '알 수 없음', stStatus); } catch(e){}
           return;
         }
         if (m.body && m.body.indexOf('📋 업무 지시') === 0) {
           var dtMatch = m.body.match(/【제목】(.+)/);
           var dtTitle = dtMatch ? dtMatch[1].trim() : '업무';
           if (typeof showTaskNotif === 'function') showTaskNotif(dtTitle, m.sender_name || '알 수 없음', false);
+          try { _showOsTaskNotification('assign', dtTitle, m.sender_name || '알 수 없음'); } catch(e){}
           // 사이드바 뱃지 +1
           if (typeof window._updateDirBadge === 'function') {
             var _db = document.getElementById('directive-badge');

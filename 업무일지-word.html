@@ -4451,6 +4451,33 @@
       };
 
       // ── 알림 표시
+      // 업무 지시(신규/상태 변경) OS 알림 — word 페이지 전용
+      // word 에는 업무 지시 패널이 없어 클릭 시 dashboard 로 이동
+      function _wmdShowOsTaskNotification(type, taskTitle, otherName, statusLabel) {
+        try {
+          if (!('Notification' in window) || Notification.permission !== 'granted') return;
+          if (document.hasFocus && document.hasFocus()) return;
+          var title, body;
+          if (type === 'status') {
+            title = '📋 업무 상태 변경' + (statusLabel ? ' · ' + statusLabel : '');
+            body  = '[' + (taskTitle || '업무') + ']' + (otherName ? ' · ' + otherName : '');
+          } else {
+            title = '📋 새 업무 지시';
+            body  = '[' + (taskTitle || '업무') + ']' + (otherName ? ' · ' + otherName + ' 지시' : '');
+          }
+          var n = new Notification(title, {
+            body: body,
+            tag: 'mc-task-' + (taskTitle || '') + '-' + (type || ''),
+            renotify: true
+          });
+          n.onclick = function() {
+            try { window.focus(); } catch(e){}
+            try { window.location.href = '업무일지-dashboard.html'; } catch(e){}
+            try { n.close(); } catch(e){}
+          };
+        } catch(e) { console.warn('[wmd task noti] show failed', e); }
+      }
+
       // ── Web Notifications API — OS 데스크톱 알림 (word 페이지 전용)
       // dashboard 페이지에서 권한을 이미 허용했다면 같은 origin 이라 자동 granted.
       // word 페이지 띄워두고 다른 창 작업 중일 때도 우측 하단 팝업 표시.
@@ -4662,12 +4689,17 @@
             if (m.body && m.body.indexOf('📋 업무 지시 상태 변경') === 0) {
               var stMatch2 = m.body.match(/【제목】(.+)/);
               var stStatus2Match = m.body.match(/【변경 상태】(.+)/);
-              showTaskBannerW(stMatch2?stMatch2[1].trim():'업무', m.sender_name||'알 수 없음', stStatus2Match?stStatus2Match[1].trim():'변경', 'status');
+              var _tt2 = stMatch2?stMatch2[1].trim():'업무';
+              var _ts2 = stStatus2Match?stStatus2Match[1].trim():'변경';
+              showTaskBannerW(_tt2, m.sender_name||'알 수 없음', _ts2, 'status');
+              try { _wmdShowOsTaskNotification('status', _tt2, m.sender_name||'알 수 없음', _ts2); } catch(e){}
               return;
             }
             if (m.body && m.body.indexOf('📋 업무 지시') === 0) {
               var dtMatch2 = m.body.match(/【제목】(.+)/);
-              showTaskBannerW(dtMatch2?dtMatch2[1].trim():'업무', m.sender_name||'알 수 없음', null, 'assign');
+              var _tt3 = dtMatch2?dtMatch2[1].trim():'업무';
+              showTaskBannerW(_tt3, m.sender_name||'알 수 없음', null, 'assign');
+              try { _wmdShowOsTaskNotification('assign', _tt3, m.sender_name||'알 수 없음'); } catch(e){}
               return;
             }
             // OS 데스크톱 알림 (권한 있고 사이트 비활성 상태일 때) — dashboard 와 동일 동작
