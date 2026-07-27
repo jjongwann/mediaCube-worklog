@@ -4453,22 +4453,33 @@
       // ── 알림 표시
       // 업무 지시(신규/상태 변경) OS 알림 — word 페이지 전용
       // word 에는 업무 지시 패널이 없어 클릭 시 dashboard 로 이동
+      // UI 강조: 이모지 · 여러 줄 본문 · 신규 지시는 requireInteraction 으로 자동 소멸 방지
       function _wmdShowOsTaskNotification(type, taskTitle, otherName, statusLabel) {
         try {
           if (!('Notification' in window) || Notification.permission !== 'granted') return;
           if (document.hasFocus && document.hasFocus()) return;
-          var title, body;
+          var title, body, requireInter = false;
           if (type === 'status') {
-            title = '📋 업무 상태 변경' + (statusLabel ? ' · ' + statusLabel : '');
-            body  = '[' + (taskTitle || '업무') + ']' + (otherName ? ' · ' + otherName : '');
+            var _statusIcon = '📋';
+            if (statusLabel === '완료') _statusIcon = '✅';
+            else if (statusLabel === '진행중') _statusIcon = '⏳';
+            else if (statusLabel === '대기')   _statusIcon = '📌';
+            title = _statusIcon + ' 업무 ' + (statusLabel || '상태 변경');
+            body  = '📝 ' + (taskTitle || '업무')
+                  + (otherName ? '\n👤 ' + otherName : '')
+                  + '\n\n👉 클릭하여 확인';
           } else {
-            title = '📋 새 업무 지시';
-            body  = '[' + (taskTitle || '업무') + ']' + (otherName ? ' · ' + otherName + ' 지시' : '');
+            title = '🔔 새 업무 지시가 도착했습니다';
+            body  = '📝 ' + (taskTitle || '업무')
+                  + (otherName ? '\n👤 지시자: ' + otherName : '')
+                  + '\n\n👉 클릭하여 확인';
+            requireInter = true;
           }
           var n = new Notification(title, {
             body: body,
             tag: 'mc-task-' + (taskTitle || '') + '-' + (type || ''),
-            renotify: true
+            renotify: true,
+            requireInteraction: requireInter
           });
           n.onclick = function() {
             try { window.focus(); } catch(e){}

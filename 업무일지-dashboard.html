@@ -6399,22 +6399,35 @@
   // 업무 지시(신규/상태 변경) 도착 시 OS 토스트 알림
   // - type: 'assign' (신규 지시) | 'status' (상태 변경)
   // - taskTitle: 업무 제목 · otherName: 지시자 or 담당자 이름 · statusLabel: 변경 상태(옵션)
+  // UI 강조: 이모지 · 여러 줄 본문 · 신규 지시는 requireInteraction 으로 자동 소멸 방지
   function _showOsTaskNotification(type, taskTitle, otherName, statusLabel) {
     if (_notiPermission() !== 'granted') return;
     try { if (document.hasFocus && document.hasFocus()) return; } catch(e){}
-    var title, body;
+    var title, body, requireInter = false;
     if (type === 'status') {
-      title = '📋 업무 상태 변경' + (statusLabel ? ' · ' + statusLabel : '');
-      body  = '[' + (taskTitle || '업무') + ']' + (otherName ? ' · ' + otherName : '');
+      // 상태별 이모지
+      var _statusIcon = '📋';
+      if (statusLabel === '완료') _statusIcon = '✅';
+      else if (statusLabel === '진행중') _statusIcon = '⏳';
+      else if (statusLabel === '대기')   _statusIcon = '📌';
+      title = _statusIcon + ' 업무 ' + (statusLabel || '상태 변경');
+      body  = '📝 ' + (taskTitle || '업무')
+            + (otherName ? '\n👤 ' + otherName : '')
+            + '\n\n👉 클릭하여 확인';
     } else {
-      title = '📋 새 업무 지시';
-      body  = '[' + (taskTitle || '업무') + ']' + (otherName ? ' · ' + otherName + ' 지시' : '');
+      // 신규 업무 지시: 가장 눈에 띄어야 함
+      title = '🔔 새 업무 지시가 도착했습니다';
+      body  = '📝 ' + (taskTitle || '업무')
+            + (otherName ? '\n👤 지시자: ' + otherName : '')
+            + '\n\n👉 클릭하여 확인';
+      requireInter = true; // 사용자가 명시적으로 닫거나 클릭할 때까지 유지 (놓침 방지)
     }
     try {
       var n = new Notification(title, {
         body: body,
         tag: 'mc-task-' + (taskTitle || '') + '-' + (type || ''),
-        renotify: true
+        renotify: true,
+        requireInteraction: requireInter
       });
       n.onclick = function() {
         try { window.focus(); } catch(e){}
