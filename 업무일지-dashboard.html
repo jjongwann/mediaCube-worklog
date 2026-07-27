@@ -3314,6 +3314,10 @@
   };
 
   // 직원별 필터 셀렉트: 관리자 또는 전체 일지 열람 화이트리스트 계정에 노출 + ALL_USERS 옵션 채움
+  // 부서 뷰(_viewDeptKey) 가 있으면 그 부서 소속 직원만 옵션에 포함
+  //  · 사운드 뷰 → 사운드 직원만 (시스템 사업부 avsystem/engineer2 는 제외)
+  //  · 시스템 뷰 → 시스템 직원만 (사운드 계열 모두 제외)
+  //  · 화이트리스트(sunlee 등) 는 부서 뷰 없음 → 전체 노출
   window._populateEmployeeFilter = function() {
     var sel = document.getElementById('employee-filter');
     if (!sel) return;
@@ -3323,16 +3327,29 @@
     // ALL_USERS 는 세션 로드 이후 정의되어 있어야 함
     if (typeof ALL_USERS === 'undefined' || !Array.isArray(ALL_USERS)) return;
     var prev = sel.value;
+    var deptView = (typeof _viewDeptKey !== 'undefined') ? _viewDeptKey : null;
+    var validIds = {};
     var opts = '<option value="">직원별 (전체)</option>';
-    // 관리자 계정은 옵션에서 제외 (일지 작성 안 함)
     ALL_USERS.forEach(function(u){
-      if (u.isAdmin) return;
+      if (u.isAdmin) return; // 관리자 계정은 옵션에서 제외 (일지 작성 안 함)
+      // 부서 뷰 필터 (관리자·info 는 _viewDeptKey 를 사용)
+      if (deptView && typeof _userDeptKey === 'function') {
+        var uDept = _userDeptKey(u.id);
+        if (uDept !== deptView) return;
+      }
+      validIds[u.id] = true;
       var name = u.fullName || u.username || u.id;
       opts += '<option value="' + u.id + '">' + name.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</option>';
     });
     sel.innerHTML = opts;
-    // 이전 선택값 복원 (있으면)
-    if (prev) sel.value = prev;
+    // 이전 선택값이 새 옵션 목록에 남아있으면 복원, 없으면 초기화 (부서 뷰 전환 시 자연스러운 UX)
+    if (prev && validIds[prev]) {
+      sel.value = prev;
+    } else if (prev) {
+      sel.value = '';
+      adminEmpFilter = '';
+      if (typeof renderList === 'function') { try { renderList(); } catch(e){} }
+    }
   };
 
   /* ─────────────────────────────────────────────────────────────
