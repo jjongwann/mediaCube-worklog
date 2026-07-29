@@ -16564,6 +16564,19 @@ window.__vendor = (function() {
       var newProj = (document.getElementById('vendor-edit-project-input') || {}).value || '';
       newProj = newProj.trim();
       if (!newProj) { _toast('프로젝트명을 입력해주세요'); return; }
+      // 상태 = '진행'(wip) 인데 계산서 날짜가 하나도 없으면 저장 중단
+      //  - 예정 → 진행 전환 시 사용자가 계산서 날짜 입력을 잊는 실수 방지
+      //  - 계산서 없으면 매출 집계·기간 조회에서 잡히지 않아 목록에서도 사라지는 문제 방지
+      var _newStatusEl = document.getElementById('vendor-edit-sys-status');
+      var _newStatus = _newStatusEl ? (_newStatusEl.value || '') : '';
+      if (_newStatus === 'wip') {
+        var _existSysList = (ctx.sysList || []).filter(function(r){ return !r._deleted && r.invoice_date; });
+        var _newSysRows   = (ctx._sysNewRows || []).filter(function(r){ return r.invoice_date; });
+        if (_existSysList.length === 0 && _newSysRows.length === 0) {
+          _toast('계산서 날짜를 입력해야 수정이 완료됩니다!!');
+          return;
+        }
+      }
     }
     var newMgr = (document.getElementById('vendor-edit-manager').value || '').trim();
     var mgrChanged = (newMgr || '') !== (ctx.prevManager || '');
