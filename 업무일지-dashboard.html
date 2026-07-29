@@ -15350,6 +15350,21 @@ window.__vendor = (function() {
             sysRowsOfV.forEach(function(r){ if (r.extra && r.extra[field]) val = r.extra[field]; });
             return val;
           };
+          // 계산서 날짜 컬럼 전용: 상단 기간 필터 범위 안 계산서만 나열 (프로젝트에 계산서가 여러 건일 수 있음)
+          var pickInRangeInvoices = function(){
+            var inRange = [];
+            sysRowsOfV.forEach(function(r){
+              var _inv = r.extra && r.extra.invoice_date;
+              if (!_inv) return;
+              var _mk = _invoiceDateToMonthKey(_inv);
+              if (_mk && rangeKeySet[_mk]) inRange.push(_inv);
+            });
+            // 중복 제거 + 오름차순
+            var seen = {}, uniq = [];
+            inRange.forEach(function(d){ if (!seen[d]) { seen[d] = true; uniq.push(d); } });
+            uniq.sort();
+            return uniq;
+          };
           // 장비명: equipments 배열의 모든 name 을 콤마로 join (호환: 없으면 equipment_name 단일 폴백)
           var pickEquipList = function(fieldKey){
             var seen = {}; var out = [];
@@ -15368,7 +15383,9 @@ window.__vendor = (function() {
             return out;
           };
           var projectName = pickField('project_name');
-          var invDate     = pickField('invoice_date');
+          // 계산서 날짜: 필터 범위 안 값만 표시 (여러 건이면 콤마 나열, 없으면 전체 폴백)
+          var inRangeInvDates = pickInRangeInvoices();
+          var invDate     = inRangeInvDates.length ? inRangeInvDates.join(', ') : pickField('invoice_date');
           var equipNames  = pickEquipList('name');
           var serials     = pickEquipList('serial');
           var delDate     = pickField('delivery_date');
@@ -15377,7 +15394,7 @@ window.__vendor = (function() {
           var equipText   = equipNames.join(', ');
           var serialText  = serials.join(', ');
           countCellHtml = invDate
-            ? '<div style="text-align:center;font-size:11.5px;color:rgb(15,23,42);font-weight:600;font-variant-numeric:tabular-nums">' + _esc(invDate) + '</div>'
+            ? '<div title="' + _esc(invDate) + '" style="text-align:center;font-size:11.5px;color:rgb(15,23,42);font-weight:600;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(invDate) + '</div>'
             : '<div style="text-align:center;color:#cbd5e1;font-size:11px">-</div>';
           var equipCellHtml = equipText
             ? '<div title="' + _esc(equipText) + '" style="font-size:11.5px;color:rgb(15,23,42);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(equipText) + '</div>'
