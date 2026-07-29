@@ -14887,6 +14887,8 @@ window.__vendor = (function() {
 
     // 거래처 집계 (전체 기간 보존)
     // 사운드: 그룹 키 = vendor_name / 시스템: 그룹 키 = _sysRowGroupKey(r) (프로젝트별 별개 그룹)
+    // 시스템 사업부 필터 기준: 계산서 날짜(extra.invoice_date) 우선, 없으면 month_key fallback
+    //   → 상단 기간 필터가 순수하게 계산서 날짜 기준으로 조회되도록 함
     var byVendor = {};
     rowsCat.forEach(function(r){
       var gkey = isSysCatGroup ? _sysRowGroupKey(r) : r.vendor_name;
@@ -14897,10 +14899,19 @@ window.__vendor = (function() {
           projectName: isSysCatGroup ? ((r.extra && r.extra.project_name) ? String(r.extra.project_name).trim() : '') : ''
         };
       }
-      byVendor[gkey].months[r.month_key] = (byVendor[gkey].months[r.month_key] || 0) + (r.amount || 0);
+      // 시스템 카테고리: 계산서 날짜가 있으면 그 값의 YYYY-M 을 우선 사용
+      var mkey = r.month_key;
+      if (isSysCatGroup) {
+        var _inv = r.extra && r.extra.invoice_date;
+        if (_inv) {
+          var _invMk = _invoiceDateToMonthKey(_inv);
+          if (_invMk) mkey = _invMk;
+        }
+      }
+      byVendor[gkey].months[mkey] = (byVendor[gkey].months[mkey] || 0) + (r.amount || 0);
       var _rc = (r.extra && r.extra.count) || 0;
-      byVendor[gkey].monthsCount[r.month_key] = (byVendor[gkey].monthsCount[r.month_key] || 0) + _rc;
-      byVendor[gkey].ids[r.month_key] = r.id;
+      byVendor[gkey].monthsCount[mkey] = (byVendor[gkey].monthsCount[mkey] || 0) + _rc;
+      byVendor[gkey].ids[mkey] = r.id;
     });
 
     // 선곡료/협회 수수료 카드 진입 여부 (부속 카테고리 자체를 보는 화면)
