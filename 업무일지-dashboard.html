@@ -15265,6 +15265,16 @@ window.__vendor = (function() {
         if (!bVal) return -1;
         return aVal.localeCompare(bVal) * _dir;
       }
+      // 시스템 사업부 기본 정렬: 계산서 날짜 최신순 (없는 그룹은 뒤로)
+      if (isSysCatGroup) {
+        var _aInv = _pickFieldFromRows(_groupRowsOf(cat, a.gkey, true), 'invoice_date') || '';
+        var _bInv = _pickFieldFromRows(_groupRowsOf(cat, b.gkey, true), 'invoice_date') || '';
+        if (!_aInv && !_bInv) return 0;
+        if (!_aInv) return 1;
+        if (!_bInv) return -1;
+        return _bInv.localeCompare(_aInv); // 최신순(내림차순)
+      }
+      // 사운드 사업부 등 기본: 매출 큰 순
       return b.cur - a.cur;
     });
 
