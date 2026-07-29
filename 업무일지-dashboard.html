@@ -15250,7 +15250,22 @@ window.__vendor = (function() {
       if (songFilter === 'none') return v.songCur <= 0;
       return true;
     })
-    .sort(function(a,b){ return b.cur - a.cur; });
+    .sort(function(a,b){
+      // 시스템 사업부: 계산서/납품 날짜 헤더 클릭 정렬 우선
+      if (isSysCatGroup && _state.sysSort && _state.sysSort.field) {
+        var _sf = _state.sysSort.field; // 'invoice' | 'delivery'
+        var _dir = _state.sysSort.dir === 'desc' ? -1 : 1;
+        var _fieldName = _sf === 'invoice' ? 'invoice_date' : 'delivery_date';
+        var aVal = _pickFieldFromRows(_groupRowsOf(cat, a.gkey, true), _fieldName) || '';
+        var bVal = _pickFieldFromRows(_groupRowsOf(cat, b.gkey, true), _fieldName) || '';
+        // 값 없는 그룹은 항상 뒤로
+        if (!aVal && !bVal) return 0;
+        if (!aVal) return 1;
+        if (!bVal) return -1;
+        return aVal.localeCompare(bVal) * _dir;
+      }
+      return b.cur - a.cur;
+    });
 
     // ── KPI ──
     var totalCur = 0, totalAll = 0;
@@ -15324,15 +15339,24 @@ window.__vendor = (function() {
           : (hasSongCol
               ? '32px 1.3fr 1fr 70px 1fr 0.9fr 1.1fr 90px 28px'
               : '32px 1.3fr 1fr 70px 1fr 1.1fr 90px 28px'));
-    // 4번째 컬럼: 일반 카드는 '건 수', 부속 카드(선곡료/협회 수수료)는 '매출 유형', 시스템 카드는 '계산서 날짜'
+    // 시스템 사업부 계산서/납품 날짜 정렬 아이콘 헬퍼
+    var _sysSortIcon = function(field){
+      var s = _state.sysSort;
+      if (!s || s.field !== field) return '<span style="color:#cbd5e1;font-size:9px;margin-left:3px">⇅</span>';
+      return '<span style="color:#2563eb;font-size:9px;margin-left:3px">' + (s.dir === 'desc' ? '▼' : '▲') + '</span>';
+    };
+    // 4번째 컬럼: 일반 카드는 '건 수', 부속 카드(선곡료/협회 수수료)는 '매출 유형', 시스템 카드는 '계산서 날짜' (클릭 정렬)
     var fourthHdr;
-    if (isSysCardRow)      fourthHdr = '<div style="text-align:center">계산서 날짜</div>';
+    if (isSysCardRow)      fourthHdr = '<div onclick="__vendor.toggleSysSort(\'invoice\')" title="계산서 날짜 정렬" style="text-align:center;cursor:pointer;user-select:none">계산서 날짜' + _sysSortIcon('invoice') + '</div>';
     else if (isSubCard)    fourthHdr = '<div style="text-align:center">매출 유형</div>';
     else                   fourthHdr = '<div style="text-align:right">건 수</div>';
+    var _delDateHdr = isSysCardRow
+      ? '<div onclick="__vendor.toggleSysSort(\'delivery\')" title="납품 날짜 정렬" style="text-align:center;cursor:pointer;user-select:none">납품 날짜' + _sysSortIcon('delivery') + '</div>'
+      : '<div style="text-align:center">납품 날짜</div>';
     var headerCells = isFreeBlanket
       ? '<div>#</div><div>거래처명</div><div>매출 발생처</div><div style="text-align:center">상태</div><div></div>'
       : (isSysCardRow
-          ? '<div>#</div><div style="text-align:center">상태</div><div>프로젝트명</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div>장비명</div><div>시리얼 넘버</div><div style="text-align:center">납품 날짜</div><div>발주처</div><div>납품처</div><div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div></div>'
+          ? '<div>#</div><div style="text-align:center">상태</div><div>프로젝트명</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div>장비명</div><div>시리얼 넘버</div>' + _delDateHdr + '<div>발주처</div><div>납품처</div><div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div></div>'
           : (hasSongCol
               ? '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="text-align:right">기간 합계</div><div style="text-align:right;color:' + renderSubMeta.color + '">' + renderSubMeta.targetLabel + '</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'
               : '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'));
@@ -15997,6 +16021,21 @@ window.__vendor = (function() {
     if (mode !== 'chart' && mode !== 'table') return;
     _state.displayMode = mode;
     _syncDisplayModeBtns(mode);
+    render();
+  }
+
+  // 시스템 사업부 목록의 계산서/납품 날짜 헤더 클릭 3-state 정렬 토글
+  //  · 기본(매출 내림차순) → asc(오래된순) → desc(최신순) → 기본 순환
+  function toggleSysSort(field) {
+    if (field !== 'invoice' && field !== 'delivery') return;
+    var s = _state.sysSort || { field: null, dir: null };
+    if (s.field !== field) {
+      _state.sysSort = { field: field, dir: 'asc' };
+    } else if (s.dir === 'asc') {
+      _state.sysSort = { field: field, dir: 'desc' };
+    } else {
+      _state.sysSort = { field: null, dir: null };
+    }
     render();
   }
 
@@ -16901,6 +16940,7 @@ window.__vendor = (function() {
     toggleAllVendors: toggleAllVendors,
     setViewMode: setViewMode,
     setDisplayMode: setDisplayMode,
+    toggleSysSort: toggleSysSort,
     toggleEditActive: toggleEditActive,
     toggleAddActive: toggleAddActive,
     _onEditYearChange: _onEditYearChange,
