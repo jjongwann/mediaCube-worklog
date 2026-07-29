@@ -15161,10 +15161,23 @@ window.__vendor = (function() {
       }
     });
     // 활성/비활성 판정:
-    //   1) extra.active 명시 시 → 그 값 우선
-    //   2) 무료 BLANKET → 기본 활성 (매출 개념 없음)
-    //   3) 그 외 → 기간 합계 > 0
+    //   [사운드 / 무료 BLANKET]
+    //     1) extra.active 명시 시 → 그 값 우선
+    //     2) 무료 BLANKET → 기본 활성 (매출 개념 없음)
+    //     3) 그 외 → 기간 합계 > 0
+    //   [시스템 사업부]  ← extra.active 무시. 사용자 요구: 기간 안 계산서 있는 프로젝트만.
+    //     · 상태 필터 'todo' (예정): 계산서 없는 그룹(hasInvoice=false)만 활성
+    //     · 그 외 (전체 or 'wip'): 기간 안 매출 합계 > 0 인 그룹만 활성
     var activeNames = allVendorsAfterFilter.filter(function(n){
+      if (isSysCatGroup) {
+        // 예정 필터: 계산서 없는 그룹만 활성으로 (기간 무관)
+        if (sysStatusFilter === 'todo') return !byVendor[n].hasInvoice;
+        // 그 외: 기간 안 매출 실제 존재 여부로만 판정 (extra.active 무시)
+        var months = byVendor[n].months;
+        var sum = 0;
+        rangeKeys.forEach(function(k){ sum += (months[k] || 0); });
+        return sum > 0;
+      }
       if (vendorActiveFlag[n] === true) return true;
       if (vendorActiveFlag[n] === false) return false;
       if (cat === 'blanket_free') return true;
