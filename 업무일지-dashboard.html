@@ -774,7 +774,8 @@
     font-size: 13px;
     font-weight: 500;
     box-shadow: 0 8px 24px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15);
-    z-index: 200;
+    /* 편집 모달(99998) · 매출 입력 모달(99997/99998) 보다 위에 표시되도록 매우 높게 */
+    z-index: 2147483000;
     opacity: 0;
     transform: translateY(8px);
     transition: all 0.22s cubic-bezier(.22,.61,.36,1);
