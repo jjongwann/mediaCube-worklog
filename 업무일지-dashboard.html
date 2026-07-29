@@ -12469,6 +12469,15 @@
         <label style="font-size:11px;font-weight:700;color:#2563eb;display:block;margin-bottom:5px">프로젝트명</label>
         <input type="text" id="vendor-add-sys-project" placeholder="예: AV 시스템 구축 - 2026 신청사" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
       </div>
+      <!-- 시스템 사업부 전용 상태 셀렉트 (진행/예정) -->
+      <div id="vendor-add-sys-status-wrap" style="display:none;margin-top:10px">
+        <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">상태</label>
+        <select id="vendor-add-sys-status" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;background:#fff">
+          <option value="wip">진행</option>
+          <option value="todo">예정</option>
+        </select>
+        <div style="font-size:10px;color:#94a3b8;margin-top:4px">'예정' 은 계산서 미확정 프로젝트를 미리 등록할 때 사용합니다. 매출 합계에는 잡히지 않습니다.</div>
+      </div>
       <!-- 시스템 사업부 전용 입력 필드 (sys_* 카테고리 진입 시에만 노출) -->
       <div id="vendor-add-sys-wrap" style="display:none">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -12605,6 +12614,14 @@
       <div id="vendor-edit-sys-block" style="display:none;flex-direction:column;gap:8px;padding-top:8px;border-top:1px dashed #cbd5e1">
         <!-- 프로젝트명 input 은 모달 상단(거래처명 위) vendor-edit-project-input 으로 이동됨. 호환용 hidden 만 유지 -->
         <input type="hidden" id="vendor-edit-sys-project" value="">
+        <!-- 상태 셀렉트 (진행/예정) — 매출 집계는 계산서 날짜 유무로 결정되지만, 배지/필터는 이 값 우선 -->
+        <div style="display:flex;align-items:center;gap:8px">
+          <label style="font-size:10.5px;font-weight:600;color:#64748b;width:80px;flex-shrink:0">상태</label>
+          <select id="vendor-edit-sys-status" style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;color:rgb(15,23,42);outline:none;background:#fff" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+            <option value="wip">진행</option>
+            <option value="todo">예정</option>
+          </select>
+        </div>
         <!-- 납품 날짜 / 발주처 (한 줄 2칸) -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -14331,6 +14348,8 @@ window.__vendor = (function() {
     var ymWrap = document.getElementById('vendor-add-yearmonth-wrap');
     if (sysWrap)        sysWrap.style.display        = isSysCat ? '' : 'none';
     if (sysProjectWrap) sysProjectWrap.style.display = isSysCat ? '' : 'none';
+    var sysStatusWrap = document.getElementById('vendor-add-sys-status-wrap');
+    if (sysStatusWrap) sysStatusWrap.style.display = isSysCat ? '' : 'none';
     if (regWrap)   regWrap.style.display   = isSysCat ? 'none' : '';
     if (countCell) countCell.style.display = isSysCat ? 'none' : '';
     if (amtGrid)   amtGrid.style.gridTemplateColumns = isSysCat ? '1fr' : '2fr 1fr';
@@ -14700,6 +14719,8 @@ window.__vendor = (function() {
       var of = _readVal('vendor-add-sys-order-from');    if (of) sysExtra.order_from = of;
       var dt = _readVal('vendor-add-sys-delivery-to');   if (dt) sysExtra.delivery_to = dt;
       var nt = _readVal('vendor-add-sys-note');          if (nt) sysExtra.note = nt;
+      // 상태 (wip=진행 / todo=예정) — 매출 집계는 계산서 날짜 유무 판정과 독립
+      var st = _readVal('vendor-add-sys-status');        if (st === 'wip' || st === 'todo') sysExtra.status = st;
       // 장비 배열 (장비명/시리얼 동적 행)
       var equips = _readSysEquipments();
       if (equips.length) {
@@ -15099,9 +15120,12 @@ window.__vendor = (function() {
         if (sourceCats.indexOf(typeCatFilter) < 0) return false;
       }
       // 시스템 사업부 상태 필터 (wip=진행 · todo=예정)
-      //  - 상태 판정: 그룹 안에 계산서 날짜 있는 row 존재하면 진행, 없으면 예정
+      //  - 상태 판정 우선순위: extra.status(명시 값) > 계산서 날짜 유무(자동)
       if (isSysCatSearch && sysStatusFilter) {
-        var _isWip = !!byVendor[n].hasInvoice;
+        var _explicitSt = _pickFieldFromRows(grpRows, 'status');
+        var _isWip = (_explicitSt === 'wip' || _explicitSt === 'todo')
+          ? (_explicitSt === 'wip')
+          : !!byVendor[n].hasInvoice;
         if (sysStatusFilter === 'wip' && !_isWip) return false;
         if (sysStatusFilter === 'todo' && _isWip) return false;
       }
@@ -15473,8 +15497,11 @@ window.__vendor = (function() {
           : '';
         if (isSysCardRow) {
           // 시스템: #/상태/프로젝트명/거래처명/매출 발생처/계산서 날짜/장비명/시리얼/납품 날짜/발주처/납품처/기간 합계/직전 기간/수정 (14컬럼)
-          // 상태 배지: 그룹 안에 계산서 날짜 있는 row 존재 여부로 자동 판정 (진행/예정)
-          var _isWipRow = !!byVendor[v.gkey].hasInvoice;
+          // 상태 배지: extra.status 명시값 우선, 없으면 계산서 날짜 유무로 자동 판정
+          var _explicitStRow = _pickFieldFromRows(_groupRowsOf(cat, v.gkey, true), 'status');
+          var _isWipRow = (_explicitStRow === 'wip' || _explicitStRow === 'todo')
+            ? (_explicitStRow === 'wip')
+            : !!byVendor[v.gkey].hasInvoice;
           var statusBadgeHtml = _isWipRow
             ? '<div style="text-align:center"><span style="font-size:10px;font-weight:700;color:#2563eb;background:#dbeafe;border:1px solid #bfdbfe;border-radius:10px;padding:2px 8px;white-space:nowrap">진행</span></div>'
             : '<div style="text-align:center"><span style="font-size:10px;font-weight:700;color:#64748b;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;padding:2px 8px;white-space:nowrap">예정</span></div>';
@@ -16379,6 +16406,10 @@ window.__vendor = (function() {
       setEditVal('vendor-edit-sys-order-from',    pickSysVal('order_from'));
       setEditVal('vendor-edit-sys-delivery-to',   pickSysVal('delivery_to'));
       setEditVal('vendor-edit-sys-note',          pickSysVal('note'));
+      // 상태 prefill — extra.status 있으면 그것, 없으면 계산서 날짜 유무로 자동 판정
+      var _stExplicit = pickSysVal('status');
+      var _stAuto = sysRows.some(function(r){ return r.extra && r.extra.invoice_date; }) ? 'wip' : 'todo';
+      setEditVal('vendor-edit-sys-status',        (_stExplicit === 'wip' || _stExplicit === 'todo') ? _stExplicit : _stAuto);
       // 장비 배열 prefill — 모든 row 의 equipments 를 합쳐 unique 표시 (단일 필드 폴백)
       var equipMap = {}; var equipList = [];
       sysRows.forEach(function(r){
@@ -16506,12 +16537,14 @@ window.__vendor = (function() {
     if (isSysEditCat) {
       var _gv = function(id){ var el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
       // 프로젝트명: 모달 최상단 input 우선 (DOM 이동된 input), 없으면 hidden 폴백
+      var _stEditVal = _gv('vendor-edit-sys-status');
       sysFieldDelta = {
         project_name:  (_gv('vendor-edit-project-input') || _gv('vendor-edit-sys-project')),
         delivery_date: _gv('vendor-edit-sys-delivery-date'),
         order_from:    _gv('vendor-edit-sys-order-from'),
         delivery_to:   _gv('vendor-edit-sys-delivery-to'),
-        note:          _gv('vendor-edit-sys-note')
+        note:          _gv('vendor-edit-sys-note'),
+        status:        (_stEditVal === 'wip' || _stEditVal === 'todo') ? _stEditVal : ''
       };
       // 장비 배열 — 거래처의 모든 row 에 동일하게 동기화 (호환 키도 함께)
       var editEquips = _readEditSysEquipments();
