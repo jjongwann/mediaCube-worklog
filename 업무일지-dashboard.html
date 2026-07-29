@@ -12297,7 +12297,12 @@
         <select id="vendor-needle-manager" onchange="__vendor.render()" title="담당자 조회" style="padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none"></select>
         <select id="vendor-needle-typecat-filter" onchange="__vendor.render()" title="매출 유형 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none"></select>
         <select id="vendor-needle-source" onchange="__vendor.render()" title="매출 발생처 조회" style="padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
-        <!-- 시스템 사업부 전용 필터 셀렉트 (장비명 / 시리얼 / 발주처 / 납품처 별 조회) — 다른 카드에서는 자동 숨김 -->
+        <!-- 시스템 사업부 전용 필터 셀렉트 (상태 / 장비명 / 시리얼 / 발주처 / 납품처 별 조회) — 다른 카드에서는 자동 숨김 -->
+        <select id="vendor-needle-sys-status-filter" onchange="__vendor.render()" title="상태 조회 (진행/예정)" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none">
+          <option value="">상태 전체</option>
+          <option value="wip">진행</option>
+          <option value="todo">예정</option>
+        </select>
         <select id="vendor-needle-sys-equip-filter" onchange="__vendor.render()" title="장비명 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
         <select id="vendor-needle-sys-serial-filter" onchange="__vendor.render()" title="시리얼 넘버 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
         <select id="vendor-needle-sys-orderfrom-filter" onchange="__vendor.render()" title="발주처 조회" style="display:none;padding:5px 10px;border-radius:7px;border:none;font-size:12px;background:#fff;color:#0f172a;font-weight:600;outline:none;max-width:160px"></select>
@@ -13674,19 +13679,30 @@ window.__vendor = (function() {
   function aggregateSystemSales(monthKey) {
     var out = { month_key: monthKey, archiving:0, restoration:0, broadcast:0, etc_as:0, acoustic:0, dolby:0 };
     _state.rows.forEach(function(r){
-      if (r.month_key !== monthKey) return;
       var sysKey = VENDOR_TO_SYS_KEY[r.category];
       if (!sysKey) return;
+      // 상태 '예정' (계산서 날짜 없는 시스템 row) 은 매출 집계에서 제외
+      //  - 시스템 매출 위젯 / 월별 누계 통계에서 자동으로 안 잡히도록
+      var _inv = r.extra && r.extra.invoice_date;
+      if (!_inv) return;
+      // 필터 기준: 계산서 날짜 YYYY-M (저장된 month_key 와 다를 수 있음)
+      var _mk = _invoiceDateToMonthKey(_inv);
+      if (!_mk || _mk !== monthKey) return;
       out[sysKey] += (r.amount || 0);
     });
     return out;
   }
 
   // 시스템 매출 위젯이 사용할 모든 month_key 목록
+  // 계산서 날짜 없는 row(예정 상태)는 제외 → 위젯 월 셀렉트에도 나타나지 않음
   function listSystemMonthKeys() {
     var set = {};
     _state.rows.forEach(function(r){
-      if (VENDOR_TO_SYS_KEY[r.category]) set[r.month_key] = true;
+      if (!VENDOR_TO_SYS_KEY[r.category]) return;
+      var _inv = r.extra && r.extra.invoice_date;
+      if (!_inv) return;
+      var _mk = _invoiceDateToMonthKey(_inv);
+      if (_mk) set[_mk] = true;
     });
     return Object.keys(set);
   }
@@ -14887,8 +14903,10 @@ window.__vendor = (function() {
 
     // 거래처 집계 (전체 기간 보존)
     // 사운드: 그룹 키 = vendor_name / 시스템: 그룹 키 = _sysRowGroupKey(r) (프로젝트별 별개 그룹)
-    // 시스템 사업부 필터 기준: 계산서 날짜(extra.invoice_date) 우선, 없으면 month_key fallback
-    //   → 상단 기간 필터가 순수하게 계산서 날짜 기준으로 조회되도록 함
+    // 시스템 사업부:
+    //  - 계산서 날짜(extra.invoice_date) 있는 row 만 매출 집계에 반영 (상태='진행')
+    //  - 계산서 날짜 없는 row 는 그룹만 마킹, 매출 집계엔 미반영 (상태='예정')
+    //    → 상단 매출 KPI / 기간 합계 / 시스템 매출 위젯 등에 자동으로 안 잡힘
     var byVendor = {};
     rowsCat.forEach(function(r){
       var gkey = isSysCatGroup ? _sysRowGroupKey(r) : r.vendor_name;
@@ -14896,17 +14914,19 @@ window.__vendor = (function() {
         byVendor[gkey] = {
           months: {}, monthsCount: {}, ids: {},
           vendorName: r.vendor_name,
-          projectName: isSysCatGroup ? ((r.extra && r.extra.project_name) ? String(r.extra.project_name).trim() : '') : ''
+          projectName: isSysCatGroup ? ((r.extra && r.extra.project_name) ? String(r.extra.project_name).trim() : '') : '',
+          hasInvoice: false // 시스템: 그룹 안에 계산서 날짜 있는 row 존재 여부
         };
       }
-      // 시스템 카테고리: 계산서 날짜가 있으면 그 값의 YYYY-M 을 우선 사용
-      var mkey = r.month_key;
+      // 시스템 카테고리: 계산서 날짜 없는 row 는 매출 집계에서 완전 제외 (예정 상태)
       if (isSysCatGroup) {
         var _inv = r.extra && r.extra.invoice_date;
-        if (_inv) {
-          var _invMk = _invoiceDateToMonthKey(_inv);
-          if (_invMk) mkey = _invMk;
-        }
+        if (!_inv) return; // 예정 row → 그룹 존재만 인정, 매출 미집계
+        byVendor[gkey].hasInvoice = true;
+        var _invMk = _invoiceDateToMonthKey(_inv);
+        var mkey = _invMk || r.month_key;
+      } else {
+        var mkey = r.month_key;
       }
       byVendor[gkey].months[mkey] = (byVendor[gkey].months[mkey] || 0) + (r.amount || 0);
       var _rc = (r.extra && r.extra.count) || 0;
@@ -14975,11 +14995,13 @@ window.__vendor = (function() {
       }
     }
 
-    // 시스템 사업부 전용 셀렉트 (장비명/시리얼/발주처/납품처)
+    // 시스템 사업부 전용 셀렉트 (상태/장비명/시리얼/발주처/납품처)
+    var sysStatusSel = document.getElementById('vendor-needle-sys-status-filter');
     var sysEquipSel  = document.getElementById('vendor-needle-sys-equip-filter');
     var sysSerialSel = document.getElementById('vendor-needle-sys-serial-filter');
     var sysOrderSel  = document.getElementById('vendor-needle-sys-orderfrom-filter');
     var sysDelivSel  = document.getElementById('vendor-needle-sys-deliveryto-filter');
+    var sysStatusFilter = '';
     var sysEquipFilter  = '';
     var sysSerialFilter = '';
     var sysOrderFilter  = '';
@@ -15019,11 +15041,13 @@ window.__vendor = (function() {
       fillSel(sysSerialSel, collectField('serial_no'),   '시리얼 전체');
       fillSel(sysOrderSel,  collectField('order_from'),  '발주처 전체');
       fillSel(sysDelivSel,  collectField('delivery_to'), '납품처 전체');
+      if (sysStatusSel) { sysStatusSel.style.display = ''; sysStatusFilter = sysStatusSel.value || ''; }
       sysEquipFilter  = sysEquipSel  ? sysEquipSel.value  : '';
       sysSerialFilter = sysSerialSel ? sysSerialSel.value : '';
       sysOrderFilter  = sysOrderSel  ? sysOrderSel.value  : '';
       sysDelivFilter  = sysDelivSel  ? sysDelivSel.value  : '';
     } else {
+      if (sysStatusSel) { sysStatusSel.style.display = 'none'; sysStatusSel.value = ''; }
       if (sysEquipSel)  { sysEquipSel.style.display  = 'none'; sysEquipSel.value  = ''; }
       if (sysSerialSel) { sysSerialSel.style.display = 'none'; sysSerialSel.value = ''; }
       if (sysOrderSel)  { sysOrderSel.style.display  = 'none'; sysOrderSel.value  = ''; }
@@ -15073,6 +15097,13 @@ window.__vendor = (function() {
       if (isSubCard && typeCatFilter) {
         var sourceCats = _sourceCatsForSubVendor(n, cat);
         if (sourceCats.indexOf(typeCatFilter) < 0) return false;
+      }
+      // 시스템 사업부 상태 필터 (wip=진행 · todo=예정)
+      //  - 상태 판정: 그룹 안에 계산서 날짜 있는 row 존재하면 진행, 없으면 예정
+      if (isSysCatSearch && sysStatusFilter) {
+        var _isWip = !!byVendor[n].hasInvoice;
+        if (sysStatusFilter === 'wip' && !_isWip) return false;
+        if (sysStatusFilter === 'todo' && _isWip) return false;
       }
       // 시스템 사업부 셀렉트 필터 — 해당 그룹의 row 중 하나라도 해당 값을 가지면 통과
       if (isSysCatSearch && (sysEquipFilter || sysSerialFilter || sysOrderFilter || sysDelivFilter)) {
@@ -15252,7 +15283,7 @@ window.__vendor = (function() {
     var gridCols = isFreeBlanket
       ? '32px 1fr 1fr 80px 28px'
       : (isSysCardRow
-          ? '32px 1.7fr 0.9fr 0.9fr 100px 1.1fr 1.1fr 100px 0.9fr 0.65fr 1.1fr 100px 28px'
+          ? '32px 60px 1.7fr 0.9fr 0.9fr 100px 1.1fr 1.1fr 100px 0.9fr 0.65fr 1.1fr 100px 28px'
           : (hasSongCol
               ? '32px 1.3fr 1fr 70px 1fr 0.9fr 1.1fr 90px 28px'
               : '32px 1.3fr 1fr 70px 1fr 1.1fr 90px 28px'));
@@ -15264,7 +15295,7 @@ window.__vendor = (function() {
     var headerCells = isFreeBlanket
       ? '<div>#</div><div>거래처명</div><div>매출 발생처</div><div style="text-align:center">상태</div><div></div>'
       : (isSysCardRow
-          ? '<div>#</div><div>프로젝트명</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div>장비명</div><div>시리얼 넘버</div><div style="text-align:center">납품 날짜</div><div>발주처</div><div>납품처</div><div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div></div>'
+          ? '<div>#</div><div style="text-align:center">상태</div><div>프로젝트명</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div>장비명</div><div>시리얼 넘버</div><div style="text-align:center">납품 날짜</div><div>발주처</div><div>납품처</div><div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div></div>'
           : (hasSongCol
               ? '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="text-align:right">기간 합계</div><div style="text-align:right;color:' + renderSubMeta.color + '">' + renderSubMeta.targetLabel + '</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'
               : '<div>#</div><div>거래처명</div><div>매출 발생처</div>' + fourthHdr + '<div style="text-align:right">기간 합계</div><div style="text-align:right">' + (hasPrev ? '직전 동기간 대비' : '직전 기간') + '</div><div style="text-align:center">기간 추이</div><div></div>'));
@@ -15441,8 +15472,14 @@ window.__vendor = (function() {
               : '<div style="text-align:right;color:#cbd5e1">-</div>')
           : '';
         if (isSysCardRow) {
-          // 시스템: #/프로젝트명/거래처명/매출 발생처/계산서 날짜/장비명/시리얼/납품 날짜/발주처/납품처/기간 합계/직전 기간/수정 (13컬럼)
+          // 시스템: #/상태/프로젝트명/거래처명/매출 발생처/계산서 날짜/장비명/시리얼/납품 날짜/발주처/납품처/기간 합계/직전 기간/수정 (14컬럼)
+          // 상태 배지: 그룹 안에 계산서 날짜 있는 row 존재 여부로 자동 판정 (진행/예정)
+          var _isWipRow = !!byVendor[v.gkey].hasInvoice;
+          var statusBadgeHtml = _isWipRow
+            ? '<div style="text-align:center"><span style="font-size:10px;font-weight:700;color:#2563eb;background:#dbeafe;border:1px solid #bfdbfe;border-radius:10px;padding:2px 8px;white-space:nowrap">진행</span></div>'
+            : '<div style="text-align:center"><span style="font-size:10px;font-weight:700;color:#64748b;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;padding:2px 8px;white-space:nowrap">예정</span></div>';
           rowCells = '<div style="color:#94a3b8;font-weight:600">' + (idx+1) + '</div>'
+            + statusBadgeHtml
             + (v._sysProjectCellHtml || '<div style="font-size:11px;color:#cbd5e1">-</div>')
             + nameCellHtml
             + sourceCellHtml
