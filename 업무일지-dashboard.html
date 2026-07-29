@@ -2061,6 +2061,10 @@
           </select>
           <span style="font-size:11.5px;font-weight:700;color:#7c3aed;letter-spacing:0.3px;margin-left:8px">비교 연도</span>
           <select id="sys-cumul-compare-year" onchange="renderSysSalesCumul()" title="비교할 연도 선택 (디폴트: 직전 연도)" style="padding:6px 10px;border:1px solid #ddd6fe;border-radius:8px;font-size:12px;color:#0f172a;background:#fff;outline:none;font-weight:600;min-width:130px"></select>
+          <span style="font-size:11.5px;font-weight:700;color:#7c3aed;letter-spacing:0.3px;margin-left:8px">매출 발생처</span>
+          <select id="sys-cumul-source" onchange="renderSysSalesCumul()" title="매출 발생처별 조회" style="padding:6px 10px;border:1px solid #ddd6fe;border-radius:8px;font-size:12px;color:#0f172a;background:#fff;outline:none;font-weight:600;min-width:130px">
+            <option value="">전체</option>
+          </select>
           <button onclick="renderSysSalesCumul()" style="padding:7px 20px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-left:auto">조회</button>
         </div>
         <div style="padding:18px 24px">
@@ -8605,6 +8609,26 @@
         + yrs.map(function(y){ return '<option value="'+y+'">'+y+'년</option>'; }).join('');
       cmpSel.value = ''; // 모달 열 때마다 디폴트로 리셋
     }
+    // 매출 발생처 셀렉트 옵션 채우기 — vendor 캐시에서 sys_* 카테고리의 unique source 수집
+    var srcSel = document.getElementById('sys-cumul-source');
+    if (srcSel) {
+      var _srcSet = {};
+      try {
+        var _vrows = (window.__vendor && window.__vendor._state && window.__vendor._state.rows) || [];
+        _vrows.forEach(function(r){
+          if (!r || !r.category || r.category.indexOf('sys_') !== 0) return;
+          var s = r.extra && r.extra.source;
+          if (s) _srcSet[s] = true;
+        });
+      } catch(e){}
+      var _srcOpts = Object.keys(_srcSet).sort(function(a,b){ return a.localeCompare(b, 'ko'); });
+      srcSel.innerHTML = '<option value="">전체</option>'
+        + _srcOpts.map(function(s){
+            var _esc = String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            return '<option value="' + _esc + '">' + _esc + '</option>';
+          }).join('');
+      srcSel.value = ''; // 모달 열 때마다 전체로 리셋
+    }
     document.getElementById('sys-sales-cumul-overlay').style.display = 'flex';
     renderSysSalesCumul();
   }
@@ -8624,13 +8648,23 @@
   }
 
   // 기간(fromY-fromM ~ toY-toM)의 항목별 합계 — 사운드 cumul 모달과 동일 패턴
-  function _sysPeriodTotal(fromY, fromM, toY, toM, itemKey) {
+  // source 인자: 매출 발생처 필터 ('' = 전체 → 캐시 사용, 값 있음 → 실시간 재집계)
+  function _sysPeriodTotal(fromY, fromM, toY, toM, itemKey, source) {
     var sum = 0;
     for (var y = fromY; y <= toY; y++) {
       var ms = (y === fromY) ? fromM : 1;
       var me = (y === toY)   ? toM   : 12;
       for (var m = ms; m <= me; m++) {
-        var row = _sysRowFor(y + '-' + m);
+        var mk = y + '-' + m;
+        var row;
+        if (source) {
+          // 발생처 필터 있으면 실시간 재집계 (캐시 미사용 → 시스템 매출 위젯 캐시 오염 방지)
+          row = (window.__vendor && typeof window.__vendor.aggregateSystemSales === 'function')
+            ? window.__vendor.aggregateSystemSales(mk, source)
+            : null;
+        } else {
+          row = _sysRowFor(mk);
+        }
         if (row) sum += (parseInt(row[itemKey], 10) || 0);
       }
     }
@@ -8672,8 +8706,11 @@
       : (prevFromY + '.' + fromM + ' ~ ' + prevToY + '.' + toM);
     var cmpDatasetLabel = (yearOffset === 1) ? (prevPeriodLabel + ' (전년 동기)') : (prevPeriodLabel + ' (' + prevFromY + '년 동기)');
 
-    var curData  = SYS_SALES_ITEMS.map(function(it){ return _sysPeriodTotal(fromY, fromM, toY, toM, it.key); });
-    var prevData = SYS_SALES_ITEMS.map(function(it){ return _sysPeriodTotal(prevFromY, fromM, prevToY, toM, it.key); });
+    // 매출 발생처 필터 값 (빈 값 = 전체)
+    var srcSelEl = document.getElementById('sys-cumul-source');
+    var srcFilter = srcSelEl ? (srcSelEl.value || '') : '';
+    var curData  = SYS_SALES_ITEMS.map(function(it){ return _sysPeriodTotal(fromY, fromM, toY, toM, it.key, srcFilter); });
+    var prevData = SYS_SALES_ITEMS.map(function(it){ return _sysPeriodTotal(prevFromY, fromM, prevToY, toM, it.key, srcFilter); });
 
     var datasets = [{
       label: periodLabel,
@@ -13694,16 +13731,19 @@ window.__vendor = (function() {
   };
 
   // 특정 month_key 의 시스템 매출 6개 항목 합계 row 반환 (시스템 매출 위젯이 사용)
-  function aggregateSystemSales(monthKey) {
+  // aggregateSystemSales(monthKey, sourceFilter?)
+  //  · sourceFilter: 매출 발생처(extra.source) 필터. 빈 값/미지정 시 전체.
+  //  · 시스템 매출 위젯 캐시(_sysSalesRows) 는 항상 sourceFilter 없이 호출되어 오염 없음.
+  function aggregateSystemSales(monthKey, sourceFilter) {
     var out = { month_key: monthKey, archiving:0, restoration:0, broadcast:0, etc_as:0, acoustic:0, dolby:0 };
     _state.rows.forEach(function(r){
       var sysKey = VENDOR_TO_SYS_KEY[r.category];
       if (!sysKey) return;
       // 상태 '예정' (계산서 날짜 없는 시스템 row) 은 매출 집계에서 제외
-      //  - 시스템 매출 위젯 / 월별 누계 통계에서 자동으로 안 잡히도록
       var _inv = r.extra && r.extra.invoice_date;
       if (!_inv) return;
-      // 필터 기준: 계산서 날짜 YYYY-M (저장된 month_key 와 다를 수 있음)
+      // 매출 발생처 필터
+      if (sourceFilter && (r.extra.source || '') !== sourceFilter) return;
       var _mk = _invoiceDateToMonthKey(_inv);
       if (!_mk || _mk !== monthKey) return;
       out[sysKey] += (r.amount || 0);
