@@ -15886,8 +15886,35 @@ window.__vendor = (function() {
     if (!canvas) return;
     if (_state.charts.chartview) { try{_state.charts.chartview.destroy();}catch(e){} _state.charts.chartview = null; }
 
+    // 시스템 사업부: 프로젝트별 그룹을 거래처명 단위로 합쳐서 차트에 표시
+    //  · 표/리스트는 기존대로 프로젝트별 별개 행 유지 — 차트에서만 재집계
+    //  · vendorStats 원본은 건드리지 않고 로컬 사본을 만듦 (KPI/표 로직 무영향)
+    var _chartStats = vendorStats;
+    if (_CAT_DEPT[_state.currentCat] === 'system') {
+      var byName = {};
+      vendorStats.forEach(function(v){
+        var nm = v.name || '';
+        if (!byName[nm]) {
+          var _trendLen = (v.trend && v.trend.length) ? v.trend.length : 6;
+          var _trend = new Array(_trendLen); for (var _i = 0; _i < _trendLen; _i++) _trend[_i] = 0;
+          byName[nm] = { name: nm, cur: 0, curCount: 0, allTime: 0, prev: 0, songCur: 0, trend: _trend };
+        }
+        byName[nm].cur      += (v.cur      || 0);
+        byName[nm].curCount += (v.curCount || 0);
+        byName[nm].allTime  += (v.allTime  || 0);
+        byName[nm].prev     += (v.prev     || 0);
+        byName[nm].songCur  += (v.songCur  || 0);
+        if (v.trend && v.trend.length === byName[nm].trend.length) {
+          for (var _t = 0; _t < v.trend.length; _t++) {
+            byName[nm].trend[_t] = (byName[nm].trend[_t] || 0) + (v.trend[_t] || 0);
+          }
+        }
+      });
+      _chartStats = Object.keys(byName).map(function(k){ return byName[k]; });
+    }
+
     // 매출 큰 순 정렬
-    var top = vendorStats.slice().sort(function(a,b){ return b.cur - a.cur; });
+    var top = _chartStats.slice().sort(function(a,b){ return b.cur - a.cur; });
     // 거래처 수에 따라 라벨 자르기:
     //  · 거래처 ≤ 10  : 풀네임 (회전 거의 없음)
     //  · 거래처 ≤ 20 : 풀네임 (라벨 길이 길면 잘림 가능 — Chart.js 자동)
