@@ -2628,7 +2628,7 @@
       <button onclick="msgDeleteAll()" style="font-size:11px;padding:3px 10px;border:1px solid #e2e8f0;border-radius:7px;background:#f8fafc;color:#64748b;cursor:pointer;font-weight:600" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'">전체 삭제</button>
     </div>
   </div>
-  <div id="msg-list-body" style="overflow-y:scroll;height:320px;padding:4px 0"></div>
+  <div id="msg-list-body" style="overflow-y:auto;flex:1;min-height:0;padding:4px 0"></div>
 </div>
 <style>
   #msg-list-body::-webkit-scrollbar { width: 6px; }
