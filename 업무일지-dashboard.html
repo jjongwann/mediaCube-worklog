@@ -11592,9 +11592,9 @@
 </script>
 
 <!-- ── 업무 지시 패널 ── -->
-<div id="directive-overlay" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.4);z-index:9991">
-  <div style="position:absolute;top:0;right:0;bottom:0;width:560px;max-width:100vw;background:#f8fafc;box-shadow:-8px 0 32px rgba(0,0,0,0.15);display:flex;flex-direction:column;font-family:inherit;animation:soundteamSlideIn 0.25s ease;overflow:hidden">
-    <div style="padding:20px 20px 16px;background:linear-gradient(135deg,#1e40af,#2563eb);flex-shrink:0">
+<div id="directive-overlay" onclick="if(event.target===this)closeDirectivePanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9991;align-items:center;justify-content:center;padding:20px;box-sizing:border-box">
+  <div style="width:640px;max-width:calc(100vw - 40px);height:80vh;max-height:800px;background:#f8fafc;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,0.25),0 4px 16px rgba(0,0,0,0.12);display:flex;flex-direction:column;font-family:inherit;overflow:hidden">
+    <div style="padding:20px 20px 16px;background:linear-gradient(135deg,#1e40af,#2563eb);flex-shrink:0;border-radius:18px 18px 0 0">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div style="color:#fff">
           <div style="font-size:16px;font-weight:800;letter-spacing:-0.3px">업무 지시</div>
