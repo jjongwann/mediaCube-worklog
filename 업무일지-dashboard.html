@@ -36,8 +36,7 @@
     overflow: hidden;
   }
 
-  /* ── Embed 모드 (개발자 대시보드 iframe 안에서 특정 기능만 노출) ──
-     사이드바 · topbar · 메인 콘텐츠 자체 숨기고, 오버레이/모달 UI 만 그대로 노출 */
+  /* ── Embed 모드 (개발자 대시보드 iframe 안에서 특정 기능만 노출) — 폐기, 하위 호환용 */
   body.embed-mode > aside,
   body.embed-mode > main > .topbar,
   body.embed-mode > main > .content {
@@ -46,6 +45,114 @@
   body.embed-mode > main {
     background: #f8fafc;
   }
+
+  /* ═══════════════════════════════════════════════════════════
+     Developer 모드 (임종완 주임 / developer 계정 전용 리뉴얼)
+     · 사이드바 다크 인디고 재스타일
+     · 메인 콘텐츠 카드 그리드로 대체 (기존 stats/차트/리스트 숨김)
+     · 다른 계정 완전 무영향
+     ═══════════════════════════════════════════════════════════ */
+  body.dev-mode > aside.sidebar {
+    background: linear-gradient(180deg, #4338ca 0%, #3730a3 100%);
+    color: #fff;
+    border-right: none;
+  }
+  body.dev-mode > aside.sidebar .sidebar-logo { border-bottom-color: rgba(255,255,255,0.10); }
+  body.dev-mode > aside.sidebar .sidebar-logo-text { color: #fff; }
+  body.dev-mode > aside.sidebar .sidebar-logo-sub { color: rgba(255,255,255,0.6); }
+  body.dev-mode > aside.sidebar .sidebar-section-label,
+  body.dev-mode > aside.sidebar .sidebar-section-toggle > span {
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 700;
+    font-size: 10.5px;
+  }
+  body.dev-mode > aside.sidebar .sidebar-section-caret { color: rgba(255,255,255,0.4); }
+  body.dev-mode > aside.sidebar .sidebar-item {
+    color: rgba(255,255,255,0.75);
+  }
+  body.dev-mode > aside.sidebar .sidebar-item:hover {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+  }
+  body.dev-mode > aside.sidebar .sidebar-item.active {
+    background: #fff !important;
+    color: #3730a3 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  body.dev-mode > aside.sidebar .sidebar-item-count {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+  }
+  body.dev-mode > aside.sidebar .sidebar-divider { background: rgba(255,255,255,0.08); }
+  body.dev-mode > aside.sidebar .sidebar-user-name { color: #fff; }
+  body.dev-mode > aside.sidebar .sidebar-user-role { color: rgba(255,255,255,0.55); }
+  body.dev-mode > aside.sidebar .sidebar-user { background: rgba(255,255,255,0.06); border-radius: 10px; }
+  body.dev-mode > aside.sidebar .sidebar-logout-btn {
+    background: rgba(255,255,255,0.08);
+    color: #fff !important;
+    border-color: rgba(255,255,255,0.15) !important;
+  }
+  body.dev-mode > aside.sidebar .sidebar-logout-btn:hover {
+    background: rgba(255,255,255,0.14);
+  }
+  body.dev-mode > aside.sidebar #dev-dashboard-btn { display: none !important; } /* 개발자 배지 버튼은 이제 불필요 */
+
+  /* 메인 콘텐츠: dev-mode 이면 기존 콘텐츠(stats-row/매출/일지 리스트/차트 등) 숨기고 카드 그리드만 표시 */
+  body.dev-mode > main > .content > *:not(#dev-mode-wrap) { display: none !important; }
+  body.dev-mode #dev-mode-wrap { display: block; }
+  #dev-mode-wrap { display: none; }
+
+  body.dev-mode > main > .topbar { display: none !important; } /* topbar 는 dev-mode 에서 숨김 */
+  body.dev-mode > main > .content { padding: 0 !important; }
+
+  /* Developer 카드 그리드 · 헤로 헤더 스타일 */
+  .dm-wrap { padding: 28px 32px; box-sizing: border-box; }
+  .dm-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom: 20px; }
+  .dm-crumb { font-size: 12px; color:#94a3b8; font-weight:600; letter-spacing:0.3px; }
+  .dm-crumb strong { color:#4338ca; }
+  .dm-user-mini { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#334155; }
+  .dm-user-mini .avatar { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#3b82f6,#6366f1); display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:700; }
+
+  .dm-hero {
+    background: linear-gradient(135deg, #4338ca 0%, #6366f1 50%, #3b82f6 100%);
+    color:#fff; border-radius:20px; padding:32px 36px; margin-bottom:26px;
+    box-shadow: 0 16px 48px rgba(67,56,202,0.18);
+    position:relative; overflow:hidden;
+  }
+  .dm-hero::after { content:''; position:absolute; right:-60px; top:-60px; width:220px; height:220px; background:radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%); pointer-events:none; }
+  .dm-hero .kicker { font-size:11.5px; font-weight:700; color:rgba(255,255,255,0.75); letter-spacing:1.8px; }
+  .dm-hero h1 { font-size:28px; font-weight:800; letter-spacing:-0.6px; margin:6px 0 8px; }
+  .dm-hero p { font-size:13px; color:rgba(255,255,255,0.9); margin:0; line-height:1.6; }
+
+  .dm-toolbar { display:flex; align-items:center; gap:12px; margin-bottom:22px; flex-wrap:wrap; }
+  .dm-search { flex:1; min-width:260px; position:relative; }
+  .dm-search svg { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#94a3b8; }
+  .dm-search input {
+    width:100%; padding:12px 16px 12px 40px; border:1px solid #e2e8f0; border-radius:12px;
+    font-size:13px; outline:none; background:#fff; font-family:inherit; box-sizing:border-box;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .dm-search input:focus { border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,0.12); }
+  .dm-chip { padding:8px 14px; background:#fff; border:1px solid #e2e8f0; border-radius:10px; font-size:12px; font-weight:700; color:#64748b; cursor:pointer; transition:all .15s; user-select:none; }
+  .dm-chip:hover { border-color:#c7d2fe; color:#4338ca; }
+  .dm-chip.active { background:#4338ca; color:#fff; border-color:#4338ca; }
+
+  .dm-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:18px; }
+  .dm-card {
+    background:#fff; border:1px solid #eef2f6; border-radius:16px; padding:22px;
+    cursor:pointer; transition:all .2s cubic-bezier(.22,.61,.36,1);
+    display:flex; flex-direction:column; gap:12px;
+    box-shadow:0 1px 3px rgba(15,23,42,0.04);
+    text-decoration:none; color:inherit; font-family:inherit; text-align:left;
+  }
+  .dm-card:hover { transform:translateY(-4px); box-shadow:0 20px 40px rgba(15,23,42,0.10), 0 4px 12px rgba(15,23,42,0.06); border-color:#c7d2fe; }
+  .dm-card-icon { width:52px; height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center; color:#fff; box-shadow:0 6px 16px rgba(0,0,0,0.14); }
+  .dm-card-title { font-size:15.5px; font-weight:800; color:#0f172a; letter-spacing:-0.2px; }
+  .dm-card-desc { font-size:12px; color:#64748b; line-height:1.55; }
+  .dm-card-cta { display:flex; align-items:center; justify-content:space-between; font-size:11.5px; font-weight:700; color:#4338ca; padding-top:6px; margin-top:6px; border-top:1px dashed #eef2f6; }
+  .dm-notice { margin-top:24px; padding:16px 20px; background:#eef2ff; border:1px solid #c7d2fe; border-radius:12px; color:#4338ca; font-size:12.5px; line-height:1.6; }
 
   /* ── Sidebar ── */
   .sidebar {
@@ -1554,11 +1661,8 @@
     </div>
   </div>
 
-  <!-- 개발자 대시보드 (임종완 주임 / developer 계정 전용) — 별도 페이지로 이동 -->
-  <a id="dev-dashboard-btn" href="업무일지-devshowcase.html" class="sidebar-item" style="display:none;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;margin:8px 12px 12px;padding:9px 12px;border-radius:10px;font-weight:700;box-shadow:0 2px 8px rgba(59,130,246,0.25);text-decoration:none" title="개발자 기능 카탈로그">
-    <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
-    개발자 대시보드
-  </a>
+  <!-- 개발자 대시보드 진입 링크는 dev-mode 로 통합됨 (developer 계정은 자동 감지) -->
+
 
   <div class="sidebar-section">
     <div class="sidebar-section-label sidebar-section-toggle" onclick="toggleSidebarSection('main')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none">
@@ -1744,6 +1848,39 @@
 
   <!-- Content -->
   <div class="content">
+
+    <!-- Developer 전용 카드 그리드 (dev-mode 클래스일 때만 표시, 그 외 계정 무영향) -->
+    <div id="dev-mode-wrap">
+      <div class="dm-wrap">
+        <div class="dm-topbar">
+          <div class="dm-crumb"><strong>Overview</strong> · 기능 카탈로그</div>
+          <div class="dm-user-mini">
+            <div class="avatar" id="dmUserAvatar">?</div>
+            <span id="dmUserName">-</span>
+          </div>
+        </div>
+        <div class="dm-hero">
+          <div class="kicker">DEVELOPER · TEST DASHBOARD</div>
+          <h1>기능 카탈로그</h1>
+          <p>지금까지 구축된 모든 기능을 한 눈에 확인하고 진입하세요.<br>각 카드를 클릭하면 해당 기능이 이 페이지 안에서 즉시 실행됩니다.</p>
+        </div>
+        <div class="dm-toolbar">
+          <div class="dm-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="dmSearch" placeholder="기능 이름으로 검색... (예: 매출, 캘린더, 지시)" oninput="_dmRenderGrid()">
+          </div>
+          <div class="dm-chip active" data-cat="" onclick="_dmSetCat(this,'')">전체</div>
+          <div class="dm-chip" data-cat="analytics" onclick="_dmSetCat(this,'analytics')">분석</div>
+          <div class="dm-chip" data-cat="collab" onclick="_dmSetCat(this,'collab')">협업</div>
+          <div class="dm-chip" data-cat="workflow" onclick="_dmSetCat(this,'workflow')">업무 흐름</div>
+        </div>
+        <div id="dmGrid" class="dm-grid"></div>
+        <div class="dm-notice">
+          <strong>💡 안내</strong> · 이 페이지는 개발자(developer) 계정 전용 리뉴얼 대시보드입니다. 다른 계정에서는 기존 대시보드 UI 로 표시됩니다.
+        </div>
+      </div>
+    </div>
+
 
     <!-- 데스크톱 알림 권한 배너 (권한이 default 이고 사용자가 dismiss 안 눌렀을 때만 표시) -->
     <div id="noti-perm-banner" style="display:none;align-items:center;gap:12px;padding:12px 16px;margin-bottom:12px;background:linear-gradient(135deg,#eef2ff,#e0e7ff);border:1px solid #c7d2fe;border-radius:10px;font-size:13px;color:#1e293b">
@@ -3162,11 +3299,10 @@
     }
     // 직원별 필터 셀렉트: 관리자 또는 전체 일지 열람 화이트리스트 계정에 노출
     try { if (typeof window._populateEmployeeFilter === 'function') window._populateEmployeeFilter(); } catch(e) {}
-    // 개발자 대시보드: developer(임종완 주임) 계정만 노출
-    var devBtn = document.getElementById('dev-dashboard-btn');
-    if (devBtn) {
-      devBtn.style.display = (typeof _currentUsername !== 'undefined' && _currentUsername === 'developer') ? '' : 'none';
-    }
+    // 개발자 대시보드는 dev-mode 로 통합됨 (별도 사이드바 링크 필요 없음).
+    // 하위 호환: 남아있는 요소가 있으면 항상 숨김.
+    var _devBtnLegacy = document.getElementById('dev-dashboard-btn');
+    if (_devBtnLegacy) _devBtnLegacy.style.display = 'none';
   }
 
   /* ── Storage (Supabase 기반) ── */
@@ -13799,43 +13935,97 @@ window._devShowcaseClick = function(idx) {
   catch(e) { console.error('[devShowcase] action failed', it.key, e); }
 };
 
-function openDevShowcase() {
-  // 별도 페이지(업무일지-devshowcase.html) 로 이동
-  window.location.href = '업무일지-devshowcase.html';
-}
-function closeDevShowcase() {
-  var el = document.getElementById('dev-showcase-overlay');
-  if (el) el.style.display = 'none';
-}
-
-/* 개발자 대시보드에서 카드 클릭 시 ?open=<key> 로 이동 → 로드 완료 후 해당 기능 자동 실행 */
-window.addEventListener('load', function() {
+/* ═══════════════════════════════════════════════════════════
+   Developer 계정 리뉴얼: 로그인한 계정이 developer 이면
+   body.dev-mode 를 부여하여 사이드바를 다크 인디고로 재스타일하고
+   메인 콘텐츠를 카드 그리드로 대체 (기존 매출·일지 콘텐츠는 CSS 로 숨김).
+   카드 클릭 시 기존 기능 오버레이 함수 직접 호출.
+   ═══════════════════════════════════════════════════════════ */
+(function _initDevMode(){
   try {
-    var p = new URLSearchParams(window.location.search);
-    var key = p.get('open');
-    if (!key) return;
-    // URL 정리 (뒤로가기 시 재실행 방지)
-    try { history.replaceState({}, document.title, window.location.pathname); } catch(e) {}
-    // 렌더/세션 준비 완료 후 실행 (일부 함수가 초기 데이터 fetch 이후에만 안전하게 동작)
-    setTimeout(function() {
-      try {
-        var actions = {
-          history:   function(){ if (typeof openHistoryPanel==='function') openHistoryPanel(); },
-          perf:      function(){ if (typeof openAchievementPanel==='function') openAchievementPanel(); },
-          directive: function(){ if (typeof openDirectivePanel==='function') openDirectivePanel(); },
-          sales:     function(){ if (typeof openSalesActivityChooser==='function') openSalesActivityChooser(); },
-          calendar:  function(){ if (typeof openSharedCalendarChooser==='function') openSharedCalendarChooser(); },
-          sound:     function(){ if (typeof openSoundTeamPanel==='function') openSoundTeamPanel(); },
-          vendor:    function(){ if (typeof openVendorMenu==='function') openVendorMenu(); },
-          bmat:      function(){ if (typeof bmatToggleSection==='function') bmatToggleSection(); },
-          msg:       function(){ if (typeof openMsgList==='function') openMsgList(); }
-        };
-        var fn = actions[key];
-        if (fn) fn();
-      } catch(err) { console.warn('[devShowcase route] failed', key, err); }
-    }, 500);
-  } catch(e){}
-});
+    if (typeof _currentUsername === 'undefined' || _currentUsername !== 'developer') return;
+    document.body.classList.add('dev-mode');
+    // 유저 표시 (헤로 헤더 옆 mini)
+    try {
+      var d = (_currentSession && _currentSession._display) || {};
+      var name = d.fullName || d.name || 'Developer';
+      var initial = (name.charAt(0) || 'D').toUpperCase();
+      var a = document.getElementById('dmUserAvatar'); if (a) a.textContent = initial;
+      var n = document.getElementById('dmUserName'); if (n) n.textContent = name;
+    } catch(e){}
+    // 카드 렌더 (아래 _dmRenderGrid 호출)
+    if (typeof _dmRenderGrid === 'function') _dmRenderGrid();
+  } catch(e) { console.warn('[dev-mode init]', e); }
+})();
+
+/* Developer 카드 데이터 · 렌더 · 클릭 라우팅 */
+window._DM_ITEMS = [
+  { key:'history',   title:'업무 히스토리',       desc:'전체 일지 히스토리 열람',            grad:'#6366f1,#4338ca', cat:'workflow',  icon:'clock',    action:function(){ if (typeof openHistoryPanel==='function') openHistoryPanel(); } },
+  { key:'perf',      title:'업무 성과',            desc:'직원별 성과 · 랭킹 확인',            grad:'#10b981,#059669', cat:'analytics', icon:'trophy',   action:function(){ if (typeof openAchievementPanel==='function') openAchievementPanel(); } },
+  { key:'directive', title:'업무 지시',            desc:'업무 지시 · 받은 업무 관리',         grad:'#2563eb,#1d4ed8', cat:'collab',    icon:'check',    action:function(){ if (typeof openDirectivePanel==='function') openDirectivePanel(); } },
+  { key:'sales',     title:'영업 활동',            desc:'기존 · 신규 고객 영업 활동 조회',    grad:'#f59e0b,#d97706', cat:'workflow',  icon:'trend',    action:function(){ if (typeof openSalesActivityChooser==='function') openSalesActivityChooser(); } },
+  { key:'calendar',  title:'업무 공유 캘린더',     desc:'부서별 캘린더 · 공유 일정',          grad:'#ec4899,#db2777', cat:'collab',    icon:'calendar', action:function(){ if (typeof openSharedCalendarChooser==='function') openSharedCalendarChooser(); } },
+  { key:'sound',     title:'음원팀 업무 현황',     desc:'사운드 컨텐츠 사업부 현황 통계',     grad:'#8b5cf6,#7c3aed', cat:'analytics', icon:'users',    action:function(){ if (typeof openSoundTeamPanel==='function') openSoundTeamPanel(); } },
+  { key:'vendor',    title:'거래처별 매출 분석',   desc:'사운드 · 시스템 사업부 매출 분석',   grad:'#65a30d,#4d7c0f', cat:'analytics', icon:'shop',     action:function(){ if (typeof openVendorMenu==='function') openVendorMenu(); } },
+  { key:'bmat',      title:'BMAT 모니터링 통계',   desc:'채널별 BMAT 모니터링 수치',          grad:'#0891b2,#0e7490', cat:'analytics', icon:'chart',    action:function(){ if (typeof bmatToggleSection==='function') bmatToggleSection(); } },
+  { key:'msg',       title:'메시지',                desc:'사내 실시간 채팅 · 파일 첨부',       grad:'#4f46e5,#3730a3', cat:'collab',    icon:'msg',      action:function(){ if (typeof openMsgList==='function') openMsgList(); } }
+];
+window._DM_CAT = '';
+window._dmIcon = function(name){
+  var s = 'width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+  switch(name){
+    case 'clock':    return '<svg '+s+'><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+    case 'trophy':   return '<svg '+s+'><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>';
+    case 'check':    return '<svg '+s+'><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';
+    case 'trend':    return '<svg '+s+'><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>';
+    case 'calendar': return '<svg '+s+'><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+    case 'users':    return '<svg '+s+'><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+    case 'shop':     return '<svg '+s+'><path d="M3 3h18v4H3z"/><path d="M5 7v13h14V7"/><path d="M9 11h6"/><path d="M9 15h6"/></svg>';
+    case 'chart':    return '<svg '+s+'><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-5"/></svg>';
+    case 'msg':      return '<svg '+s+'><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+    default:         return '<svg '+s+'><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>';
+  }
+};
+window._dmRenderGrid = function(){
+  var grid = document.getElementById('dmGrid'); if (!grid) return;
+  var inp = document.getElementById('dmSearch');
+  var q = inp ? (inp.value || '').trim().toLowerCase() : '';
+  var list = _DM_ITEMS.filter(function(it){
+    if (_DM_CAT && it.cat !== _DM_CAT) return false;
+    if (q && (it.title + ' ' + it.desc).toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  });
+  if (!list.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:48px 20px;color:#94a3b8;font-size:13.5px">검색 결과가 없습니다.</div>';
+    return;
+  }
+  grid.innerHTML = list.map(function(it, i){
+    var idx = _DM_ITEMS.indexOf(it);
+    return '<button type="button" class="dm-card" onclick="_dmClick(' + idx + ')">'
+      + '<div class="dm-card-icon" style="background:linear-gradient(135deg,' + it.grad + ')">' + _dmIcon(it.icon) + '</div>'
+      + '<div class="dm-card-title">' + it.title + '</div>'
+      + '<div class="dm-card-desc">' + it.desc + '</div>'
+      + '<div class="dm-card-cta"><span>바로가기</span>'
+      + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>'
+      + '</div>'
+      + '</button>';
+  }).join('');
+};
+window._dmSetCat = function(el, cat){
+  _DM_CAT = cat;
+  document.querySelectorAll('.dm-chip').forEach(function(c){ c.classList.remove('active'); });
+  el.classList.add('active');
+  _dmRenderGrid();
+};
+window._dmClick = function(idx){
+  var it = _DM_ITEMS[idx]; if (!it) return;
+  try { if (typeof it.action === 'function') it.action(); }
+  catch(e) { console.error('[dm] action failed', it.key, e); }
+};
+
+/* 하위 호환: 기존 코드에서 openDevShowcase 호출이 남아있어도 안전하게 */
+function openDevShowcase() { /* dev-mode 리뉴얼 후 오버레이 진입점 제거됨 */ }
+function closeDevShowcase() {}
 </script>
 
 <script>
