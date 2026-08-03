@@ -1720,8 +1720,8 @@
       <button onclick="dismissNotiBanner()" title="다시 보지 않기" style="padding:7px 12px;background:transparent;border:1px solid #c7d2fe;border-radius:7px;color:#4338ca;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">닫기</button>
     </div>
 
-    <!-- Stats -->
-    <div class="stats-row" id="stats-row">
+    <!-- Stats — 사용자 요청으로 시각적으로 숨김 (setChartMode 등 참조 유지 위해 DOM 은 존치) -->
+    <div class="stats-row" id="stats-row" style="display:none">
       <div class="stat-card stat-card-link" id="sc-total" onclick="setChartMode('monthly')" title="월별 추이 보기">
         <div class="stat-card-top">
           <span class="stat-label">전체 일지</span>
