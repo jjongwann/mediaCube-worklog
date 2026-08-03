@@ -118,6 +118,16 @@
   .dm-crumb strong { color:#4338ca; }
   .dm-user-mini { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#334155; }
   .dm-user-mini .avatar { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#3b82f6,#6366f1); display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:700; }
+  .dm-new-btn {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:10px 18px; background:#0f172a; color:#fff;
+    border-radius:10px; font-size:13px; font-weight:700;
+    text-decoration:none; cursor:pointer;
+    box-shadow:0 4px 12px rgba(15,23,42,0.18);
+    transition:transform .12s, box-shadow .12s, background .12s;
+    font-family:inherit;
+  }
+  .dm-new-btn:hover { background:#1e293b; transform:translateY(-1px); box-shadow:0 8px 20px rgba(15,23,42,0.24); }
 
   .dm-hero {
     background: linear-gradient(135deg, #4338ca 0%, #6366f1 50%, #3b82f6 100%);
@@ -1877,10 +1887,10 @@
       <div class="dm-wrap">
         <div class="dm-topbar">
           <div class="dm-crumb"><strong>Overview</strong> · 기능 카탈로그</div>
-          <div class="dm-user-mini">
-            <div class="avatar" id="dmUserAvatar">?</div>
-            <span id="dmUserName">-</span>
-          </div>
+          <a href="업무일지-word.html" class="dm-new-btn" title="새 일지 작성">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            새 일지 작성
+          </a>
         </div>
         <div class="dm-hero">
           <div class="kicker">DEVELOPER · TEST DASHBOARD</div>
@@ -13965,9 +13975,23 @@ window._devShowcaseClick = function(idx) {
   try {
     if (typeof _currentUsername === 'undefined' || _currentUsername !== 'developer') return;
     document.body.classList.add('dev-mode');
-    document.body.classList.add('view-catalog'); // 기본 뷰: 카드 그리드
+    // 초기 뷰: URL ?view=journal 이면 업무일지 뷰, 그 외 카드 그리드
+    var _initView = 'catalog';
+    try {
+      var _vp = new URLSearchParams(window.location.search).get('view');
+      if (_vp === 'journal') _initView = 'journal';
+    } catch(e){}
+    document.body.classList.add('view-' + _initView);
+    // URL 정리 (뒤로가기 시 재실행 방지)
+    try { if (_initView === 'journal') history.replaceState({}, document.title, window.location.pathname); } catch(e){}
     // developer 전용 사이드바 뷰 전환 위젯 노출
-    var vw = document.getElementById('dev-view-switch'); if (vw) vw.style.display = '';
+    var vw = document.getElementById('dev-view-switch'); if (vw) {
+      vw.style.display = '';
+      // 초기 활성 아이템 반영
+      vw.querySelectorAll('.dev-view-item').forEach(function(x){
+        x.classList.toggle('active', x.getAttribute('data-devview') === _initView);
+      });
+    }
     // 유저 표시 (헤로 헤더 옆 mini)
     try {
       var d = (_currentSession && _currentSession._display) || {};

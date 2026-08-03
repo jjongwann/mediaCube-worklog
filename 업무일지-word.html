@@ -3893,7 +3893,9 @@
         })
         .then(function () {
           localStorage.removeItem('editJournalBackup');
-          window.location.href = '업무일지-dashboard.html';
+          // developer 계정은 대시보드 진입 후 업무일지 뷰로 자동 전환 (?view=journal)
+          // 다른 계정은 dev-mode 자체가 없으므로 파라미터가 있어도 무시됨
+          window.location.href = '업무일지-dashboard.html?view=journal';
         }).catch(function (e) {
           console.error('submit error', e);
           alert('저장 중 오류가 발생했습니다: ' + (e && e.message ? e.message : e));
