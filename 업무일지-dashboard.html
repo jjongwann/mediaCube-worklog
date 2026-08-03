@@ -99,13 +99,15 @@
   }
   body.dev-mode > aside.sidebar #dev-dashboard-btn { display: none !important; } /* 개발자 배지 버튼은 이제 불필요 */
 
-  /* 메인 콘텐츠: dev-mode 이면 기존 콘텐츠(stats-row/매출/일지 리스트/차트 등) 숨기고 카드 그리드만 표시 */
-  body.dev-mode > main > .content > *:not(#dev-mode-wrap) { display: none !important; }
-  body.dev-mode #dev-mode-wrap { display: block; }
+  /* 메인 콘텐츠 뷰 토글:
+     · dev-mode + view-catalog(기본) → 카드 그리드 표시, 기존 콘텐츠 숨김
+     · dev-mode + view-journal      → 카드 그리드 숨김, 기존 콘텐츠 표시 (사이드바만 다크 유지)
+     실제 DOM 은 <div class="main"> 이므로 .main 셀렉터 사용 */
   #dev-mode-wrap { display: none; }
-
-  body.dev-mode > main > .topbar { display: none !important; } /* topbar 는 dev-mode 에서 숨김 */
-  body.dev-mode > main > .content { padding: 0 !important; }
+  body.dev-mode.view-catalog #dev-mode-wrap { display: block; }
+  body.dev-mode.view-catalog > .main > .content > *:not(#dev-mode-wrap) { display: none !important; }
+  body.dev-mode.view-catalog > .main > .topbar { display: none !important; }
+  body.dev-mode.view-catalog > .main > .content { padding: 0 !important; }
 
   /* Developer 카드 그리드 · 헤로 헤더 스타일 */
   .dm-wrap { padding: 28px 32px; box-sizing: border-box; }
@@ -1661,7 +1663,18 @@
     </div>
   </div>
 
-  <!-- 개발자 대시보드 진입 링크는 dev-mode 로 통합됨 (developer 계정은 자동 감지) -->
+  <!-- Developer 계정 전용 뷰 전환 (기능 카탈로그 ↔ 업무일지)
+       기본은 카탈로그(active). '업무일지' 클릭 시 기존 대시보드 콘텐츠(전체 일지 목록 등) 표시 -->
+  <div id="dev-view-switch" style="display:none;padding:8px 12px 4px">
+    <div class="sidebar-item dev-view-item active" data-devview="catalog" onclick="_dmSwitchView('catalog',this)" style="margin-bottom:4px">
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+      기능 카탈로그
+    </div>
+    <div class="sidebar-item dev-view-item" data-devview="journal" onclick="_dmSwitchView('journal',this)">
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
+      업무일지
+    </div>
+  </div>
 
 
   <div class="sidebar-section">
@@ -13945,6 +13958,9 @@ window._devShowcaseClick = function(idx) {
   try {
     if (typeof _currentUsername === 'undefined' || _currentUsername !== 'developer') return;
     document.body.classList.add('dev-mode');
+    document.body.classList.add('view-catalog'); // 기본 뷰: 카드 그리드
+    // developer 전용 사이드바 뷰 전환 위젯 노출
+    var vw = document.getElementById('dev-view-switch'); if (vw) vw.style.display = '';
     // 유저 표시 (헤로 헤더 옆 mini)
     try {
       var d = (_currentSession && _currentSession._display) || {};
@@ -13953,10 +13969,23 @@ window._devShowcaseClick = function(idx) {
       var a = document.getElementById('dmUserAvatar'); if (a) a.textContent = initial;
       var n = document.getElementById('dmUserName'); if (n) n.textContent = name;
     } catch(e){}
-    // 카드 렌더 (아래 _dmRenderGrid 호출)
+    // 카드 렌더
     if (typeof _dmRenderGrid === 'function') _dmRenderGrid();
   } catch(e) { console.warn('[dev-mode init]', e); }
 })();
+
+/* Developer 뷰 전환 (사이드바 상단 아이템 클릭 시 호출) */
+window._dmSwitchView = function(view, el) {
+  if (!document.body.classList.contains('dev-mode')) return;
+  document.body.classList.remove('view-catalog', 'view-journal');
+  document.body.classList.add('view-' + view);
+  document.querySelectorAll('.dev-view-item').forEach(function(x){ x.classList.remove('active'); });
+  if (el) el.classList.add('active');
+  // 업무일지 뷰로 전환 시 리스트 재렌더 (혹시 초기 안 됐거나 필터 상태 반영)
+  if (view === 'journal') {
+    try { if (typeof renderList === 'function') renderList(); } catch(e){}
+  }
+};
 
 /* Developer 카드 데이터 · 렌더 · 클릭 라우팅 */
 window._DM_ITEMS = [
