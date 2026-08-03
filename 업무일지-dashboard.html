@@ -1435,19 +1435,20 @@
   .profile-overlay {
     display: none;
     position: fixed; inset: 0;
-    background: rgba(15,23,42,0.35);
+    background: rgba(15,23,42,0.45);
     z-index: 500;
-    align-items: flex-end;
-    justify-content: flex-start;
+    align-items: center;
+    justify-content: center;
     backdrop-filter: blur(2px);
   }
   .profile-overlay.show { display: flex; }
   .profile-modal {
     background: #fff;
-    border-radius: 16px;
-    width: 260px;
-    margin: 0 0 80px 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08);
+    border-radius: 18px;
+    width: 420px;
+    max-width: calc(100vw - 40px);
+    margin: 0;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25), 0 4px 16px rgba(0,0,0,0.12);
     overflow: hidden;
     animation: profile-in 0.18s cubic-bezier(.22,.61,.36,1);
   }
@@ -2571,7 +2572,7 @@
 <div class="toast" id="toast"></div>
 
 <!-- ═══ 메시지 보내기 패널 ═══ -->
-<div id="msg-compose-panel" style="display:none;position:fixed;bottom:20px;right:20px;width:340px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.18);z-index:9998;overflow:hidden;font-family:inherit">
+<div id="msg-compose-panel" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:520px;max-width:calc(100vw - 40px);max-height:calc(100vh - 40px);background:#fff;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,0.25),0 4px 16px rgba(0,0,0,0.12);z-index:9998;overflow:hidden;font-family:inherit">
   <div style="display:flex;align-items:center;padding:14px 16px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
     <span style="font-size:14px;font-weight:700;flex:1">메시지 보내기</span>
@@ -2609,7 +2610,7 @@
 </div>
 
 <!-- ═══ 메시지 목록 패널 ═══ -->
-<div id="msg-list-panel" style="display:none;position:fixed;bottom:20px;right:20px;width:380px;max-height:520px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.18);z-index:9998;overflow:hidden;display:none;flex-direction:column;font-family:inherit">
+<div id="msg-list-panel" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:560px;max-width:calc(100vw - 40px);height:70vh;max-height:720px;background:#fff;border:1px solid #e2e8f0;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,0.25),0 4px 16px rgba(0,0,0,0.12);z-index:9998;overflow:hidden;flex-direction:column;font-family:inherit">
   <div style="display:flex;align-items:center;padding:14px 16px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;flex-shrink:0">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     <span style="font-size:14px;font-weight:700;flex:1">메시지 목록</span>
