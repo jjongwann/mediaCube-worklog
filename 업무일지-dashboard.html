@@ -2700,7 +2700,7 @@
   <div style="background:#fff;border-radius:18px;width:520px;max-width:96vw;height:80vh;max-height:700px;box-shadow:0 12px 48px rgba(0,0,0,0.22);display:flex;flex-direction:column;font-family:inherit;overflow:hidden">
     <!-- 헤더 -->
     <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:#fff;border-bottom:1px solid #f1f5f9;flex-shrink:0">
-      <button onclick="closeChatPanel()" style="background:none;border:none;cursor:pointer;color:#64748b;padding:4px;border-radius:8px;display:flex;align-items:center" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
+      <button onclick="chatBackToList()" title="메시지 목록으로 돌아가기" style="background:none;border:none;cursor:pointer;color:#64748b;padding:4px;border-radius:8px;display:flex;align-items:center" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <div id="chat-avatar" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden"></div>
@@ -6078,6 +6078,13 @@
       if (_chatOtherId) loadChatHistory(false);
     }, 3000);
   }
+
+  // 채팅창 뒤로가기: 채팅창을 닫고 메시지 목록 패널을 다시 연다
+  function chatBackToList() {
+    closeChatPanel();
+    if (typeof openMsgList === 'function') openMsgList();
+  }
+  window.chatBackToList = chatBackToList;
 
   function closeChatPanel() {
     document.getElementById('chat-overlay').style.display = 'none';
