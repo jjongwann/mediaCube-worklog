@@ -13969,8 +13969,11 @@ window._devShowcaseClick = function(idx) {
       var a = document.getElementById('dmUserAvatar'); if (a) a.textContent = initial;
       var n = document.getElementById('dmUserName'); if (n) n.textContent = name;
     } catch(e){}
-    // 카드 렌더
-    if (typeof _dmRenderGrid === 'function') _dmRenderGrid();
+    // 카드 렌더 — _dmRenderGrid 정의가 아래에 있으므로 다음 tick 에 실행 (window.load 기다림)
+    setTimeout(function(){
+      try { if (typeof _dmRenderGrid === 'function') _dmRenderGrid(); }
+      catch(err) { console.warn('[dev-mode render]', err); }
+    }, 0);
   } catch(e) { console.warn('[dev-mode init]', e); }
 })();
 
