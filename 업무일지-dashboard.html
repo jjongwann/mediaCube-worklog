@@ -2745,16 +2745,78 @@
 </div>
 
 <script>
-  /* ── Auth Guard ── */
+  /* ── Auth Guard + 세션 자동 갱신 ──
+     · Supabase refresh_token 으로 access_token 자동 갱신
+     · 페이지 로드 시 만료 임박(5분 이내)이면 즉시 refresh
+     · 5분 간격 폴링으로 항상 유효 상태 유지
+     · refresh 자체 실패 시에만 login 페이지로 리다이렉트
+     · 갱신 후 _sbToken / SB_HDR / SB_DEL_HDR 재할당 → 이후 fetch 자동 반영 */
   var SESSION_KEY = 'mc_session';
+  var _SB_AUTH_URL = 'https://qkvatxowpkespdkxuoom.supabase.co/auth/v1/token?grant_type=refresh_token';
+  var _SB_AUTH_KEY = 'sb_publishable_2PIK53xa60wU0ds_L44pgQ_yfsoiot1';
+  var _REFRESH_THRESHOLD_MS = 5 * 60 * 1000; // 만료 5분 전 갱신
+  var _refreshInFlight = null; // 동시 refresh 방지
+
+  function _refreshSession() {
+    if (_refreshInFlight) return _refreshInFlight;
+    var s;
+    try { s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) { return Promise.resolve(null); }
+    if (!s || !s.refresh_token) return Promise.resolve(null);
+    _refreshInFlight = fetch(_SB_AUTH_URL, {
+      method: 'POST',
+      headers: { 'apikey': _SB_AUTH_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: s.refresh_token })
+    }).then(function(r){
+      return r.json().then(function(d){ return { ok: r.ok, data: d }; });
+    }).then(function(res){
+      _refreshInFlight = null;
+      if (!res.ok || !res.data || !res.data.access_token) return null;
+      // 기존 커스텀 필드(_username / _display / _is_admin) 유지 + Supabase 새 토큰 병합
+      var merged = Object.assign({}, s, res.data);
+      try { localStorage.setItem(SESSION_KEY, JSON.stringify(merged)); } catch(e){}
+      // 전역 토큰·헤더 재할당 — 이후 fetch 는 새 토큰 사용
+      try {
+        _sbToken = merged.access_token;
+        if (typeof SB_HDR === 'object' && SB_HDR)     SB_HDR.Authorization     = 'Bearer ' + merged.access_token;
+        if (typeof SB_DEL_HDR === 'object' && SB_DEL_HDR) SB_DEL_HDR.Authorization = 'Bearer ' + merged.access_token;
+      } catch(e){}
+      return merged;
+    }).catch(function(){
+      _refreshInFlight = null;
+      return null;
+    });
+    return _refreshInFlight;
+  }
+
   (function() {
     try {
       var s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-      if (!s || !s.access_token || (s.expires_at && Date.now() >= s.expires_at * 1000)) {
-        window.location.replace('login.html');
+      if (!s || !s.access_token) { window.location.replace('login.html'); return; }
+      var now = Date.now();
+      var expMs = (s.expires_at || 0) * 1000;
+      // 이미 만료 or 만료 임박이면 즉시 refresh
+      if (!s.expires_at || (expMs - now) < _REFRESH_THRESHOLD_MS) {
+        _refreshSession().then(function(newSess){
+          if (!newSess) window.location.replace('login.html');
+        });
       }
     } catch(e) { window.location.replace('login.html'); }
   })();
+
+  // 5분 간격 폴링 — 만료 임박이면 자동 갱신
+  setInterval(function() {
+    try {
+      var s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+      if (!s || !s.access_token) { window.location.replace('login.html'); return; }
+      var now = Date.now();
+      var expMs = (s.expires_at || 0) * 1000;
+      if ((expMs - now) < _REFRESH_THRESHOLD_MS) {
+        _refreshSession().then(function(newSess){
+          if (!newSess) window.location.replace('login.html');
+        });
+      }
+    } catch(e){}
+  }, 5 * 60 * 1000);
 
   function logout() {
     // 온보딩 키 초기화 (재로그인 시 다시 표시되도록)

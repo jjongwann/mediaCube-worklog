@@ -1965,15 +1965,70 @@
     var editingEntry = null;
     var _viewOnly = false;
 
-    /* ── Auth Guard ── */
+    /* ── Auth Guard + 세션 자동 갱신 ──
+       Supabase refresh_token 으로 access_token 자동 갱신
+       페이지 로드 시 만료 임박(5분) 이면 refresh, 5분 폴링으로 유지
+       dashboard.html 과 동일 규칙 (같은 SESSION_KEY = 'mc_session') */
+    var _SB_AUTH_URL = 'https://qkvatxowpkespdkxuoom.supabase.co/auth/v1/token?grant_type=refresh_token';
+    var _SB_AUTH_KEY = 'sb_publishable_2PIK53xa60wU0ds_L44pgQ_yfsoiot1';
+    var _REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+    var _refreshInFlight = null;
+
+    function _refreshSession() {
+      if (_refreshInFlight) return _refreshInFlight;
+      var s;
+      try { s = JSON.parse(localStorage.getItem('mc_session') || 'null'); } catch(e) { return Promise.resolve(null); }
+      if (!s || !s.refresh_token) return Promise.resolve(null);
+      _refreshInFlight = fetch(_SB_AUTH_URL, {
+        method: 'POST',
+        headers: { 'apikey': _SB_AUTH_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: s.refresh_token })
+      }).then(function(r){
+        return r.json().then(function(d){ return { ok: r.ok, data: d }; });
+      }).then(function(res){
+        _refreshInFlight = null;
+        if (!res.ok || !res.data || !res.data.access_token) return null;
+        var merged = Object.assign({}, s, res.data);
+        try { localStorage.setItem('mc_session', JSON.stringify(merged)); } catch(e){}
+        try {
+          _sbToken = merged.access_token;
+          if (typeof SB_HDR === 'object' && SB_HDR) SB_HDR.Authorization = 'Bearer ' + merged.access_token;
+        } catch(e){}
+        return merged;
+      }).catch(function(){
+        _refreshInFlight = null;
+        return null;
+      });
+      return _refreshInFlight;
+    }
+
     (function () {
       try {
         var s = JSON.parse(localStorage.getItem('mc_session') || 'null');
-        if (!s || !s.access_token || (s.expires_at && Date.now() >= s.expires_at * 1000)) {
-          window.location.replace('login.html');
+        if (!s || !s.access_token) { window.location.replace('login.html'); return; }
+        var now = Date.now();
+        var expMs = (s.expires_at || 0) * 1000;
+        if (!s.expires_at || (expMs - now) < _REFRESH_THRESHOLD_MS) {
+          _refreshSession().then(function(newSess){
+            if (!newSess) window.location.replace('login.html');
+          });
         }
       } catch (e) { window.location.replace('login.html'); }
     })();
+
+    setInterval(function() {
+      try {
+        var s = JSON.parse(localStorage.getItem('mc_session') || 'null');
+        if (!s || !s.access_token) { window.location.replace('login.html'); return; }
+        var now = Date.now();
+        var expMs = (s.expires_at || 0) * 1000;
+        if ((expMs - now) < _REFRESH_THRESHOLD_MS) {
+          _refreshSession().then(function(newSess){
+            if (!newSess) window.location.replace('login.html');
+          });
+        }
+      } catch(e){}
+    }, 5 * 60 * 1000);
 
     /* ── Supabase ── */
     var SB_URL = 'https://qkvatxowpkespdkxuoom.supabase.co';
