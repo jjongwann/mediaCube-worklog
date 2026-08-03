@@ -1535,6 +1535,12 @@
     </div>
   </div>
 
+  <!-- 개발자 대시보드 (임종완 주임 / developer 계정 전용) -->
+  <div id="dev-dashboard-btn" class="sidebar-item" style="display:none;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;margin:8px 12px 12px;padding:9px 12px;border-radius:10px;font-weight:700;box-shadow:0 2px 8px rgba(59,130,246,0.25)" onclick="openDevShowcase()" title="개발자 기능 카탈로그">
+    <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+    개발자 대시보드
+  </div>
+
   <div class="sidebar-section">
     <div class="sidebar-section-label sidebar-section-toggle" onclick="toggleSidebarSection('main')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none">
       <span>메인</span>
@@ -3137,6 +3143,11 @@
     }
     // 직원별 필터 셀렉트: 관리자 또는 전체 일지 열람 화이트리스트 계정에 노출
     try { if (typeof window._populateEmployeeFilter === 'function') window._populateEmployeeFilter(); } catch(e) {}
+    // 개발자 대시보드: developer(임종완 주임) 계정만 노출
+    var devBtn = document.getElementById('dev-dashboard-btn');
+    if (devBtn) {
+      devBtn.style.display = (typeof _currentUsername !== 'undefined' && _currentUsername === 'developer') ? '' : 'none';
+    }
   }
 
   /* ── Storage (Supabase 기반) ── */
@@ -13684,6 +13695,97 @@ window.__quote = (function() {
 // 사이드바 진입점 (전역)
 function openQuotePanel() {
   window.__quote.openPanel();
+}
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     개발자 대시보드 (기능 카탈로그) — developer 계정 전용
+     기존 대시보드 기능들의 진입점 카드를 세련되게 나열
+     ═══════════════════════════════════════════════════════════ -->
+<div id="dev-showcase-overlay" onclick="if(event.target===this)closeDevShowcase()" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9990;align-items:center;justify-content:center;padding:20px;box-sizing:border-box">
+  <div style="width:1100px;max-width:calc(100vw - 40px);height:85vh;max-height:900px;background:#f8fafc;border-radius:20px;box-shadow:0 24px 72px rgba(0,0,0,0.28);display:flex;flex-direction:column;overflow:hidden;font-family:inherit">
+    <!-- 헤더 -->
+    <div style="padding:22px 28px;background:linear-gradient(135deg,#4338ca 0%,#6366f1 50%,#3b82f6 100%);color:#fff;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+      <div>
+        <div style="font-size:11.5px;font-weight:700;letter-spacing:1.5px;color:rgba(255,255,255,0.7);margin-bottom:4px">DEVELOPER · TEST DASHBOARD</div>
+        <div style="font-size:22px;font-weight:800;letter-spacing:-0.3px">기능 카탈로그</div>
+        <div style="font-size:12.5px;font-weight:500;color:rgba(255,255,255,0.85);margin-top:4px">지금까지 구축된 모든 기능을 한 눈에 확인하고 진입하세요</div>
+      </div>
+      <button onclick="closeDevShowcase()" style="background:rgba(255,255,255,0.15);border:none;border-radius:12px;color:#fff;cursor:pointer;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1;transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">×</button>
+    </div>
+    <!-- 카드 그리드 -->
+    <div style="flex:1;overflow-y:auto;padding:28px">
+      <div id="dev-showcase-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px"></div>
+      <div style="margin-top:24px;padding:16px 20px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:12px;color:#4338ca;font-size:12.5px;line-height:1.6">
+        <strong>💡 안내</strong> · 이 페이지는 개발자(developer) 계정 전용 테스트 대시보드입니다. 각 카드를 클릭하면 해당 기능이 즉시 실행됩니다. 다른 사용자에게는 사이드바에도 노출되지 않습니다.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* 개발자 대시보드 — 카드 데이터 + 진입/렌더 */
+window._devShowcaseItems = [
+  { key:'history',   title:'업무 히스토리',       desc:'전체 일지 히스토리 열람',            grad:'#6366f1,#4338ca', icon:'clock',    action:function(){ if (typeof openHistoryPanel==='function') openHistoryPanel(); } },
+  { key:'perf',      title:'업무 성과',            desc:'직원별 성과 · 랭킹 확인',            grad:'#10b981,#059669', icon:'trophy',   action:function(){ if (typeof openAchievementPanel==='function') openAchievementPanel(); } },
+  { key:'directive', title:'업무 지시',            desc:'업무 지시 / 받은 업무 관리',         grad:'#2563eb,#1d4ed8', icon:'check',    action:function(){ if (typeof openDirectivePanel==='function') openDirectivePanel(); } },
+  { key:'sales',     title:'영업 활동',            desc:'기존/신규 고객 영업 활동 조회',      grad:'#f59e0b,#d97706', icon:'trend',    action:function(){ if (typeof openSalesActivityChooser==='function') openSalesActivityChooser(); } },
+  { key:'calendar',  title:'업무 공유 캘린더',     desc:'부서별 캘린더 · 공유 일정',          grad:'#ec4899,#db2777', icon:'calendar', action:function(){ if (typeof openSharedCalendarChooser==='function') openSharedCalendarChooser(); } },
+  { key:'sound',     title:'음원팀 업무 현황',     desc:'사운드 컨텐츠 사업부 현황 통계',     grad:'#8b5cf6,#7c3aed', icon:'users',    action:function(){ if (typeof openSoundTeamPanel==='function') openSoundTeamPanel(); } },
+  { key:'vendor',    title:'거래처별 매출 분석',   desc:'사운드/시스템 사업부 매출 분석',     grad:'#65a30d,#4d7c0f', icon:'shop',     action:function(){ if (typeof openVendorMenu==='function') openVendorMenu(); } },
+  { key:'bmat',      title:'BMAT 모니터링 통계',   desc:'채널별 BMAT 모니터링 수치',          grad:'#0891b2,#0e7490', icon:'chart',    action:function(){ if (typeof bmatToggleSection==='function') bmatToggleSection(); } },
+  { key:'msg',       title:'메시지',                desc:'사내 실시간 채팅 · 파일 첨부',       grad:'#4f46e5,#3730a3', icon:'msg',      action:function(){ if (typeof openMsgList==='function') openMsgList(); } }
+];
+
+// SVG 아이콘 (24x24, currentColor)
+window._devShowcaseIcon = function(name) {
+  var s = 'width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+  switch(name) {
+    case 'clock':    return '<svg '+s+'><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+    case 'trophy':   return '<svg '+s+'><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>';
+    case 'check':    return '<svg '+s+'><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>';
+    case 'trend':    return '<svg '+s+'><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>';
+    case 'calendar': return '<svg '+s+'><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+    case 'users':    return '<svg '+s+'><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+    case 'shop':     return '<svg '+s+'><path d="M3 3h18v4H3z"/><path d="M5 7v13h14V7"/><path d="M9 11h6"/><path d="M9 15h6"/></svg>';
+    case 'chart':    return '<svg '+s+'><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-5"/></svg>';
+    case 'msg':      return '<svg '+s+'><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+    default:         return '<svg '+s+'><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>';
+  }
+};
+
+window._renderDevShowcaseGrid = function() {
+  var grid = document.getElementById('dev-showcase-grid');
+  if (!grid) return;
+  grid.innerHTML = window._devShowcaseItems.map(function(it, idx) {
+    var iconHtml = window._devShowcaseIcon(it.icon);
+    return '<button data-idx="' + idx + '" onclick="_devShowcaseClick(' + idx + ')"'
+      + ' style="text-align:left;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px;cursor:pointer;transition:all .18s;box-shadow:0 1px 3px rgba(0,0,0,0.04);display:flex;flex-direction:column;gap:10px;font-family:inherit"'
+      + ' onmouseover="this.style.transform=\'translateY(-3px)\';this.style.boxShadow=\'0 12px 28px rgba(0,0,0,0.12)\';this.style.borderColor=\'#c7d2fe\'"'
+      + ' onmouseout="this.style.transform=\'translateY(0)\';this.style.boxShadow=\'0 1px 3px rgba(0,0,0,0.04)\';this.style.borderColor=\'#e2e8f0\'">'
+      + '<div style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,' + it.grad + ');color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.15)">'
+      +   iconHtml
+      + '</div>'
+      + '<div style="font-size:14.5px;font-weight:800;color:#0f172a;letter-spacing:-0.2px">' + it.title + '</div>'
+      + '<div style="font-size:11.5px;color:#64748b;line-height:1.5">' + it.desc + '</div>'
+      + '</button>';
+  }).join('');
+};
+
+window._devShowcaseClick = function(idx) {
+  var it = window._devShowcaseItems[idx];
+  if (!it) return;
+  try { closeDevShowcase(); } catch(e) {}
+  try { if (typeof it.action === 'function') it.action(); }
+  catch(e) { console.error('[devShowcase] action failed', it.key, e); }
+};
+
+function openDevShowcase() {
+  window._renderDevShowcaseGrid();
+  document.getElementById('dev-showcase-overlay').style.display = 'flex';
+}
+function closeDevShowcase() {
+  document.getElementById('dev-showcase-overlay').style.display = 'none';
 }
 </script>
 
