@@ -9332,6 +9332,14 @@
       w.style.boxShadow = 'none';
       body.appendChild(w);
     }
+    // 하위 모달 오버레이(#bmat-input-overlay / #bmat-cumul-overlay)를 document.body 로 이동.
+    // dev-mode + view-catalog 모드에서 .content 내부 요소를 강제로 display:none 처리하는
+    // CSS 규칙(body.dev-mode.view-catalog > .main > .content > *:not(#dev-mode-wrap))에 의해
+    // 오버레이가 열리지 않는 문제 해결.
+    ['bmat-input-overlay','bmat-cumul-overlay'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el && el.parentNode !== document.body) document.body.appendChild(el);
+    });
   }
 
   // 사이드바 'BMAT 모니터링 통계' 메뉴 (#sidebar-bmat-btn) 에서 호출됨.
