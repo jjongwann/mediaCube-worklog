@@ -382,14 +382,6 @@
       min-width: 220px;
     }
 
-    .col-task-hrs {
-      width: 310px;
-      min-width: 310px;
-      max-width: 310px;
-      text-align: center;
-      white-space: nowrap;
-    }
-
     .col-task-del {
       width: 30px;
       text-align: center;
@@ -1566,11 +1558,6 @@
     <!-- Metrics -->
     <div class="metrics-row">
       <div class="metric-card">
-        <input class="metric-val" id="metric-time" type="text" value="—" readonly
-          style="font-size:15px;line-height:1.3">
-        <div class="metric-lbl">작업 시간</div>
-      </div>
-      <div class="metric-card">
         <input class="metric-val" id="metric-done" type="text" value="0" readonly>
         <div class="metric-lbl">완료 업무</div>
       </div>
@@ -1602,7 +1589,6 @@
             <th class="col-task-status">상태</th>
             <th class="col-task-name">업무명</th>
             <th class="col-task-detail">업무 내용</th>
-            <th class="col-task-hrs">시간 <span style="font-size:10px;font-weight:400;color:#9ca3af">(시작 ~ 종료)</span></th>
             <th class="col-task-del"></th>
           </tr>
         </thead>
@@ -1612,17 +1598,6 @@
             <td class="col-task-status"><span class="task-status status-todo">예정</span></td>
             <td class="col-task-name"><textarea class="task-text" rows="1" placeholder="업무명 입력"></textarea></td>
             <td class="col-task-detail"><textarea class="task-detail" rows="1" placeholder="업무 내용을 입력하세요"></textarea></td>
-            <td class="col-task-hrs">
-              <div class="time-range-wrap"><button type="button" class="t-time-btn t-start" data-val=""><span
-                    class="t-time-label">--</span><svg width="9" height="6" viewBox="0 0 10 6">
-                    <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"
-                      stroke-linejoin="round" />
-                  </svg></button><span class="time-sep">—</span><button type="button" class="t-time-btn t-end"
-                  data-val=""><span class="t-time-label">--</span><svg width="9" height="6" viewBox="0 0 10 6">
-                    <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"
-                      stroke-linejoin="round" />
-                  </svg></button><span class="time-duration"></span></div>
-            </td>
             <td class="col-task-del"><button class="task-del" onclick="deleteTask(this)" title="삭제">×</button></td>
           </tr>
         </tbody>
@@ -2747,28 +2722,6 @@
           ? '<input type="text" class="task-detail" value="' + safeDetail + '"' + ro + '>'
           : '<textarea class="task-detail" rows="1" placeholder="업무 내용을 입력하세요"></textarea>')
         + '</td>'
-        + '<td class="col-task-hrs"><div class="time-range-wrap">'
-        + (readonly
-          ? '<span style="font-size:13px;color:#374151;font-weight:500">' + (startTime && endTime ? startTime + ' — ' + endTime : '—') + '</span>'
-          + (function () {
-            if (!startTime || !endTime) return '';
-            var sp = startTime.split(':'), ep = endTime.split(':');
-            if (sp.length < 2 || ep.length < 2) return '';
-            var diff = (parseInt(ep[0]) * 60 + parseInt(ep[1])) - (parseInt(sp[0]) * 60 + parseInt(sp[1]));
-            if (diff <= 0) return '';
-            return '<span class="time-duration visible">' + fmtDuration(diff) + '</span>';
-          })()
-          : '<button type="button" class="t-time-btn t-start' + (startTime ? ' has-val' : '') + '" data-val="' + (startTime || '') + '">'
-          + '<span class="t-time-label">' + (startTime || '--') + '</span>'
-          + '<svg width="9" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-          + '</button>'
-          + '<span class="time-sep">—</span>'
-          + '<button type="button" class="t-time-btn t-end' + (endTime ? ' has-val' : '') + '" data-val="' + (endTime || '') + '">'
-          + '<span class="t-time-label">' + (endTime || '--') + '</span>'
-          + '<svg width="9" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-          + '</button>')
-        + '<span class="time-duration"></span>'
-        + '</div></td>'
         + '<td class="col-task-del">' + (readonly ? '' : '<button class="task-del" onclick="deleteTask(this)" title="삭제">×</button>') + '</td>';
     }
 
