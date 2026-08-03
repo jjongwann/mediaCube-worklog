@@ -322,8 +322,22 @@
 
   <div id="dsGrid" class="ds-grid"></div>
 
-  <div class="ds-notice">
-    <strong>💡 안내</strong> · 이 페이지는 개발자(developer) 계정 전용 테스트 대시보드입니다. 카드 클릭 시 메인 대시보드로 이동하며 URL 파라미터(<code>?open=</code>)로 해당 기능이 자동 실행됩니다.
+  <div id="dsNotice" class="ds-notice">
+    <strong>💡 안내</strong> · 이 페이지는 개발자(developer) 계정 전용 테스트 대시보드입니다. 카드 클릭 시 메인 영역에 해당 기능이 임베드되어 즉시 실행됩니다. 뒤로가기 버튼으로 카탈로그로 돌아오세요.
+  </div>
+
+  <!-- 임베드 뷰: 카드 클릭 시 표시 -->
+  <div id="dsEmbedView" style="display:none;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 4px">
+      <button onclick="_dsBackToGrid()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;font-size:12.5px;font-weight:700;color:#334155;cursor:pointer;transition:all .15s;font-family:inherit" onmouseover="this.style.borderColor='#c7d2fe';this.style.color='#4338ca'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#334155'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        카탈로그로 돌아가기
+      </button>
+      <div id="dsEmbedTitle" style="font-size:15px;font-weight:800;color:#0f172a;letter-spacing:-0.2px"></div>
+    </div>
+    <div id="dsEmbedFrameWrap" style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;box-shadow:0 12px 32px rgba(15,23,42,0.08);height:calc(100vh - 200px);min-height:600px">
+      <iframe id="dsEmbedFrame" src="about:blank" title="기능 미리보기" style="width:100%;height:100%;border:0;display:block"></iframe>
+    </div>
   </div>
 </main>
 
@@ -402,16 +416,41 @@
       return;
     }
     grid.innerHTML = list.map(function(it){
-      return '<a class="ds-card" href="업무일지-dashboard.html?open=' + it.key + '">'
+      return '<button type="button" class="ds-card" onclick="_dsOpenEmbed(\'' + it.key + '\',\'' + it.title.replace(/'/g,"\\'") + '\')">'
         + '<div class="ds-card-icon" style="background:linear-gradient(135deg,' + it.grad + ')">' + _icon(it.icon) + '</div>'
         + '<div class="ds-card-title">' + it.title + '</div>'
         + '<div class="ds-card-desc">' + it.desc + '</div>'
         + '<div class="ds-card-cta"><span>바로가기</span>'
         + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>'
         + '</div>'
-        + '</a>';
+        + '</button>';
     }).join('');
   }
+
+  /* 카드 클릭 → iframe 안에 dashboard.html?embed=1&open=<key> 로드
+     dashboard 는 embed 모드에서 사이드바/topbar/기본 콘텐츠를 숨기고 오버레이만 노출 */
+  function _dsOpenEmbed(key, title) {
+    var frame = document.getElementById('dsEmbedFrame');
+    var titleEl = document.getElementById('dsEmbedTitle');
+    if (titleEl) titleEl.textContent = title;
+    if (frame) frame.src = '업무일지-dashboard.html?embed=1&open=' + encodeURIComponent(key);
+    document.getElementById('dsGrid').style.display = 'none';
+    document.querySelector('.ds-toolbar').style.display = 'none';
+    document.getElementById('dsNotice').style.display = 'none';
+    var embed = document.getElementById('dsEmbedView');
+    if (embed) embed.style.display = 'flex';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function _dsBackToGrid() {
+    var frame = document.getElementById('dsEmbedFrame');
+    if (frame) frame.src = 'about:blank'; // 폴링/타이머 정리
+    document.getElementById('dsEmbedView').style.display = 'none';
+    document.getElementById('dsGrid').style.display = '';
+    document.querySelector('.ds-toolbar').style.display = '';
+    document.getElementById('dsNotice').style.display = '';
+  }
+  window._dsOpenEmbed = _dsOpenEmbed;
+  window._dsBackToGrid = _dsBackToGrid;
 
   function _dsSetCat(el, cat) {
     _currentCat = cat;

@@ -36,6 +36,17 @@
     overflow: hidden;
   }
 
+  /* ── Embed 모드 (개발자 대시보드 iframe 안에서 특정 기능만 노출) ──
+     사이드바 · topbar · 메인 콘텐츠 자체 숨기고, 오버레이/모달 UI 만 그대로 노출 */
+  body.embed-mode > aside,
+  body.embed-mode > main > .topbar,
+  body.embed-mode > main > .content {
+    display: none !important;
+  }
+  body.embed-mode > main {
+    background: #f8fafc;
+  }
+
   /* ── Sidebar ── */
   .sidebar {
     width: var(--sidebar-w);
@@ -1524,6 +1535,14 @@
 </style>
 </head>
 <body>
+<script>
+  /* 개발자 대시보드 iframe embed 모드: 사이드바·topbar·기본 콘텐츠 숨김 (CSS body.embed-mode 규칙) */
+  try {
+    if (new URLSearchParams(window.location.search).get('embed') === '1') {
+      document.body.classList.add('embed-mode');
+    }
+  } catch(e){}
+</script>
 
 <!-- Sidebar -->
 <aside class="sidebar">
