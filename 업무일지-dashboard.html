@@ -1535,11 +1535,11 @@
     </div>
   </div>
 
-  <!-- 개발자 대시보드 (임종완 주임 / developer 계정 전용) -->
-  <div id="dev-dashboard-btn" class="sidebar-item" style="display:none;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;margin:8px 12px 12px;padding:9px 12px;border-radius:10px;font-weight:700;box-shadow:0 2px 8px rgba(59,130,246,0.25)" onclick="openDevShowcase()" title="개발자 기능 카탈로그">
+  <!-- 개발자 대시보드 (임종완 주임 / developer 계정 전용) — 별도 페이지로 이동 -->
+  <a id="dev-dashboard-btn" href="업무일지-devshowcase.html" class="sidebar-item" style="display:none;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;margin:8px 12px 12px;padding:9px 12px;border-radius:10px;font-weight:700;box-shadow:0 2px 8px rgba(59,130,246,0.25);text-decoration:none" title="개발자 기능 카탈로그">
     <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
     개발자 대시보드
-  </div>
+  </a>
 
   <div class="sidebar-section">
     <div class="sidebar-section-label sidebar-section-toggle" onclick="toggleSidebarSection('main')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none">
@@ -13781,12 +13781,42 @@ window._devShowcaseClick = function(idx) {
 };
 
 function openDevShowcase() {
-  window._renderDevShowcaseGrid();
-  document.getElementById('dev-showcase-overlay').style.display = 'flex';
+  // 별도 페이지(업무일지-devshowcase.html) 로 이동
+  window.location.href = '업무일지-devshowcase.html';
 }
 function closeDevShowcase() {
-  document.getElementById('dev-showcase-overlay').style.display = 'none';
+  var el = document.getElementById('dev-showcase-overlay');
+  if (el) el.style.display = 'none';
 }
+
+/* 개발자 대시보드에서 카드 클릭 시 ?open=<key> 로 이동 → 로드 완료 후 해당 기능 자동 실행 */
+window.addEventListener('load', function() {
+  try {
+    var p = new URLSearchParams(window.location.search);
+    var key = p.get('open');
+    if (!key) return;
+    // URL 정리 (뒤로가기 시 재실행 방지)
+    try { history.replaceState({}, document.title, window.location.pathname); } catch(e) {}
+    // 렌더/세션 준비 완료 후 실행 (일부 함수가 초기 데이터 fetch 이후에만 안전하게 동작)
+    setTimeout(function() {
+      try {
+        var actions = {
+          history:   function(){ if (typeof openHistoryPanel==='function') openHistoryPanel(); },
+          perf:      function(){ if (typeof openAchievementPanel==='function') openAchievementPanel(); },
+          directive: function(){ if (typeof openDirectivePanel==='function') openDirectivePanel(); },
+          sales:     function(){ if (typeof openSalesActivityChooser==='function') openSalesActivityChooser(); },
+          calendar:  function(){ if (typeof openSharedCalendarChooser==='function') openSharedCalendarChooser(); },
+          sound:     function(){ if (typeof openSoundTeamPanel==='function') openSoundTeamPanel(); },
+          vendor:    function(){ if (typeof openVendorMenu==='function') openVendorMenu(); },
+          bmat:      function(){ if (typeof bmatToggleSection==='function') bmatToggleSection(); },
+          msg:       function(){ if (typeof openMsgList==='function') openMsgList(); }
+        };
+        var fn = actions[key];
+        if (fn) fn();
+      } catch(err) { console.warn('[devShowcase route] failed', key, err); }
+    }, 500);
+  } catch(e){}
+});
 </script>
 
 <script>
