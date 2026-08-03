@@ -1535,42 +1535,52 @@
   </div>
 
   <div class="sidebar-section">
-    <div class="sidebar-section-label">메인</div>
-    <div class="sidebar-item active" data-filter="all" onclick="setFilter('all')">
-      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
-      전체 일지
-      <span class="sidebar-item-count" id="cnt-all">0</span>
+    <div class="sidebar-section-label sidebar-section-toggle" onclick="toggleSidebarSection('main')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none">
+      <span>메인</span>
+      <span class="sidebar-section-caret" id="caret-main" style="font-size:9px;color:#94a3b8;transition:transform .2s">▶</span>
     </div>
-    <div class="sidebar-item" data-filter="pinned" onclick="setFilter('pinned')">
-      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
-      즐겨찾기
-      <span class="sidebar-item-count" id="cnt-pinned">0</span>
-    </div>
-    <div class="sidebar-item" data-filter="today" onclick="setFilter('today')">
-      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
-      오늘
-      <span class="sidebar-item-count" id="cnt-today">0</span>
-    </div>
-    <div class="sidebar-item" data-filter="week" onclick="setFilter('week')">
-      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="8" cy="14" r="0.5" fill="currentColor"/><circle cx="12" cy="14" r="0.5" fill="currentColor"/><circle cx="16" cy="14" r="0.5" fill="currentColor"/></svg></span>
-      이번 주
-      <span class="sidebar-item-count" id="cnt-week">0</span>
+    <div id="sidebar-section-main-body" style="display:none">
+      <div class="sidebar-item active" data-filter="all" onclick="setFilter('all')">
+        <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
+        전체 일지
+        <span class="sidebar-item-count" id="cnt-all">0</span>
+      </div>
+      <div class="sidebar-item" data-filter="pinned" onclick="setFilter('pinned')">
+        <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
+        즐겨찾기
+        <span class="sidebar-item-count" id="cnt-pinned">0</span>
+      </div>
+      <div class="sidebar-item" data-filter="today" onclick="setFilter('today')">
+        <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
+        오늘
+        <span class="sidebar-item-count" id="cnt-today">0</span>
+      </div>
+      <div class="sidebar-item" data-filter="week" onclick="setFilter('week')">
+        <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="8" cy="14" r="0.5" fill="currentColor"/><circle cx="12" cy="14" r="0.5" fill="currentColor"/><circle cx="16" cy="14" r="0.5" fill="currentColor"/></svg></span>
+        이번 주
+        <span class="sidebar-item-count" id="cnt-week">0</span>
+      </div>
     </div>
   </div>
 
   <div class="sidebar-divider"></div>
 
   <div class="sidebar-section">
-    <div class="sidebar-section-label">상태</div>
-    <div class="sidebar-item" data-filter="done" onclick="setFilter('done')">
-      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-      완료
-      <span class="sidebar-item-count" id="cnt-done">0</span>
+    <div class="sidebar-section-label sidebar-section-toggle" onclick="toggleSidebarSection('status')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none">
+      <span>상태</span>
+      <span class="sidebar-section-caret" id="caret-status" style="font-size:9px;color:#94a3b8;transition:transform .2s">▶</span>
     </div>
-    <div class="sidebar-item" data-filter="wip" onclick="setFilter('wip')">
-      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
-      진행 중
-      <span class="sidebar-item-count" id="cnt-wip">0</span>
+    <div id="sidebar-section-status-body" style="display:none">
+      <div class="sidebar-item" data-filter="done" onclick="setFilter('done')">
+        <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        완료
+        <span class="sidebar-item-count" id="cnt-done">0</span>
+      </div>
+      <div class="sidebar-item" data-filter="wip" onclick="setFilter('wip')">
+        <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        진행 중
+        <span class="sidebar-item-count" id="cnt-wip">0</span>
+      </div>
     </div>
   </div>
 
@@ -4724,6 +4734,41 @@
     var mm = d.getMonth()+1, dd = d.getDate();
     return d.getFullYear() + '. ' + (mm<10?'0'+mm:mm) + '. ' + (dd<10?'0'+dd:dd);
   }
+
+  /* ── 사이드바 섹션 접힘/펼침 (메인 · 상태) ──
+     초기: 접힘 상태. 사용자가 라벨 클릭 시 토글. localStorage 로 상태 유지. */
+  var _SB_SECTION_KEY = 'mc_sb_section_open';
+  function _getSbSectionState() {
+    try { return JSON.parse(localStorage.getItem(_SB_SECTION_KEY) || '{}') || {}; }
+    catch(e) { return {}; }
+  }
+  function _saveSbSectionState(state) {
+    try { localStorage.setItem(_SB_SECTION_KEY, JSON.stringify(state)); } catch(e){}
+  }
+  function toggleSidebarSection(name) {
+    var body = document.getElementById('sidebar-section-' + name + '-body');
+    var caret = document.getElementById('caret-' + name);
+    if (!body) return;
+    var isOpen = body.style.display !== 'none';
+    body.style.display = isOpen ? 'none' : '';
+    if (caret) caret.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+    var st = _getSbSectionState();
+    st[name] = !isOpen;
+    _saveSbSectionState(st);
+  }
+  // 페이지 로드 시 저장된 상태 복원 (기본은 접힘)
+  (function _restoreSidebarSections(){
+    var st = _getSbSectionState();
+    ['main', 'status'].forEach(function(name){
+      if (st[name] === true) {
+        var body = document.getElementById('sidebar-section-' + name + '-body');
+        var caret = document.getElementById('caret-' + name);
+        if (body) body.style.display = '';
+        if (caret) caret.style.transform = 'rotate(90deg)';
+      }
+    });
+  })();
+  window.toggleSidebarSection = toggleSidebarSection;
 
   /* ── Actions ── */
   function setFilter(f) {
