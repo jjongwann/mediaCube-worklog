@@ -15076,17 +15076,20 @@ window.__vendor = (function() {
   }
 
   // ── 프로젝트 복사 (시스템 사업부 전용) ──
-  // 지정한 (vendor_name + project_name) 그룹의 대표 필드를 신규 등록 폼에 프리필한다.
-  // 프로젝트명·계산서 날짜·매출액을 사용자가 수정하고 [저장] 하면 신규 row 로 POST 됨.
-  function copyProject(vendorName, projectName) {
+  // 지정한 프로젝트(project_id 우선, legacy 는 project_name)의 대표 필드를 신규 등록 폼에 프리필.
+  // 저장 시 saveAdd 가 새 project_id 를 자동 부여 → 같은 이름의 별개 프로젝트로 그룹핑됨.
+  function copyProject(vendorName, projectName, projectId) {
     var cat = _state.currentCat;
     if (!cat || _CAT_DEPT[cat] !== 'system') return;
-    var pnKey = (projectName || '').trim();
+    var pnKey  = (projectName || '').trim();
+    var pidKey = (projectId   || '').trim();
     var groupRows = _state.rows.filter(function(r){
       if (r.category !== cat) return false;
       if (r.vendor_name !== vendorName) return false;
-      var rpn = (r.extra && r.extra.project_name) ? String(r.extra.project_name).trim() : '';
-      return rpn === pnKey;
+      var rpid = (r.extra && r.extra.project_id)   ? String(r.extra.project_id).trim()   : '';
+      var rpn  = (r.extra && r.extra.project_name) ? String(r.extra.project_name).trim() : '';
+      if (pidKey) return rpid === pidKey;
+      return (rpn === pnKey) && !rpid;
     });
     if (!groupRows.length) { _toast('원본 프로젝트를 찾을 수 없습니다'); return; }
 
@@ -15408,6 +15411,9 @@ window.__vendor = (function() {
       // 시스템 사업부 필수 검증 — 프로젝트명만 필수
       // 계산서 날짜는 필수 아님 (미확정 상태로 등록 가능, 목록에서 '-' 표시 후 수정 모달에서 채움)
       if (!sysExtra.project_name) { _toast('프로젝트명을 입력해주세요'); return; }
+      // 프로젝트 고유 ID 부여 — 같은 (거래처명, 프로젝트명) 조합이 있어도 별개 프로젝트로 그룹핑되도록.
+      // 복사 기능 등으로 동일한 이름의 프로젝트가 생성되어도 각각 별개의 프로젝트로 관리됨.
+      sysExtra.project_id = _genId();
     }
 
     var monthKey;
@@ -15533,10 +15539,13 @@ window.__vendor = (function() {
   }
 
   // ── 시스템 사업부 그룹 키 헬퍼 ──
-  // 시스템 카테고리에서는 (vendor_name + project_name) 조합을 그룹 단위로 사용.
-  // 같은 거래처명이라도 프로젝트가 다르면 별개 행으로 노출.
-  // project_name 이 비어있는 legacy row 는 row.id 로 fallback (데이터 손실 방지).
+  // 시스템 카테고리 그룹 단위:
+  //   1순위) extra.project_id 가 있으면 그것만으로 그룹핑 → 같은 (거래처명, 프로젝트명) 이라도 별개 프로젝트
+  //   2순위) legacy row (project_id 없음) → (vendor_name + project_name) 조합
+  //   3순위) project_name 도 없는 최초 legacy → row.id 로 fallback
   function _sysRowGroupKey(r) {
+    var pid = (r && r.extra && r.extra.project_id) ? String(r.extra.project_id).trim() : '';
+    if (pid) return 'pid_' + pid;
     var pn = (r && r.extra && r.extra.project_name) ? String(r.extra.project_name).trim() : '';
     return String((r && r.vendor_name) || '') + '\x00' + (pn || ('__id_' + (r && r.id)));
   }
@@ -15612,6 +15621,7 @@ window.__vendor = (function() {
           months: {}, monthsCount: {}, ids: {},
           vendorName: r.vendor_name,
           projectName: isSysCatGroup ? ((r.extra && r.extra.project_name) ? String(r.extra.project_name).trim() : '') : '',
+          projectId:   isSysCatGroup ? ((r.extra && r.extra.project_id)   ? String(r.extra.project_id).trim()   : '') : '',
           hasInvoice: false // 시스템: 그룹 안에 계산서 날짜 있는 row 존재 여부
         };
       }
@@ -15908,6 +15918,7 @@ window.__vendor = (function() {
       return {
         name: isSysCatGroup ? (byVendor[n].vendorName || '') : n,
         projectName: isSysCatGroup ? (byVendor[n].projectName || '') : '',
+        projectId:   isSysCatGroup ? (byVendor[n].projectId   || '') : '',
         gkey: n,
         cur: cur,
         curCount: curCount,
@@ -16065,9 +16076,11 @@ window.__vendor = (function() {
       }
       var sparkSvg = _spark(v.trend, 110, 28);
       var nameEsc = _esc(v.name).replace(/'/g,"\\'");
-      // 시스템: editVendor 호출 시 프로젝트명 (그룹 식별자) 을 함께 전달
-      var pnEsc = isSysCardRow ? _esc(v.projectName || '').replace(/'/g,"\\'") : '';
-      var editArgs = isSysCardRow ? ("'" + nameEsc + "', null, '" + pnEsc + "'") : ("'" + nameEsc + "'");
+      // 시스템: editVendor/copyProject 호출 시 프로젝트명 + project_id 를 함께 전달
+      // project_id 는 _genId() 로 생성된 alphanumeric-only 문자열이라 quote escape 불필요.
+      var pnEsc  = isSysCardRow ? _esc(v.projectName || '').replace(/'/g,"\\'") : '';
+      var pidEsc = isSysCardRow ? (v.projectId || '') : '';
+      var editArgs = isSysCardRow ? ("'" + nameEsc + "', null, '" + pnEsc + "', '" + pidEsc + "'") : ("'" + nameEsc + "'");
       // 담당자: 사운드는 name 기준, 시스템은 그룹 rows 마지막 값
       var mgr = isSysCardRow
         ? _pickFieldFromRows(_groupRowsOf(cat, v.gkey, true), 'manager')
@@ -16085,7 +16098,7 @@ window.__vendor = (function() {
       var editBtnHtml;
       if (isSysCardRow) {
         // 시스템 사업부: '복사' 텍스트 버튼 + '✎' 편집 아이콘 병치
-        var copyArgs = "'" + nameEsc + "', '" + pnEsc + "'";
+        var copyArgs = "'" + nameEsc + "', '" + pnEsc + "', '" + pidEsc + "'";
         editBtnHtml = '<div style="text-align:center;display:flex;gap:3px;justify-content:center;align-items:center">'
           + '<button onclick="event.stopPropagation();__vendor.copyProject(' + copyArgs + ')" title="이 프로젝트를 복사하여 신규 등록" style="background:#fff;border:1px solid #e2e8f0;color:#64748b;cursor:pointer;font-size:10.5px;padding:2px 7px;border-radius:5px;font-weight:700;font-family:inherit;line-height:1.4" onmouseover="this.style.color=\'#2563eb\';this.style.borderColor=\'#bfdbfe\';this.style.background=\'#eff6ff\'" onmouseout="this.style.color=\'#64748b\';this.style.borderColor=\'#e2e8f0\';this.style.background=\'#fff\'">복사</button>'
           + '<button onclick="__vendor.editVendor(' + editArgs + ')" title="수정" style="background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:5px" onmouseover="this.style.color=\'#65a30d\';this.style.background=\'#f7fee7\'" onmouseout="this.style.color=\'#cbd5e1\';this.style.background=\'none\'">✎</button>'
@@ -17066,21 +17079,27 @@ window.__vendor = (function() {
     if (sel) _editLoadYear(sel.value);
   }
 
-  function editVendor(name, catOverride, projectName) {
+  function editVendor(name, catOverride, projectName, projectId) {
     if (!name) return;
     // 신규 고객 패널에서는 _state.currentCat = 'new_customer' (가상 카테고리) 라
     // 실제 DB 카테고리(needle/blanket_paid/blanket_free)를 catOverride 로 받아야 함
     var cat = catOverride || _state.currentCat;
     var isSysEditCatEV = (_CAT_DEPT[cat] === 'system');
-    // 시스템: (vendor_name, project_name) 그룹만 편집. 나머지 프로젝트 row 는 영향 없음.
+    // 시스템: (vendor_name + project_id) 또는 legacy (vendor_name + project_name) 그룹만 편집.
     var editProjectName = isSysEditCatEV ? String(projectName || '').trim() : '';
-    // 대상 rows filter — 사운드는 name 기준, 시스템은 그룹 기준 (project_name 이 같은 row 만)
+    var editProjectId   = isSysEditCatEV ? String(projectId   || '').trim() : '';
+    // 대상 rows filter:
+    //  - 사운드: name 기준
+    //  - 시스템 (project_id 있음): 해당 pid 를 가진 row 만 매치 → 같은 이름의 다른 프로젝트와 격리
+    //  - 시스템 (legacy, project_id 없음): project_name 일치 & pid 없는 row 만 매치
+    //    → pid 부여된 프로젝트와 legacy 프로젝트가 우연히 같은 이름을 가져도 서로 격리됨
     var _isTargetRow = function(r){
       if (r.category !== cat || r.vendor_name !== name) return false;
       if (!isSysEditCatEV) return true;
-      var rpn = (r.extra && r.extra.project_name) ? String(r.extra.project_name).trim() : '';
-      // legacy row(project_name 없음)는 editProjectName 이 빈 값일 때만 매치
-      return rpn === editProjectName;
+      var rpid = (r.extra && r.extra.project_id)   ? String(r.extra.project_id).trim()   : '';
+      var rpn  = (r.extra && r.extra.project_name) ? String(r.extra.project_name).trim() : '';
+      if (editProjectId) return rpid === editProjectId;
+      return (rpn === editProjectName) && !rpid;
     };
     var curMgr, curSrc;
     if (isSysEditCatEV) {
@@ -17117,7 +17136,7 @@ window.__vendor = (function() {
     var curRegDate = _isoToDateInput(earliestIso);
 
     // 연도/월 데이터는 _editLoadYear 에서 채움 (연도 독립 정보만 먼저 구성)
-    _editCtx = { vendorName: name, year: null, category: cat, monthRows: {}, prevManager: curMgr, prevSource: curSrc, prevActive: explicitActive, curActive: curActive, prevRegDate: curRegDate, projectName: editProjectName, isTargetRow: _isTargetRow };
+    _editCtx = { vendorName: name, year: null, category: cat, monthRows: {}, prevManager: curMgr, prevSource: curSrc, prevActive: explicitActive, curActive: curActive, prevRegDate: curRegDate, projectName: editProjectName, projectId: editProjectId, isTargetRow: _isTargetRow };
 
     document.getElementById('vendor-edit-name').textContent = name;
     document.getElementById('vendor-edit-name-input').value = name;
@@ -17410,6 +17429,9 @@ window.__vendor = (function() {
         if (sysFieldDelta) {
           Object.keys(sysFieldDelta).forEach(function(k){ if (sysFieldDelta[k]) initExtra[k] = sysFieldDelta[k]; });
         }
+        // 프로젝트 고유 ID 상속 — 같은 프로젝트 내 매출 추가 시 기존 그룹과 동일한 pid 로 유지.
+        // legacy 그룹(pid 없음)에서 추가할 땐 pid 를 부여하지 않고 legacy 그룹핑 유지.
+        if (ctx.projectId) initExtra.project_id = ctx.projectId;
         ops.push({ type: 'post', body: { id: _genId(), category: ctx.category, vendor_name: newName, month_key: mk, amount: r.amount || 0, extra: initExtra, updated_at: new Date().toISOString() } });
         hasAnyRow = true;
       });
