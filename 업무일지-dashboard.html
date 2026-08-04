@@ -15075,6 +15075,94 @@ window.__vendor = (function() {
     document.getElementById('vendor-add-overlay').style.display = 'none';
   }
 
+  // ── 프로젝트 복사 (시스템 사업부 전용) ──
+  // 지정한 (vendor_name + project_name) 그룹의 대표 필드를 신규 등록 폼에 프리필한다.
+  // 프로젝트명·계산서 날짜·매출액을 사용자가 수정하고 [저장] 하면 신규 row 로 POST 됨.
+  function copyProject(vendorName, projectName) {
+    var cat = _state.currentCat;
+    if (!cat || _CAT_DEPT[cat] !== 'system') return;
+    var pnKey = (projectName || '').trim();
+    var groupRows = _state.rows.filter(function(r){
+      if (r.category !== cat) return false;
+      if (r.vendor_name !== vendorName) return false;
+      var rpn = (r.extra && r.extra.project_name) ? String(r.extra.project_name).trim() : '';
+      return rpn === pnKey;
+    });
+    if (!groupRows.length) { _toast('원본 프로젝트를 찾을 수 없습니다'); return; }
+
+    // 필드별 마지막 non-empty 값 (pickField 로직 동일)
+    var pick = function(field){
+      var v = '';
+      groupRows.forEach(function(r){ if (r.extra && r.extra[field]) v = r.extra[field]; });
+      return v;
+    };
+
+    // 대표 amount: 계산서 날짜가 가장 최신인 row 우선, 없으면 첫 row
+    var repRow = null;
+    groupRows.forEach(function(r){
+      if (!repRow) { repRow = r; return; }
+      var inv = r.extra && r.extra.invoice_date;
+      var curInv = repRow.extra && repRow.extra.invoice_date;
+      if (inv && (!curInv || inv > curInv)) repRow = r;
+    });
+    var repAmount = (repRow && typeof repRow.amount === 'number') ? repRow.amount : 0;
+    var repSource = pick('source');
+
+    // 장비 배열 (equipments 우선, 없으면 equipment_name/serial_no 폴백)
+    var equipments = [];
+    var seenEq = {};
+    groupRows.forEach(function(r){
+      var ex = r.extra || {};
+      if (Array.isArray(ex.equipments)) {
+        ex.equipments.forEach(function(eq){
+          var nm = (eq && eq.name) ? String(eq.name) : '';
+          var sr = (eq && eq.serial) ? String(eq.serial) : '';
+          var key = nm + '|' + sr;
+          if (!seenEq[key] && (nm || sr)) { seenEq[key] = true; equipments.push({ name: nm, serial: sr }); }
+        });
+      } else if (ex.equipment_name || ex.serial_no) {
+        var nm2 = ex.equipment_name ? String(ex.equipment_name) : '';
+        var sr2 = ex.serial_no ? String(ex.serial_no) : '';
+        var key2 = nm2 + '|' + sr2;
+        if (!seenEq[key2]) { seenEq[key2] = true; equipments.push({ name: nm2, serial: sr2 }); }
+      }
+    });
+
+    // 폼 열기 (초기화 + 카테고리 UI 전환)
+    openAdd();
+
+    // openAdd 내부 setTimeout(80) 이후 값 프리필 — 100ms 로 안전 대기
+    setTimeout(function(){
+      var setVal = function(id, v){ var el = document.getElementById(id); if (el) el.value = v || ''; };
+      setVal('vendor-add-name', vendorName || '');
+      setVal('vendor-add-sys-project', pnKey || '');
+      setVal('vendor-add-sys-delivery-date', pick('delivery_date'));
+      setVal('vendor-add-sys-invoice-date', pick('invoice_date'));
+      setVal('vendor-add-sys-order-from', pick('order_from'));
+      setVal('vendor-add-sys-delivery-to', pick('delivery_to'));
+      setVal('vendor-add-sys-note', pick('note'));
+      var st = pick('status');
+      var stSel = document.getElementById('vendor-add-sys-status');
+      if (stSel && (st === 'wip' || st === 'todo')) stSel.value = st;
+      var amtEl = document.getElementById('vendor-add-amount');
+      if (amtEl && repAmount > 0) amtEl.value = repAmount.toLocaleString();
+      setVal('vendor-add-source', repSource);
+      // 장비 리스트 프리필
+      var list = document.getElementById('vendor-add-sys-equip-list');
+      if (list) list.innerHTML = '';
+      if (equipments.length) {
+        equipments.forEach(function(eq){ _addSysEquipRow(eq.name, eq.serial); });
+      } else {
+        _addSysEquipRow();
+      }
+      // 프로젝트명 필드로 포커스 & 텍스트 선택 → 사용자가 즉시 수정
+      var pnEl = document.getElementById('vendor-add-sys-project');
+      if (pnEl) { pnEl.focus(); try { pnEl.select(); } catch(e){} }
+    }, 100);
+
+    _toast('원본 프로젝트가 복사되었습니다. 프로젝트명·날짜를 수정 후 저장하세요.');
+  }
+
   // 부속 카테고리(song/fee)의 부모 카테고리 매핑 — 선곡료/협회 수수료 카드의 '매출 유형' 컬럼·필터에 사용
   function _parentCatsForSub(subCat) {
     if (subCat === 'song') return ['needle', 'blanket_paid', 'buyout', 'custom', 'youtube'];
@@ -15933,7 +16021,7 @@ window.__vendor = (function() {
     var gridCols = isFreeBlanket
       ? '32px 1fr 1fr 80px 28px'
       : (isSysCardRow
-          ? '32px 60px 1.7fr 0.9fr 0.9fr 100px 1.1fr 1.1fr 100px 0.9fr 0.65fr 1.1fr 100px 28px'
+          ? '32px 60px 1.7fr 0.9fr 0.9fr 100px 1.1fr 1.1fr 100px 0.9fr 0.65fr 1.1fr 100px 78px'
           : (hasSongCol
               ? '32px 1.3fr 1fr 70px 1fr 0.9fr 1.1fr 90px 28px'
               : '32px 1.3fr 1fr 70px 1fr 1.1fr 90px 28px'));
@@ -15994,7 +16082,17 @@ window.__vendor = (function() {
         : '';
       var rowBg = showInactiveStyle ? '#fafafa' : '';
       var sparkCellHtml = '<div style="text-align:center">' + _spark(v.trend, 80, 24) + '</div>';
-      var editBtnHtml = '<div style="text-align:center"><button onclick="__vendor.editVendor(' + editArgs + ')" title="수정" style="background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:5px" onmouseover="this.style.color=\'#65a30d\';this.style.background=\'#f7fee7\'" onmouseout="this.style.color=\'#cbd5e1\';this.style.background=\'none\'">✎</button></div>';
+      var editBtnHtml;
+      if (isSysCardRow) {
+        // 시스템 사업부: '복사' 텍스트 버튼 + '✎' 편집 아이콘 병치
+        var copyArgs = "'" + nameEsc + "', '" + pnEsc + "'";
+        editBtnHtml = '<div style="text-align:center;display:flex;gap:3px;justify-content:center;align-items:center">'
+          + '<button onclick="event.stopPropagation();__vendor.copyProject(' + copyArgs + ')" title="이 프로젝트를 복사하여 신규 등록" style="background:#fff;border:1px solid #e2e8f0;color:#64748b;cursor:pointer;font-size:10.5px;padding:2px 7px;border-radius:5px;font-weight:700;font-family:inherit;line-height:1.4" onmouseover="this.style.color=\'#2563eb\';this.style.borderColor=\'#bfdbfe\';this.style.background=\'#eff6ff\'" onmouseout="this.style.color=\'#64748b\';this.style.borderColor=\'#e2e8f0\';this.style.background=\'#fff\'">복사</button>'
+          + '<button onclick="__vendor.editVendor(' + editArgs + ')" title="수정" style="background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:5px" onmouseover="this.style.color=\'#65a30d\';this.style.background=\'#f7fee7\'" onmouseout="this.style.color=\'#cbd5e1\';this.style.background=\'none\'">✎</button>'
+          + '</div>';
+      } else {
+        editBtnHtml = '<div style="text-align:center"><button onclick="__vendor.editVendor(' + editArgs + ')" title="수정" style="background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:5px" onmouseover="this.style.color=\'#65a30d\';this.style.background=\'#f7fee7\'" onmouseout="this.style.color=\'#cbd5e1\';this.style.background=\'none\'">✎</button></div>';
+      }
       // 시스템 사업부에서는 거래처명 클릭 트리거 제거 (프로젝트명 셀로 이동) + 색상 rgb(15,23,42) 통일
       var nameCellHtml = isSysCardRow
         ? ('<div style="min-width:0;overflow:hidden">'
@@ -17569,6 +17667,7 @@ window.__vendor = (function() {
     openAdd: openAdd,
     closeAdd: closeAdd,
     saveAdd: saveAdd,
+    copyProject: copyProject,
     deleteRow: deleteVendorRow,
     editVendor: editVendor,
     closeEdit: closeEdit,
