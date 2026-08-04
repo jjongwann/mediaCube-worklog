@@ -12709,7 +12709,7 @@
            bar-wrap / chartview-wrap 과 동일한 사이즈 보장 패턴. -->
       <div id="vendor-needle-list-wrap" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;position:relative;min-height:0;overflow:hidden">
         <div id="vendor-needle-list-header" style="position:absolute;top:0;left:0;right:0;padding:12px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#fff;z-index:2">
-          <div style="font-size:12px;font-weight:700;color:#0f172a">거래처 목록 <span id="vendor-needle-count" style="color:#94a3b8;font-weight:500;margin-left:4px"></span></div>
+          <div style="font-size:12px;font-weight:700;color:#0f172a"><span id="vendor-needle-list-label">거래처 목록</span> <span id="vendor-needle-count" style="color:#94a3b8;font-weight:500;margin-left:4px"></span></div>
           <div style="font-size:10px;color:#94a3b8">기간 합계 ▼</div>
         </div>
         <!-- top:44px (헤더 높이 고정) ~ bottom:0 으로 절대 위치 → 스크롤 영역 높이가 항상 확정됨 -->
@@ -16019,6 +16019,9 @@ window.__vendor = (function() {
     else if (viewMode === 'inactive') vmLabel = '비활성 ' + vendorStats.length + '곳';
     else vmLabel = '활성 ' + vendorStats.length + '곳';
     document.getElementById('vendor-needle-count').textContent = '(' + vmLabel + ')';
+    // 시스템 사업부: '거래처 목록' → '프로젝트 목록' 으로 라벨 스위치
+    var _listLabelEl = document.getElementById('vendor-needle-list-label');
+    if (_listLabelEl) _listLabelEl.textContent = (_CAT_DEPT[cat] === 'system') ? '프로젝트 목록' : '거래처 목록';
     var tbl = document.getElementById('vendor-needle-table');
     if (!vendorStats.length) {
       tbl.innerHTML = '<div style="text-align:center;padding:50px 20px;color:#94a3b8;font-size:13px">' + (searchQ ? '검색 결과가 없습니다.' : rangeLabel + ' 기간에 등록된 거래처가 없습니다.<br><br>우측 상단 \'+ 신규 거래처 추가\' 버튼으로 매출을 입력해주세요.') + '</div>';
