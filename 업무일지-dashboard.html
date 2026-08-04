@@ -12954,6 +12954,18 @@
         <label style="font-size:11px;font-weight:700;color:#2563eb;width:64px;flex-shrink:0">프로젝트명</label>
         <input type="text" id="vendor-edit-project-input" placeholder="예: AV 시스템 구축 - 2026 신청사" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
       </div>
+      <!-- 거래처 구분 (시스템 사업부 전용) — 카테고리 이동. 저장 시 해당 카테고리로 자동 이동. -->
+      <div id="vendor-edit-cat-row" style="display:none;align-items:center;gap:10px">
+        <label style="font-size:11px;font-weight:700;color:#2563eb;width:64px;flex-shrink:0">거래처 구분</label>
+        <select id="vendor-edit-sys-cat" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none;background:#fff;color:rgb(15,23,42);cursor:pointer" title="이 프로젝트가 속할 카테고리 선택 — 변경 후 저장 시 해당 카테고리 목록으로 이동됩니다" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+          <option value="sys_archiving">AV Archiving</option>
+          <option value="sys_restoration">AV Restoration / Forensic</option>
+          <option value="sys_broadcast">Broadcast / Pro AV Product</option>
+          <option value="sys_etc_as">기타 A/S</option>
+          <option value="sys_acoustic">Acoustic / AV Engineering</option>
+          <option value="sys_dolby">Dolby Production Services</option>
+        </select>
+      </div>
       <div id="vendor-edit-name-row" style="display:flex;align-items:center;gap:10px">
         <label style="font-size:11px;font-weight:600;color:#64748b;width:64px;flex-shrink:0">거래처명</label>
         <input type="text" id="vendor-edit-name-input" placeholder="거래처명" style="flex:1;padding:6px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;color:rgb(15,23,42);outline:none" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
@@ -17163,6 +17175,11 @@ window.__vendor = (function() {
     var projectRow = document.getElementById('vendor-edit-project-row');
     var mgrSrcWrap = document.getElementById('vendor-edit-mgr-src-wrap');
     if (projectRow) projectRow.style.display = isSysCatEdit ? 'flex' : 'none';
+    // 거래처 구분 row (카테고리 이동) — 시스템 사업부 진입 시에만 표시. 현재 카테고리로 프리필.
+    var catRow = document.getElementById('vendor-edit-cat-row');
+    var catSel = document.getElementById('vendor-edit-sys-cat');
+    if (catRow) catRow.style.display = isSysCatEdit ? 'flex' : 'none';
+    if (catSel && isSysCatEdit) catSel.value = cat;
     if (mgrSrcWrap) {
       if (isSysCatEdit) {
         // 담당자/매출 발생처를 한 줄 2칸 grid 로 (시스템 사업부)
@@ -17343,6 +17360,14 @@ window.__vendor = (function() {
     // 시스템 사업부 전용 필드: 입력값 읽기 (편집 모달이 열렸을 때 sys-block 이 보였는지 무관, 값이 있으면 적용)
     // 단, invoice_date 는 거래처 단위가 아니라 매출 row 단위이므로 sysFieldDelta 에서 제외
     var isSysEditCat = (_CAT_DEPT[ctx.category] === 'system');
+    // 카테고리 이동 (시스템 사업부 전용) — 선택된 새 카테고리가 현재와 다르면 모든 그룹 row 의 category 를 옮김
+    var _newSelCat = ctx.category;
+    if (isSysEditCat) {
+      var _catSelEl = document.getElementById('vendor-edit-sys-cat');
+      var _picked = _catSelEl ? (_catSelEl.value || '') : '';
+      if (_picked && _CAT_DEPT[_picked] === 'system') _newSelCat = _picked;
+    }
+    var catChanged = isSysEditCat && (_newSelCat !== ctx.category);
     var sysFieldDelta = null; // null = 변경 없음 / 객체 = 변경된 키만 포함
     if (isSysEditCat) {
       var _gv = function(id){ var el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
@@ -17412,10 +17437,12 @@ window.__vendor = (function() {
                    || (r.invoice_date !== r._orig.invoice_date)
                    || (newName !== ctx.vendorName)
                    || mgrChanged || srcChanged || activeChanged || regChanged
+                   || catChanged
                    || (sysFieldDelta && Object.keys(sysFieldDelta).length);
         if (changed) {
           var body = { amount: r.amount, vendor_name: newName, extra: newExtra, updated_at: new Date().toISOString() };
           if (newMk) body.month_key = newMk;
+          if (catChanged) body.category = _newSelCat;
           ops.push({ type: 'patch', id: r.id, body: body });
         }
         hasAnyRow = true;
@@ -17435,7 +17462,8 @@ window.__vendor = (function() {
         // 프로젝트 고유 ID 상속 — 같은 프로젝트 내 매출 추가 시 기존 그룹과 동일한 pid 로 유지.
         // legacy 그룹(pid 없음)에서 추가할 땐 pid 를 부여하지 않고 legacy 그룹핑 유지.
         if (ctx.projectId) initExtra.project_id = ctx.projectId;
-        ops.push({ type: 'post', body: { id: _genId(), category: ctx.category, vendor_name: newName, month_key: mk, amount: r.amount || 0, extra: initExtra, updated_at: new Date().toISOString() } });
+        // 카테고리 이동 반영: 새 카테고리로 신규 row 도 발행
+        ops.push({ type: 'post', body: { id: _genId(), category: _newSelCat, vendor_name: newName, month_key: mk, amount: r.amount || 0, extra: initExtra, updated_at: new Date().toISOString() } });
         hasAnyRow = true;
       });
       // 시스템은 12개월 그리드 로직 건너뛰고 sub/other-year sync 단계로 이동
@@ -17624,11 +17652,18 @@ window.__vendor = (function() {
       if (!allOk) {
         console.error('saveEdit partial failure', results);
         _toast('일부 저장 실패 - 콘솔 확인');
+      } else if (catChanged) {
+        _toast('카테고리 이동 완료 — ' + (_CAT_META[_newSelCat] ? _CAT_META[_newSelCat].name : _newSelCat) + ' 로 이동됨');
       } else {
         _toast('수정 완료');
       }
       closeEdit();
-      fetchAll().then(function(){ render(_state.currentCat); _afterVendorChange(); });
+      // 카테고리 이동한 경우: 새 카테고리 뷰로 전환. 그 외에는 현재 뷰만 재렌더.
+      if (catChanged) {
+        fetchAll().then(function(){ openPanel(_newSelCat); _afterVendorChange(); });
+      } else {
+        fetchAll().then(function(){ render(_state.currentCat); _afterVendorChange(); });
+      }
     }).catch(function(e){
       console.error('saveEdit error', e); _toast('저장 오류'); closeEdit();
     });
