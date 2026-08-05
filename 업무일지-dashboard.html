@@ -13987,15 +13987,28 @@ window._devShowcaseClick = function(idx) {
         } catch(e){ console.warn('[admin-mode append cards]', e); }
       }, 0);
     }
-    // 초기 뷰: URL ?view=journal 이면 업무일지 뷰, 그 외 카드 그리드
+    // 초기 뷰 결정 우선순위:
+    //   1) URL ?view=journal|catalog  (word.html 저장 후 이동 등 명시적 지정)
+    //   2) localStorage 'mc_dm_view'  (사용자가 마지막에 선택한 뷰)
+    //   3) 기본값 'catalog'
     var _initView = 'catalog';
     try {
+      var _saved = localStorage.getItem('mc_dm_view');
+      if (_saved === 'journal' || _saved === 'catalog') _initView = _saved;
+    } catch(e){}
+    try {
       var _vp = new URLSearchParams(window.location.search).get('view');
-      if (_vp === 'journal') _initView = 'journal';
+      if (_vp === 'journal' || _vp === 'catalog') _initView = _vp;
     } catch(e){}
     document.body.classList.add('view-' + _initView);
+    // localStorage 동기화 (URL 파라미터로 진입한 경우에도 마지막 뷰 저장)
+    try { localStorage.setItem('mc_dm_view', _initView); } catch(e){}
     // URL 정리 (뒤로가기 시 재실행 방지)
-    try { if (_initView === 'journal') history.replaceState({}, document.title, window.location.pathname); } catch(e){}
+    try {
+      if (new URLSearchParams(window.location.search).get('view')) {
+        history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch(e){}
     // developer 전용 사이드바 뷰 전환 위젯 노출
     var vw = document.getElementById('dev-view-switch'); if (vw) {
       vw.style.display = '';
@@ -14025,6 +14038,8 @@ window._dmSwitchView = function(view, el) {
   if (!document.body.classList.contains('dev-mode')) return;
   document.body.classList.remove('view-catalog', 'view-journal');
   document.body.classList.add('view-' + view);
+  // 새로고침 시 현재 뷰 유지 위해 localStorage 저장
+  try { localStorage.setItem('mc_dm_view', view); } catch(e){}
   document.querySelectorAll('.dev-view-item').forEach(function(x){ x.classList.remove('active'); });
   if (el) el.classList.add('active');
   // 업무일지 뷰로 전환 시 리스트 재렌더 (혹시 초기 안 됐거나 필터 상태 반영)
