@@ -14028,13 +14028,15 @@ window._devShowcaseClick = function(idx) {
         if (_manualBtn) _manualBtn.style.display = 'none';
       } catch(e){}
     }
-    // sunlee (이광순 이사) 계정: 기능 카탈로그 기본 카테고리를 '협업' 으로 자동 세팅
-    if (_currentUsername === 'sunlee') {
-      window._DM_CAT = 'collab';
+    // 계정별 기본 카테고리 자동 세팅 — sunlee: 협업 / info: 분석
+    var _defaultCatMap = { sunlee: 'collab', info: 'analytics' };
+    var _defaultCat = _defaultCatMap[_currentUsername];
+    if (_defaultCat) {
+      window._DM_CAT = _defaultCat;
       try {
         document.querySelectorAll('.dm-chip').forEach(function(c){ c.classList.remove('active'); });
-        var _collabChip = document.querySelector('.dm-chip[data-cat="collab"]');
-        if (_collabChip) _collabChip.classList.add('active');
+        var _tgtChip = document.querySelector('.dm-chip[data-cat="' + _defaultCat + '"]');
+        if (_tgtChip) _tgtChip.classList.add('active');
       } catch(e){}
     }
     // 초기 뷰 결정 우선순위:
