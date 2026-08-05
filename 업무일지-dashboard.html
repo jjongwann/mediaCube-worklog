@@ -230,6 +230,23 @@
   body.dev-mode.view-catalog.sales-embed .dm-toolbar,
   body.dev-mode.view-catalog.sales-embed #dmGrid { display: none !important; }
   body.dev-mode.view-catalog.sales-embed #dev-sales-embed { display: block !important; }
+  /* sales-embed 안으로 이동된 월별 누계 통계 오버레이: 모달 대신 위젯 아래 인라인 표시 */
+  body.sales-embed #dev-sales-embed #cumul-overlay,
+  body.sales-embed #dev-sales-embed #sys-sales-cumul-overlay {
+    position: static !important;
+    inset: auto !important;
+    background: transparent !important;
+    padding: 0 !important;
+    z-index: auto !important;
+    margin-top: 20px !important;
+  }
+  body.sales-embed #dev-sales-embed #cumul-overlay > div,
+  body.sales-embed #dev-sales-embed #sys-sales-cumul-overlay > div {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: none !important;
+    box-shadow: 0 4px 18px rgba(15,23,42,0.08) !important;
+  }
 
   /* ── Sidebar ── */
   .sidebar {
@@ -14096,13 +14113,19 @@ window._dmSalesOrigin = null; // 최초 부모 저장 (원위치용)
 
 function _dmSaveSalesOrigin() {
   if (window._dmSalesOrigin) return;
-  var sw = document.getElementById('sales-widget');
-  var sysw = document.getElementById('system-sales-widget');
+  var sw          = document.getElementById('sales-widget');
+  var sysw        = document.getElementById('system-sales-widget');
+  var cumOv       = document.getElementById('cumul-overlay');
+  var sysCumOv    = document.getElementById('sys-sales-cumul-overlay');
+  var salesInp    = document.getElementById('sales-input-overlay');
+  var sysSalesInp = document.getElementById('sys-sales-input-overlay');
   window._dmSalesOrigin = {
-    soundParent:   sw   ? sw.parentNode : null,
-    soundNext:     sw   ? sw.nextSibling : null,
-    systemParent:  sysw ? sysw.parentNode : null,
-    systemNext:    sysw ? sysw.nextSibling : null
+    soundParent:         sw          ? sw.parentNode          : null,
+    systemParent:        sysw        ? sysw.parentNode        : null,
+    cumulParent:         cumOv       ? cumOv.parentNode       : null,
+    sysCumulParent:      sysCumOv    ? sysCumOv.parentNode    : null,
+    salesInputParent:    salesInp    ? salesInp.parentNode    : null,
+    sysSalesInputParent: sysSalesInp ? sysSalesInp.parentNode : null
   };
 }
 
@@ -14165,10 +14188,11 @@ window._dmCloseSalesChooser = function() {
 };
 window._dmEnterSalesEmbed = function(deptKey) {
   _dmSaveSalesOrigin();
-  var host = document.getElementById('dev-sales-embed-host');
+  var host    = document.getElementById('dev-sales-embed-host');
+  var embed   = document.getElementById('dev-sales-embed');
   var titleEl = document.getElementById('dev-sales-embed-title');
-  if (!host) return;
-  // 이전 embed 잔재 정리 → 원위치로 복원
+  if (!host || !embed) return;
+  // 이전 embed 잔재 정리 → 원위치로 복원 (반대편 dept 위젯이 남아있으면 원위치)
   Array.from(host.children).forEach(function(child){
     if (child.id === 'sales-widget' && window._dmSalesOrigin.soundParent) {
       window._dmSalesOrigin.soundParent.appendChild(child);
@@ -14176,15 +14200,31 @@ window._dmEnterSalesEmbed = function(deptKey) {
       window._dmSalesOrigin.systemParent.appendChild(child);
     }
   });
+  // 이전 dept 의 cumul overlay 도 원위치 (다른 dept 진입 시 잔여 정리)
+  var _prevCumOv    = document.getElementById('cumul-overlay');
+  var _prevSysCumOv = document.getElementById('sys-sales-cumul-overlay');
+  if (_prevCumOv    && _prevCumOv.parentNode    === embed) { _prevCumOv.style.display = 'none';    if (window._dmSalesOrigin.cumulParent)    window._dmSalesOrigin.cumulParent.appendChild(_prevCumOv); }
+  if (_prevSysCumOv && _prevSysCumOv.parentNode === embed) { _prevSysCumOv.style.display = 'none'; if (window._dmSalesOrigin.sysCumulParent) window._dmSalesOrigin.sysCumulParent.appendChild(_prevSysCumOv); }
+
   if (deptKey === 'sound') {
     var w = document.getElementById('sales-widget');
     if (w) host.appendChild(w);
+    // 월별 누계 통계 오버레이는 embed 안으로 이동 → CSS 로 인라인 표시
+    var cumOv = document.getElementById('cumul-overlay');
+    if (cumOv) embed.appendChild(cumOv);
+    // 데이터 입력 오버레이는 document.body 로 이동 → 모달 정상 작동
+    var salesInp = document.getElementById('sales-input-overlay');
+    if (salesInp && salesInp.parentNode !== document.body) document.body.appendChild(salesInp);
     if (titleEl) titleEl.textContent = '음원 매출 분석 · 사운드 컨텐츠 사업부';
     try { if (typeof window.salesUpdateMonthSel === 'function') window.salesUpdateMonthSel(); } catch(e){}
     try { if (typeof window.renderSalesWidget === 'function') window.renderSalesWidget(); } catch(e){}
   } else if (deptKey === 'system') {
     var sw = document.getElementById('system-sales-widget');
     if (sw) host.appendChild(sw);
+    var sysCumOv = document.getElementById('sys-sales-cumul-overlay');
+    if (sysCumOv) embed.appendChild(sysCumOv);
+    var sysSalesInp = document.getElementById('sys-sales-input-overlay');
+    if (sysSalesInp && sysSalesInp.parentNode !== document.body) document.body.appendChild(sysSalesInp);
     if (titleEl) titleEl.textContent = '시스템 매출 분석 · 시스템 사업부';
     try { if (typeof window._sysRebuildFromVendor === 'function') window._sysRebuildFromVendor(); } catch(e){}
     try { if (typeof window.renderSystemSalesWidget === 'function') window.renderSystemSalesWidget(); } catch(e){}
@@ -14203,16 +14243,27 @@ window._dmEnterSalesEmbed = function(deptKey) {
   } catch(e){}
 };
 window._dmExitSalesEmbed = function() {
-  var host = document.getElementById('dev-sales-embed-host');
-  if (host && window._dmSalesOrigin) {
-    var sw = document.getElementById('sales-widget');
-    if (sw && host.contains(sw) && window._dmSalesOrigin.soundParent) {
-      window._dmSalesOrigin.soundParent.appendChild(sw);
-    }
-    var sysw = document.getElementById('system-sales-widget');
-    if (sysw && host.contains(sysw) && window._dmSalesOrigin.systemParent) {
-      window._dmSalesOrigin.systemParent.appendChild(sysw);
-    }
+  // 열려있는 cumul overlay 닫기 (원위치 이동 전 display:none 세팅)
+  ['cumul-overlay', 'sys-sales-cumul-overlay'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el && el.style.display !== 'none') el.style.display = 'none';
+  });
+  // 위젯 + 오버레이 원위치
+  if (window._dmSalesOrigin) {
+    var host = document.getElementById('dev-sales-embed-host');
+    var restoreList = [
+      { id: 'sales-widget',            parentKey: 'soundParent' },
+      { id: 'system-sales-widget',     parentKey: 'systemParent' },
+      { id: 'cumul-overlay',           parentKey: 'cumulParent' },
+      { id: 'sys-sales-cumul-overlay', parentKey: 'sysCumulParent' },
+      { id: 'sales-input-overlay',     parentKey: 'salesInputParent' },
+      { id: 'sys-sales-input-overlay', parentKey: 'sysSalesInputParent' }
+    ];
+    restoreList.forEach(function(r){
+      var el = document.getElementById(r.id);
+      var parent = window._dmSalesOrigin[r.parentKey];
+      if (el && parent && el.parentNode !== parent) parent.appendChild(el);
+    });
   }
   document.body.classList.remove('sales-embed');
 };
