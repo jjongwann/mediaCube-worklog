@@ -14284,7 +14284,8 @@ window._DM_ITEMS = [
   { key:'perm',      title:'직원별 권한',          desc:'접근 권한 부여 · 관리자 전용',       grad:'#7c3aed,#5b21b6', cat:'admin',     icon:'lock',     action:function(){ if (typeof openPermissionPanel==='function') openPermissionPanel(); } },
   { key:'sitemap',   title:'사이트맵',             desc:'전체 사이트 구조 한눈에 보기',       grad:'#0891b2,#0e7490', cat:'admin',     icon:'grid',     action:function(){ if (typeof openSitemapPanel==='function') openSitemapPanel(); } }
 ];
-window._DM_CAT = '';
+// _initDevMode 에서 계정별 기본 카테고리(sunlee='collab', info='analytics')를 미리 세팅했을 수 있으므로 보존
+if (typeof window._DM_CAT === 'undefined' || window._DM_CAT === null) window._DM_CAT = '';
 window._dmIcon = function(name){
   var s = 'width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
   switch(name){
