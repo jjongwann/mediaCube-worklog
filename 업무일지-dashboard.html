@@ -14028,6 +14028,15 @@ window._devShowcaseClick = function(idx) {
         if (_manualBtn) _manualBtn.style.display = 'none';
       } catch(e){}
     }
+    // sunlee (이광순 이사) 계정: 기능 카탈로그 기본 카테고리를 '협업' 으로 자동 세팅
+    if (_currentUsername === 'sunlee') {
+      window._DM_CAT = 'collab';
+      try {
+        document.querySelectorAll('.dm-chip').forEach(function(c){ c.classList.remove('active'); });
+        var _collabChip = document.querySelector('.dm-chip[data-cat="collab"]');
+        if (_collabChip) _collabChip.classList.add('active');
+      } catch(e){}
+    }
     // 초기 뷰 결정 우선순위:
     //   1) URL ?view=journal|catalog  (word.html 저장 후 이동 등 명시적 지정)
     //   2) localStorage 'mc_dm_view'  (사용자가 마지막에 선택한 뷰)
