@@ -14050,6 +14050,7 @@ window._dmSwitchView = function(view, el) {
 
 /* Developer 카드 데이터 · 렌더 · 클릭 라우팅 */
 window._DM_ITEMS = [
+  { key:'journal',   title:'업무일지',            desc:'전체 일지 목록 · 작성 · 편집',       grad:'#2563eb,#1d4ed8', cat:'workflow',  icon:'journal',  action:function(){ if (typeof window._dmSwitchView==='function') { var _el = document.querySelector('.dev-view-item[data-devview="journal"]'); window._dmSwitchView('journal', _el); } } },
   { key:'history',   title:'업무 히스토리',       desc:'전체 일지 히스토리 열람',            grad:'#6366f1,#4338ca', cat:'workflow',  icon:'clock',    action:function(){ if (typeof openHistoryPanel==='function') openHistoryPanel(); } },
   { key:'perf',      title:'업무 성과',            desc:'직원별 성과 · 랭킹 확인',            grad:'#10b981,#059669', cat:'analytics', icon:'trophy',   action:function(){ if (typeof openAchievementPanel==='function') openAchievementPanel(); } },
   { key:'sales',     title:'영업 활동',            desc:'기존 · 신규 고객 영업 활동 조회',    grad:'#f59e0b,#d97706', cat:'workflow',  icon:'trend',    action:function(){ if (typeof openSalesActivityChooser==='function') openSalesActivityChooser(); } },
@@ -14076,6 +14077,7 @@ window._dmIcon = function(name){
     case 'lock':     return '<svg '+s+'><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
     case 'quote':    return '<svg '+s+'><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
     case 'grid':     return '<svg '+s+'><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>';
+    case 'journal':  return '<svg '+s+'><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
     default:         return '<svg '+s+'><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>';
   }
 };
