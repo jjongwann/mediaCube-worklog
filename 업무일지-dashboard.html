@@ -14035,7 +14035,7 @@ window._devShowcaseClick = function(idx) {
             window._DM_ITEMS.push(
               { key:'emp',     title:'직원별 현황',   desc:'전 직원 통계 · 관리자 전용',   grad:'#dc2626,#991b1b', cat:'admin',    icon:'users',    action:function(){ if (typeof toggleEmpPanel==='function') toggleEmpPanel(); } },
               { key:'perm',    title:'직원별 권한',   desc:'접근 권한 부여 · 관리자 전용',  grad:'#7c3aed,#5b21b6', cat:'admin',    icon:'lock',     action:function(){ if (typeof openPermissionPanel==='function') openPermissionPanel(); } },
-              { key:'quote',   title:'견적 관리',     desc:'견적 등록 · 조회 · 관리',       grad:'#4338ca,#3730a3', cat:'workflow', icon:'quote',    action:function(){ if (typeof openQuotePanel==='function') openQuotePanel(); } },
+              { key:'quote',   title:'견적 관리',     desc:'견적 등록 · 조회 · 관리',       grad:'#4338ca,#3730a3', cat:'collab',   icon:'quote',    action:function(){ if (typeof openQuotePanel==='function') openQuotePanel(); } },
               { key:'sitemap', title:'사이트맵',      desc:'전체 사이트 구조 한눈에 보기',  grad:'#0891b2,#0e7490', cat:'admin',    icon:'grid',     action:function(){ if (typeof openSitemapPanel==='function') openSitemapPanel(); } }
             );
             if (typeof _dmRenderGrid === 'function') _dmRenderGrid();
