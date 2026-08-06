@@ -12298,9 +12298,15 @@
   };
 
   window.openDirectivePanel = function() {
-    // 지시자가 아니면 처음부터 '받은 업무' 탭, 아니면 '지시한 업무' 탭
+    // 기본 탭: mediacube(관리자) · sunlee(이광순 이사) 만 '지시한 업무' 시작
+    //          나머지 전 직원은 '받은 업무' 시작
     _directiveMode = 'list';
-    _directiveListTab = _isGiver ? 'given' : 'receiver';
+    var _DIR_START_ON_GIVEN = ['mediacube', 'sunlee'];
+    if (_DIR_START_ON_GIVEN.indexOf(_currentUsername) !== -1 && _isGiver) {
+      _directiveListTab = 'given';
+    } else {
+      _directiveListTab = _isReceiver ? 'receiver' : (_isGiver ? 'given' : 'receiver');
+    }
     // dev-mode 사용자는 embed 로 진입
     if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function') {
       window._dmEnterFeatureEmbed('directive-overlay');
