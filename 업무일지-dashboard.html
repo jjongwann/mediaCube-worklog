@@ -355,6 +355,18 @@
   body.dev-embed #dev-feature-embed > #vendor-needle-overlay {
     display: block !important;
   }
+  /* vendor 내부 div 는 원래 position:absolute + right:0 로 화면 우측 정렬(사이드바 무시)
+     embed 모드에서는 static + 100% 로 카탈로그 영역에 맞춰야 함 */
+  body.dev-embed #dev-feature-embed > #vendor-needle-overlay > div {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    animation: none !important;
+  }
   /* shared-cal-overlay 는 align-items:flex-start 로 스크롤 처리 → embed 시 block 배치 */
   body.dev-embed #dev-feature-embed > #shared-cal-overlay {
     display: block !important;
