@@ -14245,7 +14245,7 @@ function openQuotePanel() {
   }
   .mtg-attendee-chip .mtg-att-dept { font-size:10px; opacity:0.7; }
   .mtg-row {
-    display: grid; grid-template-columns: 1.5fr 90px 130px 1fr 100px 90px 100px 80px 100px 90px 60px;
+    display: grid; grid-template-columns: 1.5fr 90px 130px 1fr 100px 90px 160px 100px 90px 60px;
     gap: 8px; padding: 12px 14px; border-bottom: 1px solid #f1f5f9;
     font-size: 12px; align-items: center;
     transition: background .12s;
@@ -14455,7 +14455,7 @@ window.__meeting = (function() {
       return;
     }
     var header = '<div class="mtg-row mtg-row-header">'
-      + '<div>회의 제목</div><div>유형</div><div>회의 일시</div><div>장소</div><div>부서</div><div>작성자</div><div>참석자</div><div style="text-align:center">상태</div><div>작성일</div><div>공개</div><div></div>'
+      + '<div>회의 제목</div><div>유형</div><div>회의 일시</div><div>장소</div><div>부서</div><div>작성자</div><div>참석자</div><div>작성일</div><div>공개</div><div></div>'
       + '</div>';
     var rowsHtml = filtered.map(function(r){
       var attCnt = Array.isArray(r.attendees) ? r.attendees.length : 0;
@@ -14471,8 +14471,7 @@ window.__meeting = (function() {
         + '<div style="color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + _esc(r.location||'') + '">' + _esc(r.location || '-') + '</div>'
         + '<div style="color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + _esc(r.dept||'') + '">' + _esc(r.dept || '-') + '</div>'
         + '<div style="color:#0f172a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(r.author_name || '-') + '</div>'
-        + '<div style="color:#64748b" title="' + _esc(attTip) + '">' + (attCnt > 0 ? attCnt + '명' : '-') + '</div>'
-        + '<div style="text-align:center"><span class="mtg-status-chip mtg-status-' + (r.status||'planned') + '">' + ({planned:'예정',in_progress:'진행 중',done:'완료',cancelled:'취소'}[r.status||'planned']||'예정') + '</span></div>'
+        + '<div style="color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + _esc(attTip) + '">' + (attCnt > 0 ? (attCnt + '명 · ' + (attTip.length > 30 ? attTip.slice(0,30) + '…' : attTip)) : '-') + '</div>'
         + '<div style="color:#94a3b8;font-size:11px">' + _fmtDate((r.created_at||'').slice(0,10)) + '</div>'
         + '<div><span class="mtg-vis-chip ' + visCls + '">' + visLbl + '</span></div>'
         + '<div style="text-align:center">' + (canEditRow
