@@ -340,6 +340,26 @@
   body.dev-embed #dev-feature-embed > #sales-activity-overlay > div {
     min-height: 78vh !important;
   }
+  /* 3단계: 거래처별 매출 분석 · BMAT · 캘린더 embed */
+  body.dev-embed #dev-feature-embed > #vendor-needle-overlay,
+  body.dev-embed #dev-feature-embed > #bmat-modal-overlay,
+  body.dev-embed #dev-feature-embed > #shared-cal-overlay {
+    width: 100% !important;
+  }
+  body.dev-embed #dev-feature-embed > #vendor-needle-overlay > div,
+  body.dev-embed #dev-feature-embed > #bmat-modal-overlay > div,
+  body.dev-embed #dev-feature-embed > #shared-cal-overlay > div {
+    min-height: 78vh !important;
+  }
+  /* vendor-needle-overlay 는 원래 position:fixed + block 이므로 embed 시 오버라이드 */
+  body.dev-embed #dev-feature-embed > #vendor-needle-overlay {
+    display: block !important;
+  }
+  /* shared-cal-overlay 는 align-items:flex-start 로 스크롤 처리 → embed 시 block 배치 */
+  body.dev-embed #dev-feature-embed > #shared-cal-overlay {
+    display: block !important;
+    overflow-y: visible !important;
+  }
 
   /* ── Sidebar ── */
   .sidebar {
@@ -9533,6 +9553,10 @@
     if (isHidden) {
       // 위젯은 모달 안에서 항상 표시 상태로
       w.style.display = 'block';
+      // dev-mode 사용자는 embed 로 진입
+      if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function') {
+        window._dmEnterFeatureEmbed('bmat-modal-overlay');
+      }
       ov.style.display = 'flex';
       if (btn) btn.classList.add('bmat-active');
       bmatFetchFromDB().then(function() { _bmatPopulateMonthSel(); renderBmatWidget(); });
@@ -9541,9 +9565,16 @@
     }
   }
   function closeBmatModal() {
-    var ov = document.getElementById('bmat-modal-overlay');
     var btn = document.getElementById('sidebar-bmat-btn');
-    if (ov) ov.style.display = 'none';
+    if (document.body.classList.contains('dev-embed')
+        && window._dmFeatureEmbedState
+        && window._dmFeatureEmbedState.overlayId === 'bmat-modal-overlay'
+        && typeof window._dmExitFeatureEmbed === 'function') {
+      window._dmExitFeatureEmbed();
+    } else {
+      var ov = document.getElementById('bmat-modal-overlay');
+      if (ov) ov.style.display = 'none';
+    }
     if (btn) btn.classList.remove('bmat-active');
   }
   // 전역 노출 (모달 닫기 버튼/외부 호출용)
@@ -17148,6 +17179,10 @@ window.__vendor = (function() {
     _updateAllBtnStyle();
     // 차트/표 토글 버튼 스타일만 동기화 (실제 render 는 fetchAll().then 에서 1회만 실행)
     _syncDisplayModeBtns(_state.displayMode || 'chart');
+    // dev-mode 사용자는 embed 로 진입
+    if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function') {
+      window._dmEnterFeatureEmbed('vendor-needle-overlay');
+    }
     document.getElementById('vendor-needle-overlay').style.display = 'block';
     // 항상 최신 데이터 fetch (소스 옵션도 fresh 데이터로 재구성)
     fetchAll().then(function(){
@@ -17157,7 +17192,14 @@ window.__vendor = (function() {
   }
 
   function closePanel() {
-    document.getElementById('vendor-needle-overlay').style.display = 'none';
+    if (document.body.classList.contains('dev-embed')
+        && window._dmFeatureEmbedState
+        && window._dmFeatureEmbedState.overlayId === 'vendor-needle-overlay'
+        && typeof window._dmExitFeatureEmbed === 'function') {
+      window._dmExitFeatureEmbed();
+    } else {
+      document.getElementById('vendor-needle-overlay').style.display = 'none';
+    }
     // 차트 정리
     if (_state.charts.bar)  { try{_state.charts.bar.destroy();}catch(e){} _state.charts.bar = null; }
     if (_state.charts.line) { try{_state.charts.line.destroy();}catch(e){} _state.charts.line = null; }
@@ -20586,10 +20628,21 @@ function _showVendorChooser() {
     }
     // 진입 시 viewDay 기본값(오늘) 보장 — 표 일별 모드 대비
     if (!SCAL_STATE.viewDay) SCAL_STATE.viewDay = _scalToYmd(new Date());
+    // dev-mode 사용자는 embed 로 진입
+    if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function') {
+      window._dmEnterFeatureEmbed('shared-cal-overlay');
+    }
     ov.style.display = 'flex';
     _scalFetchAndRender();
   }
   function closeSharedCalendar() {
+    if (document.body.classList.contains('dev-embed')
+        && window._dmFeatureEmbedState
+        && window._dmFeatureEmbedState.overlayId === 'shared-cal-overlay'
+        && typeof window._dmExitFeatureEmbed === 'function') {
+      window._dmExitFeatureEmbed();
+      return;
+    }
     var ov = document.getElementById('shared-cal-overlay');
     if (ov) ov.style.display = 'none';
   }
