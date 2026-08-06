@@ -312,9 +312,16 @@
     box-shadow: 0 4px 18px rgba(15,23,42,0.08) !important;
     border: 1px solid rgba(15,23,42,0.06) !important;
   }
-  /* 업무 지시는 좀 더 좁게 */
+  /* 업무 지시는 좀 더 좁게 + 세로 여유 */
   body.dev-embed #dev-feature-embed > #directive-overlay {
     width: 720px !important;
+  }
+  body.dev-embed #dev-feature-embed > #directive-overlay > div {
+    min-height: 78vh !important;
+  }
+  /* 음원팀은 카탈로그 영역 전체 폭으로 (꽉 채움) */
+  body.dev-embed #dev-feature-embed > #soundteam-overlay {
+    width: 100% !important;
   }
 
   /* ── Sidebar ── */
