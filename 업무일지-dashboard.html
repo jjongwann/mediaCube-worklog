@@ -13971,10 +13971,6 @@ function openQuotePanel() {
     <!-- 헤더 (블루 그라데이션) -->
     <div style="padding:18px 24px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#2c8bdb,#2066ff);color:#fff;flex-shrink:0">
       <div style="display:flex;align-items:center;gap:12px">
-        <button id="mtg-back-btn" onclick="__meeting._backToList()" style="display:none;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.28);color:#fff;cursor:pointer;padding:0 12px;height:32px;border-radius:8px;font-family:inherit;font-weight:700;font-size:12px;align-items:center;gap:5px" onmouseover="this.style.background='rgba(255,255,255,0.32)'" onmouseout="this.style.background='rgba(255,255,255,0.18)'">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-          목록으로
-        </button>
         <div style="width:36px;height:36px;background:rgba(255,255,255,0.16);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         </div>
@@ -13985,7 +13981,11 @@ function openQuotePanel() {
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <button id="mtg-type-mgr-btn" onclick="__meeting.openTypeManager()" style="display:none;padding:7px 12px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.28);color:#fff;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" title="회의 유형 관리 (관리자 전용)">유형 관리</button>
-        <button onclick="__meeting.closePanel()" title="카탈로그로 돌아가기" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;padding:0 10px;height:32px;border-radius:8px;display:flex;align-items:center;gap:5px;font-family:inherit;font-weight:700;font-size:12px" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+        <button id="mtg-back-btn" onclick="__meeting._backToList()" title="목록으로 돌아가기" style="display:none;background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;padding:0 10px;height:32px;border-radius:8px;align-items:center;gap:5px;font-family:inherit;font-weight:700;font-size:12px" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          목록으로
+        </button>
+        <button id="mtg-close-panel-btn" onclick="__meeting.closePanel()" title="카탈로그로 돌아가기" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;padding:0 10px;height:32px;border-radius:8px;display:flex;align-items:center;gap:5px;font-family:inherit;font-weight:700;font-size:12px" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           카탈로그로
         </button>
@@ -14967,9 +14967,11 @@ window.__meeting = (function() {
     if (listWrap) listWrap.style.display = 'none';
     if (filterBar) filterBar.style.display = 'none';
     detailEl.style.display = 'block';
-    // 헤더 back 버튼 + 타이틀 스위치
+    // 헤더 back 버튼 + 카탈로그로 버튼 스위치 + 타이틀 스위치
     var backBtn = document.getElementById('mtg-back-btn');
-    if (backBtn) backBtn.style.display = 'inline-flex';
+    var closeBtn = document.getElementById('mtg-close-panel-btn');
+    if (backBtn)  backBtn.style.display = 'inline-flex';
+    if (closeBtn) closeBtn.style.display = 'none';
     var hKicker = document.getElementById('mtg-header-kicker');
     var hTitle = document.getElementById('mtg-header-title');
     if (hKicker) hKicker.textContent = 'VIEW MINUTE';
@@ -14986,7 +14988,9 @@ window.__meeting = (function() {
     if (listWrap) listWrap.style.display = '';
     if (filterBar) filterBar.style.display = '';
     var backBtn = document.getElementById('mtg-back-btn');
-    if (backBtn) backBtn.style.display = 'none';
+    var closeBtn = document.getElementById('mtg-close-panel-btn');
+    if (backBtn)  backBtn.style.display = 'none';
+    if (closeBtn) closeBtn.style.display = 'flex';
     var hKicker = document.getElementById('mtg-header-kicker');
     var hTitle = document.getElementById('mtg-header-title');
     if (hKicker) hKicker.textContent = 'MEETING MINUTES';
