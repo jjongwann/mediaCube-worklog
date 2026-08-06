@@ -14041,17 +14041,21 @@ function openQuotePanel() {
             <div>
               <label class="mtg-lbl">시작 시간</label>
               <div class="mtg-time-wrap">
-                <select id="mtg-f-start-h" class="mtg-time-sel"></select>
+                <div class="mtg-time-cell" data-target="mtg-f-start-h" data-kind="h" onclick="event.stopPropagation();__meeting._toggleTimeDrop('mtg-f-start-h', this)"><span class="mtg-time-val">--</span></div>
+                <input type="hidden" id="mtg-f-start-h">
                 <span class="mtg-time-sep">:</span>
-                <select id="mtg-f-start-m" class="mtg-time-sel"></select>
+                <div class="mtg-time-cell" data-target="mtg-f-start-m" data-kind="m" onclick="event.stopPropagation();__meeting._toggleTimeDrop('mtg-f-start-m', this)"><span class="mtg-time-val">--</span></div>
+                <input type="hidden" id="mtg-f-start-m">
               </div>
             </div>
             <div>
               <label class="mtg-lbl">종료 시간</label>
               <div class="mtg-time-wrap">
-                <select id="mtg-f-end-h" class="mtg-time-sel"></select>
+                <div class="mtg-time-cell" data-target="mtg-f-end-h" data-kind="h" onclick="event.stopPropagation();__meeting._toggleTimeDrop('mtg-f-end-h', this)"><span class="mtg-time-val">--</span></div>
+                <input type="hidden" id="mtg-f-end-h">
                 <span class="mtg-time-sep">:</span>
-                <select id="mtg-f-end-m" class="mtg-time-sel"></select>
+                <div class="mtg-time-cell" data-target="mtg-f-end-m" data-kind="m" onclick="event.stopPropagation();__meeting._toggleTimeDrop('mtg-f-end-m', this)"><span class="mtg-time-val">--</span></div>
+                <input type="hidden" id="mtg-f-end-m">
               </div>
             </div>
           </div>
@@ -14223,30 +14227,60 @@ function openQuotePanel() {
     font-weight: 600;
   }
   .mtg-nice-select:hover { background-color: #f0fdfa; }
-  /* 시간 선택 (시/분 2개 셀렉트) — .mtg-input 과 동일한 시각적 무게 */
+  /* 시간 선택 — 커스텀 드롭다운 (10개 노출 + 스크롤) */
   .mtg-time-wrap {
     display: flex; align-items: center;
     width: 100%; box-sizing: border-box;
-    height: 39px; /* .mtg-input 과 동일 높이 (padding 9+9 + font-line ≈ 39) */
+    height: 39px;
     padding: 0 4px;
     background: #fff;
     border: 1px solid #e2e8f0; border-radius: 9px;
     transition: border-color .12s, box-shadow .12s;
+    position: relative;
   }
   .mtg-time-wrap:hover { border-color: #99c8ff; }
-  .mtg-time-wrap:focus-within { border-color: #2066ff; box-shadow: 0 0 0 3px rgba(32,102,255,0.12); }
-  .mtg-time-sel {
+  .mtg-time-wrap.active { border-color: #2066ff; box-shadow: 0 0 0 3px rgba(32,102,255,0.12); }
+  .mtg-time-cell {
     flex: 1; min-width: 0;
-    appearance: none; -webkit-appearance: none; -moz-appearance: none;
-    border: none; background: transparent; outline: none;
+    display: flex; align-items: center; justify-content: center;
     padding: 8px 6px;
     font-size: 13px; font-weight: 600; color: #0f172a;
     font-family: inherit; font-variant-numeric: tabular-nums;
-    text-align: center; text-align-last: center;
-    cursor: pointer;
+    cursor: pointer; user-select: none;
+    border-radius: 6px;
+    transition: background .12s, color .12s;
   }
-  .mtg-time-sel:hover { color: #2066ff; }
+  .mtg-time-cell:hover { background: #f0f6ff; color: #2066ff; }
+  .mtg-time-cell.active { background: #eff6ff; color: #2066ff; }
   .mtg-time-sep { font-weight: 800; color: #cbd5e1; font-size: 14px; user-select: none; flex-shrink: 0; }
+  /* 커스텀 드롭다운 패널 (body 에 append 됨) */
+  #mtg-time-drop {
+    position: absolute;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 10px 28px rgba(15,23,42,0.14);
+    z-index: 10010;
+    max-height: 280px; /* 10 items x 28px */
+    overflow-y: auto;
+    padding: 4px 0;
+    min-width: 68px;
+    scrollbar-width: thin;
+  }
+  #mtg-time-drop::-webkit-scrollbar { width: 6px; }
+  #mtg-time-drop::-webkit-scrollbar-track { background: transparent; }
+  #mtg-time-drop::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 6px; }
+  .mtg-time-drop-item {
+    padding: 6px 14px;
+    font-size: 13px; font-weight: 600; color: #0f172a;
+    cursor: pointer;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    transition: background .1s, color .1s;
+    height: 28px; box-sizing: border-box; line-height: 16px;
+  }
+  .mtg-time-drop-item:hover { background: #eff6ff; color: #2066ff; }
+  .mtg-time-drop-item.selected { background: #2066ff; color: #fff; }
   /* 파일 업로드 드롭 존 */
   .mtg-file-drop {
     width: 100%;
@@ -14499,18 +14533,17 @@ window.__meeting = (function() {
     return parts[0] + '.' + parts[1] + '.' + parts[2];
   }
   function _fmtTime(t){ return (t || '').slice(0,5); }
-  // 시간 select (시/분 2개) 헬퍼
-  var _timeSelInitialized = false;
-  function _initTimeSelects() {
-    if (_timeSelInitialized) return;
-    // 시(HH): 00~23 (24개) — 업무시간 이외도 회의 가능성 있어 전체 유지
-    var hourOpts = '<option value="">--</option>';
-    for (var h = 0; h <= 23; h++) { var hh = h < 10 ? '0'+h : String(h); hourOpts += '<option value="' + hh + '">' + hh + '</option>'; }
-    // 분(MM): 15분 단위 (00·15·30·45) — 드롭다운 컴팩트하게
-    var minOpts = '<option value="">--</option><option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>';
-    ['mtg-f-start-h','mtg-f-end-h'].forEach(function(id){ var el = document.getElementById(id); if (el) el.innerHTML = hourOpts; });
-    ['mtg-f-start-m','mtg-f-end-m'].forEach(function(id){ var el = document.getElementById(id); if (el) el.innerHTML = minOpts; });
-    _timeSelInitialized = true;
+  // 시간 선택 — 커스텀 드롭다운 (10개 노출 + 스크롤 + 분 60개 모두)
+  function _initTimeSelects() { /* no-op — 옵션은 _toggleTimeDrop 에서 동적 렌더 */ }
+  // 셀 값 표시 갱신 + hidden input 값 세팅
+  function _setCellVal(prefix, kind, v) {
+    var inp = document.getElementById(prefix + '-' + kind);
+    if (inp) inp.value = v || '';
+    var cell = document.querySelector('[data-target="' + prefix + '-' + kind + '"]');
+    if (cell) {
+      var span = cell.querySelector('.mtg-time-val');
+      if (span) span.textContent = v || '--';
+    }
   }
   function _timeGet(prefix) {
     var h = document.getElementById(prefix + '-h');
@@ -14521,19 +14554,89 @@ window.__meeting = (function() {
     return (hv || '00') + ':' + (mv || '00');
   }
   function _timeSet(prefix, v) {
-    var h = document.getElementById(prefix + '-h');
-    var m = document.getElementById(prefix + '-m');
-    if (!v) { if (h) h.value = ''; if (m) m.value = ''; return; }
+    if (!v) { _setCellVal(prefix, 'h', ''); _setCellVal(prefix, 'm', ''); return; }
     var parts = String(v).split(':');
-    var hv = (parts[0] || '').padStart(2, '0').slice(0,2);
-    var mvNum = parseInt(parts[1] || '0', 10);
-    // 15분 단위로 반올림 스냅
-    var snap = Math.round(mvNum / 15) * 15;
-    if (snap >= 60) snap = 45;
-    var mv = (snap < 10 ? '0'+snap : String(snap));
-    if (h) h.value = hv;
-    if (m) m.value = mv;
+    var hv = String(parts[0] || '').padStart(2, '0').slice(0,2);
+    var mv = String(parts[1] || '').padStart(2, '0').slice(0,2);
+    _setCellVal(prefix, 'h', hv);
+    _setCellVal(prefix, 'm', mv);
   }
+  // 커스텀 드롭다운 (body 에 한 번만 append)
+  var _activeTimeCell = null;
+  function _ensureTimeDrop() {
+    if (document.getElementById('mtg-time-drop')) return;
+    var d = document.createElement('div');
+    d.id = 'mtg-time-drop';
+    document.body.appendChild(d);
+  }
+  window._mtgToggleTimeDrop = function(targetId, cellEl) {
+    _ensureTimeDrop();
+    var drop = document.getElementById('mtg-time-drop');
+    // 같은 셀 재클릭 → 닫기
+    if (_activeTimeCell === cellEl && drop.style.display !== 'none') {
+      drop.style.display = 'none';
+      cellEl.classList.remove('active');
+      var w0 = cellEl.closest('.mtg-time-wrap'); if (w0) w0.classList.remove('active');
+      _activeTimeCell = null;
+      return;
+    }
+    // 이전 셀 active 제거
+    if (_activeTimeCell) {
+      _activeTimeCell.classList.remove('active');
+      var pw = _activeTimeCell.closest('.mtg-time-wrap'); if (pw) pw.classList.remove('active');
+    }
+    _activeTimeCell = cellEl;
+    cellEl.classList.add('active');
+    var w = cellEl.closest('.mtg-time-wrap'); if (w) w.classList.add('active');
+    var inp = document.getElementById(targetId);
+    var kind = cellEl.getAttribute('data-kind'); // 'h' or 'm'
+    var cur = inp ? (inp.value || '') : '';
+    // 옵션 생성: 시 = 0~23 (24개), 분 = 0~59 (60개)
+    var max = kind === 'h' ? 24 : 60;
+    var html = '';
+    for (var i = 0; i < max; i++) {
+      var v = i < 10 ? '0' + i : String(i);
+      var sel = (v === cur) ? ' selected' : '';
+      html += '<div class="mtg-time-drop-item' + sel + '" onclick="event.stopPropagation();__meeting._pickTime(\'' + targetId + '\',\'' + v + '\')">' + v + '</div>';
+    }
+    drop.innerHTML = html;
+    // 셀 아래에 위치
+    var rect = cellEl.getBoundingClientRect();
+    drop.style.left = (rect.left + window.scrollX) + 'px';
+    drop.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+    drop.style.minWidth = Math.max(rect.width, 68) + 'px';
+    drop.style.display = 'block';
+    // 선택된 항목으로 스크롤
+    var selItem = drop.querySelector('.mtg-time-drop-item.selected');
+    if (selItem) selItem.scrollIntoView({ block: 'nearest' });
+  };
+  window._mtgPickTime = function(targetId, val) {
+    var inp = document.getElementById(targetId);
+    if (inp) inp.value = val;
+    var cell = document.querySelector('[data-target="' + targetId + '"]');
+    if (cell) {
+      var span = cell.querySelector('.mtg-time-val');
+      if (span) span.textContent = val;
+      cell.classList.remove('active');
+      var w = cell.closest('.mtg-time-wrap'); if (w) w.classList.remove('active');
+    }
+    var drop = document.getElementById('mtg-time-drop');
+    if (drop) drop.style.display = 'none';
+    _activeTimeCell = null;
+  };
+  // 외부 클릭 시 드롭 닫기
+  document.addEventListener('click', function(e){
+    var drop = document.getElementById('mtg-time-drop');
+    if (!drop || drop.style.display === 'none') return;
+    if (drop.contains(e.target)) return;
+    if (e.target.closest && e.target.closest('.mtg-time-cell')) return;
+    drop.style.display = 'none';
+    if (_activeTimeCell) {
+      _activeTimeCell.classList.remove('active');
+      var w = _activeTimeCell.closest('.mtg-time-wrap'); if (w) w.classList.remove('active');
+      _activeTimeCell = null;
+    }
+  });
   // Supabase Storage URL 에 ?download=<filename> 파라미터 추가 → 브라우저에서 인라인 열람 대신 강제 다운로드
   function _downloadUrl(url, filename) {
     if (!url) return '';
@@ -15313,6 +15416,7 @@ window.__meeting = (function() {
     openTypeManager: openTypeManager, closeTypeManager: closeTypeManager, addType: addType,
     _toggleAttendee: _toggleAttendee, _renderAttendeeChips: _renderAttendeeChips,
     _addExternalAttendee: _addExternalAttendee, _removeExternalAttendee: _removeExternalAttendee,
+    _toggleTimeDrop: window._mtgToggleTimeDrop, _pickTime: window._mtgPickTime,
     _saveTypeLabel: _saveTypeLabel, _deleteType: _deleteType,
     _onFileSelect: _onFileSelect, _removePendingFile: _removePendingFile, _removeExistingAttachment: _removeExistingAttachment,
     _state: _state
