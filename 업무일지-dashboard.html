@@ -14033,14 +14033,10 @@ function openQuotePanel() {
               <select id="mtg-f-type" class="mtg-input mtg-nice-select"></select>
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
             <div>
               <label class="mtg-lbl">회의 날짜 *</label>
               <input type="date" id="mtg-f-date" class="mtg-input">
-            </div>
-            <div>
-              <label class="mtg-lbl">회의 장소</label>
-              <input type="text" id="mtg-f-location" class="mtg-input" placeholder="예: 사무실 / Zoom">
             </div>
             <div>
               <label class="mtg-lbl">주관 부서</label>
@@ -14049,12 +14045,9 @@ function openQuotePanel() {
               </select>
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px">
-            <div>
-              <label class="mtg-lbl">작성자</label>
-              <input type="text" id="mtg-f-author" class="mtg-input" readonly style="background:#f9fafb;color:#64748b">
-            </div>
-            <div></div>
+          <div>
+            <label class="mtg-lbl">작성자</label>
+            <input type="text" id="mtg-f-author" class="mtg-input" readonly style="background:#f9fafb;color:#64748b">
           </div>
         </div>
 
@@ -14302,7 +14295,7 @@ function openQuotePanel() {
   }
   .mtg-detail-sub .dot { color: #cbd5e1; }
   .mtg-detail-meta-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
     padding: 16px 18px; background: #f8fafc;
     border: 1px solid #e2e8f0; border-radius: 12px;
     margin-bottom: 26px;
@@ -14461,18 +14454,9 @@ window.__meeting = (function() {
       .catch(function(){ _state.rows = []; });
   }
 
-  // 기본 부서 목록 + 저장된 row 의 dept + ALL_USERS 의 dept 를 합쳐 unique 목록 생성
+  // 회의록 주관 부서는 두 사업부 (사운드/시스템) 로 고정
   function _allDepts() {
-    var base = ['사운드컨텐츠사업부','시스템 사업부','회계·경리팀','미디어큐브','개발팀'];
-    var seen = {}, out = [];
-    base.forEach(function(d){ if (!seen[d]) { seen[d] = true; out.push(d); } });
-    try {
-      if (typeof ALL_USERS !== 'undefined' && Array.isArray(ALL_USERS)) {
-        ALL_USERS.forEach(function(u){ if (u.dept && !seen[u.dept]) { seen[u.dept] = true; out.push(u.dept); } });
-      }
-    } catch(e){}
-    _state.rows.forEach(function(r){ if (r.dept && !seen[r.dept]) { seen[r.dept] = true; out.push(r.dept); } });
-    return out;
+    return ['사운드컨텐츠사업부','시스템 사업부'];
   }
 
   function _populateFilters() {
@@ -14665,7 +14649,6 @@ window.__meeting = (function() {
     if (_state.types.length) document.getElementById('mtg-f-type').value = _state.types[0].key;
     var today = new Date().toISOString().slice(0,10);
     document.getElementById('mtg-f-date').value = today;
-    document.getElementById('mtg-f-location').value = '';
     document.getElementById('mtg-f-dept').value = _userDept();
     document.getElementById('mtg-f-author').value = _fullName();
     document.getElementById('mtg-f-agenda').value = '';
@@ -14799,7 +14782,6 @@ window.__meeting = (function() {
     document.getElementById('mtg-f-title').value = row.title || '';
     document.getElementById('mtg-f-type').value = row.meeting_type || 'etc';
     document.getElementById('mtg-f-date').value = row.meeting_date || '';
-    document.getElementById('mtg-f-location').value = row.location || '';
     // dept: 옵션에 없는 값이면 임시 옵션 추가 후 세팅
     var deptSel = document.getElementById('mtg-f-dept');
     if (deptSel && row.dept) {
@@ -14899,7 +14881,7 @@ window.__meeting = (function() {
         meeting_date: date,
         start_time: null,
         end_time: null,
-        location: document.getElementById('mtg-f-location').value || '',
+        location: '',
         dept: document.getElementById('mtg-f-dept').value || '',
         attendees: attendeesArr,
         agenda: document.getElementById('mtg-f-agenda').value || '',
@@ -15020,7 +15002,6 @@ window.__meeting = (function() {
 
     var metaHtml = ''
       + '<div class="mtg-detail-meta-item"><div class="lbl">회의 일시</div><div class="val' + (r.meeting_date ? '' : ' empty') + '">' + (r.meeting_date ? _fmtDate(r.meeting_date) : '—') + '</div></div>'
-      + '<div class="mtg-detail-meta-item"><div class="lbl">회의 장소</div><div class="val' + (r.location ? '' : ' empty') + '">' + (r.location ? _esc(r.location) : '—') + '</div></div>'
       + '<div class="mtg-detail-meta-item"><div class="lbl">주관 부서</div><div class="val' + (r.dept ? '' : ' empty') + '">' + (r.dept ? _esc(r.dept) : '—') + '</div></div>';
 
     var attendeesHtml = attendees.length
