@@ -14033,10 +14033,32 @@ function openQuotePanel() {
               <select id="mtg-f-type" class="mtg-input mtg-nice-select"></select>
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+          <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px;margin-bottom:14px">
             <div>
               <label class="mtg-lbl">회의 날짜 *</label>
               <input type="date" id="mtg-f-date" class="mtg-input">
+            </div>
+            <div>
+              <label class="mtg-lbl">시작 시간</label>
+              <div class="mtg-time-wrap">
+                <select id="mtg-f-start-h" class="mtg-time-sel"></select>
+                <span class="mtg-time-sep">:</span>
+                <select id="mtg-f-start-m" class="mtg-time-sel"></select>
+              </div>
+            </div>
+            <div>
+              <label class="mtg-lbl">종료 시간</label>
+              <div class="mtg-time-wrap">
+                <select id="mtg-f-end-h" class="mtg-time-sel"></select>
+                <span class="mtg-time-sep">:</span>
+                <select id="mtg-f-end-m" class="mtg-time-sel"></select>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div>
+              <label class="mtg-lbl">회의 장소</label>
+              <input type="text" id="mtg-f-location" class="mtg-input" placeholder="예: 사무실 / Zoom">
             </div>
             <div>
               <label class="mtg-lbl">주관 부서</label>
@@ -14198,6 +14220,20 @@ function openQuotePanel() {
     font-weight: 600;
   }
   .mtg-nice-select:hover { background-color: #f0fdfa; }
+  /* 시간 선택 (시/분 2개 셀렉트) */
+  .mtg-time-wrap { display: flex; align-items: center; gap: 6px; }
+  .mtg-time-sel {
+    flex: 1; min-width: 0;
+    padding: 9px 6px; border: 1px solid #e2e8f0; border-radius: 9px;
+    font-size: 13px; font-weight: 600; color: #0f172a;
+    outline: none; background: #fff; cursor: pointer;
+    font-family: inherit; font-variant-numeric: tabular-nums;
+    text-align: center; text-align-last: center;
+    transition: border-color .12s, box-shadow .12s;
+  }
+  .mtg-time-sel:hover { border-color: #bfdbfe; }
+  .mtg-time-sel:focus { border-color: #2066ff; box-shadow: 0 0 0 3px rgba(32,102,255,0.12); }
+  .mtg-time-sep { font-weight: 800; color: #94a3b8; font-size: 15px; flex-shrink: 0; user-select: none; }
   /* 파일 업로드 드롭 존 */
   .mtg-file-drop {
     width: 100%;
@@ -14295,7 +14331,7 @@ function openQuotePanel() {
   }
   .mtg-detail-sub .dot { color: #cbd5e1; }
   .mtg-detail-meta-grid {
-    display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
     padding: 16px 18px; background: #f8fafc;
     border: 1px solid #e2e8f0; border-radius: 12px;
     margin-bottom: 26px;
@@ -14436,6 +14472,39 @@ window.__meeting = (function() {
     return parts[0] + '.' + parts[1] + '.' + parts[2];
   }
   function _fmtTime(t){ return (t || '').slice(0,5); }
+  // 시간 select (시/분 2개) 헬퍼
+  var _timeSelInitialized = false;
+  function _initTimeSelects() {
+    if (_timeSelInitialized) return;
+    var hourOpts = '<option value="">시</option>';
+    for (var h = 0; h <= 23; h++) { var hh = h < 10 ? '0'+h : String(h); hourOpts += '<option value="' + hh + '">' + hh + '</option>'; }
+    var minOpts = '<option value="">분</option>';
+    for (var m = 0; m < 60; m += 5) { var mm = m < 10 ? '0'+m : String(m); minOpts += '<option value="' + mm + '">' + mm + '</option>'; }
+    ['mtg-f-start-h','mtg-f-end-h'].forEach(function(id){ var el = document.getElementById(id); if (el) el.innerHTML = hourOpts; });
+    ['mtg-f-start-m','mtg-f-end-m'].forEach(function(id){ var el = document.getElementById(id); if (el) el.innerHTML = minOpts; });
+    _timeSelInitialized = true;
+  }
+  function _timeGet(prefix) {
+    var h = document.getElementById(prefix + '-h');
+    var m = document.getElementById(prefix + '-m');
+    var hv = h ? (h.value || '') : '';
+    var mv = m ? (m.value || '') : '';
+    if (!hv && !mv) return '';
+    return (hv || '00') + ':' + (mv || '00');
+  }
+  function _timeSet(prefix, v) {
+    var h = document.getElementById(prefix + '-h');
+    var m = document.getElementById(prefix + '-m');
+    if (!v) { if (h) h.value = ''; if (m) m.value = ''; return; }
+    var parts = String(v).split(':');
+    var hv = (parts[0] || '').padStart(2, '0').slice(0,2);
+    var mvNum = parseInt(parts[1] || '0', 10);
+    var snap = Math.round(mvNum / 5) * 5;
+    if (snap > 55) snap = 55;
+    var mv = (snap < 10 ? '0'+snap : String(snap));
+    if (h) h.value = hv;
+    if (m) m.value = mv;
+  }
   // Supabase Storage URL 에 ?download=<filename> 파라미터 추가 → 브라우저에서 인라인 열람 대신 강제 다운로드
   function _downloadUrl(url, filename) {
     if (!url) return '';
@@ -14656,6 +14725,10 @@ window.__meeting = (function() {
     if (_state.types.length) document.getElementById('mtg-f-type').value = _state.types[0].key;
     var today = new Date().toISOString().slice(0,10);
     document.getElementById('mtg-f-date').value = today;
+    _initTimeSelects();
+    _timeSet('mtg-f-start', '');
+    _timeSet('mtg-f-end', '');
+    var locEl = document.getElementById('mtg-f-location'); if (locEl) locEl.value = '';
     document.getElementById('mtg-f-dept').value = _userDept();
     document.getElementById('mtg-f-author').value = _fullName();
     document.getElementById('mtg-f-agenda').value = '';
@@ -14789,6 +14862,10 @@ window.__meeting = (function() {
     document.getElementById('mtg-f-title').value = row.title || '';
     document.getElementById('mtg-f-type').value = row.meeting_type || 'etc';
     document.getElementById('mtg-f-date').value = row.meeting_date || '';
+    _initTimeSelects();
+    _timeSet('mtg-f-start', _fmtTime(row.start_time));
+    _timeSet('mtg-f-end', _fmtTime(row.end_time));
+    var locEl2 = document.getElementById('mtg-f-location'); if (locEl2) locEl2.value = row.location || '';
     // dept: 옵션에 없는 값이면 임시 옵션 추가 후 세팅
     var deptSel = document.getElementById('mtg-f-dept');
     if (deptSel && row.dept) {
@@ -14887,9 +14964,9 @@ window.__meeting = (function() {
         title: title,
         meeting_type: type,
         meeting_date: date,
-        start_time: null,
-        end_time: null,
-        location: '',
+        start_time: _timeGet('mtg-f-start') || null,
+        end_time: _timeGet('mtg-f-end') || null,
+        location: (document.getElementById('mtg-f-location') || {}).value || '',
         dept: document.getElementById('mtg-f-dept').value || '',
         attendees: attendeesArr,
         agenda: document.getElementById('mtg-f-agenda').value || '',
@@ -15008,8 +15085,15 @@ window.__meeting = (function() {
       + '<span class="mtg-type-chip">' + _esc(_typeLabel(r.meeting_type)) + '</span>'
       + '<span class="mtg-vis-chip ' + visCls + '" style="margin-left:0;font-size:10.5px;padding:2px 8px">' + _esc(visLbl) + '</span>';
 
+    // 회의 일시 = 날짜 + (시작~종료 시간 표시)
+    var _s = _fmtTime(r.start_time), _e = _fmtTime(r.end_time);
+    var _timePart = _s && _e ? _s + ' ~ ' + _e : (_s ? _s + ' ~' : (_e ? '~ ' + _e : ''));
+    var dateTimeVal = r.meeting_date
+      ? (_fmtDate(r.meeting_date) + (_timePart ? ' <span style="color:#64748b;font-weight:600;font-size:12.5px">· ' + _esc(_timePart) + '</span>' : ''))
+      : '—';
     var metaHtml = ''
-      + '<div class="mtg-detail-meta-item"><div class="lbl">회의 일시</div><div class="val' + (r.meeting_date ? '' : ' empty') + '">' + (r.meeting_date ? _fmtDate(r.meeting_date) : '—') + '</div></div>'
+      + '<div class="mtg-detail-meta-item"><div class="lbl">회의 일시</div><div class="val' + (r.meeting_date ? '' : ' empty') + '">' + dateTimeVal + '</div></div>'
+      + '<div class="mtg-detail-meta-item"><div class="lbl">회의 장소</div><div class="val' + (r.location ? '' : ' empty') + '">' + (r.location ? _esc(r.location) : '—') + '</div></div>'
       + '<div class="mtg-detail-meta-item"><div class="lbl">주관 부서</div><div class="val' + (r.dept ? '' : ' empty') + '">' + (r.dept ? _esc(r.dept) : '—') + '</div></div>';
 
     var attendeesHtml = attendees.length
