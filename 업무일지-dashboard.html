@@ -274,6 +274,39 @@
     box-shadow: 0 4px 18px rgba(15,23,42,0.08) !important;
   }
 
+  /* ────────────────────────────────────────────
+     dev-embed 범용 (기능 오버레이를 카탈로그 안에 embed)
+     ──────────────────────────────────────────── */
+  body.dev-embed .dm-new-btn-journal,
+  body.dev-embed .dm-new-btn-meeting { display: none !important; }
+  body.dev-embed .dm-new-btn-catalog-back { display: inline-flex !important; }
+  body.dev-mode.view-catalog.dev-embed .dm-hero,
+  body.dev-mode.view-catalog.dev-embed .dm-toolbar,
+  body.dev-mode.view-catalog.dev-embed #dmGrid,
+  body.dev-mode.view-catalog.dev-embed #dev-sales-embed { display: none !important; }
+  #dev-feature-embed { display: none; }
+  body.dev-embed #dev-feature-embed { display: block !important; }
+  /* embed 로 이동된 오버레이는 인라인 배치 */
+  body.dev-embed #dev-feature-embed > [id$="-overlay"] {
+    display: flex !important;
+    position: static !important;
+    inset: auto !important;
+    background: transparent !important;
+    padding: 0 !important;
+    z-index: auto !important;
+    align-items: initial !important;
+    justify-content: initial !important;
+    overflow: visible !important;
+  }
+  body.dev-embed #dev-feature-embed > [id$="-overlay"] > div {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    margin: 0 !important;
+    box-shadow: 0 4px 18px rgba(15,23,42,0.08) !important;
+  }
+
   /* ── Sidebar ── */
   .sidebar {
     width: var(--sidebar-w);
@@ -1945,6 +1978,10 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             회의록 작성
           </button>
+          <button type="button" class="dm-new-btn dm-new-btn-catalog-back" onclick="if(window._dmExitFeatureEmbed) window._dmExitFeatureEmbed()" title="카탈로그로 돌아가기" style="display:none;border:none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            카탈로그로
+          </button>
         </div>
         <div class="dm-hero">
           <div class="kicker">DASHBOARD</div>
@@ -1974,6 +2011,8 @@
           </div>
           <div id="dev-sales-embed-host"></div>
         </div>
+        <!-- 기능 오버레이 embed — 각종 기능 카드 클릭 시 오버레이가 여기로 이동 -->
+        <div id="dev-feature-embed"></div>
       </div>
     </div>
 
@@ -10976,6 +11015,10 @@
     document.getElementById('soundteam-date-from').value = firstOfMonth;
     document.getElementById('soundteam-date-to').value = todayStr;
     _stVisibleMap = {}; // 열 때마다 각 직원 표시 개수 초기화
+    // dev-mode 사용자는 embed 로 진입
+    if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function') {
+      window._dmEnterFeatureEmbed('soundteam-overlay');
+    }
     document.getElementById('soundteam-overlay').style.display = 'flex';
     document.getElementById('soundteam-body').innerHTML = '<div style="text-align:center;padding:40px 0;color:#94a3b8;font-size:13px">불러오는 중...</div>';
     await _fetchSoundTeamJournals();
@@ -11016,6 +11059,14 @@
   }
 
   function closeSoundTeamPanel() {
+    // embed 모드였다면 원위치 복원 + dev-embed 해제
+    if (document.body.classList.contains('dev-embed')
+        && window._dmFeatureEmbedState
+        && window._dmFeatureEmbedState.overlayId === 'soundteam-overlay'
+        && typeof window._dmExitFeatureEmbed === 'function') {
+      window._dmExitFeatureEmbed();
+      return;
+    }
     document.getElementById('soundteam-overlay').style.display = 'none';
   }
 
@@ -12010,6 +12061,10 @@
 
   window.openDirectivePanel = function() {
     _directiveView = 'form'; // 항상 업무 지시 폼으로 시작
+    // dev-mode 사용자는 embed 로 진입
+    if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function') {
+      window._dmEnterFeatureEmbed('directive-overlay');
+    }
     document.getElementById('directive-overlay').style.display = 'flex';
     _fetchDirectives().then(function() {
       window._updateDirBadge();
@@ -12018,6 +12073,14 @@
   };
 
   window.closeDirectivePanel = function() {
+    // embed 모드였다면 원위치 복원 + dev-embed 해제
+    if (document.body.classList.contains('dev-embed')
+        && window._dmFeatureEmbedState
+        && window._dmFeatureEmbedState.overlayId === 'directive-overlay'
+        && typeof window._dmExitFeatureEmbed === 'function') {
+      window._dmExitFeatureEmbed();
+      return;
+    }
     document.getElementById('directive-overlay').style.display = 'none';
   };
 
@@ -15626,6 +15689,10 @@ window._dmSwitchView = function(view, el) {
   if (document.body.classList.contains('meeting-embed')) {
     try { window.__meeting && window.__meeting.closePanel(); } catch(e){}
   }
+  // 기능 오버레이 embed 상태에서 다른 뷰로 이동 시 embed 정리
+  if (document.body.classList.contains('dev-embed')) {
+    try { window._dmExitFeatureEmbed(); } catch(e){}
+  }
   document.body.classList.remove('view-catalog', 'view-journal');
   document.body.classList.add('view-' + view);
   // 새로고침 시 현재 뷰 유지 위해 localStorage 저장
@@ -15800,6 +15867,68 @@ window._dmExitSalesEmbed = function() {
     });
   }
   document.body.classList.remove('sales-embed');
+};
+
+/* ══════════════════════════════════════════
+   기능 오버레이 embed 범용 헬퍼
+   - 오버레이(id="*-overlay")를 카탈로그 안으로 이동해 인라인 렌더
+   - 원위치(부모/next sibling) 저장 → exit 시 복원
+   ══════════════════════════════════════════ */
+window._dmFeatureEmbedState = null;
+window._dmEnterFeatureEmbed = function(overlayId, opts) {
+  opts = opts || {};
+  if (!document.body.classList.contains('dev-mode')) return false;
+  // 카탈로그 뷰가 아니면 강제 전환
+  if (!document.body.classList.contains('view-catalog')) {
+    if (typeof window._dmSwitchView === 'function') {
+      var el = document.querySelector('.dev-view-item[data-devview="catalog"]');
+      window._dmSwitchView('catalog', el);
+    }
+  }
+  var overlay = document.getElementById(overlayId);
+  var embed = document.getElementById('dev-feature-embed');
+  if (!overlay || !embed) return false;
+  // 다른 feature embed / meeting embed / sales embed 중이면 정리
+  if (window._dmFeatureEmbedState) window._dmExitFeatureEmbed();
+  if (document.body.classList.contains('meeting-embed')) {
+    try { if (window.__meeting && window.__meeting.closePanel) window.__meeting.closePanel(); } catch(e){}
+  }
+  if (document.body.classList.contains('sales-embed')) {
+    try { window._dmExitSalesEmbed(); } catch(e){}
+  }
+  window._dmFeatureEmbedState = {
+    overlayId: overlayId,
+    origParent: overlay.parentNode,
+    origNext: overlay.nextSibling,
+    prevDisplay: overlay.style.display,
+    prevPosition: overlay.style.position,
+    prevInset: overlay.style.inset,
+    prevBackground: overlay.style.background,
+    prevZIndex: overlay.style.zIndex,
+    prevPadding: overlay.style.padding
+  };
+  embed.appendChild(overlay);
+  document.body.classList.add('dev-embed');
+  return true;
+};
+
+window._dmExitFeatureEmbed = function() {
+  var st = window._dmFeatureEmbedState;
+  if (!st) {
+    document.body.classList.remove('dev-embed');
+    return;
+  }
+  var overlay = document.getElementById(st.overlayId);
+  if (overlay && st.origParent) {
+    if (st.origNext && st.origNext.parentNode === st.origParent) {
+      st.origParent.insertBefore(overlay, st.origNext);
+    } else {
+      st.origParent.appendChild(overlay);
+    }
+    overlay.style.display = 'none';
+  }
+  document.body.classList.remove('dev-embed');
+  window._dmFeatureEmbedState = null;
 };
 
 /* Developer 카드 데이터 · 렌더 · 클릭 라우팅 */
