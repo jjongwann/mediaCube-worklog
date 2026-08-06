@@ -14813,6 +14813,7 @@ window.__meeting = (function() {
     attendees.forEach(function(a){ if (a.id) _state.selectedAttendees[a.id] = a; });
     _setVisibility(row.visibility || 'all');
     _renderAttendeeChips();
+    _renderFileList(false); // 기존 첨부파일 목록 렌더 (수정 폼 진입 시 파일이 보이도록)
   }
 
   // 폼은 이제 항상 편집 모드 (조회는 별도 상세 페이지로 분리됨)
