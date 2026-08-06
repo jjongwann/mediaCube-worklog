@@ -14245,8 +14245,8 @@ function openQuotePanel() {
   }
   .mtg-attendee-chip .mtg-att-dept { font-size:10px; opacity:0.7; }
   .mtg-row {
-    display: grid; grid-template-columns: 1.5fr 90px 130px 1fr 100px 90px 160px 100px 90px 60px;
-    gap: 8px; padding: 12px 14px; border-bottom: 1px solid #f1f5f9;
+    display: grid; grid-template-columns: 1.7fr 100px 130px 150px 110px 200px 110px 90px 60px;
+    gap: 10px; padding: 12px 14px; border-bottom: 1px solid #f1f5f9;
     font-size: 12px; align-items: center;
     transition: background .12s;
   }
@@ -14455,7 +14455,7 @@ window.__meeting = (function() {
       return;
     }
     var header = '<div class="mtg-row mtg-row-header">'
-      + '<div>회의 제목</div><div>유형</div><div>회의 일시</div><div>장소</div><div>부서</div><div>작성자</div><div>참석자</div><div>작성일</div><div>공개</div><div></div>'
+      + '<div>회의 제목</div><div>유형</div><div>회의 일시</div><div>부서</div><div>작성자</div><div>참석자</div><div>작성일</div><div>공개</div><div></div>'
       + '</div>';
     var rowsHtml = filtered.map(function(r){
       var attCnt = Array.isArray(r.attendees) ? r.attendees.length : 0;
@@ -14468,7 +14468,6 @@ window.__meeting = (function() {
         + '<div style="min-width:0;overflow:hidden"><div style="font-weight:700;color:#0f172a;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(r.title || '무제') + '</div></div>'
         + '<div><span class="mtg-type-chip">' + _esc(_typeLabel(r.meeting_type)) + '</span></div>'
         + '<div style="color:#374151;font-weight:500">' + dateTimeStr + '</div>'
-        + '<div style="color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + _esc(r.location||'') + '">' + _esc(r.location || '-') + '</div>'
         + '<div style="color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + _esc(r.dept||'') + '">' + _esc(r.dept || '-') + '</div>'
         + '<div style="color:#0f172a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(r.author_name || '-') + '</div>'
         + '<div style="color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + _esc(attTip) + '">' + (attCnt > 0 ? (attCnt + '명 · ' + (attTip.length > 30 ? attTip.slice(0,30) + '…' : attTip)) : '-') + '</div>'
