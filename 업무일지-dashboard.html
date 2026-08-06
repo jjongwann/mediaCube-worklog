@@ -14548,7 +14548,11 @@ window.__meeting = (function() {
       + '</div>';
     var rowsHtml = filtered.map(function(r){
       var attCnt = Array.isArray(r.attendees) ? r.attendees.length : 0;
-      var attTip = Array.isArray(r.attendees) ? r.attendees.map(function(a){ return a.name; }).join(', ') : '';
+      // 참석자 이름 가나다 순 정렬 후 join
+      var attSorted = Array.isArray(r.attendees)
+        ? r.attendees.slice().sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''), 'ko'); })
+        : [];
+      var attTip = attSorted.map(function(a){ return a.name; }).join(', ');
       var dateTimeStr = _fmtDate(r.meeting_date);
       var visLbl = { sound:'사운드', system:'시스템', all:'전사' }[r.visibility || 'all'];
       var visCls = 'mtg-vis-' + (r.visibility || 'all');
