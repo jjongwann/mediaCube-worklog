@@ -247,6 +247,9 @@
     max-height: none !important;
     box-shadow: 0 4px 18px rgba(15,23,42,0.08) !important;
   }
+  /* dm-topbar '새 일지 작성' ↔ '회의록 작성' 버튼 스왑 (meeting-embed 상태) */
+  body.meeting-embed .dm-new-btn-journal { display: none !important; }
+  body.meeting-embed .dm-new-btn-meeting { display: inline-flex !important; }
   /* meeting-embed 서브모드: 카탈로그 UI 숨기고 회의록 오버레이를 embed 로 표시 */
   body.dev-mode.view-catalog.meeting-embed .dm-hero,
   body.dev-mode.view-catalog.meeting-embed .dm-toolbar,
@@ -1934,10 +1937,14 @@
       <div class="dm-wrap">
         <div class="dm-topbar">
           <div class="dm-crumb"><strong>Overview</strong> · 기능 카탈로그</div>
-          <a href="업무일지-word.html" class="dm-new-btn" title="새 일지 작성">
+          <a href="업무일지-word.html" class="dm-new-btn dm-new-btn-journal" title="새 일지 작성">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             새 일지 작성
           </a>
+          <button type="button" class="dm-new-btn dm-new-btn-meeting" onclick="if(window.__meeting) window.__meeting.openForm()" title="회의록 작성" style="display:none;border:none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            회의록 작성
+          </button>
         </div>
         <div class="dm-hero">
           <div class="kicker">DASHBOARD</div>
@@ -13974,10 +13981,6 @@ function openQuotePanel() {
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <button id="mtg-type-mgr-btn" onclick="__meeting.openTypeManager()" style="display:none;padding:7px 12px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.28);color:#fff;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit" title="회의 유형 관리 (관리자 전용)">유형 관리</button>
-        <button onclick="__meeting.openForm()" style="padding:8px 16px;background:#fff;color:#0f766e;border:none;border-radius:8px;font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px" onmouseover="this.style.background='#f0fdfa'" onmouseout="this.style.background='#fff'">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          회의록 작성
-        </button>
         <button onclick="__meeting.closePanel()" title="카탈로그로 돌아가기" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;padding:0 10px;height:32px;border-radius:8px;display:flex;align-items:center;gap:5px;font-family:inherit;font-weight:700;font-size:12px" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           카탈로그로
