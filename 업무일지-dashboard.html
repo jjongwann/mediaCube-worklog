@@ -15205,6 +15205,10 @@ window.__meeting = (function() {
       if (typeof window._dmExitSalesEmbed === 'function' && document.body.classList.contains('sales-embed')) {
         try { window._dmExitSalesEmbed(); } catch(e){}
       }
+      // 다른 기능 embed (음원팀·업무지시 등) 정리
+      if (document.body.classList.contains('dev-embed') && typeof window._dmExitFeatureEmbed === 'function') {
+        try { window._dmExitFeatureEmbed(); } catch(e){}
+      }
     } else {
       // 비-dev 사용자: 기존대로 모달로 노출
       document.getElementById('meeting-overlay').style.display = 'flex';
