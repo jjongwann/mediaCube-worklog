@@ -14033,45 +14033,27 @@ function openQuotePanel() {
       <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#0f766e;margin-bottom:10px">기본 정보</div>
       <div style="display:grid;grid-template-columns:1fr 240px;gap:12px;margin-bottom:10px">
         <div>
-          <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">회의 제목 *</label>
-          <input type="text" id="mtg-f-title" placeholder="예: KOSCAP 등록 프로세스 개선 논의" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-family:inherit" onfocus="this.style.borderColor='#0f766e'" onblur="this.style.borderColor='#e2e8f0'">
+          <label class="mtg-lbl">회의 제목 *</label>
+          <input type="text" id="mtg-f-title" class="mtg-input" placeholder="예: KOSCAP 등록 프로세스 개선 논의">
         </div>
         <div>
-          <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">회의 유형 *</label>
-          <select id="mtg-f-type" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;background:#fff;font-family:inherit" onfocus="this.style.borderColor='#0f766e'" onblur="this.style.borderColor='#e2e8f0'"></select>
+          <label class="mtg-lbl">회의 유형 *</label>
+          <select id="mtg-f-type" class="mtg-input mtg-nice-select"></select>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:10px">
         <div>
-          <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">회의 날짜 *</label>
-          <input type="date" id="mtg-f-date" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-family:inherit">
+          <label class="mtg-lbl">회의 날짜 *</label>
+          <input type="date" id="mtg-f-date" class="mtg-input">
         </div>
         <div>
-          <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">시작 시간</label>
-          <div class="mtg-time-wrap">
-            <select id="mtg-f-start-h" class="mtg-time-sel"></select>
-            <span class="mtg-time-sep">:</span>
-            <select id="mtg-f-start-m" class="mtg-time-sel"></select>
-          </div>
+          <label class="mtg-lbl">회의 장소</label>
+          <input type="text" id="mtg-f-location" class="mtg-input" placeholder="예: 사무실 / Zoom">
         </div>
         <div>
-          <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">종료 시간</label>
-          <div class="mtg-time-wrap">
-            <select id="mtg-f-end-h" class="mtg-time-sel"></select>
-            <span class="mtg-time-sep">:</span>
-            <select id="mtg-f-end-m" class="mtg-time-sel"></select>
-          </div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
-        <div>
-          <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">회의 장소</label>
-          <input type="text" id="mtg-f-location" placeholder="예: 사무실 / Zoom" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-family:inherit">
-        </div>
-        <div>
-          <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">주관 부서</label>
-          <select id="mtg-f-dept" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;background:#fff;font-family:inherit">
-            <option value="">-</option>
+          <label class="mtg-lbl">주관 부서</label>
+          <select id="mtg-f-dept" class="mtg-input mtg-nice-select">
+            <option value="">부서 선택</option>
             <option value="사운드컨텐츠사업부">사운드컨텐츠사업부</option>
             <option value="시스템 사업부">시스템 사업부</option>
             <option value="회계·경리팀">회계·경리팀</option>
@@ -14081,12 +14063,12 @@ function openQuotePanel() {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
         <div>
-          <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">작성자</label>
-          <input type="text" id="mtg-f-author" readonly style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;background:#f9fafb;color:#64748b;font-family:inherit">
+          <label class="mtg-lbl">작성자</label>
+          <input type="text" id="mtg-f-author" class="mtg-input" readonly style="background:#f9fafb;color:#64748b">
         </div>
         <div>
-          <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px">진행 상태</label>
-          <select id="mtg-f-status" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;background:#fff;font-family:inherit">
+          <label class="mtg-lbl">진행 상태</label>
+          <select id="mtg-f-status" class="mtg-input mtg-nice-select">
             <option value="planned">예정</option>
             <option value="in_progress">진행 중</option>
             <option value="done">완료</option>
@@ -14197,20 +14179,39 @@ function openQuotePanel() {
 <style>
   .mtg-vis-radio:hover { border-color: #0f766e !important; background: #f0fdfa; }
   .mtg-vis-radio.active { border-color: #0f766e !important; background: #f0fdfa; }
-  /* 커스텀 시간 선택 (시 / 분 셀렉트 2개) — 브라우저 기본 time picker 스크롤 이슈 회피 */
-  .mtg-time-wrap { display: flex; align-items: center; gap: 6px; }
-  .mtg-time-sel {
-    flex: 1; min-width: 0;
-    padding: 8px 6px; border: 1px solid #e2e8f0; border-radius: 8px;
-    font-size: 13px; font-weight: 600; color: #0f172a;
-    outline: none; background: #fff; cursor: pointer;
-    font-family: inherit; font-variant-numeric: tabular-nums;
-    text-align: center; text-align-last: center;
-    transition: border-color .12s, box-shadow .12s;
+  /* 회의록 폼 통합 스타일 — 라벨/인풋/셀렉트 */
+  .mtg-lbl {
+    display: block;
+    font-size: 11px; font-weight: 700;
+    color: #475569; letter-spacing: 0.3px;
+    margin-bottom: 6px;
   }
-  .mtg-time-sel:hover { border-color: #99f6e4; }
-  .mtg-time-sel:focus { border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15,118,110,0.12); }
-  .mtg-time-sep { font-weight: 800; color: #94a3b8; font-size: 15px; flex-shrink: 0; user-select: none; }
+  .mtg-input {
+    width: 100%; box-sizing: border-box;
+    padding: 9px 12px;
+    border: 1px solid #e2e8f0; border-radius: 9px;
+    font-size: 13px; font-weight: 500; color: #0f172a;
+    outline: none; background: #fff;
+    font-family: inherit;
+    transition: border-color .12s, box-shadow .12s, background .12s;
+  }
+  .mtg-input:hover:not(:disabled):not([readonly]) { border-color: #99f6e4; }
+  .mtg-input:focus { border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15,118,110,0.12); }
+  .mtg-input::placeholder { color: #cbd5e1; }
+  /* 커스텀 화살표를 가진 셀렉트 */
+  .mtg-nice-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 34px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230f766e' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px 12px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .mtg-nice-select:hover { background-color: #f0fdfa; }
   .mtg-attendee-chip {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 4px 9px; border-radius: 14px; font-size: 11.5px; font-weight: 600;
@@ -14323,40 +14324,6 @@ window.__meeting = (function() {
     return parts[0] + '.' + parts[1] + '.' + parts[2];
   }
   function _fmtTime(t){ return (t || '').slice(0,5); }
-  // 시간 select (시/분 2개) 헬퍼
-  var _timeSelInitialized = false;
-  function _initTimeSelects() {
-    if (_timeSelInitialized) return;
-    var hourOpts = '<option value="">시</option>';
-    for (var h = 0; h <= 23; h++) { var hh = h < 10 ? '0'+h : String(h); hourOpts += '<option value="' + hh + '">' + hh + '</option>'; }
-    var minOpts = '<option value="">분</option>';
-    for (var m = 0; m < 60; m += 5) { var mm = m < 10 ? '0'+m : String(m); minOpts += '<option value="' + mm + '">' + mm + '</option>'; }
-    ['mtg-f-start-h','mtg-f-end-h'].forEach(function(id){ var el = document.getElementById(id); if (el) el.innerHTML = hourOpts; });
-    ['mtg-f-start-m','mtg-f-end-m'].forEach(function(id){ var el = document.getElementById(id); if (el) el.innerHTML = minOpts; });
-    _timeSelInitialized = true;
-  }
-  function _timeGet(prefix) {
-    var h = document.getElementById(prefix + '-h');
-    var m = document.getElementById(prefix + '-m');
-    var hv = h ? (h.value || '') : '';
-    var mv = m ? (m.value || '') : '';
-    if (!hv && !mv) return '';
-    return (hv || '00') + ':' + (mv || '00');
-  }
-  function _timeSet(prefix, v) {
-    var h = document.getElementById(prefix + '-h');
-    var m = document.getElementById(prefix + '-m');
-    if (!v) { if (h) h.value = ''; if (m) m.value = ''; return; }
-    var parts = String(v).split(':');
-    var hv = (parts[0] || '').padStart(2, '0').slice(0,2);
-    var mvNum = parseInt(parts[1] || '0', 10);
-    // 5분 단위로 스냅
-    var snap = Math.round(mvNum / 5) * 5;
-    if (snap > 55) snap = 55;
-    var mv = (snap < 10 ? '0'+snap : String(snap));
-    if (h) h.value = hv;
-    if (m) m.value = mv;
-  }
 
   function fetchTypes() {
     return fetch(_sbUrl + '/rest/v1/meeting_types?select=*&order=sort_order.asc', { headers: _sbHdr() })
@@ -14437,8 +14404,7 @@ window.__meeting = (function() {
     var rowsHtml = filtered.map(function(r){
       var attCnt = Array.isArray(r.attendees) ? r.attendees.length : 0;
       var attTip = Array.isArray(r.attendees) ? r.attendees.map(function(a){ return a.name; }).join(', ') : '';
-      var timeStr = (r.start_time || '') + (r.end_time ? ' ~ ' + _fmtTime(r.end_time) : '');
-      var dateTimeStr = _fmtDate(r.meeting_date) + (r.start_time ? '<br><span style="font-size:10.5px;color:#94a3b8">' + _fmtTime(r.start_time) + (r.end_time ? '~' + _fmtTime(r.end_time) : '') + '</span>' : '');
+      var dateTimeStr = _fmtDate(r.meeting_date);
       var visLbl = { sound:'사운드', system:'시스템', all:'전사' }[r.visibility || 'all'];
       var visCls = 'mtg-vis-' + (r.visibility || 'all');
       var canEditRow = _canEdit(r);
@@ -14540,9 +14506,6 @@ window.__meeting = (function() {
     if (_state.types.length) document.getElementById('mtg-f-type').value = _state.types[0].key;
     var today = new Date().toISOString().slice(0,10);
     document.getElementById('mtg-f-date').value = today;
-    _initTimeSelects();
-    _timeSet('mtg-f-start', '');
-    _timeSet('mtg-f-end', '');
     document.getElementById('mtg-f-location').value = '';
     document.getElementById('mtg-f-dept').value = _userDept();
     document.getElementById('mtg-f-author').value = _fullName();
@@ -14685,9 +14648,6 @@ window.__meeting = (function() {
       document.getElementById('mtg-f-title').value = row.title || '';
       document.getElementById('mtg-f-type').value = row.meeting_type || 'etc';
       document.getElementById('mtg-f-date').value = row.meeting_date || '';
-      _initTimeSelects();
-      _timeSet('mtg-f-start', _fmtTime(row.start_time));
-      _timeSet('mtg-f-end', _fmtTime(row.end_time));
       document.getElementById('mtg-f-location').value = row.location || '';
       document.getElementById('mtg-f-dept').value = row.dept || '';
       document.getElementById('mtg-f-author').value = row.author_name || '';
@@ -14735,8 +14695,8 @@ window.__meeting = (function() {
         title: title,
         meeting_type: type,
         meeting_date: date,
-        start_time: _timeGet('mtg-f-start') || null,
-        end_time: _timeGet('mtg-f-end') || null,
+        start_time: null,
+        end_time: null,
         location: document.getElementById('mtg-f-location').value || '',
         dept: document.getElementById('mtg-f-dept').value || '',
         attendees: attendeesArr,
