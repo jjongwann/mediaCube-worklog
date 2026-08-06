@@ -14251,7 +14251,7 @@ function openQuotePanel() {
   }
   .mtg-attendee-chip .mtg-att-dept { font-size:10px; opacity:0.7; }
   .mtg-row {
-    display: grid; grid-template-columns: 2fr 110px 140px 170px 120px 300px 100px 80px;
+    display: grid; grid-template-columns: 2fr 110px 150px 180px 130px 340px 80px;
     gap: 10px; padding: 12px 14px; border-bottom: 1px solid #f1f5f9;
     font-size: 12px; align-items: center;
     transition: background .12s;
@@ -14436,6 +14436,13 @@ window.__meeting = (function() {
     return parts[0] + '.' + parts[1] + '.' + parts[2];
   }
   function _fmtTime(t){ return (t || '').slice(0,5); }
+  // Supabase Storage URL 에 ?download=<filename> 파라미터 추가 → 브라우저에서 인라인 열람 대신 강제 다운로드
+  function _downloadUrl(url, filename) {
+    if (!url) return '';
+    var sep = url.indexOf('?') === -1 ? '?' : '&';
+    var fname = filename ? encodeURIComponent(filename) : '1';
+    return url + sep + 'download=' + fname;
+  }
 
   function fetchTypes() {
     return fetch(_sbUrl + '/rest/v1/meeting_types?select=*&order=sort_order.asc', { headers: _sbHdr() })
@@ -14546,7 +14553,7 @@ window.__meeting = (function() {
       return;
     }
     var header = '<div class="mtg-row mtg-row-header">'
-      + '<div>회의 제목</div><div>유형</div><div>회의 일시</div><div>부서</div><div>작성자</div><div>참석자</div><div>작성일</div><div></div>'
+      + '<div>회의 제목</div><div>유형</div><div>회의 일시</div><div>부서</div><div>작성자</div><div>참석자</div><div></div>'
       + '</div>';
     var rowsHtml = filtered.map(function(r){
       var attCnt = Array.isArray(r.attendees) ? r.attendees.length : 0;
@@ -14562,7 +14569,6 @@ window.__meeting = (function() {
         + '<div style="color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + _esc(r.dept||'') + '">' + _esc(r.dept || '-') + '</div>'
         + '<div style="color:#0f172a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(r.author_name || '-') + '</div>'
         + '<div style="color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + _esc(attTip) + '">' + (attCnt > 0 ? (attCnt + '명 · ' + (attTip.length > 30 ? attTip.slice(0,30) + '…' : attTip)) : '-') + '</div>'
-        + '<div style="color:#94a3b8;font-size:11px">' + _fmtDate((r.created_at||'').slice(0,10)) + '</div>'
         + '<div style="display:flex;align-items:center;justify-content:center;gap:2px">' + (canEditRow
           ? '<button onclick="event.stopPropagation();__meeting.openForm(\'' + _esc(r.id) + '\')" title="수정" style="background:none;border:none;color:rgb(182,193,207);cursor:pointer;padding:5px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center" onmouseover="this.style.color=\'#2066ff\';this.style.background=\'#eff6ff\'" onmouseout="this.style.color=\'rgb(182,193,207)\';this.style.background=\'none\'">'
             + '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'
@@ -14690,7 +14696,7 @@ window.__meeting = (function() {
     _state.existingAttachments.forEach(function(a, idx){
       var hasUrl = !!a.url;
       var nameHtml = hasUrl
-        ? '<a href="' + _esc(a.url) + '" target="_blank" rel="noopener" download="' + _esc(a.name || 'file') + '" style="color:#0f766e;font-weight:600;text-decoration:none">' + _esc(a.name || 'file') + '</a>'
+        ? '<a href="' + _esc(_downloadUrl(a.url, a.name)) + '" rel="noopener" download="' + _esc(a.name || 'file') + '" style="color:#0f766e;font-weight:600;text-decoration:none">' + _esc(a.name || 'file') + '</a>'
         : '<span style="color:#64748b;font-weight:600">' + _esc(a.name || 'file') + '</span>';
       html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:7px;font-size:12px">'
         + '<span style="color:#0f766e">' + _fileIconSvg() + '</span>'
@@ -15024,7 +15030,7 @@ window.__meeting = (function() {
             + '<span class="fname">' + _esc(name) + '</span>'
             + (size ? '<span class="fsize">' + _fmtSizeLocal(size) + '</span>' : '');
           return url
-            ? '<a class="mtg-detail-file" href="' + _esc(url) + '" target="_blank" rel="noopener" download="' + _esc(name) + '">' + content + '</a>'
+            ? '<a class="mtg-detail-file" href="' + _esc(_downloadUrl(url, name)) + '" rel="noopener" download="' + _esc(name) + '">' + content + '</a>'
             : '<span class="mtg-detail-file" style="cursor:default;opacity:0.7">' + content + '</span>';
         }).join('') + '</div>'
       : '<div class="mtg-detail-body empty">— 첨부된 파일이 없습니다 —</div>';
