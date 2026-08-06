@@ -14076,8 +14076,11 @@ function openQuotePanel() {
         <!-- 참석자 섹션 -->
         <div class="mtg-detail-section">
           <div class="mtg-detail-section-label">참석자</div>
-          <input type="text" id="mtg-f-attendee-search" oninput="__meeting._renderAttendeeChips()" class="mtg-input" placeholder="이름/부서로 검색..." style="margin-bottom:10px">
-          <div id="mtg-f-attendees" style="display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fafbfc"></div>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <input type="text" id="mtg-f-attendee-search" oninput="__meeting._renderAttendeeChips()" onkeydown="if(event.key==='Enter'){event.preventDefault();__meeting._addExternalAttendee();}" class="mtg-input" placeholder="사내 직원 검색 또는 외부 참석자 이름 입력 후 [추가]" style="flex:1">
+            <button type="button" onclick="__meeting._addExternalAttendee()" style="padding:9px 18px;background:#2066ff;color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;transition:background .12s" onmouseover="this.style.background='#1a52d0'" onmouseout="this.style.background='#2066ff'">+ 추가</button>
+          </div>
+          <div id="mtg-f-attendees" style="display:flex;flex-wrap:wrap;gap:6px;max-height:220px;overflow-y:auto;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fafbfc"></div>
         </div>
 
         <!-- 회의 안건 -->
@@ -14283,6 +14286,20 @@ function openQuotePanel() {
     background: #2563eb; color: #fff; border-color: #2563eb;
   }
   .mtg-attendee-chip .mtg-att-dept { font-size:10px; opacity:0.7; }
+  /* 외부 참석자 chip — 오렌지 톤으로 구분, × 로 제거 */
+  .mtg-attendee-chip.external {
+    background: #fff7ed; color: #ea580c; border-color: #fed7aa; padding-right: 4px;
+  }
+  .mtg-attendee-chip.external:hover { background: #ffedd5; border-color: #fdba74; color: #c2410c; }
+  .mtg-attendee-chip.external .ext-x {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(234,88,12,0.12); color: #ea580c;
+    font-size: 12px; font-weight: 700;
+    margin-left: 4px; cursor: pointer;
+    transition: all .12s;
+  }
+  .mtg-attendee-chip.external .ext-x:hover { background: #ea580c; color: #fff; }
   .mtg-row {
     display: grid; grid-template-columns: 2fr 110px 150px 180px 130px 340px 80px;
     gap: 10px; padding: 12px 14px; border-bottom: 1px solid #f1f5f9;
@@ -14838,7 +14855,18 @@ window.__meeting = (function() {
     if (!host) return;
     var q = ((document.getElementById('mtg-f-attendee-search') || {}).value || '').trim().toLowerCase();
     var users = (typeof ALL_USERS !== 'undefined' && Array.isArray(ALL_USERS)) ? ALL_USERS : [];
-    var html = users.filter(function(u){
+    // 1) 외부 참석자 (id 가 'ext_' 로 시작) - 항상 상단 표시, × 로 제거
+    var externals = Object.keys(_state.selectedAttendees)
+      .filter(function(k){ return k.indexOf('ext_') === 0; })
+      .map(function(k){ return _state.selectedAttendees[k]; });
+    var extHtml = externals.map(function(a){
+      return '<span class="mtg-attendee-chip external" title="외부 참석자">'
+        + _esc(a.name) + ' <span class="mtg-att-dept">· 외부</span>'
+        + '<span class="ext-x" onclick="event.stopPropagation();__meeting._removeExternalAttendee(\'' + _esc(a.id) + '\')" title="제거">×</span>'
+        + '</span>';
+    }).join('');
+    // 2) 사내 직원 리스트 (검색 필터 적용)
+    var intHtml = users.filter(function(u){
       if (!q) return true;
       return (u.fullName + ' ' + u.dept + ' ' + u.username).toLowerCase().indexOf(q) !== -1;
     }).map(function(u){
@@ -14847,13 +14875,47 @@ window.__meeting = (function() {
         + _esc(u.fullName) + ' <span class="mtg-att-dept">· ' + _esc(u.dept) + '</span>'
         + '</span>';
     }).join('');
-    host.innerHTML = html || '<div style="color:#94a3b8;font-size:11.5px;padding:8px">일치하는 직원이 없습니다.</div>';
+    var html = extHtml + intHtml;
+    if (!html) {
+      host.innerHTML = '<div style="color:#94a3b8;font-size:11.5px;padding:8px">일치하는 직원이 없습니다. 외부 참석자라면 이름 입력 후 [추가] 버튼을 눌러주세요.</div>';
+    } else {
+      host.innerHTML = html;
+    }
   }
   function _toggleAttendee(uid) {
     var u = (typeof ALL_USERS !== 'undefined' && ALL_USERS.find(function(x){ return x.id === uid; })) || null;
     if (!u) return;
     if (_state.selectedAttendees[uid]) delete _state.selectedAttendees[uid];
     else _state.selectedAttendees[uid] = { id: u.id, name: u.fullName, dept: u.dept, username: u.username };
+    _renderAttendeeChips();
+  }
+  // 외부 참석자 추가 — 검색 인풋의 텍스트를 이름으로 취급
+  function _addExternalAttendee() {
+    var inp = document.getElementById('mtg-f-attendee-search');
+    var name = (inp ? (inp.value || '') : '').trim();
+    if (!name) { _toast('추가할 참석자 이름을 입력해주세요'); return; }
+    // 사내 직원과 이름이 정확히 일치하면 그 사내 직원을 자동 선택 (편의)
+    var users = (typeof ALL_USERS !== 'undefined' && Array.isArray(ALL_USERS)) ? ALL_USERS : [];
+    var match = users.find(function(u){ return u.fullName === name; });
+    if (match) {
+      _state.selectedAttendees[match.id] = { id: match.id, name: match.fullName, dept: match.dept, username: match.username };
+      _toast(name + ' 참석자를 추가했습니다');
+    } else {
+      // 이미 같은 이름의 외부 참석자가 있는지 확인 (중복 방지)
+      var existsExt = Object.keys(_state.selectedAttendees).some(function(k){
+        var a = _state.selectedAttendees[k];
+        return k.indexOf('ext_') === 0 && a.name === name;
+      });
+      if (existsExt) { _toast('이미 추가된 외부 참석자입니다'); return; }
+      var extId = 'ext_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+      _state.selectedAttendees[extId] = { id: extId, name: name, dept: '외부' };
+      _toast('외부 참석자 [' + name + '] 를 추가했습니다');
+    }
+    if (inp) inp.value = '';
+    _renderAttendeeChips();
+  }
+  function _removeExternalAttendee(id) {
+    if (_state.selectedAttendees[id]) delete _state.selectedAttendees[id];
     _renderAttendeeChips();
   }
 
@@ -15238,6 +15300,7 @@ window.__meeting = (function() {
     _backToList: _backToList, _editFromDetail: _editFromDetail,
     openTypeManager: openTypeManager, closeTypeManager: closeTypeManager, addType: addType,
     _toggleAttendee: _toggleAttendee, _renderAttendeeChips: _renderAttendeeChips,
+    _addExternalAttendee: _addExternalAttendee, _removeExternalAttendee: _removeExternalAttendee,
     _saveTypeLabel: _saveTypeLabel, _deleteType: _deleteType,
     _onFileSelect: _onFileSelect, _removePendingFile: _removePendingFile, _removeExistingAttachment: _removeExistingAttachment,
     _state: _state
