@@ -14510,11 +14510,11 @@ window.__meeting = (function() {
     return u && !_isAdminUser() && u !== 'info' && u !== 'developer' && !_isSystemDept();
   }
   function _canView(row) {
+    // 관리자(mediacube) · 회계(info) · 개발(developer) 은 모든 회의록 열람
     if (_isFullAccess()) return true;
-    var v = row.visibility || 'all';
-    if (v === 'all') return true;
-    if (v === 'sound') return _isSoundDept();
-    if (v === 'system') return _isSystemDept();
+    // 그 외에는 소속 부서와 회의의 '주관 부서' 가 일치할 때만 열람
+    if (_isSoundDept())  return row.dept === '사운드컨텐츠사업부';
+    if (_isSystemDept()) return row.dept === '시스템 사업부';
     return false;
   }
   function _canEdit(row) {
