@@ -320,10 +320,11 @@
     min-height: 78vh !important;
   }
   /* directive-embed 상태: dm-topbar 버튼 스왑
-     '카탈로그로' 숨기고 '+ 업무 지시' 노출 (list 모드) */
+     '카탈로그로' 숨기고 '+ 업무 지시' 노출 (list 모드만) */
   body.embed-directive .dm-new-btn-catalog-back { display: none !important; }
   body.embed-directive.dir-mode-list .dm-new-btn-directive { display: inline-flex !important; }
   body.embed-directive.dir-mode-form .dm-new-btn-directive { display: none !important; }
+  body.embed-directive.dir-mode-detail .dm-new-btn-directive { display: none !important; }
   /* 음원팀은 카탈로그 영역 전체 폭으로 (꽉 채움) */
   body.dev-embed #dev-feature-embed > #soundteam-overlay {
     width: 100% !important;
@@ -12045,9 +12046,10 @@
   }
 
   var _directives = [];
-  // 'list' = 목록 모드 (하위 탭: 'given'|'receiver'), 'form' = 작성 모드
+  // 'list' = 목록 모드 (하위 탭: 'given'|'receiver'), 'form' = 작성, 'detail' = 상세보기
   var _directiveMode = 'list';
   var _directiveListTab = 'given'; // 'given'|'receiver'
+  var _directiveDetailId = null;
 
   /* ── 완료 시각 추적: DB task_directives.completed_at 서버 저장 방식으로 이관됨 ──
      기존 localStorage 기반 _getDoneTimes/_saveDoneTime/_purgeDoneTimes 는
@@ -12135,6 +12137,12 @@
       if (xBtn)           xBtn.style.display           = isEmbed ? 'none' : 'flex';
       if (kicker) kicker.textContent = 'NEW DIRECTIVE';
       if (title)  title.textContent  = '업무 지시 작성';
+    } else if (_directiveMode === 'detail') {
+      if (backBtn)        backBtn.style.display        = 'inline-flex';
+      if (catalogBackBtn) catalogBackBtn.style.display = 'none';
+      if (xBtn)           xBtn.style.display           = isEmbed ? 'none' : 'flex';
+      if (kicker) kicker.textContent = 'VIEW DIRECTIVE';
+      if (title)  title.textContent  = '업무 지시 조회';
     } else {
       if (backBtn)        backBtn.style.display        = 'none';
       if (catalogBackBtn) catalogBackBtn.style.display = isEmbed ? 'inline-flex' : 'none';
@@ -12143,19 +12151,30 @@
       if (title)  title.textContent  = '업무 지시';
     }
     // body 클래스 (dm-topbar 버튼 스왑용)
-    document.body.classList.remove('dir-mode-list', 'dir-mode-form');
+    document.body.classList.remove('dir-mode-list', 'dir-mode-form', 'dir-mode-detail');
     if (isEmbed) {
-      document.body.classList.add(_directiveMode === 'form' ? 'dir-mode-form' : 'dir-mode-list');
+      var cls = _directiveMode === 'form'   ? 'dir-mode-form'
+              : _directiveMode === 'detail' ? 'dir-mode-detail'
+              :                               'dir-mode-list';
+      document.body.classList.add(cls);
     }
   }
 
   window._dirShowList = function() {
     _directiveMode = 'list';
+    _directiveDetailId = null;
     _renderPanel();
   };
   window._dirShowForm = function() {
     if (!_isGiver) { alert('업무 지시 권한이 없습니다.'); return; }
     _directiveMode = 'form';
+    _renderPanel();
+  };
+  window._dirShowDetail = function(id) {
+    var d = _directives.find(function(x){ return x.id === id; });
+    if (!d) { alert('업무 정보를 찾을 수 없습니다.'); return; }
+    _directiveDetailId = id;
+    _directiveMode = 'detail';
     _renderPanel();
   };
 
@@ -12237,6 +12256,13 @@
       _renderFormView(body);
       return;
     }
+    if (_directiveMode === 'detail') {
+      // detail 모드: 탭바 숨기고 상세 표시
+      tabBar.innerHTML = '';
+      body.innerHTML = '';
+      _renderDetailView(body);
+      return;
+    }
 
     // list 모드: 지시한 / 받은 탭 표시
     var _unreadCnt = _calcUnread();
@@ -12281,7 +12307,7 @@
 
     var formDiv = document.createElement('div');
     formDiv.style.cssText = 'flex:1;overflow-y:auto;background:#fff;padding:22px 26px';
-    formDiv.innerHTML = '<div style="max-width:1080px;margin:0 auto">'
+    formDiv.innerHTML = '<div>'
       + '<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:12px;letter-spacing:-.2px">기본 정보</div>'
       // 제목 + 우선순위 (2열)
       + '<div style="display:grid;grid-template-columns:1fr 220px;gap:14px;margin-bottom:12px">'
@@ -12416,7 +12442,7 @@
       }
       actionBtns += '</div>';
 
-      return '<div onclick="window._dirOpenDetail(\'' + d.id + '\')" style="' + grid + ';' + rowBg + ';border:1px solid #e2e8f0;border-top:none;cursor:pointer;transition:background .12s" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'' + (isDone ? '#f8fafc' : '#fff') + '\'">'
+      return '<div onclick="window._dirShowDetail(\'' + d.id + '\')" style="' + grid + ';' + rowBg + ';border:1px solid #e2e8f0;border-top:none;cursor:pointer;transition:background .12s" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'' + (isDone ? '#f8fafc' : '#fff') + '\'">'
         + '<div style="min-width:0;overflow:hidden">'
           + '<div style="font-weight:700;font-size:13px;' + titleStyle + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (isDone ? '✓ ' : '') + escHtml(d.title || '무제') + '</div>'
         + '</div>'
@@ -12438,23 +12464,88 @@
     container.appendChild(wrap);
   }
 
-  // 행 클릭 상세보기 (간단한 modal alert 대신 확장 여지)
-  window._dirOpenDetail = function(id) {
-    var d = _directives.find(function(x){ return x.id === id; });
-    if (!d) return;
-    var lines = [
-      '📋 ' + d.title,
-      '',
-      '【내용】\n' + d.content,
-      '',
-      '【우선순위】' + ({high:'높음',medium:'중간',low:'낮음'}[d.priority] || d.priority),
-      '【상태】' + ({pending:'대기',in_progress:'진행중',done:'완료'}[d.status] || d.status),
-      '【마감일】' + (d.due_date || '미정'),
-      '【지시자】' + (d.assigner_name || '-'),
-      '【담당자】' + (d.assignee_name || '-')
-    ];
-    alert(lines.join('\n'));
-  };
+  // 회의록 뷰 스타일 상세 렌더 (detail 모드)
+  function _renderDetailView(container) {
+    var d = _directives.find(function(x){ return x.id === _directiveDetailId; });
+    if (!d) {
+      container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;font-size:13px">업무 정보를 찾을 수 없습니다.</div>';
+      return;
+    }
+    var p = _PRIORITY[d.priority] || _PRIORITY.medium;
+    var s = _STATUS[d.status]     || _STATUS.pending;
+    var todayMs = new Date(); todayMs.setHours(0,0,0,0);
+    var dueMs   = d.due_date ? new Date(d.due_date) : null;
+    var overdue = dueMs && d.status !== 'done' && dueMs < todayMs;
+    var dueLabel = d.due_date
+      ? (overdue ? '<span style="color:#ef4444;font-weight:700">' + escHtml(d.due_date) + ' <span style="font-size:11px">⚠ 기한 초과</span></span>' : escHtml(d.due_date))
+      : '<span style="color:#94a3b8">미정</span>';
+
+    var createdStr = d.created_at
+      ? (function(){ var dt = new Date(d.created_at); return dt.getFullYear()+'.'+String(dt.getMonth()+1).padStart(2,'0')+'.'+String(dt.getDate()).padStart(2,'0'); })()
+      : '';
+
+    var isReceiver = d.assignee_id === _userId;
+    var isGiver    = d.assigner_id === _userId;
+
+    // 액션 영역 (수신자: 상태 변경 + 일지로 가져오기 / 지시자: 삭제)
+    var actionsHtml = '';
+    if (isReceiver) {
+      actionsHtml = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">'
+        + '<select onchange="window.updateDirectiveStatus(\'' + d.id + '\',this.value);window._dirShowDetail(\'' + d.id + '\')" '
+        + 'style="font-size:13px;padding:9px 30px 9px 14px;background:' + s.bg + ';border:1px solid ' + s.border + ';border-radius:10px;cursor:pointer;color:' + s.color + ';font-weight:700;outline:none;font-family:inherit">'
+        + '<option value="pending"'    + (d.status==='pending'    ?' selected':'') + '>대기</option>'
+        + '<option value="in_progress"'+ (d.status==='in_progress'?' selected':'') + '>진행중</option>'
+        + '<option value="done"'       + (d.status==='done'       ?' selected':'') + '>완료</option>'
+        + '</select>'
+        + '<button onclick="window.importDirectiveToJournal(\'' + d.id + '\')" '
+        + 'style="padding:9px 16px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;cursor:pointer;color:#7c3aed;font-weight:700;font-size:13px;font-family:inherit;display:inline-flex;align-items:center;gap:6px" '
+        + 'onmouseover="this.style.background=\'#ede9fe\'" onmouseout="this.style.background=\'#f5f3ff\'">'
+        + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>'
+        + '일지로 가져오기</button>'
+        + '</div>';
+    } else if (isGiver) {
+      actionsHtml = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:22px">'
+        + '<button onclick="window.deleteDirective(\'' + d.id + '\');window._dirShowList()" '
+        + 'style="padding:9px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;cursor:pointer;color:#dc2626;font-weight:700;font-size:13px;font-family:inherit;display:inline-flex;align-items:center;gap:6px" '
+        + 'onmouseover="this.style.background=\'#fee2e2\'" onmouseout="this.style.background=\'#fef2f2\'">'
+        + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
+        + '삭제</button>'
+        + '</div>';
+    }
+
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'flex:1;overflow-y:auto;background:#fff;padding:28px 32px';
+    wrap.innerHTML = ''
+      // 상단: chips
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">'
+        + '<span style="display:inline-block;font-size:12px;font-weight:700;padding:5px 12px;border-radius:14px;background:' + p.bg + ';color:' + p.color + ';border:1px solid ' + p.border + '">' + p.label + '</span>'
+        + '<span style="display:inline-block;font-size:12px;font-weight:700;padding:5px 12px;border-radius:14px;background:' + s.bg + ';color:' + s.color + ';border:1px solid ' + s.border + '">' + s.label + '</span>'
+      + '</div>'
+      // 제목
+      + '<div style="font-size:22px;font-weight:800;color:#0f172a;letter-spacing:-.4px;line-height:1.35;margin-bottom:8px">' + escHtml(d.title || '무제') + '</div>'
+      // 서브: 지시자 · 지시일
+      + '<div style="font-size:12.5px;color:#64748b;margin-bottom:22px">'
+        + '지시자 · <span style="color:#0f172a;font-weight:600">' + escHtml(d.assigner_name || '-') + '</span>'
+        + '<span style="margin:0 8px;color:#cbd5e1">·</span>'
+        + '지시일 ' + createdStr
+      + '</div>'
+      // 메타 카드 (담당자 / 마감일 / 상태)
+      + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;padding:18px 22px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:22px">'
+        + '<div><div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:6px;letter-spacing:.4px">담당자</div>'
+          + '<div style="font-size:15px;font-weight:800;color:#0f172a">' + escHtml(d.assignee_name || '-') + '</div></div>'
+        + '<div><div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:6px;letter-spacing:.4px">마감일</div>'
+          + '<div style="font-size:15px;font-weight:800;color:#0f172a">' + dueLabel + '</div></div>'
+        + '<div><div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:6px;letter-spacing:.4px">상태</div>'
+          + '<div style="font-size:15px;font-weight:800;color:' + s.color + '">' + s.label + '</div></div>'
+      + '</div>'
+      // 상세 내용
+      + '<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:10px;letter-spacing:-.2px">상세 내용</div>'
+      + '<div style="font-size:13.5px;line-height:1.75;color:#1f2937;white-space:pre-wrap;word-break:break-word;padding:16px 18px;background:#fff;border:1px solid #e2e8f0;border-radius:12px">'
+        + escHtml(d.content || '')
+      + '</div>'
+      + actionsHtml;
+    container.appendChild(wrap);
+  }
 
   function _renderGivenView(body) {
     var list = _directives.filter(function(d){ return d.assigner_id === _userId; });
