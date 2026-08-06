@@ -14829,6 +14829,9 @@ window.__meeting = (function() {
     // 유형 관리 버튼: 관리자 + 지정 계정만 노출
     var typeBtn = document.getElementById('mtg-type-mgr-btn');
     if (typeBtn) typeBtn.style.display = _canManageTypes() ? '' : 'none';
+    // 부서 필터 셀렉트: 관리자·info·developer 만 노출 (부서 소속 사용자는 자기 부서만 보이므로 필터 불필요)
+    var deptFil = document.getElementById('mtg-fil-dept');
+    if (deptFil) deptFil.style.display = _isFullAccess() ? '' : 'none';
     _ensureOverlayInEmbed();
     if (document.body.classList.contains('dev-mode')) {
       // 카탈로그 뷰로 전환 + meeting-embed 서브클래스
