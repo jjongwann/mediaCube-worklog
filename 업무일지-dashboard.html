@@ -14533,6 +14533,29 @@ window.__meeting = (function() {
     return parts[0] + '.' + parts[1] + '.' + parts[2];
   }
   function _fmtTime(t){ return (t || '').slice(0,5); }
+  // 참석자 직급 정렬: 관리자(대표) > 이사 > 차장 > 과장 > 대리 > 주임 > 사원 > 기타(외부 등)
+  // 이름의 마지막 토큰(직급) 기준으로 rank 점수화. 같은 직급 내에서는 가나다 순.
+  var _RANK_ORDER = ['대표','관리자','이사','차장','과장','대리','주임','사원'];
+  function _rankScore(name) {
+    var s = String(name || '').trim();
+    if (!s) return 99;
+    if (s === '관리자' || s.indexOf('대표') !== -1) return 0;
+    var tokens = s.split(/\s+/);
+    var last = tokens[tokens.length - 1];
+    var idx = _RANK_ORDER.indexOf(last);
+    // '관리자(대표)' 형태 대응
+    if (idx === -1 && last.indexOf('관리자') !== -1) return 0;
+    return idx >= 0 ? idx : 90; // 직급 없는 이름(외부 등) → 뒤로
+  }
+  function _sortAttendees(arr) {
+    if (!Array.isArray(arr)) return [];
+    return arr.slice().sort(function(a, b){
+      var ra = _rankScore(a && a.name);
+      var rb = _rankScore(b && b.name);
+      if (ra !== rb) return ra - rb;
+      return String((a && a.name) || '').localeCompare(String((b && b.name) || ''), 'ko');
+    });
+  }
   // 시간 선택 — 커스텀 드롭다운 (10개 노출 + 스크롤 + 분 60개 모두)
   function _initTimeSelects() { /* no-op — 옵션은 _toggleTimeDrop 에서 동적 렌더 */ }
   // 셀 값 표시 갱신 + hidden input 값 세팅
@@ -14749,10 +14772,8 @@ window.__meeting = (function() {
       + '</div>';
     var rowsHtml = filtered.map(function(r){
       var attCnt = Array.isArray(r.attendees) ? r.attendees.length : 0;
-      // 참석자 이름 가나다 순 정렬 후 join
-      var attSorted = Array.isArray(r.attendees)
-        ? r.attendees.slice().sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''), 'ko'); })
-        : [];
+      // 참석자 직급 순 + 같은 직급 가나다 순 정렬
+      var attSorted = _sortAttendees(r.attendees);
       var attTip = attSorted.map(function(a){ return a.name; }).join(', ');
       var dateTimeStr = _fmtDate(r.meeting_date);
       var visLbl = { sound:'사운드', system:'시스템', all:'전사' }[r.visibility || 'all'];
@@ -15275,10 +15296,8 @@ window.__meeting = (function() {
       + '<div class="mtg-detail-meta-item"><div class="lbl">회의 장소</div><div class="val' + (r.location ? '' : ' empty') + '">' + (r.location ? _esc(r.location) : '—') + '</div></div>'
       + '<div class="mtg-detail-meta-item"><div class="lbl">주관 부서</div><div class="val' + (r.dept ? '' : ' empty') + '">' + (r.dept ? _esc(r.dept) : '—') + '</div></div>';
 
-    // 참석자 가나다 순 정렬 (원본 배열 보존을 위해 slice 로 복사)
-    var attendeesSorted = attendees.slice().sort(function(a,b){
-      return String(a.name||'').localeCompare(String(b.name||''), 'ko');
-    });
+    // 참석자 직급 순 + 같은 직급 가나다 순 정렬
+    var attendeesSorted = _sortAttendees(attendees);
     var attendeesHtml = attendeesSorted.length
       ? '<div class="mtg-detail-attendee-list">' + attendeesSorted.map(function(a){
           return '<span class="mtg-detail-attendee">' + _esc(a.name || '?') + '<span class="dept">· ' + _esc(a.dept || '') + '</span></span>';
