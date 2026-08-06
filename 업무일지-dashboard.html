@@ -14223,25 +14223,30 @@ function openQuotePanel() {
     font-weight: 600;
   }
   .mtg-nice-select:hover { background-color: #f0fdfa; }
-  /* 시간 선택 (시/분 2개 셀렉트) — 컴팩트 */
+  /* 시간 선택 (시/분 2개 셀렉트) — .mtg-input 과 동일한 시각적 무게 */
   .mtg-time-wrap {
-    display: inline-flex; align-items: center;
-    padding: 3px; background: #fff;
+    display: flex; align-items: center;
+    width: 100%; box-sizing: border-box;
+    height: 39px; /* .mtg-input 과 동일 높이 (padding 9+9 + font-line ≈ 39) */
+    padding: 0 4px;
+    background: #fff;
     border: 1px solid #e2e8f0; border-radius: 9px;
     transition: border-color .12s, box-shadow .12s;
   }
+  .mtg-time-wrap:hover { border-color: #99c8ff; }
   .mtg-time-wrap:focus-within { border-color: #2066ff; box-shadow: 0 0 0 3px rgba(32,102,255,0.12); }
   .mtg-time-sel {
+    flex: 1; min-width: 0;
     appearance: none; -webkit-appearance: none; -moz-appearance: none;
     border: none; background: transparent; outline: none;
-    padding: 5px 4px 5px 8px;
-    font-size: 12.5px; font-weight: 700; color: #0f172a;
+    padding: 8px 6px;
+    font-size: 13px; font-weight: 600; color: #0f172a;
     font-family: inherit; font-variant-numeric: tabular-nums;
     text-align: center; text-align-last: center;
-    cursor: pointer; min-width: 44px;
+    cursor: pointer;
   }
   .mtg-time-sel:hover { color: #2066ff; }
-  .mtg-time-sep { font-weight: 800; color: #cbd5e1; font-size: 13px; user-select: none; margin: 0 2px; }
+  .mtg-time-sep { font-weight: 800; color: #cbd5e1; font-size: 14px; user-select: none; flex-shrink: 0; }
   /* 파일 업로드 드롭 존 */
   .mtg-file-drop {
     width: 100%;
