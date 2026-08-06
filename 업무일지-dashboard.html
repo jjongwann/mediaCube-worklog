@@ -367,6 +367,15 @@
     box-shadow: none !important;
     animation: none !important;
   }
+  /* vendor 임머시브 embed: 카탈로그 breadcrumb/topbar 숨기고 padding 제거해
+     매출 분석 표가 사이드바 오른쪽 전체 영역을 꽉 채우도록 */
+  body.embed-vendor-needle .dm-topbar { display: none !important; }
+  body.embed-vendor-needle .dm-wrap { padding: 0 !important; }
+  body.embed-vendor-needle #dev-feature-embed > #vendor-needle-overlay > div {
+    min-height: 100vh !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
   /* shared-cal-overlay 는 align-items:flex-start 로 스크롤 처리 → embed 시 block 배치 */
   body.dev-embed #dev-feature-embed > #shared-cal-overlay {
     display: block !important;
