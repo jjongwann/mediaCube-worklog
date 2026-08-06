@@ -286,28 +286,34 @@
   body.dev-mode.view-catalog.dev-embed #dev-sales-embed { display: none !important; }
   #dev-feature-embed { display: none; }
   body.dev-embed #dev-feature-embed { display: block !important; }
-  /* embed 로 이동된 오버레이는 인라인 배치 */
+  /* embed 로 이동된 오버레이는 인라인 배치
+     - display:block + 고정 width 로 하여 오버레이 자체가 카드 크기가 됨
+     - flex 스트레치를 하지 않으므로 카드 옆 빈 여백이 오버레이에 포함되지 않아
+       (1) 빈 영역 클릭 시 backdrop close 이벤트가 발화하지 않고
+       (2) 시각적으로도 빈 flex 컨테이너가 사라져 깔끔 */
   body.dev-embed #dev-feature-embed > [id$="-overlay"] {
-    display: flex !important;
+    display: block !important;
     position: static !important;
     inset: auto !important;
     background: transparent !important;
     padding: 0 !important;
     z-index: auto !important;
-    align-items: initial !important;
-    justify-content: initial !important;
     overflow: visible !important;
+    width: 900px !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
   }
   body.dev-embed #dev-feature-embed > [id$="-overlay"] > div {
+    width: 100% !important;
     max-width: 100% !important;
-    width: 900px !important;
     max-height: none !important;
     height: auto !important;
-    margin: 0 auto !important;
+    margin: 0 !important;
     box-shadow: 0 4px 18px rgba(15,23,42,0.08) !important;
+    border: 1px solid rgba(15,23,42,0.06) !important;
   }
-  /* 업무 지시는 원래 640px 로 좀 더 좁게 */
-  body.dev-embed #dev-feature-embed > #directive-overlay > div {
+  /* 업무 지시는 좀 더 좁게 */
+  body.dev-embed #dev-feature-embed > #directive-overlay {
     width: 720px !important;
   }
 
