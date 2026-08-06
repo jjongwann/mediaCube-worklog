@@ -15273,8 +15273,12 @@ window.__meeting = (function() {
       + '<div class="mtg-detail-meta-item"><div class="lbl">회의 장소</div><div class="val' + (r.location ? '' : ' empty') + '">' + (r.location ? _esc(r.location) : '—') + '</div></div>'
       + '<div class="mtg-detail-meta-item"><div class="lbl">주관 부서</div><div class="val' + (r.dept ? '' : ' empty') + '">' + (r.dept ? _esc(r.dept) : '—') + '</div></div>';
 
-    var attendeesHtml = attendees.length
-      ? '<div class="mtg-detail-attendee-list">' + attendees.map(function(a){
+    // 참석자 가나다 순 정렬 (원본 배열 보존을 위해 slice 로 복사)
+    var attendeesSorted = attendees.slice().sort(function(a,b){
+      return String(a.name||'').localeCompare(String(b.name||''), 'ko');
+    });
+    var attendeesHtml = attendeesSorted.length
+      ? '<div class="mtg-detail-attendee-list">' + attendeesSorted.map(function(a){
           return '<span class="mtg-detail-attendee">' + _esc(a.name || '?') + '<span class="dept">· ' + _esc(a.dept || '') + '</span></span>';
         }).join('') + '</div>'
       : '<div class="mtg-detail-body empty">— 참석자가 지정되지 않았습니다 —</div>';
