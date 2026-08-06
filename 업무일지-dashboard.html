@@ -15198,6 +15198,8 @@ window.__meeting = (function() {
       if (!r.ok && r.status !== 204) return r.text().then(function(t){ throw new Error(t); });
       _toast('회의록이 삭제되었습니다');
       if (fromForm) closeForm();
+      // 상세 뷰에서 삭제 → 목록으로 자동 복귀 (헤더 스위치 + 상세 컨테이너 정리)
+      try { _backToList(); } catch(e){}
       fetchAll().then(function(){ _populateFilters(); render(); });
     }).catch(function(e){ console.error(e); _toast('삭제 실패'); });
   }
