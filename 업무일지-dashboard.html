@@ -14403,6 +14403,9 @@ window.__meeting = (function() {
     try { var s = JSON.parse(localStorage.getItem('mc_session') || 'null'); return (s && s._display && s._display.dept) || ''; } catch(e){ return ''; }
   }
   function _isAdminUser() { return _uname() === 'mediacube'; }
+  // 회의 유형 관리 허용 계정 (관리자 + 지정 4명)
+  var _TYPE_MGR_USERS = ['mediacube', 'soundstore', 'developer', 'webmaster20', 'soundsupport'];
+  function _canManageTypes() { return _TYPE_MGR_USERS.indexOf(_uname()) !== -1; }
   function _isFullAccess() { var u = _uname(); return u === 'mediacube' || u === 'info' || u === 'developer'; }
   function _isSystemDept() { return SYS_USERS.indexOf(_uname()) !== -1; }
   function _isSoundDept() {
@@ -14597,9 +14600,9 @@ window.__meeting = (function() {
   }
 
   function openPanel() {
-    // 관리자만 유형 관리 버튼 노출
+    // 유형 관리 버튼: 관리자 + 지정 계정만 노출
     var typeBtn = document.getElementById('mtg-type-mgr-btn');
-    if (typeBtn) typeBtn.style.display = _isAdminUser() ? '' : 'none';
+    if (typeBtn) typeBtn.style.display = _canManageTypes() ? '' : 'none';
     _ensureOverlayInEmbed();
     if (document.body.classList.contains('dev-mode')) {
       // 카탈로그 뷰로 전환 + meeting-embed 서브클래스
@@ -15085,7 +15088,7 @@ window.__meeting = (function() {
 
   /* ── 회의 유형 관리 (관리자 전용) ── */
   function openTypeManager() {
-    if (!_isAdminUser()) { _toast('관리자만 사용 가능합니다'); return; }
+    if (!_canManageTypes()) { _toast('회의 유형을 관리할 권한이 없습니다'); return; }
     document.getElementById('meeting-type-mgr-overlay').style.display = 'flex';
     _renderTypeList();
   }
