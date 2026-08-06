@@ -14245,7 +14245,7 @@ function openQuotePanel() {
   }
   .mtg-attendee-chip .mtg-att-dept { font-size:10px; opacity:0.7; }
   .mtg-row {
-    display: grid; grid-template-columns: 1.7fr 100px 130px 150px 110px 200px 110px 90px 60px;
+    display: grid; grid-template-columns: 1.7fr 100px 130px 150px 110px 200px 110px 90px 78px;
     gap: 10px; padding: 12px 14px; border-bottom: 1px solid #f1f5f9;
     font-size: 12px; align-items: center;
     transition: background .12s;
@@ -14473,8 +14473,13 @@ window.__meeting = (function() {
         + '<div style="color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + _esc(attTip) + '">' + (attCnt > 0 ? (attCnt + '명 · ' + (attTip.length > 30 ? attTip.slice(0,30) + '…' : attTip)) : '-') + '</div>'
         + '<div style="color:#94a3b8;font-size:11px">' + _fmtDate((r.created_at||'').slice(0,10)) + '</div>'
         + '<div><span class="mtg-vis-chip ' + visCls + '">' + visLbl + '</span></div>'
-        + '<div style="text-align:center">' + (canEditRow
-          ? '<button onclick="event.stopPropagation();__meeting.openForm(\'' + _esc(r.id) + '\')" title="수정" style="background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:13px;padding:3px 5px;border-radius:5px" onmouseover="this.style.color=\'#0f766e\';this.style.background=\'#f0fdfa\'" onmouseout="this.style.color=\'#cbd5e1\';this.style.background=\'none\'">✎</button>'
+        + '<div style="display:flex;align-items:center;justify-content:center;gap:2px">' + (canEditRow
+          ? '<button onclick="event.stopPropagation();__meeting.openForm(\'' + _esc(r.id) + '\')" title="수정" style="background:none;border:none;color:#cbd5e1;cursor:pointer;padding:5px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center" onmouseover="this.style.color=\'#2066ff\';this.style.background=\'#eff6ff\'" onmouseout="this.style.color=\'#cbd5e1\';this.style.background=\'none\'">'
+            + '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'
+            + '</button>'
+            + '<button onclick="event.stopPropagation();__meeting._deleteById(\'' + _esc(r.id) + '\')" title="삭제" style="background:none;border:none;color:#cbd5e1;cursor:pointer;padding:5px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center" onmouseover="this.style.color=\'#dc2626\';this.style.background=\'#fef2f2\'" onmouseout="this.style.color=\'#cbd5e1\';this.style.background=\'none\'">'
+            + '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
+            + '</button>'
           : '') + '</div>'
         + '</div>';
     }).join('');
@@ -14835,14 +14840,22 @@ window.__meeting = (function() {
   }
   function deleteMinute() {
     if (!_state.editingId) return;
-    if (!confirm('이 회의록을 삭제하시겠습니까? 되돌릴 수 없습니다.')) return;
-    fetch(_sbUrl + '/rest/v1/meeting_minutes?id=eq.' + encodeURIComponent(_state.editingId), {
+    _deleteById(_state.editingId, true);
+  }
+  // 목록에서 바로 삭제하는 헬퍼 (id 지정)
+  function _deleteById(id, fromForm) {
+    if (!id) return;
+    var row = _state.rows.find(function(r){ return r.id === id; });
+    if (!row) { _toast('회의록을 찾을 수 없습니다'); return; }
+    if (!_canEdit(row)) { _toast('작성자 또는 관리자만 삭제할 수 있습니다'); return; }
+    if (!confirm('회의록 [' + (row.title || '무제') + '] 을(를) 삭제하시겠습니까?\n되돌릴 수 없습니다.')) return;
+    fetch(_sbUrl + '/rest/v1/meeting_minutes?id=eq.' + encodeURIComponent(id), {
       method: 'DELETE', headers: Object.assign({}, _sbHdr(), { 'Prefer': 'return=minimal' })
     }).then(function(r){
       if (!r.ok && r.status !== 204) return r.text().then(function(t){ throw new Error(t); });
       _toast('회의록이 삭제되었습니다');
-      closeForm();
-      fetchAll().then(render);
+      if (fromForm) closeForm();
+      fetchAll().then(function(){ _populateFilters(); render(); });
     }).catch(function(e){ console.error(e); _toast('삭제 실패'); });
   }
 
@@ -14918,7 +14931,7 @@ window.__meeting = (function() {
   return {
     openPanel: openPanel, closePanel: closePanel, render: render, clearFilters: clearFilters,
     openForm: openForm, closeForm: closeForm, saveMinute: saveMinute, deleteMinute: deleteMinute,
-    openDetail: openDetail, _setFormMode: _setFormMode,
+    openDetail: openDetail, _setFormMode: _setFormMode, _deleteById: _deleteById,
     openTypeManager: openTypeManager, closeTypeManager: closeTypeManager, addType: addType,
     _toggleAttendee: _toggleAttendee, _renderAttendeeChips: _renderAttendeeChips,
     _saveTypeLabel: _saveTypeLabel, _deleteType: _deleteType,
