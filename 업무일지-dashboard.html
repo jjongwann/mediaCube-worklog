@@ -13998,10 +13998,6 @@ function openQuotePanel() {
       </select>
       <select id="mtg-fil-dept" onchange="__meeting.render()" style="padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;background:#fff;color:#374151;outline:none;font-weight:600;font-family:inherit;cursor:pointer">
         <option value="">전체 부서</option>
-        <option value="사운드컨텐츠사업부">사운드컨텐츠사업부</option>
-        <option value="시스템 사업부">시스템 사업부</option>
-        <option value="회계·경리팀">회계·경리팀</option>
-        <option value="미디어큐브">미디어큐브</option>
       </select>
       <select id="mtg-fil-author" onchange="__meeting.render()" style="padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;background:#fff;color:#374151;outline:none;font-weight:600;font-family:inherit;cursor:pointer;max-width:150px">
         <option value="">전체 작성자</option>
@@ -14054,10 +14050,6 @@ function openQuotePanel() {
           <label class="mtg-lbl">주관 부서</label>
           <select id="mtg-f-dept" class="mtg-input mtg-nice-select">
             <option value="">부서 선택</option>
-            <option value="사운드컨텐츠사업부">사운드컨텐츠사업부</option>
-            <option value="시스템 사업부">시스템 사업부</option>
-            <option value="회계·경리팀">회계·경리팀</option>
-            <option value="미디어큐브">미디어큐브</option>
           </select>
         </div>
       </div>
@@ -14338,12 +14330,38 @@ window.__meeting = (function() {
       .catch(function(){ _state.rows = []; });
   }
 
+  // 기본 부서 목록 + 저장된 row 의 dept + ALL_USERS 의 dept 를 합쳐 unique 목록 생성
+  function _allDepts() {
+    var base = ['사운드컨텐츠사업부','시스템 사업부','회계·경리팀','미디어큐브','개발팀'];
+    var seen = {}, out = [];
+    base.forEach(function(d){ if (!seen[d]) { seen[d] = true; out.push(d); } });
+    try {
+      if (typeof ALL_USERS !== 'undefined' && Array.isArray(ALL_USERS)) {
+        ALL_USERS.forEach(function(u){ if (u.dept && !seen[u.dept]) { seen[u.dept] = true; out.push(u.dept); } });
+      }
+    } catch(e){}
+    _state.rows.forEach(function(r){ if (r.dept && !seen[r.dept]) { seen[r.dept] = true; out.push(r.dept); } });
+    return out;
+  }
+
   function _populateFilters() {
+    var deptList = _allDepts();
     var typeSel = document.getElementById('mtg-fil-type');
     if (typeSel) {
+      var prevT = typeSel.value;
       typeSel.innerHTML = '<option value="">전체 유형</option>' + _state.types.map(function(t){
         return '<option value="' + _esc(t.key) + '">' + _esc(t.label) + '</option>';
       }).join('');
+      typeSel.value = prevT;
+    }
+    // 부서 필터
+    var deptFil = document.getElementById('mtg-fil-dept');
+    if (deptFil) {
+      var prevD = deptFil.value;
+      deptFil.innerHTML = '<option value="">전체 부서</option>' + deptList.map(function(d){
+        return '<option value="' + _esc(d) + '">' + _esc(d) + '</option>';
+      }).join('');
+      deptFil.value = prevD;
     }
     // 작성자 필터: 회의록 rows 안의 unique author
     var authSel = document.getElementById('mtg-fil-author');
@@ -14351,15 +14369,24 @@ window.__meeting = (function() {
       var seen = {}, opts = [];
       _state.rows.forEach(function(r){ if (r.author_id && !seen[r.author_id]) { seen[r.author_id] = true; opts.push({id:r.author_id, name: r.author_name || r.author_id}); } });
       opts.sort(function(a,b){ return String(a.name).localeCompare(String(b.name), 'ko'); });
+      var prevA = authSel.value;
       authSel.innerHTML = '<option value="">전체 작성자</option>' + opts.map(function(o){
         return '<option value="' + _esc(o.id) + '">' + _esc(o.name) + '</option>';
       }).join('');
+      authSel.value = prevA;
     }
     // 폼 유형 셀렉트
     var fSel = document.getElementById('mtg-f-type');
     if (fSel) {
       fSel.innerHTML = _state.types.map(function(t){
         return '<option value="' + _esc(t.key) + '">' + _esc(t.label) + '</option>';
+      }).join('');
+    }
+    // 폼 부서 셀렉트
+    var fDept = document.getElementById('mtg-f-dept');
+    if (fDept) {
+      fDept.innerHTML = '<option value="">부서 선택</option>' + deptList.map(function(d){
+        return '<option value="' + _esc(d) + '">' + _esc(d) + '</option>';
       }).join('');
     }
   }
@@ -14636,8 +14663,69 @@ window.__meeting = (function() {
     _renderAttendeeChips();
   }
 
+  // 공통: row 데이터를 폼 필드에 채움
+  function _fillFormFields(row) {
+    document.getElementById('mtg-f-title').value = row.title || '';
+    document.getElementById('mtg-f-type').value = row.meeting_type || 'etc';
+    document.getElementById('mtg-f-date').value = row.meeting_date || '';
+    document.getElementById('mtg-f-location').value = row.location || '';
+    // dept: 옵션에 없는 값이면 임시 옵션 추가 후 세팅
+    var deptSel = document.getElementById('mtg-f-dept');
+    if (deptSel && row.dept) {
+      var exists = Array.from(deptSel.options).some(function(o){ return o.value === row.dept; });
+      if (!exists) {
+        var opt = document.createElement('option');
+        opt.value = row.dept; opt.textContent = row.dept;
+        deptSel.appendChild(opt);
+      }
+      deptSel.value = row.dept;
+    } else if (deptSel) {
+      deptSel.value = '';
+    }
+    document.getElementById('mtg-f-author').value = row.author_name || '';
+    document.getElementById('mtg-f-status').value = row.status || 'planned';
+    document.getElementById('mtg-f-agenda').value = row.agenda || '';
+    document.getElementById('mtg-f-content').value = row.content || '';
+    document.getElementById('mtg-f-decisions').value = row.decisions || '';
+    document.getElementById('mtg-f-notes').value = row.notes || '';
+    var atts = Array.isArray(row.attachments) ? row.attachments : [];
+    _state.existingAttachments = atts.map(function(a){
+      if (typeof a === 'string') return { name: a };
+      return { name: a.name || 'file', url: a.url || '', size: a.size || 0, type: a.type || '' };
+    });
+    _state.pendingFiles = [];
+    var attendees = Array.isArray(row.attendees) ? row.attendees : [];
+    attendees.forEach(function(a){ if (a.id) _state.selectedAttendees[a.id] = a; });
+    _setVisibility(row.visibility || 'all');
+    _renderAttendeeChips();
+  }
+
+  // 폼 UI 를 편집 모드(true) 또는 조회 모드(false) 로 설정
+  function _setFormMode(editable) {
+    var fields = document.querySelectorAll('#meeting-form-overlay input, #meeting-form-overlay textarea, #meeting-form-overlay select');
+    fields.forEach(function(el){
+      // 작성자 필드는 항상 readonly
+      if (el.id === 'mtg-f-author') { el.disabled = false; el.readOnly = true; return; }
+      el.disabled = !editable;
+      el.readOnly = false;
+    });
+    var picker = document.getElementById('mtg-f-file-picker');
+    if (picker) picker.style.display = editable ? '' : 'none';
+    var saveBtn = document.querySelector('#meeting-form-overlay button[onclick*="saveMinute"]');
+    if (saveBtn) saveBtn.style.display = editable ? '' : 'none';
+    var cancelBtn = document.querySelector('#meeting-form-overlay button[onclick*="closeForm"]');
+    if (cancelBtn) cancelBtn.textContent = editable ? '취소' : '닫기';
+    // 참석자 chip 클릭 비활성
+    var attHost = document.getElementById('mtg-f-attendees');
+    if (attHost) attHost.style.pointerEvents = editable ? '' : 'none';
+    // 공개 범위 라디오 카드 클릭 비활성
+    document.querySelectorAll('.mtg-vis-radio').forEach(function(l){ l.style.pointerEvents = editable ? '' : 'none'; });
+    _renderFileList(!editable);
+  }
+
   function openForm(id) {
     _resetForm();
+    _setFormMode(true);
     if (id) {
       var row = _state.rows.find(function(r){ return r.id === id; });
       if (!row) { _toast('회의록을 찾을 수 없습니다'); return; }
@@ -14645,36 +14733,15 @@ window.__meeting = (function() {
       _state.editingId = id;
       document.getElementById('mtg-form-mode').textContent = 'EDIT MINUTE';
       document.getElementById('mtg-form-title').textContent = '회의록 수정';
-      document.getElementById('mtg-f-title').value = row.title || '';
-      document.getElementById('mtg-f-type').value = row.meeting_type || 'etc';
-      document.getElementById('mtg-f-date').value = row.meeting_date || '';
-      document.getElementById('mtg-f-location').value = row.location || '';
-      document.getElementById('mtg-f-dept').value = row.dept || '';
-      document.getElementById('mtg-f-author').value = row.author_name || '';
-      document.getElementById('mtg-f-status').value = row.status || 'planned';
-      document.getElementById('mtg-f-agenda').value = row.agenda || '';
-      document.getElementById('mtg-f-content').value = row.content || '';
-      document.getElementById('mtg-f-decisions').value = row.decisions || '';
-      document.getElementById('mtg-f-notes').value = row.notes || '';
-      var atts = Array.isArray(row.attachments) ? row.attachments : [];
-      // legacy 문자열 항목은 name 만 있는 객체로 흡수
-      _state.existingAttachments = atts.map(function(a){
-        if (typeof a === 'string') return { name: a };
-        return { name: a.name || 'file', url: a.url || '', size: a.size || 0, type: a.type || '' };
-      });
-      _state.pendingFiles = [];
-      _renderFileList(false);
-      var attendees = Array.isArray(row.attendees) ? row.attendees : [];
-      attendees.forEach(function(a){ if (a.id) _state.selectedAttendees[a.id] = a; });
-      _setVisibility(row.visibility || 'all');
-      _renderAttendeeChips();
+      _fillFormFields(row);
       document.getElementById('mtg-f-delete-btn').style.display = '';
     }
     document.getElementById('meeting-form-overlay').style.display = 'flex';
-    setTimeout(function(){ document.getElementById('mtg-f-title').focus(); }, 80);
+    setTimeout(function(){ var t = document.getElementById('mtg-f-title'); if (t && !t.disabled) t.focus(); }, 80);
   }
   function closeForm() {
     document.getElementById('meeting-form-overlay').style.display = 'none';
+    _setFormMode(true); // 다음 진입 대비 초기화
   }
 
   function saveMinute() {
@@ -14716,7 +14783,7 @@ window.__meeting = (function() {
           if (!r.ok && r.status !== 204) return r.text().then(function(t){ throw new Error(t); });
           _toast('회의록이 수정되었습니다');
           closeForm();
-          fetchAll().then(render);
+          fetchAll().then(function(){ _populateFilters(); render(); });
         });
       } else {
         body.author_id = _uname();
@@ -14752,16 +14819,14 @@ window.__meeting = (function() {
   function openDetail(id) {
     var row = _state.rows.find(function(r){ return r.id === id; });
     if (!row) return;
-    // 상세 = 편집 폼 (수정 권한 있으면 편집, 없으면 readonly)
-    openForm(id);
-    if (!_canEdit(row)) {
-      // Readonly 모드: 모든 입력을 disabled + 첨부는 다운로드 링크만 (제거 버튼 숨김)
-      document.querySelectorAll('#meeting-form-overlay input, #meeting-form-overlay textarea, #meeting-form-overlay select').forEach(function(el){ el.disabled = true; });
-      var picker = document.getElementById('mtg-f-file-picker'); if (picker) picker.style.display = 'none';
-      _renderFileList(true);
-      document.getElementById('mtg-form-title').textContent = '회의록 조회';
-      document.getElementById('mtg-form-mode').textContent = 'VIEW MINUTE';
-    }
+    _resetForm();
+    _state.editingId = null; // 조회 모드에서는 편집 컨텍스트 만들지 않음
+    _fillFormFields(row);
+    _setFormMode(false); // 조회 모드
+    document.getElementById('mtg-form-mode').textContent = 'VIEW MINUTE';
+    document.getElementById('mtg-form-title').textContent = '회의록 조회 · ' + (row.author_name || '');
+    document.getElementById('mtg-f-delete-btn').style.display = 'none';
+    document.getElementById('meeting-form-overlay').style.display = 'flex';
   }
 
   /* ── 회의 유형 관리 (관리자 전용) ── */
@@ -14823,7 +14888,7 @@ window.__meeting = (function() {
   return {
     openPanel: openPanel, closePanel: closePanel, render: render, clearFilters: clearFilters,
     openForm: openForm, closeForm: closeForm, saveMinute: saveMinute, deleteMinute: deleteMinute,
-    openDetail: openDetail,
+    openDetail: openDetail, _setFormMode: _setFormMode,
     openTypeManager: openTypeManager, closeTypeManager: closeTypeManager, addType: addType,
     _toggleAttendee: _toggleAttendee, _renderAttendeeChips: _renderAttendeeChips,
     _saveTypeLabel: _saveTypeLabel, _deleteType: _deleteType,
