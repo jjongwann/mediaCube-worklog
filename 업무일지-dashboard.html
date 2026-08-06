@@ -14660,8 +14660,7 @@ window.__meeting = (function() {
     _state.editingVisibility = 'all';
     _state.existingAttachments = [];
     _state.pendingFiles = [];
-    document.getElementById('mtg-form-mode').textContent = 'NEW MINUTE';
-    document.getElementById('mtg-form-title').textContent = '회의록 작성';
+    // (구 모달 헤더 mtg-form-mode/mtg-form-title 은 embed 리팩터로 제거됨. 헤더 타이틀은 openForm 에서 mtg-header-kicker/mtg-header-title 로 세팅)
     document.getElementById('mtg-f-title').value = '';
     if (_state.types.length) document.getElementById('mtg-f-type').value = _state.types[0].key;
     var today = new Date().toISOString().slice(0,10);
@@ -14887,7 +14886,7 @@ window.__meeting = (function() {
     if (!date) { _toast('회의 날짜를 선택해주세요'); return; }
     var type = document.getElementById('mtg-f-type').value || 'etc';
     var attendeesArr = Object.values(_state.selectedAttendees);
-    var saveBtn = document.querySelector('#meeting-form-overlay button[onclick*="saveMinute"]');
+    var saveBtn = document.getElementById('mtg-f-save-btn');
     var origBtnText = saveBtn ? saveBtn.textContent : '';
     if (saveBtn && _state.pendingFiles.length) { saveBtn.disabled = true; saveBtn.textContent = '업로드 중...'; }
     // 1) 신규 파일 업로드 → 2) 기존+업로드 결과 합쳐서 attachments 세팅 → 3) DB 저장
