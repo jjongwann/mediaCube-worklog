@@ -1502,7 +1502,7 @@
 
   <div class="toolbar">
     <button class="btn"
-      onclick="localStorage.removeItem('editJournalBackup');window.location.href='업무일지-dashboard.html?view=journal'"><svg width="14"
+      onclick="localStorage.removeItem('editJournalBackup');window.location.replace('업무일지-dashboard.html?view=journal')"><svg width="14"
         height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
         stroke-linejoin="round">
         <line x1="19" y1="12" x2="5" y2="12" />
@@ -1941,7 +1941,7 @@
     </div>
     <div class="submit-bar-actions">
       <button class="btn-back"
-        onclick="localStorage.removeItem('editJournalBackup');window.location.href='업무일지-dashboard.html'"><svg
+        onclick="localStorage.removeItem('editJournalBackup');window.location.replace('업무일지-dashboard.html')"><svg
           width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <line x1="19" y1="12" x2="5" y2="12" />
@@ -2081,7 +2081,7 @@
         sessionStorage.removeItem(EDIT_KEY);
         try { localStorage.removeItem('editJournalBackup'); } catch (e2) {}
         alert('본인이 작성한 일지만 수정할 수 있습니다.');
-        window.location.href = '업무일지-dashboard.html';
+        window.location.replace('업무일지-dashboard.html');
         return;
       }
       sessionStorage.removeItem(EDIT_KEY);
@@ -3890,7 +3890,8 @@
           localStorage.removeItem('editJournalBackup');
           // developer 계정은 대시보드 진입 후 업무일지 뷰로 자동 전환 (?view=journal)
           // 다른 계정은 dev-mode 자체가 없으므로 파라미터가 있어도 무시됨
-          window.location.href = '업무일지-dashboard.html?view=journal';
+          // location.replace 로 history 정리 → 브라우저 뒤로가기 시 폼으로 복귀 안 됨
+          window.location.replace('업무일지-dashboard.html?view=journal');
         }).catch(function (e) {
           console.error('submit error', e);
           alert('저장 중 오류가 발생했습니다: ' + (e && e.message ? e.message : e));
