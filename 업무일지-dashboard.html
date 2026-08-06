@@ -247,6 +247,29 @@
     max-height: none !important;
     box-shadow: 0 4px 18px rgba(15,23,42,0.08) !important;
   }
+  /* meeting-embed 서브모드: 카탈로그 UI 숨기고 회의록 오버레이를 embed 로 표시 */
+  body.dev-mode.view-catalog.meeting-embed .dm-hero,
+  body.dev-mode.view-catalog.meeting-embed .dm-toolbar,
+  body.dev-mode.view-catalog.meeting-embed #dmGrid,
+  body.dev-mode.view-catalog.meeting-embed #dev-sales-embed { display: none !important; }
+  body.meeting-embed #dev-mode-wrap #meeting-overlay {
+    display: flex !important;
+    position: static !important;
+    inset: auto !important;
+    background: transparent !important;
+    padding: 0 !important;
+    z-index: auto !important;
+    align-items: initial !important;
+    justify-content: initial !important;
+    overflow: visible !important;
+  }
+  body.meeting-embed #dev-mode-wrap #meeting-overlay > div {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: none !important;
+    margin: 0 !important;
+    box-shadow: 0 4px 18px rgba(15,23,42,0.08) !important;
+  }
 
   /* ── Sidebar ── */
   .sidebar {
@@ -13955,7 +13978,10 @@ function openQuotePanel() {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           회의록 작성
         </button>
-        <button onclick="__meeting.closePanel()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">×</button>
+        <button onclick="__meeting.closePanel()" title="카탈로그로 돌아가기" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;padding:0 10px;height:32px;border-radius:8px;display:flex;align-items:center;gap:5px;font-family:inherit;font-weight:700;font-size:12px" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          카탈로그로
+        </button>
       </div>
     </div>
     <!-- 필터 바 -->
@@ -14371,18 +14397,63 @@ window.__meeting = (function() {
     render();
   }
 
+  // 오버레이 원부모 저장 (원위치 복원용)
+  var _meetingOrigin = null;
+  function _ensureOverlayInEmbed() {
+    var ov = document.getElementById('meeting-overlay');
+    if (!ov) return;
+    if (!_meetingOrigin) _meetingOrigin = { parent: ov.parentNode, next: ov.nextSibling };
+    // dev-mode + view-catalog 사용자만 카탈로그 안 embed 로 이동. 그 외에는 원위치 모달로 표시.
+    var wrap = document.querySelector('#dev-mode-wrap .dm-wrap');
+    if (document.body.classList.contains('dev-mode') && wrap && ov.parentNode !== wrap) {
+      wrap.appendChild(ov);
+    }
+  }
+  function _restoreOverlay() {
+    var ov = document.getElementById('meeting-overlay');
+    if (!ov || !_meetingOrigin || !_meetingOrigin.parent) return;
+    if (ov.parentNode !== _meetingOrigin.parent) _meetingOrigin.parent.appendChild(ov);
+  }
+
   function openPanel() {
     // 관리자만 유형 관리 버튼 노출
     var typeBtn = document.getElementById('mtg-type-mgr-btn');
     if (typeBtn) typeBtn.style.display = _isAdminUser() ? '' : 'none';
-    document.getElementById('meeting-overlay').style.display = 'flex';
+    _ensureOverlayInEmbed();
+    if (document.body.classList.contains('dev-mode')) {
+      // 카탈로그 뷰로 전환 + meeting-embed 서브클래스
+      document.body.classList.remove('view-journal');
+      document.body.classList.add('view-catalog', 'meeting-embed');
+      try { localStorage.setItem('mc_dm_view', 'catalog'); } catch(e){}
+      // dev-view-switch 카탈로그 활성 반영
+      try {
+        document.querySelectorAll('.dev-view-item').forEach(function(x){
+          x.classList.toggle('active', x.getAttribute('data-devview') === 'catalog');
+        });
+      } catch(e){}
+      // sales-embed 상태였다면 정리
+      if (typeof window._dmExitSalesEmbed === 'function' && document.body.classList.contains('sales-embed')) {
+        try { window._dmExitSalesEmbed(); } catch(e){}
+      }
+    } else {
+      // 비-dev 사용자: 기존대로 모달로 노출
+      document.getElementById('meeting-overlay').style.display = 'flex';
+    }
     Promise.all([fetchTypes(), fetchAll()]).then(function(){
       _populateFilters();
       render();
     });
   }
   function closePanel() {
-    document.getElementById('meeting-overlay').style.display = 'none';
+    if (document.body.classList.contains('meeting-embed')) {
+      document.body.classList.remove('meeting-embed');
+      _restoreOverlay();
+      // 오버레이는 원위치에서 display:none 유지
+      var ov = document.getElementById('meeting-overlay');
+      if (ov) ov.style.display = 'none';
+    } else {
+      document.getElementById('meeting-overlay').style.display = 'none';
+    }
   }
 
   function _resetForm() {
@@ -14799,6 +14870,10 @@ window._dmSwitchView = function(view, el) {
   if (document.body.classList.contains('sales-embed')) {
     try { window._dmExitSalesEmbed(); } catch(e){}
   }
+  // meeting-embed 상태에서 다른 뷰로 이동 시 embed 정리
+  if (document.body.classList.contains('meeting-embed')) {
+    try { window.__meeting && window.__meeting.closePanel(); } catch(e){}
+  }
   document.body.classList.remove('view-catalog', 'view-journal');
   document.body.classList.add('view-' + view);
   // 새로고침 시 현재 뷰 유지 위해 localStorage 저장
@@ -14890,6 +14965,10 @@ window._dmCloseSalesChooser = function() {
   if (ov) ov.style.display = 'none';
 };
 window._dmEnterSalesEmbed = function(deptKey) {
+  // meeting-embed 상태였다면 먼저 정리
+  if (document.body.classList.contains('meeting-embed')) {
+    try { window.__meeting && window.__meeting.closePanel(); } catch(e){}
+  }
   _dmSaveSalesOrigin();
   var host    = document.getElementById('dev-sales-embed-host');
   var embed   = document.getElementById('dev-sales-embed');
