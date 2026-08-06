@@ -329,6 +329,17 @@
   body.dev-embed #dev-feature-embed > #soundteam-overlay {
     width: 100% !important;
   }
+  /* 업무 히스토리 · 업무 성과 · 영업 활동: 카탈로그 영역 전체 폭 */
+  body.dev-embed #dev-feature-embed > #history-overlay,
+  body.dev-embed #dev-feature-embed > #achievement-overlay,
+  body.dev-embed #dev-feature-embed > #sales-activity-overlay {
+    width: 100% !important;
+  }
+  body.dev-embed #dev-feature-embed > #history-overlay > div,
+  body.dev-embed #dev-feature-embed > #achievement-overlay > div,
+  body.dev-embed #dev-feature-embed > #sales-activity-overlay > div {
+    min-height: 78vh !important;
+  }
 
   /* ── Sidebar ── */
   .sidebar {
@@ -10583,6 +10594,10 @@
   var _histTab = 'plan';
 
   function openHistoryPanel() {
+    // dev-mode 사용자는 embed 로 진입
+    if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function') {
+      window._dmEnterFeatureEmbed('history-overlay');
+    }
     document.getElementById('history-overlay').style.display = 'flex';
     document.getElementById('hist-search').value = '';
     document.getElementById('hist-date-from').value = '';
@@ -10614,6 +10629,13 @@
   }
 
   function closeHistoryPanel() {
+    if (document.body.classList.contains('dev-embed')
+        && window._dmFeatureEmbedState
+        && window._dmFeatureEmbedState.overlayId === 'history-overlay'
+        && typeof window._dmExitFeatureEmbed === 'function') {
+      window._dmExitFeatureEmbed();
+      return;
+    }
     document.getElementById('history-overlay').style.display = 'none';
   }
 
@@ -11564,11 +11586,22 @@
     var clr = document.getElementById('ach-search-clear');
     if (clr) clr.style.display = 'none';
 
+    // dev-mode 사용자는 embed 로 진입
+    if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function') {
+      window._dmEnterFeatureEmbed('achievement-overlay');
+    }
     document.getElementById('achievement-overlay').style.display = 'flex';
     renderAchievementPanel();
   }
 
   function closeAchievementPanel() {
+    if (document.body.classList.contains('dev-embed')
+        && window._dmFeatureEmbedState
+        && window._dmFeatureEmbedState.overlayId === 'achievement-overlay'
+        && typeof window._dmExitFeatureEmbed === 'function') {
+      window._dmExitFeatureEmbed();
+      return;
+    }
     document.getElementById('achievement-overlay').style.display = 'none';
   }
 
@@ -22951,12 +22984,23 @@ function _showVendorChooser() {
     }
     _salesDept = dept;
     _ensureSalesOverlay();
+    // dev-mode 사용자는 embed 로 진입
+    if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function') {
+      window._dmEnterFeatureEmbed('sales-activity-overlay');
+    }
     var ov = document.getElementById('sales-activity-overlay');
     if (!ov) return;
     ov.style.display = 'flex';
     _salesRender();
   }
   function closeSalesActivityPanel() {
+    if (document.body.classList.contains('dev-embed')
+        && window._dmFeatureEmbedState
+        && window._dmFeatureEmbedState.overlayId === 'sales-activity-overlay'
+        && typeof window._dmExitFeatureEmbed === 'function') {
+      window._dmExitFeatureEmbed();
+      return;
+    }
     var ov = document.getElementById('sales-activity-overlay');
     if (ov) ov.style.display = 'none';
   }
