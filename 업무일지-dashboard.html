@@ -3518,6 +3518,22 @@
         renderSystemSalesWidget();
       }
     }
+    // ── embed 활성 시: 현재 embed 페이지도 새 부서 context 로 재진입 ──
+    //  · 캘린더/영업활동: 각 opener 재호출 (내부에서 dept 전환 정리)
+    //  · 회의록: mtg-fil-dept 셀렉트 값 세팅 + render()
+    try {
+      var st = window._dmFeatureEmbedState;
+      if (st && st.overlayId === 'shared-cal-overlay' && typeof openSharedCalendar === 'function') {
+        openSharedCalendar(deptKey);
+      } else if (st && st.overlayId === 'sales-activity-overlay' && typeof openSalesActivityPanel === 'function') {
+        openSalesActivityPanel(deptKey);
+      } else if (document.body.classList.contains('meeting-embed') && window.__meeting && typeof window.__meeting.render === 'function') {
+        var _mtgDeptStr = (deptKey === 'sound') ? '사운드컨텐츠사업부' : '시스템 사업부';
+        var _mtgSel = document.getElementById('mtg-fil-dept');
+        if (_mtgSel) _mtgSel.value = _mtgDeptStr;
+        window.__meeting.render();
+      }
+    } catch(e){ console.warn('[setViewDept] embed re-open failed', e); }
   }
 
   // 현재 부서에 따라 음원/시스템 매출 위젯·BMAT 카드 표시 토글
