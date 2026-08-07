@@ -3883,7 +3883,12 @@
         tasks: tasks,
         work_progress: workProgress.length ? workProgress : null,
         pinned: editingEntry ? (editingEntry.pinned || false) : false,
-        user_id: _userId
+        // user_id: 편집 모드에서는 원 작성자의 user_id 를 보존해야 함
+        //   · 신규 작성: _userId (본인)
+        //   · 편집: editingEntry.user_id (원 작성자) 유지
+        //   과거 버그: 관리자가 타인 일지 편집 시 소유권이 관리자로 이전되어
+        //             부서 필터에서 사라지고 원 작성자는 편집 불가가 됨
+        user_id: (editingEntry && editingEntry.user_id) ? editingEntry.user_id : _userId
       };
 
       // 신규고객 확보 - 거래처 변경 시 이전 vendor_sales row 정리 + 새 row 일지에 연결
