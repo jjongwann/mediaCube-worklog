@@ -22949,7 +22949,8 @@ function _showVendorChooser() {
     var sel = document.getElementById('sales-act-emp');
     if (!sel) return;
     var current = _salesEmpFilter;
-    sel.innerHTML = '<option value="">전체 직원</option>';
+    // '전체 직원' 옵션 제거 — 항상 특정 직원 1명만 표시 (auto-select 로 첫 사용자 자동)
+    sel.innerHTML = '';
     if (!Array.isArray(ALL_USERS)) return;
     var deptMeta = SALES_DEPT_META[_salesDept];
     var isAdminUser = (typeof _isAdmin !== 'undefined' && _isAdmin);
@@ -23112,20 +23113,25 @@ function _showVendorChooser() {
       rows    = rows.filter(function(r){ return permittedIds.indexOf(r.uid) >= 0; });
       rowsAll = rowsAll.filter(function(r){ return permittedIds.indexOf(r.uid) >= 0; });
     }
-    // 음원팀 업무 현황 스타일: showEmpSelect 사용자는 항상 1명씩 보이도록 auto-select
-    //   → _salesEmpFilter 가 비어있으면 활동 건수 가장 많은 직원 자동 선택
-    //   → chip 탭 UI 를 body 상단에 렌더
+    // 항상 특정 직원 1명씩 표시 (전체 직원 뷰 폐기)
+    //   · _salesEmpFilter 가 비어있을 때만 auto-select (활동 있는 직원 → dropdown 첫 사용자 순)
+    //   · 사용자가 명시적으로 선택한 UID 는 데이터 없어도 그대로 유지 (empty state 표시)
     var _salesEmpTabs = null;
     if (showEmpSelect) {
-      // rowsAll 기준 (type 필터 적용 전) 활동 있는 직원 목록 계산
+      // rowsAll 기준 (type 필터 전) 활동 있는 직원 목록
       var _cntByUid = {};
       rowsAll.forEach(function(r){ if (r.uid) _cntByUid[r.uid] = (_cntByUid[r.uid] || 0) + 1; });
       _salesEmpTabs = Object.keys(_cntByUid).sort(function(a, b){ return _cntByUid[b] - _cntByUid[a]; });
-      // 선택된 직원이 리스트에 없거나 미선택이면 첫 사용자 자동 선택
-      if (!_salesEmpFilter || _salesEmpTabs.indexOf(_salesEmpFilter) === -1) {
-        if (_salesEmpTabs.length) _salesEmpFilter = _salesEmpTabs[0];
+      // 필터 미설정 시에만 auto-select (활동 있는 직원 우선, 없으면 dropdown 첫 옵션)
+      if (!_salesEmpFilter) {
+        if (_salesEmpTabs.length) {
+          _salesEmpFilter = _salesEmpTabs[0];
+        } else {
+          var _selElInit = document.getElementById('sales-act-emp');
+          if (_selElInit && _selElInit.options.length) _salesEmpFilter = _selElInit.options[0].value;
+        }
       }
-      // 셀렉트 dropdown 도 동기화 (auto-select 반영)
+      // 셀렉트 dropdown 동기화
       var _selEl = document.getElementById('sales-act-emp');
       if (_selEl) _selEl.value = _salesEmpFilter || '';
     }
