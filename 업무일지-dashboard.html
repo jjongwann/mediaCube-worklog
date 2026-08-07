@@ -23208,40 +23208,20 @@ function _showVendorChooser() {
       kpiBox.innerHTML = html;
     }
 
-    // 직원 chip 탭 HTML (showEmpSelect 시)
-    var chipTabsHtml = '';
-    if (showEmpSelect && _salesEmpTabs && _salesEmpTabs.length) {
-      chipTabsHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;padding:2px 0 14px 0">';
-      _salesEmpTabs.forEach(function(uid){
-        var m = _salesUserMeta(uid);
-        var isActive = uid === _salesEmpFilter;
-        var avatar = m.img
-          ? '<img src="'+_salesEsc(m.img)+'" style="width:20px;height:20px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
-          : '<span style="width:20px;height:20px;border-radius:50%;background:'+(isActive?'rgba(255,255,255,0.25)':'#f1f5f9')+';color:'+(isActive?'#fff':'#64748b')+';font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">'+_salesEsc(m.fullName.charAt(0)||'?')+'</span>';
-        var baseCss = 'display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:20px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .12s,color .12s,border-color .12s;';
-        var activeCss = 'background:#7c3aed;color:#fff;border:1px solid #7c3aed;box-shadow:0 2px 8px rgba(124,58,237,0.25)';
-        var inactiveCss = 'background:#fff;color:#475569;border:1px solid #e2e8f0';
-        chipTabsHtml += '<button type="button" onclick="window._salesSelectEmp(\''+_salesEsc(uid)+'\')" '
-          + 'style="'+baseCss+(isActive?activeCss:inactiveCss)+'"'
-          + (isActive ? '' : ' onmouseover="this.style.background=\'#f8fafc\';this.style.borderColor=\'#cbd5e1\'" onmouseout="this.style.background=\'#fff\';this.style.borderColor=\'#e2e8f0\'"')
-          + '>' + avatar + '<span>' + _salesEsc(m.fullName) + '</span></button>';
-      });
-      chipTabsHtml += '</div>';
-    }
+    // 직원 chip 탭 제거 (기존 dropdown '직원 …' 셀렉트로 대체) — 세로 공간 절약
 
     // Body
     var body = document.getElementById('sales-act-body');
     if (!body) return;
     if (!rows.length) {
-      body.innerHTML = chipTabsHtml + '<div style="text-align:center;padding:50px 20px;color:#94a3b8;font-size:13px;background:#fff;border:1px dashed #cbd5e1;border-radius:10px">선택한 기간에 영업 활동 기록이 없습니다.</div>';
+      body.innerHTML = '<div style="text-align:center;padding:50px 20px;color:#94a3b8;font-size:13px;background:#fff;border:1px dashed #cbd5e1;border-radius:10px">선택한 기간에 영업 활동 기록이 없습니다.</div>';
       return;
     }
 
     // 항상 단일 직원 리스트 (auto-select 로 _salesEmpFilter 가 세팅됨)
     var sorted = rows.slice().sort(function(a, b){ return (a.date < b.date ? 1 : a.date > b.date ? -1 : 0); });
     var singleKey = (showEmpSelect ? (_salesEmpFilter || '__emp__') : (myId || '__self__'));
-    body.innerHTML = chipTabsHtml
-      + '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">'
+    body.innerHTML = '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">'
       + _salesRowsHtml(sorted, { uid: singleKey })
       + '</div>';
 
