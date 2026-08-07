@@ -23074,6 +23074,23 @@ function _showVendorChooser() {
       rows    = rows.filter(function(r){ return permittedIds.indexOf(r.uid) >= 0; });
       rowsAll = rowsAll.filter(function(r){ return permittedIds.indexOf(r.uid) >= 0; });
     }
+    // 음원팀 업무 현황 스타일: showEmpSelect 사용자는 항상 1명씩 보이도록 auto-select
+    //   → _salesEmpFilter 가 비어있으면 활동 건수 가장 많은 직원 자동 선택
+    //   → chip 탭 UI 를 body 상단에 렌더
+    var _salesEmpTabs = null;
+    if (showEmpSelect) {
+      // rowsAll 기준 (type 필터 적용 전) 활동 있는 직원 목록 계산
+      var _cntByUid = {};
+      rowsAll.forEach(function(r){ if (r.uid) _cntByUid[r.uid] = (_cntByUid[r.uid] || 0) + 1; });
+      _salesEmpTabs = Object.keys(_cntByUid).sort(function(a, b){ return _cntByUid[b] - _cntByUid[a]; });
+      // 선택된 직원이 리스트에 없거나 미선택이면 첫 사용자 자동 선택
+      if (!_salesEmpFilter || _salesEmpTabs.indexOf(_salesEmpFilter) === -1) {
+        if (_salesEmpTabs.length) _salesEmpFilter = _salesEmpTabs[0];
+      }
+      // 셀렉트 dropdown 도 동기화 (auto-select 반영)
+      var _selEl = document.getElementById('sales-act-emp');
+      if (_selEl) _selEl.value = _salesEmpFilter || '';
+    }
     // 직원 셀렉트 필터 (관리자/화이트리스트/권한 부여받은 직원이 사용 가능)
     if (showEmpSelect && _salesEmpFilter) {
       rows    = rows.filter(function(r){ return r.uid === _salesEmpFilter; });
@@ -23153,53 +23170,42 @@ function _showVendorChooser() {
       kpiBox.innerHTML = html;
     }
 
+    // 직원 chip 탭 HTML (showEmpSelect 시)
+    var chipTabsHtml = '';
+    if (showEmpSelect && _salesEmpTabs && _salesEmpTabs.length) {
+      chipTabsHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;padding:2px 0 14px 0">';
+      _salesEmpTabs.forEach(function(uid){
+        var m = _salesUserMeta(uid);
+        var isActive = uid === _salesEmpFilter;
+        var avatar = m.img
+          ? '<img src="'+_salesEsc(m.img)+'" style="width:20px;height:20px;border-radius:50%;object-fit:cover" onerror="this.style.display=\'none\'">'
+          : '<span style="width:20px;height:20px;border-radius:50%;background:'+(isActive?'rgba(255,255,255,0.25)':'#f1f5f9')+';color:'+(isActive?'#fff':'#64748b')+';font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">'+_salesEsc(m.fullName.charAt(0)||'?')+'</span>';
+        var baseCss = 'display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:20px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .12s,color .12s,border-color .12s;';
+        var activeCss = 'background:#7c3aed;color:#fff;border:1px solid #7c3aed;box-shadow:0 2px 8px rgba(124,58,237,0.25)';
+        var inactiveCss = 'background:#fff;color:#475569;border:1px solid #e2e8f0';
+        chipTabsHtml += '<button type="button" onclick="window._salesSelectEmp(\''+_salesEsc(uid)+'\')" '
+          + 'style="'+baseCss+(isActive?activeCss:inactiveCss)+'"'
+          + (isActive ? '' : ' onmouseover="this.style.background=\'#f8fafc\';this.style.borderColor=\'#cbd5e1\'" onmouseout="this.style.background=\'#fff\';this.style.borderColor=\'#e2e8f0\'"')
+          + '>' + avatar + '<span>' + _salesEsc(m.fullName) + '</span></button>';
+      });
+      chipTabsHtml += '</div>';
+    }
+
     // Body
     var body = document.getElementById('sales-act-body');
     if (!body) return;
     if (!rows.length) {
-      body.innerHTML = '<div style="text-align:center;padding:50px 20px;color:#94a3b8;font-size:13px;background:#fff;border:1px dashed #cbd5e1;border-radius:10px">선택한 기간에 영업 활동 기록이 없습니다.</div>';
+      body.innerHTML = chipTabsHtml + '<div style="text-align:center;padding:50px 20px;color:#94a3b8;font-size:13px;background:#fff;border:1px dashed #cbd5e1;border-radius:10px">선택한 기간에 영업 활동 기록이 없습니다.</div>';
       return;
     }
 
-    if (showEmpSelect && !_salesEmpFilter) {
-      // 직원별 그룹화 (전체 직원일 때만 / 관리자·화이트리스트·권한 부여 직원)
-      var byUser = {};
-      rows.forEach(function(r){
-        var key = r.uid || '_';
-        if (!byUser[key]) byUser[key] = [];
-        byUser[key].push(r);
-      });
-      var uids = Object.keys(byUser).sort(function(a, b){
-        return byUser[b].length - byUser[a].length;
-      });
-      var html = '';
-      uids.forEach(function(uid){
-        var meta = _salesUserMeta(uid);
-        var list = byUser[uid].slice().sort(function(a, b){ return (a.date < b.date ? 1 : a.date > b.date ? -1 : 0); });
-        var subTotal = list.reduce(function(s, r){ return s + (r.mins || 0); }, 0);
-        html += '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:20px;overflow:hidden">';
-        html +=   '<div style="padding:12px 16px;background:linear-gradient(90deg,#f5f3ff 0%,#fff 100%);border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px">';
-        if (meta.img) html += '<img src="'+meta.img+'" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1.5px solid #7c3aed" onerror="this.style.display=\'none\'">';
-        else          html += '<div style="width:30px;height:30px;border-radius:50%;background:#ede9fe;color:#7c3aed;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px">'+(meta.fullName.charAt(0)||'?')+'</div>';
-        html +=     '<div style="flex:1;min-width:0">';
-        html +=       '<div style="font-size:13.5px;font-weight:800;color:#0f172a;letter-spacing:-0.2px">'+meta.fullName+'</div>';
-        html +=       '<div style="font-size:10.5px;color:#64748b;margin-top:1px">'+(meta.dept||'—')+'</div>';
-        html +=     '</div>';
-        html +=     '<div style="text-align:right;flex-shrink:0">';
-        html +=       '<div style="font-size:11px;color:#64748b">합계</div>';
-        html +=       '<div style="font-size:13px;font-weight:800;color:#6f2387">'+list.length+'건 · '+_salesFmtMins(subTotal)+'</div>';
-        html +=     '</div>';
-        html +=   '</div>';
-        html +=   _salesRowsHtml(list, { uid: uid });
-        html += '</div>';
-      });
-      body.innerHTML = html;
-    } else {
-      // 본인(or 특정 직원 필터) — 단일 리스트 (날짜 내림차순)
-      var sorted = rows.slice().sort(function(a, b){ return (a.date < b.date ? 1 : a.date > b.date ? -1 : 0); });
-      var singleKey = isAdmin ? (_salesEmpFilter || '__emp__') : (myId || '__self__');
-      body.innerHTML = '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">'+_salesRowsHtml(sorted, { uid: singleKey })+'</div>';
-    }
+    // 항상 단일 직원 리스트 (auto-select 로 _salesEmpFilter 가 세팅됨)
+    var sorted = rows.slice().sort(function(a, b){ return (a.date < b.date ? 1 : a.date > b.date ? -1 : 0); });
+    var singleKey = (showEmpSelect ? (_salesEmpFilter || '__emp__') : (myId || '__self__'));
+    body.innerHTML = chipTabsHtml
+      + '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">'
+      + _salesRowsHtml(sorted, { uid: singleKey })
+      + '</div>';
 
     // '자세히 보기' 버튼 이벤트 바인딩 (페이지네이션 토글)
     body.querySelectorAll('.sales-expand-btn').forEach(function(btn){
@@ -23389,6 +23395,12 @@ function _showVendorChooser() {
       alert('영업 활동에 접근할 권한이 없습니다.');
     }
   }
+
+  // chip 탭 클릭 핸들러 (전역 노출)
+  window._salesSelectEmp = function(uid) {
+    _salesEmpFilter = uid || '';
+    _salesRender();
+  };
 
   window.openSalesActivityPanel    = openSalesActivityPanel;
   window.openSalesActivityChooser  = openSalesActivityChooser;
