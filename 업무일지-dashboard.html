@@ -298,6 +298,10 @@
   body.dev-embed .dm-new-btn-journal,
   body.dev-embed .dm-new-btn-meeting { display: none !important; }
   body.dev-embed .dm-new-btn-catalog-back { display: inline-flex !important; }
+  /* 사업부별 매출 현황 embed(sales-embed) 도 '새 일지 작성' → '카탈로그로' 로 스왑 */
+  body.sales-embed .dm-new-btn-journal,
+  body.sales-embed .dm-new-btn-meeting { display: none !important; }
+  body.sales-embed .dm-new-btn-catalog-back { display: inline-flex !important; }
   body.dev-mode.view-catalog.dev-embed .dm-hero,
   body.dev-mode.view-catalog.dev-embed .dm-toolbar,
   body.dev-mode.view-catalog.dev-embed #dmGrid,
@@ -2112,7 +2116,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             새 일정 추가
           </button>
-          <button type="button" class="dm-new-btn dm-new-btn-catalog-back" onclick="if(window._dmExitFeatureEmbed) window._dmExitFeatureEmbed()" title="카탈로그로 돌아가기" style="display:none;border:none">
+          <button type="button" class="dm-new-btn dm-new-btn-catalog-back" onclick="if(document.body.classList.contains('sales-embed')&&window._dmExitSalesEmbed){window._dmExitSalesEmbed();}else if(window._dmExitFeatureEmbed){window._dmExitFeatureEmbed();}" title="카탈로그로 돌아가기" style="display:none;border:none">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             카탈로그로
           </button>
@@ -3551,6 +3555,7 @@
     // ── embed 활성 시: 현재 embed 페이지도 새 부서 context 로 재진입 ──
     //  · 캘린더/영업활동: 각 opener 재호출 (내부에서 dept 전환 정리)
     //  · 회의록: mtg-fil-dept 셀렉트 값 세팅 + render()
+    //  · 사업부별 매출 현황(sales-embed): _dmEnterSalesEmbed(deptKey) 재호출 → 위젯 스왑
     try {
       var st = window._dmFeatureEmbedState;
       if (st && st.overlayId === 'shared-cal-overlay' && typeof openSharedCalendar === 'function') {
@@ -3562,6 +3567,8 @@
         var _mtgSel = document.getElementById('mtg-fil-dept');
         if (_mtgSel) _mtgSel.value = _mtgDeptStr;
         window.__meeting.render();
+      } else if (document.body.classList.contains('sales-embed') && typeof window._dmEnterSalesEmbed === 'function') {
+        window._dmEnterSalesEmbed(deptKey);
       }
     } catch(e){ console.warn('[setViewDept] embed re-open failed', e); }
   }
