@@ -374,6 +374,10 @@
     box-shadow: none !important;
     animation: none !important;
   }
+  /* 업무 지시 · 회의록 embed 상태에서 패널 헤더 내 '카탈로그로' 버튼 숨김
+     (dm-topbar 의 카탈로그로 버튼과 중복) */
+  body.embed-directive #dir-catalog-back-btn,
+  body.meeting-embed #mtg-close-panel-btn { display: none !important; }
   /* vendor · sales-activity 임머시브 embed: 카탈로그 breadcrumb/topbar 숨기고 padding 제거해
      패널이 사이드바 오른쪽 전체 영역을 꽉 채우도록 */
   body.embed-vendor-needle .dm-topbar,
