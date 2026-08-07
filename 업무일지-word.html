@@ -3761,7 +3761,7 @@
       var date = document.getElementById('doc-date').value;
       var author = (document.getElementById('doc-author').value || '').trim();
       var project = (document.getElementById('chip-project').value || '').trim();
-      var type = (document.getElementById('chip-type').value || '').trim() || '개발';
+      var type = (document.getElementById('chip-type').value || '').trim();
       var progStr = (document.getElementById('chip-progress').value || '').replace('%', '').trim();
       var progress = Math.min(100, Math.max(0, parseInt(progStr) || 0));
 
