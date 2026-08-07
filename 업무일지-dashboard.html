@@ -265,9 +265,11 @@
     max-height: none !important;
     box-shadow: 0 4px 18px rgba(15,23,42,0.08) !important;
   }
-  /* 월별 누계 통계 열림 시 원본 매출 위젯 숨김 (해당 dept 만) */
-  body.sales-embed.cumul-solo-sound #sales-widget { display: none !important; }
-  body.sales-embed.cumul-solo-system #system-sales-widget { display: none !important; }
+  /* 월별 누계 통계 열림 시 원본 매출 위젯 숨김 (해당 dept 만)
+     specificity 상 위 라인 236-244 (body.dev-mode #dev-sales-embed-host #sales-widget)
+     보다 높아야 하므로 셀렉터에 #dev-sales-embed-host 포함 */
+  body.sales-embed.cumul-solo-sound #dev-sales-embed-host #sales-widget { display: none !important; }
+  body.sales-embed.cumul-solo-system #dev-sales-embed-host #system-sales-widget { display: none !important; }
   /* 열림 시 상단 margin 제거 (위젯 없으므로) */
   body.sales-embed.cumul-solo-sound #dev-sales-embed #cumul-overlay,
   body.sales-embed.cumul-solo-system #dev-sales-embed #sys-sales-cumul-overlay { margin-top: 0 !important; }
