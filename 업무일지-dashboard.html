@@ -16468,6 +16468,20 @@ function _dmEnsureSalesChooser() {
   });
 }
 window._dmOpenSalesChooser = function() {
+  // 계정별 라우팅:
+  //  · 관리자(mediacube) · info(김혜진 대리) · developer(임종완 주임) → chooser 모달로 선택
+  //  · 시스템 사업부(avsystem·engineer2) → 바로 시스템 매출 진입
+  //  · 사운드 사업부 나머지 → 바로 사운드 매출 진입
+  var uname = (typeof _currentUsername !== 'undefined') ? _currentUsername : '';
+  var CHOOSER_USERS = ['mediacube', 'info', 'developer'];
+  if (CHOOSER_USERS.indexOf(uname) === -1) {
+    var SYS_USERS = ['avsystem', 'engineer2'];
+    var deptKey = (SYS_USERS.indexOf(uname) !== -1) ? 'system' : 'sound';
+    if (typeof window._dmEnterSalesEmbed === 'function') {
+      window._dmEnterSalesEmbed(deptKey);
+    }
+    return;
+  }
   _dmEnsureSalesChooser();
   var ov = document.getElementById('dm-sales-chooser-overlay');
   if (ov) ov.style.display = 'flex';
