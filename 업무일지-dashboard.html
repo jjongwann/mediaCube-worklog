@@ -83,6 +83,17 @@
     color: #3730a3 !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
+  /* dev-mode 통계 섹션: active 다크 배경 오버라이드도 제외 */
+  body.dev-mode > aside.sidebar #soundteam-sidebar-btn.active,
+  body.dev-mode > aside.sidebar #systemteam-sidebar-btn.active,
+  body.dev-mode > aside.sidebar #sidebar-vendor-btn.active,
+  body.dev-mode > aside.sidebar #sidebar-bmat-btn.active,
+  body.dev-mode > aside.sidebar #sidebar-bmat-btn.bmat-active,
+  body.dev-mode > aside.sidebar #quote-sidebar-btn.active {
+    background: transparent !important;
+    color: inherit !important;
+    box-shadow: none !important;
+  }
   body.dev-mode > aside.sidebar .sidebar-item-count {
     background: rgba(255,255,255,0.15);
     color: #fff;
@@ -485,6 +496,25 @@
   }
   .sidebar-item:hover { background: #f0f0f0; color: var(--text-primary); }
   .sidebar-item.active { background: #e8effe; color: var(--accent); font-weight: 600; }
+  /* 사이드바 통계 섹션(음원팀/시스템팀/거래처별 매출/BMAT/견적 관리) 은 active 색상 미적용 */
+  #soundteam-sidebar-btn.active,
+  #systemteam-sidebar-btn.active,
+  #sidebar-vendor-btn.active,
+  #sidebar-bmat-btn.active,
+  #sidebar-bmat-btn.bmat-active,
+  #quote-sidebar-btn.active {
+    background: transparent !important;
+    color: inherit !important;
+    font-weight: inherit !important;
+  }
+  #soundteam-sidebar-btn.active .sidebar-item-icon,
+  #systemteam-sidebar-btn.active .sidebar-item-icon,
+  #sidebar-vendor-btn.active .sidebar-item-icon,
+  #sidebar-bmat-btn.active .sidebar-item-icon,
+  #sidebar-bmat-btn.bmat-active .sidebar-item-icon,
+  #quote-sidebar-btn.active .sidebar-item-icon {
+    opacity: inherit !important;
+  }
   .sidebar-item-icon { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; opacity: 0.55; transition: opacity 0.12s; }
   .sidebar-item:hover .sidebar-item-icon { opacity: 0.8; }
   .sidebar-item.active .sidebar-item-icon { opacity: 1; }
