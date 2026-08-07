@@ -4038,13 +4038,10 @@
           acDrop.innerHTML = '<div class="ac-header">' + sugg.label + '</div>'
             + filtered.map(function (s, i) {
               var txt = taskText(s);
-              var timeHint = (sugg.isTask && typeof s === 'object' && s.startTime && s.endTime)
-                ? '<span class="ac-time-hint">' + s.startTime + '–' + s.endTime + '</span>'
-                : '';
+              // 시간 힌트는 표시하지 않음 (선택 시에도 시간을 채우지 않도록 변경됨)
               return '<div class="ac-item" data-i="' + i + '">'
                 + '<span class="ac-item-icon">↩</span>'
                 + '<span class="ac-item-text">' + highlight(txt, val) + '</span>'
-                + timeHint
                 + '<button class="ac-item-del" data-del="' + i + '" title="이 항목 삭제">✕</button>'
                 + '</div>';
             }).join('');
@@ -4097,31 +4094,14 @@
           acTarget = null; acList = []; acActiveIdx = -1;
           t.value = val;
           t.dispatchEvent(new Event('input', { bubbles: true }));
-          // 업무명인 경우: 시간 + 업무 내용도 함께 채우기
+          // 업무명인 경우: 업무 내용만 함께 채우기 (시간은 채우지 않음 — 매번 새 시간 입력 유도)
           if (typeof item === 'object') {
             var row = t.closest('tr');
-            if (row) {
-              if (item.detail) {
-                var detailEl = row.querySelector('.task-detail');
-                if (detailEl && !detailEl.value) {
-                  detailEl.value = item.detail;
-                  detailEl.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-              }
-              if (item.startTime && item.endTime) {
-                var startBtn = row.querySelector('.t-start');
-                var endBtn = row.querySelector('.t-end');
-                if (startBtn) {
-                  startBtn.dataset.val = item.startTime;
-                  startBtn.querySelector('.t-time-label').textContent = item.startTime;
-                  startBtn.classList.add('has-val');
-                }
-                if (endBtn) {
-                  endBtn.dataset.val = item.endTime;
-                  endBtn.querySelector('.t-time-label').textContent = item.endTime;
-                  endBtn.classList.add('has-val');
-                }
-                calcTotalTaskHrs();
+            if (row && item.detail) {
+              var detailEl = row.querySelector('.task-detail');
+              if (detailEl && !detailEl.value) {
+                detailEl.value = item.detail;
+                detailEl.dispatchEvent(new Event('input', { bubbles: true }));
               }
             }
           }
