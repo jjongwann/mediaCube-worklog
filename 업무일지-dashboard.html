@@ -5267,7 +5267,7 @@
     var _noteLbl = document.getElementById('d-note-lbl');
     if (_sumTxt && _noteTxt && _sumTxt === _noteTxt) {
       // 통합 저장된 신규 일지: 하나로 병합 표시
-      if (_sumLbl) _sumLbl.textContent = '업무 요약 · 메모 / 특이사항';
+      if (_sumLbl) _sumLbl.textContent = '메모 / 특이사항';
       if (_sumEl)  _sumEl.textContent  = _sumTxt;
       if (_noteLbl) _noteLbl.style.display = 'none';
       if (_noteEl)  _noteEl.style.display  = 'none';
@@ -16170,6 +16170,14 @@ window._devShowcaseClick = function(idx) {
         if (_tgtChip) _tgtChip.classList.add('active');
       } catch(e){}
     }
+    // 최해현 사원(webmaster20): '전체' 카테고리 텍스트를 'MY' 로 변경
+    // (카드는 _dmIsCardAllowed 에서 4개로 화이트리스트 됨)
+    if (_currentUsername === 'webmaster20') {
+      try {
+        var _allChip = document.querySelector('.dm-chip[data-cat=""]');
+        if (_allChip) _allChip.textContent = 'MY';
+      } catch(e){}
+    }
     // 초기 뷰 결정 우선순위:
     //   1) URL ?view=journal|catalog  (word.html 저장 후 이동 등 명시적 지정)
     //   2) localStorage 'mc_dm_view'  (사용자가 마지막에 선택한 뷰)
@@ -16533,6 +16541,11 @@ window._dmIsCardAllowed = function(item){
   var isInfo = (uname === 'info');
   var SYS_USERS = ['avsystem', 'engineer2'];
   var isSystemDept = SYS_USERS.indexOf(uname) !== -1;
+  // 최해현 사원(webmaster20): 카탈로그에 4개 카드만 노출
+  if (uname === 'webmaster20') {
+    var WM_ALLOWED = ['journal', 'sound', 'msg', 'meeting'];
+    return WM_ALLOWED.indexOf(item.key) !== -1;
+  }
   switch (item.key) {
     case 'sound':   return !isSystemDept;              // 음원팀 업무 현황
     case 'bmat':    return !isSystemDept;              // BMAT 모니터링 통계
