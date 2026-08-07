@@ -11358,27 +11358,71 @@
     return card;
   }
 
+  // 현재 선택된 음원팀 직원 username (null 이면 첫 사람 자동)
+  var _stSelectedUser = null;
+  window._stSelectUser = function(uname) {
+    _stSelectedUser = uname;
+    renderSoundTeamPanel();
+  };
+
   function renderSoundTeamPanel() {
     var body = document.getElementById('soundteam-body');
     var dFrom = document.getElementById('soundteam-date-from').value || '';
     var dTo   = document.getElementById('soundteam-date-to').value   || '';
     var journals = _soundTeamCache;
 
-    var wrapper = document.createElement('div');
-    wrapper.style.cssText = 'padding:16px 16px 32px;display:flex;flex-direction:column;gap:12px';
-
     // developer는 패널 열람 권한만, 본인 업무는 패널에 미표시
     var SOUND_USERNAMES = ['soundsupport','webmaster20','soundstore','soundsales','marketing','sunlee','admin'];
-    var hasAny = false;
+    // 존재하는 유저만 필터
+    var validUsers = SOUND_USERNAMES
+      .map(function(uname){ return (ALL_USERS || []).find(function(u){ return u.username === uname; }); })
+      .filter(function(u){ return !!u; });
 
-    SOUND_USERNAMES.forEach(function(uname) {
-      var user = (ALL_USERS || []).find(function(u) { return u.username === uname; });
-      if (!user) return;
-      var uid = user.id;
+    // 최초 진입 or 선택된 사용자가 리스트에 없으면 첫 사용자 자동 선택
+    if (!_stSelectedUser || !validUsers.some(function(u){ return u.username === _stSelectedUser; })) {
+      _stSelectedUser = validUsers.length ? validUsers[0].username : null;
+    }
 
+    var wrapper = document.createElement('div');
+    wrapper.style.cssText = 'padding:16px 16px 32px;display:flex;flex-direction:column;gap:14px';
+
+    // 상단 직원 선택 chip 버튼 그룹
+    var tabBar = document.createElement('div');
+    tabBar.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;padding:2px';
+    validUsers.forEach(function(user){
+      var isActive = user.username === _stSelectedUser;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.onclick = (function(uname){ return function(){ window._stSelectUser(uname); }; })(user.username);
+      btn.style.cssText = 'display:inline-flex;align-items:center;gap:7px;padding:7px 14px;'
+        + 'border-radius:20px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;'
+        + 'transition:background .12s,color .12s,border-color .12s;'
+        + (isActive
+            ? 'background:#7c3aed;color:#fff;border:1px solid #7c3aed;box-shadow:0 2px 8px rgba(124,58,237,0.25)'
+            : 'background:#fff;color:#475569;border:1px solid #e2e8f0');
+      // 프로필 이미지 or 이니셜
+      var avatar;
+      if (user.img) {
+        avatar = '<img src="' + _stEsc(user.img) + '" style="width:20px;height:20px;border-radius:50%;object-fit:cover">';
+      } else {
+        avatar = '<span style="width:20px;height:20px;border-radius:50%;background:' + (isActive ? 'rgba(255,255,255,0.25)' : '#f1f5f9') + ';color:' + (isActive ? '#fff' : '#64748b') + ';font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">' + _stEsc((user.fullName||'?').charAt(0)) + '</span>';
+      }
+      btn.innerHTML = avatar + '<span>' + _stEsc(user.fullName) + '</span>';
+      if (!isActive) {
+        btn.onmouseover = function(){ this.style.background = '#f8fafc'; this.style.borderColor = '#cbd5e1'; };
+        btn.onmouseout  = function(){ this.style.background = '#fff';    this.style.borderColor = '#e2e8f0'; };
+      }
+      tabBar.appendChild(btn);
+    });
+    wrapper.appendChild(tabBar);
+
+    // 선택된 직원 카드 렌더
+    var selUser = validUsers.find(function(u){ return u.username === _stSelectedUser; });
+    if (selUser) {
+      var uid = selUser.id;
       var uJournals = journals.filter(function(j) {
         var matchById = uid && j.user_id === uid;
-        var matchByName = user.fullName && (j.author || '').trim() === user.fullName.trim();
+        var matchByName = selUser.fullName && (j.author || '').trim() === selUser.fullName.trim();
         if (!matchById && !matchByName) return false;
         if (dFrom && (j.date || '') < dFrom) return false;
         if (dTo   && (j.date || '') > dTo)   return false;
@@ -11399,16 +11443,21 @@
         return { text: txt, status: taskMap[txt].status, count: taskMap[txt].dates.length };
       });
 
-      if (!_stVisibleMap[uname]) _stVisibleMap[uname] = ST_PAGE_SIZE;
-      var card = _stRenderCard(uname, taskEntries, _stVisibleMap[uname]);
-      if (card) { wrapper.appendChild(card); hasAny = true; }
-    });
-
-    if (!hasAny) {
-      var empty = document.createElement('div');
-      empty.style.cssText = 'text-align:center;padding:40px 0;color:#94a3b8;font-size:13px';
-      empty.textContent = '불러올 데이터가 없습니다.';
-      wrapper.appendChild(empty);
+      if (!_stVisibleMap[_stSelectedUser]) _stVisibleMap[_stSelectedUser] = ST_PAGE_SIZE;
+      var card = _stRenderCard(_stSelectedUser, taskEntries, _stVisibleMap[_stSelectedUser]);
+      if (card) {
+        wrapper.appendChild(card);
+      } else {
+        var empty = document.createElement('div');
+        empty.style.cssText = 'text-align:center;padding:48px 0;color:#94a3b8;font-size:13px;background:#fff;border:1px dashed #e2e8f0;border-radius:12px';
+        empty.textContent = selUser.fullName + '의 기간 내 데이터가 없습니다.';
+        wrapper.appendChild(empty);
+      }
+    } else {
+      var noUser = document.createElement('div');
+      noUser.style.cssText = 'text-align:center;padding:40px 0;color:#94a3b8;font-size:13px';
+      noUser.textContent = '표시할 직원이 없습니다.';
+      wrapper.appendChild(noUser);
     }
 
     body.innerHTML = '';
