@@ -2044,7 +2044,7 @@
     <div id="dev-mode-wrap">
       <div class="dm-wrap">
         <div class="dm-topbar">
-          <div class="dm-crumb"><strong>Overview</strong> · 기능 카탈로그</div>
+          <div class="dm-crumb"><strong>Overview</strong> · <span id="dm-crumb-label">기능 카탈로그</span></div>
           <a href="업무일지-word.html" class="dm-new-btn dm-new-btn-journal" title="새 일지 작성">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             새 일지 작성
@@ -15498,6 +15498,8 @@ window.__meeting = (function() {
       if (document.body.classList.contains('dev-embed') && typeof window._dmExitFeatureEmbed === 'function') {
         try { window._dmExitFeatureEmbed(); } catch(e){}
       }
+      // breadcrumb 라벨 갱신
+      if (window._dmSetCrumb) window._dmSetCrumb('회의록');
     } else {
       // 비-dev 사용자: 기존대로 모달로 노출
       document.getElementById('meeting-overlay').style.display = 'flex';
@@ -15515,6 +15517,7 @@ window.__meeting = (function() {
       _restoreOverlay();
       var ov = document.getElementById('meeting-overlay');
       if (ov) ov.style.display = 'none';
+      if (window._dmSetCrumb) window._dmSetCrumb();
     } else {
       document.getElementById('meeting-overlay').style.display = 'none';
     }
@@ -16431,6 +16434,8 @@ window._dmEnterSalesEmbed = function(deptKey) {
   document.body.classList.remove('view-journal');
   document.body.classList.add('view-catalog', 'sales-embed');
   try { localStorage.setItem('mc_dm_view', 'catalog'); } catch(e){}
+  // breadcrumb 라벨 갱신
+  if (window._dmSetCrumb) window._dmSetCrumb('사업부별 매출 현황');
   // dev-view-switch 도 카탈로그 활성으로 반영
   try {
     document.querySelectorAll('.dev-view-item').forEach(function(x){
@@ -16462,6 +16467,7 @@ window._dmExitSalesEmbed = function() {
     });
   }
   document.body.classList.remove('sales-embed');
+  if (window._dmSetCrumb) window._dmSetCrumb();
 };
 
 /* ══════════════════════════════════════════
@@ -16470,6 +16476,24 @@ window._dmExitSalesEmbed = function() {
    - 원위치(부모/next sibling) 저장 → exit 시 복원
    ══════════════════════════════════════════ */
 window._dmFeatureEmbedState = null;
+
+// 오버레이 ID → breadcrumb 라벨 매핑
+window._dmCrumbLabels = {
+  'history-overlay':          '업무 히스토리',
+  'achievement-overlay':      '업무 성과',
+  'sales-activity-overlay':   '영업 활동',
+  'directive-overlay':        '업무 지시',
+  'soundteam-overlay':        '음원팀 업무 현황',
+  'vendor-needle-overlay':    '거래처별 매출 분석',
+  'bmat-modal-overlay':       'BMAT 모니터링 통계',
+  'shared-cal-overlay':       '업무 공유 캘린더',
+  'meeting-overlay':          '회의록'
+};
+// dm-crumb 텍스트 갱신 (인자 없으면 '기능 카탈로그' 로 복귀)
+window._dmSetCrumb = function(label) {
+  var el = document.getElementById('dm-crumb-label');
+  if (el) el.textContent = label || '기능 카탈로그';
+};
 window._dmEnterFeatureEmbed = function(overlayId, opts) {
   opts = opts || {};
   if (!document.body.classList.contains('dev-mode')) return false;
@@ -16508,6 +16532,10 @@ window._dmEnterFeatureEmbed = function(overlayId, opts) {
   var featureKey = overlayId.replace(/-overlay$/, '');
   document.body.classList.add('embed-' + featureKey);
   window._dmFeatureEmbedState.featureKey = featureKey;
+  // breadcrumb 라벨 갱신
+  if (window._dmCrumbLabels && window._dmCrumbLabels[overlayId]) {
+    window._dmSetCrumb(window._dmCrumbLabels[overlayId]);
+  }
   return true;
 };
 
@@ -16533,6 +16561,8 @@ window._dmExitFeatureEmbed = function() {
     document.body.classList.remove('dir-mode-list', 'dir-mode-form');
   }
   window._dmFeatureEmbedState = null;
+  // breadcrumb 복귀
+  if (window._dmSetCrumb) window._dmSetCrumb();
 };
 
 /* Developer 카드 데이터 · 렌더 · 클릭 라우팅 */
