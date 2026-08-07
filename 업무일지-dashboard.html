@@ -265,6 +265,12 @@
     max-height: none !important;
     box-shadow: 0 4px 18px rgba(15,23,42,0.08) !important;
   }
+  /* 월별 누계 통계 열림 시 원본 매출 위젯 숨김 (해당 dept 만) */
+  body.sales-embed.cumul-solo-sound #sales-widget { display: none !important; }
+  body.sales-embed.cumul-solo-system #system-sales-widget { display: none !important; }
+  /* 열림 시 상단 margin 제거 (위젯 없으므로) */
+  body.sales-embed.cumul-solo-sound #dev-sales-embed #cumul-overlay,
+  body.sales-embed.cumul-solo-system #dev-sales-embed #sys-sales-cumul-overlay { margin-top: 0 !important; }
   /* dm-topbar '새 일지 작성' ↔ '회의록 작성' 버튼 스왑 (meeting-embed 상태) */
   body.meeting-embed .dm-new-btn-journal { display: none !important; }
   body.meeting-embed .dm-new-btn-meeting { display: inline-flex !important; }
@@ -7852,6 +7858,8 @@
   var _cumulType  = 'bar';
 
   function openCumulModal() {
+    // sales-embed 모드에서는 음원 매출 위젯 대신 월별 누계만 표시 (body 클래스 토글)
+    if (document.body.classList.contains('sales-embed')) document.body.classList.add('cumul-solo-sound');
     var data = salesLoadData();
     var keys = Object.keys(data).sort(function(a,b){
       var ap=a.split('-'),bp=b.split('-');
@@ -7897,6 +7905,7 @@
 
   function closeCumulModal() {
     document.getElementById('cumul-overlay').style.display = 'none';
+    document.body.classList.remove('cumul-solo-sound');
   }
 
   function setCumulType(t) {
@@ -9279,11 +9288,14 @@
           }).join('');
       srcSel.value = ''; // 모달 열 때마다 전체로 리셋
     }
+    // sales-embed 모드에서는 시스템 매출 위젯 대신 월별 누계만 표시
+    if (document.body.classList.contains('sales-embed')) document.body.classList.add('cumul-solo-system');
     document.getElementById('sys-sales-cumul-overlay').style.display = 'flex';
     renderSysSalesCumul();
   }
   function closeSysSalesCumul() {
     document.getElementById('sys-sales-cumul-overlay').style.display = 'none';
+    document.body.classList.remove('cumul-solo-system');
   }
 
   // 특정 연도의 항목별 합계 객체 반환
@@ -16528,6 +16540,8 @@ window._dmExitSalesEmbed = function() {
     var el = document.getElementById(id);
     if (el && el.style.display !== 'none') el.style.display = 'none';
   });
+  // cumul-solo 클래스 정리 (열려있었으면)
+  document.body.classList.remove('cumul-solo-sound', 'cumul-solo-system');
   // 위젯 + 오버레이 원위치
   if (window._dmSalesOrigin) {
     var host = document.getElementById('dev-sales-embed-host');
