@@ -397,8 +397,31 @@
   body.embed-achievement .dm-wrap,
   body.embed-directive .dm-wrap,
   body.embed-sales-activity .dm-wrap { padding: 0 !important; }
-  /* directive 는 자체 topbar 버튼이 있으므로 상단에 살짝 여백 유지 */
-  body.embed-directive .dm-wrap { padding: 12px 16px 0 !important; }
+  /* directive 는 자체 topbar 버튼이 있으므로 상단 topbar 를 CubeWorks 헤더 높이(~59px)에
+     맞게 고정하고, '+ 업무 지시' 버튼을 우측 정렬. '카탈로그로' 버튼은 숨김 (사이드바 메뉴로 복귀) */
+  body.embed-directive .dm-wrap { padding: 0 !important; }
+  body.embed-directive .dm-topbar {
+    height: 59px !important;
+    padding: 0 22px !important;
+    background: #0f172a !important;
+    border-bottom: 1px solid rgba(255,255,255,0.10) !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    box-sizing: border-box !important;
+  }
+  /* directive-embed 에서 패널 자체의 '카탈로그로' 버튼 숨김 (사이드바 '기능 카탈로그' 메뉴로 복귀) */
+  body.embed-directive #dir-catalog-back-btn { display: none !important; }
+  /* '+ 업무 지시' 버튼 다크 topbar 대비 명확한 흰 톤 조정 */
+  body.embed-directive .dm-new-btn-directive {
+    background: #fff !important;
+    color: #0f172a !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+  }
+  body.embed-directive .dm-new-btn-directive:hover {
+    background: #f1f5f9 !important;
+  }
   /* 패널 본체 immersive 스타일 */
   body.embed-vendor-needle #dev-feature-embed > #vendor-needle-overlay > div,
   body.embed-history #dev-feature-embed > #history-overlay > div,
