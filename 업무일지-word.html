@@ -1689,15 +1689,7 @@
       </div>
     </div>
 
-    <!-- Summary -->
-    <div class="section">
-      <div class="section-header">
-        <div class="section-bar"></div>
-        <span class="section-title">업무 요약</span>
-        <div class="section-rule"></div>
-      </div>
-      <textarea class="doc-textarea" rows="3" placeholder="금일 수행한 업무의 주요 성과와 진행 내용을 간략히 요약하세요."></textarea>
-    </div>
+    <!-- (구 '업무 요약' 섹션은 '메모 / 특이사항' 과 통합됨 — 하단 통합 섹션 참조) -->
 
     <!-- Issues -->
     <div class="section">
@@ -1906,14 +1898,14 @@
       <textarea class="doc-textarea" rows="3" placeholder="익일 수행 예정 업무를 우선순위에 따라 작성하세요."></textarea>
     </div>
 
-    <!-- Memo -->
+    <!-- Summary + Memo (통합 섹션) -->
     <div class="section">
       <div class="section-header">
         <div class="section-bar"></div>
-        <span class="section-title">메모 / 특이사항</span>
+        <span class="section-title">업무 요약 · 메모 / 특이사항</span>
         <div class="section-rule"></div>
       </div>
-      <textarea class="doc-textarea" rows="2" placeholder="전달 사항, 공유 내용, 기타 특이사항을 자유롭게 기록하세요."></textarea>
+      <textarea class="doc-textarea" rows="4" placeholder="금일 수행한 업무의 주요 성과, 전달 사항, 공유 내용, 기타 특이사항을 자유롭게 기록하세요."></textarea>
     </div>
 
     <!-- Footer -->
@@ -2096,9 +2088,24 @@
       if (editingEntry.type) document.getElementById('chip-type').value = editingEntry.type;
       if (editingEntry.progress !== undefined) document.getElementById('chip-progress').value = editingEntry.progress;
       var tas = document.querySelectorAll('.doc-textarea');
-      if (tas[0]) tas[0].value = editingEntry.summary || editingEntry.memo || '';
-      if (tas[1]) tas[1].value = editingEntry.nextPlan || '';
-      if (tas[2]) tas[2].value = editingEntry.note || '';
+      // 통합 이후 doc-textarea: [0]=익일계획, [1]=업무 요약·메모/특이사항 (통합)
+      // 기존 일지 편집 시: note(신규 통합값) → summary → memo 우선순위로 병합
+      // legacy 데이터에서 summary 와 note 가 모두 있으면 note 우선 (앞으로 note 가 진실의 원천)
+      if (tas[0]) tas[0].value = editingEntry.nextPlan || '';
+      if (tas[1]) {
+        var _mergedMemo = (editingEntry.note && editingEntry.note.trim())
+          || (editingEntry.summary && editingEntry.summary.trim())
+          || (editingEntry.memo && editingEntry.memo.trim())
+          || '';
+        // legacy: summary 와 note 가 둘 다 있고 서로 다른 경우 → 두 값을 줄바꿈으로 합쳐 표시
+        //         (편집 후 저장하면 통합값 하나로 정리됨)
+        if (editingEntry.summary && editingEntry.note
+            && editingEntry.summary.trim() && editingEntry.note.trim()
+            && editingEntry.summary.trim() !== editingEntry.note.trim()) {
+          _mergedMemo = editingEntry.summary.trim() + '\n\n' + editingEntry.note.trim();
+        }
+        tas[1].value = _mergedMemo;
+      }
       var issueTas = document.querySelectorAll('.issue-card-body');
       if (issueTas[0]) issueTas[0].value = editingEntry.issue || '';
       if (issueTas[1]) {
@@ -2176,9 +2183,20 @@
       if (entry.type) document.getElementById('chip-type').value = entry.type;
       if (entry.progress !== undefined) document.getElementById('chip-progress').value = entry.progress;
       var tas = document.querySelectorAll('.doc-textarea');
-      if (tas[0]) tas[0].value = entry.summary || entry.memo || '';
-      if (tas[1]) tas[1].value = entry.nextPlan || '';
-      if (tas[2]) tas[2].value = entry.note || '';
+      // 통합 이후 doc-textarea: [0]=익일계획, [1]=업무 요약·메모/특이사항 (통합)
+      if (tas[0]) tas[0].value = entry.nextPlan || '';
+      if (tas[1]) {
+        var _mergedMemoV = (entry.note && entry.note.trim())
+          || (entry.summary && entry.summary.trim())
+          || (entry.memo && entry.memo.trim())
+          || '';
+        if (entry.summary && entry.note
+            && entry.summary.trim() && entry.note.trim()
+            && entry.summary.trim() !== entry.note.trim()) {
+          _mergedMemoV = entry.summary.trim() + '\n\n' + entry.note.trim();
+        }
+        tas[1].value = _mergedMemoV;
+      }
       var issueTas = document.querySelectorAll('.issue-card-body');
       if (issueTas[0]) issueTas[0].value = entry.issue || '';
       if (issueTas[1]) {
@@ -3781,10 +3799,17 @@
       var status = hasIssue ? 'issue' : (hasWip ? 'wip' : (hasHold ? 'hold' : (hasTodo ? 'todo' : (hasAny ? 'done' : 'wip'))));
 
       // 각 섹션 textarea 수집
+      // ── '업무 요약' + '메모 / 특이사항' 통합 후 doc-textarea 는 2개:
+      //     [0] 익일 계획, [1] 업무 요약 · 메모/특이사항 (통합)
+      //     통합값은 summary / note / memo 3개 컬럼 모두 동일하게 저장 →
+      //     · summary/memo 만 읽는 기존 표시(카드뷰·Excel·Print) 자동 노출
+      //     · note 만 읽는 히스토리 '메모/특이사항' 탭에도 자동 노출
       var textareas = document.querySelectorAll('.doc-textarea');
-      var summary = textareas[0] ? textareas[0].value.trim() : '';
-      var nextPlan = textareas[1] ? textareas[1].value.trim() : '';
-      var note = textareas[2] ? textareas[2].value.trim() : '';
+      var nextPlan = textareas[0] ? textareas[0].value.trim() : '';
+      var unified  = textareas[1] ? textareas[1].value.trim() : '';
+      var summary  = unified;
+      var note     = unified;
+      var memo     = unified;
       var issueTas = document.querySelectorAll('.issue-card-body');
       var issue = issueTas[0] ? issueTas[0].value.trim() : '';
       var riskText = issueTas[1] ? issueTas[1].value.trim() : '';
@@ -3796,7 +3821,6 @@
       } else if (riskCat) {
         risk = '[' + riskCat + ']';
       }
-      var memo = summary; // 대시보드 호환용
 
       // 업무 추진 현황 수집
       var workProgress = [];
