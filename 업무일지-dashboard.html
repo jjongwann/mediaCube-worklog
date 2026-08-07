@@ -381,6 +381,10 @@
      (dm-topbar 의 카탈로그로 버튼과 중복) */
   body.embed-directive #dir-catalog-back-btn,
   body.meeting-embed #mtg-close-panel-btn { display: none !important; }
+  /* 업무 공유 캘린더 embed: 카탈로그로 → '+ 새 일정 추가' 스왑 + 패널 내부 새 일정 버튼 숨김 */
+  body.embed-shared-cal .dm-new-btn-catalog-back { display: none !important; }
+  body.embed-shared-cal .dm-new-btn-calendar { display: inline-flex !important; }
+  body.embed-shared-cal #scal-inline-new-btn { display: none !important; }
   /* vendor · sales-activity 임머시브 embed: 카탈로그 breadcrumb/topbar 숨기고 padding 제거해
      패널이 사이드바 오른쪽 전체 영역을 꽉 채우도록 */
   body.embed-vendor-needle .dm-topbar,
@@ -2073,6 +2077,10 @@
           <button type="button" class="dm-new-btn dm-new-btn-directive" onclick="if(window._dirShowForm) window._dirShowForm()" title="업무 지시" style="display:none;border:none">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             업무 지시
+          </button>
+          <button type="button" class="dm-new-btn dm-new-btn-calendar" onclick="if(typeof _scalOpenEventModal==='function') _scalOpenEventModal(null)" title="새 일정 추가" style="display:none;border:none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            새 일정 추가
           </button>
           <button type="button" class="dm-new-btn dm-new-btn-catalog-back" onclick="if(window._dmExitFeatureEmbed) window._dmExitFeatureEmbed()" title="카탈로그로 돌아가기" style="display:none;border:none">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
@@ -10472,7 +10480,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         엑셀
       </button>
-      <button onclick="_scalOpenEventModal(null)" style="padding:8px 18px;background:#0891b2;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(8,145,178,0.25);transition:filter .12s" onmouseover="this.style.filter='brightness(0.92)'" onmouseout="this.style.filter=''">
+      <button id="scal-inline-new-btn" onclick="_scalOpenEventModal(null)" style="padding:8px 18px;background:#0891b2;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(8,145,178,0.25);transition:filter .12s" onmouseover="this.style.filter='brightness(0.92)'" onmouseout="this.style.filter=''">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         새 일정 추가
       </button>
