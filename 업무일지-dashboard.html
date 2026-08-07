@@ -367,103 +367,14 @@
     box-shadow: none !important;
     animation: none !important;
   }
-  /* 임머시브 embed: breadcrumb + 카탈로그로 버튼 숨기고, dm-wrap padding 제거해
-     각 기능 패널이 사이드바 오른쪽 전체 영역을 꽉 채우도록.
-     각 기능의 원본 헤더 그라디언트가 자연스러운 identity 로 작동함.
-     · vendor        → 그린 (#65a30d)
-     · achievement   → 보라 (#7c3aed)
-     · directive     → 블루 (#1e40af)
-     · sales-activity→ 보라 (#7c3aed)
-     · history       → 인디고 그라디언트 (아래에서 별도 부여) */
-  body.embed-vendor-needle .dm-crumb,
-  body.embed-history .dm-crumb,
-  body.embed-achievement .dm-crumb,
-  body.embed-directive .dm-crumb,
-  body.embed-sales-activity .dm-crumb { display: none !important; }
-  /* 카탈로그로 버튼은 vendor/history/achievement/sales 는 자체 X 버튼이 있으므로 숨김.
-     directive 는 이미 별도 로직으로 관리 (dir-mode-list 에서만 dm-new-btn-directive 노출) */
-  body.embed-vendor-needle .dm-new-btn-catalog-back,
-  body.embed-history .dm-new-btn-catalog-back,
-  body.embed-achievement .dm-new-btn-catalog-back,
-  body.embed-sales-activity .dm-new-btn-catalog-back { display: none !important; }
-  /* dm-topbar margin 제거 + dm-wrap padding 제거 → 패널 최상단 밀착 */
-  body.embed-vendor-needle .dm-topbar,
-  body.embed-history .dm-topbar,
-  body.embed-achievement .dm-topbar,
-  body.embed-directive .dm-topbar,
-  body.embed-sales-activity .dm-topbar { margin-bottom: 0 !important; }
-  body.embed-vendor-needle .dm-wrap,
-  body.embed-history .dm-wrap,
-  body.embed-achievement .dm-wrap,
-  body.embed-directive .dm-wrap,
-  body.embed-sales-activity .dm-wrap { padding: 0 !important; }
-  /* directive 는 자체 topbar 버튼이 있으므로 상단 topbar 를 CubeWorks 헤더 높이(~59px)에
-     맞게 고정하고, '+ 업무 지시' 버튼을 우측 정렬. '카탈로그로' 버튼은 숨김 (사이드바 메뉴로 복귀) */
-  body.embed-directive .dm-wrap { padding: 0 !important; }
-  body.embed-directive .dm-topbar {
-    height: 59px !important;
-    padding: 0 22px !important;
-    background: #0f172a !important;
-    border-bottom: 1px solid rgba(255,255,255,0.10) !important;
-    margin: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    box-sizing: border-box !important;
-  }
-  /* directive-embed 에서 패널 자체의 '카탈로그로' 버튼 숨김 (사이드바 '기능 카탈로그' 메뉴로 복귀) */
-  body.embed-directive #dir-catalog-back-btn { display: none !important; }
-  /* '+ 업무 지시' 버튼 다크 topbar 대비 명확한 흰 톤 조정 */
-  body.embed-directive .dm-new-btn-directive {
-    background: #fff !important;
-    color: #0f172a !important;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
-  }
-  body.embed-directive .dm-new-btn-directive:hover {
-    background: #f1f5f9 !important;
-  }
-  /* 패널 본체 immersive 스타일 */
-  body.embed-vendor-needle #dev-feature-embed > #vendor-needle-overlay > div,
-  body.embed-history #dev-feature-embed > #history-overlay > div,
-  body.embed-achievement #dev-feature-embed > #achievement-overlay > div,
-  body.embed-sales-activity #dev-feature-embed > #sales-activity-overlay > div {
+  /* vendor 임머시브 embed: 카탈로그 breadcrumb/topbar 숨기고 padding 제거해
+     매출 분석 표가 사이드바 오른쪽 전체 영역을 꽉 채우도록 */
+  body.embed-vendor-needle .dm-topbar { display: none !important; }
+  body.embed-vendor-needle .dm-wrap { padding: 0 !important; }
+  body.embed-vendor-needle #dev-feature-embed > #vendor-needle-overlay > div {
     min-height: 100vh !important;
     border: none !important;
     border-radius: 0 !important;
-  }
-  /* 업무 히스토리: 기본 흰 헤더에 인디고→슬레이트 그라디언트 부여 (타 기능과 톤 구분) */
-  body.embed-history #dev-feature-embed > #history-overlay > div > div:first-child {
-    background: linear-gradient(135deg,#4338ca,#1e293b) !important;
-    border-bottom: none !important;
-    padding: 22px 24px 0 !important;
-  }
-  body.embed-history #dev-feature-embed > #history-overlay > div > div:first-child > div:first-child > span {
-    color: #fff !important;
-    font-size: 17px !important;
-    font-weight: 800 !important;
-    letter-spacing: -.3px !important;
-  }
-  body.embed-history #dev-feature-embed > #history-overlay > div > div:first-child button[onclick*="closeHistoryPanel"] {
-    background: rgba(255,255,255,0.15) !important;
-    border-radius: 8px !important;
-    color: #fff !important;
-    width: 32px !important;
-    height: 32px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-size: 18px !important;
-  }
-  /* 히스토리 탭 컬러 (그라디언트 배경 대비 조정) */
-  body.embed-history #dev-feature-embed > #history-overlay > div > div:first-child > div:nth-child(2) {
-    border-bottom-color: rgba(255,255,255,0.15) !important;
-  }
-  body.embed-history #dev-feature-embed > #history-overlay > div > div:first-child > div:nth-child(2) button {
-    color: rgba(255,255,255,0.65) !important;
-  }
-  body.embed-history #dev-feature-embed > #history-overlay > div > div:first-child > div:nth-child(2) button[style*="color:#2563eb"] {
-    color: #fff !important;
-    border-bottom-color: #fff !important;
   }
   /* shared-cal-overlay 는 align-items:flex-start 로 스크롤 처리 → embed 시 block 배치 */
   body.dev-embed #dev-feature-embed > #shared-cal-overlay {
