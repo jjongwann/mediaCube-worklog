@@ -3935,9 +3935,9 @@
     var section = document.getElementById('admin-sidebar-section');
     var permBtn = document.getElementById('sidebar-perm-btn');
     var empBtn  = document.getElementById('sidebar-emp-btn');
-    // 사이트맵 버튼 — 관리자만 노출 (테스트 단계)
+    // 사이트맵 버튼 — 사용자 요청으로 전 계정 숨김 (관리자 포함)
     var smBtn = document.getElementById('sitemap-btn');
-    if (smBtn) smBtn.style.display = _isAdmin ? 'inline-flex' : 'none';
+    if (smBtn) smBtn.style.display = 'none';
     if (_isAdmin) {
       if (section) section.style.display = '';
       if (permBtn) permBtn.style.display = '';
@@ -16551,8 +16551,8 @@ window._dmIsCardAllowed = function(item){
     case 'bmat':    return !isSystemDept;              // BMAT 모니터링 통계
     case 'quote':   return isAdmin || isInfo || isSystemDept; // 견적 관리
     case 'emp':
-    case 'perm':
-    case 'sitemap': return isAdmin;                    // 관리자 전용
+    case 'perm':    return isAdmin;                    // 관리자 전용
+    case 'sitemap': return false;                      // 사이트맵 카드 — 전 계정 숨김 (사용자 요청)
     default:        return true;
   }
 };
