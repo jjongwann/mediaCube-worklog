@@ -3946,6 +3946,8 @@
   // 현재 직원이 볼 수 있는 user_id 집합 (관리자 또는 권한 미설정 시 null = 무제한)
   function _allowedUserIdSet() {
     if (_isAdmin) return null;
+    // developer 계정: 관리자와 동일하게 전 직원 가시 (테스트/디버깅 목적)
+    if (typeof _currentUsername !== 'undefined' && _currentUsername === 'developer') return null;
     if (!_userId) return null;
     var allowed = _permMap[_userId];
     if (!allowed || !Array.isArray(allowed)) return null;
@@ -23184,6 +23186,8 @@ function _showVendorChooser() {
     //  · 화이트리스트(developer/sunlee): 항상 노출 (부서 직원 전체)
     //  · 권한 부여받은 직원: 노출 (본인 + 부여받은 직원만)
     //  · 그 외 일반 직원: 숨김
+    //  ⚠ isWhitelisted 는 showEmpSelect 계산 전에 정의해야 함 (var hoisting 함정)
+    var isWhitelisted = SALES_ALLOW_ALL_USERNAMES.indexOf(_currentUsername) >= 0;
     var hasPermEmployees = (typeof _permMap !== 'undefined' && Array.isArray(_permMap[_userId]) && _permMap[_userId].length > 0);
     var showEmpSelect = isAdmin || isWhitelisted || hasPermEmployees;
     var empWrap = document.getElementById('sales-act-emp-wrap');
@@ -23194,7 +23198,6 @@ function _showVendorChooser() {
     var rows = rowsAll.slice();
     // 비관리자 필터: 화이트리스트(developer/sunlee 등)는 부서 전체 노출,
     // 그 외는 '본인 + 권한 부여받은 직원' 만 노출
-    var isWhitelisted = SALES_ALLOW_ALL_USERNAMES.indexOf(_currentUsername) >= 0;
     if (!isAdmin && !isWhitelisted) {
       var permittedIds = _salesPermittedUserIds();
       rows    = rows.filter(function(r){ return permittedIds.indexOf(r.uid) >= 0; });
