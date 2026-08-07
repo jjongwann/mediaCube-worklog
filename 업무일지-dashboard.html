@@ -374,11 +374,14 @@
     box-shadow: none !important;
     animation: none !important;
   }
-  /* vendor 임머시브 embed: 카탈로그 breadcrumb/topbar 숨기고 padding 제거해
-     매출 분석 표가 사이드바 오른쪽 전체 영역을 꽉 채우도록 */
-  body.embed-vendor-needle .dm-topbar { display: none !important; }
-  body.embed-vendor-needle .dm-wrap { padding: 0 !important; }
-  body.embed-vendor-needle #dev-feature-embed > #vendor-needle-overlay > div {
+  /* vendor · sales-activity 임머시브 embed: 카탈로그 breadcrumb/topbar 숨기고 padding 제거해
+     패널이 사이드바 오른쪽 전체 영역을 꽉 채우도록 */
+  body.embed-vendor-needle .dm-topbar,
+  body.embed-sales-activity .dm-topbar { display: none !important; }
+  body.embed-vendor-needle .dm-wrap,
+  body.embed-sales-activity .dm-wrap { padding: 0 !important; }
+  body.embed-vendor-needle #dev-feature-embed > #vendor-needle-overlay > div,
+  body.embed-sales-activity #dev-feature-embed > #sales-activity-overlay > div {
     min-height: 100vh !important;
     border: none !important;
     border-radius: 0 !important;
