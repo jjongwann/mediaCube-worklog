@@ -15791,7 +15791,20 @@ window.__meeting = (function() {
       var el = document.getElementById(id);
       if (el) el.value = '';
     });
-    render();
+    // 리스트 영역 fade-out → 재렌더 → fade-in (활성 피드백)
+    var listEl = document.getElementById('mtg-list-wrap');
+    if (listEl) {
+      listEl.style.transition = 'opacity .15s';
+      listEl.style.opacity = '0.3';
+      setTimeout(function(){
+        render();
+        listEl.style.opacity = '1';
+      }, 150);
+    } else {
+      render();
+    }
+    // 우측 하단 토스트 알림
+    try { if (typeof window.showToast === 'function') window.showToast('필터가 초기화되었습니다.'); } catch(e){}
   }
 
   // 오버레이 원부모 저장 (원위치 복원용)
