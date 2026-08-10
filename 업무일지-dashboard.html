@@ -3465,6 +3465,12 @@
     } catch(e) { console.error('Supabase fetch error', e); journalCache = []; }
     // Supabase에서 로드된 상태를 스냅샷으로 저장 (변경 감지 기준점)
     journalCacheSnapshot = JSON.parse(JSON.stringify(journalCache));
+    // 새로고침 복원 후 sales activity embed 가 열려있다면 데이터 로드 완료로 재렌더
+    try {
+      if (document.body.classList.contains('embed-sales-activity') && typeof window._salesRender === 'function') {
+        window._salesRender();
+      }
+    } catch(e){}
     return journalCache;
   }
   function sbUpsert(j) {
@@ -16656,7 +16662,7 @@ window._devShowcaseClick = function(idx) {
         var fn = openers[saved.feature];
         if (fn) {
           // 데이터/DOM 준비 대기 후 opener 호출 (내부에서 각자 async fetch 수행)
-          setTimeout(function(){ try { fn(); } catch(e) { console.warn('[embed restore]', saved.feature, e); } }, 120);
+          setTimeout(function(){ try { fn(); } catch(e) { console.warn('[embed restore]', saved.feature, e); } }, 350);
         }
       } catch(e) { console.warn('[embed restore parse]', e); }
     }, 0);
@@ -23353,6 +23359,7 @@ function _showVendorChooser() {
     });
     document.getElementById('sales-act-emp').addEventListener('change', function(){
       _salesEmpFilter = this.value || '';
+      try { localStorage.setItem('mc_sales_emp_' + _salesDept, _salesEmpFilter); } catch(e){}
       _salesRender();
     });
   }
@@ -23535,9 +23542,13 @@ function _showVendorChooser() {
       var _cntByUid = {};
       rowsAll.forEach(function(r){ if (r.uid) _cntByUid[r.uid] = (_cntByUid[r.uid] || 0) + 1; });
       _salesEmpTabs = Object.keys(_cntByUid).sort(function(a, b){ return _cntByUid[b] - _cntByUid[a]; });
-      // 필터 미설정 시에만 auto-select (활동 있는 직원 우선, 없으면 dropdown 첫 옵션)
+      // 필터 미설정 시: localStorage 저장값 → 활동 있는 첫 직원 → dropdown 첫 옵션 순으로 fallback
       if (!_salesEmpFilter) {
-        if (_salesEmpTabs.length) {
+        var _savedEmp = null;
+        try { _savedEmp = localStorage.getItem('mc_sales_emp_' + _salesDept); } catch(e){}
+        if (_savedEmp) {
+          _salesEmpFilter = _savedEmp;  // 저장값 우선 (아직 데이터 로드 전이라도)
+        } else if (_salesEmpTabs.length) {
           _salesEmpFilter = _salesEmpTabs[0];
         } else {
           var _selElInit = document.getElementById('sales-act-emp');
@@ -23848,9 +23859,10 @@ function _showVendorChooser() {
     }
   }
 
-  // chip 탭 클릭 핸들러 (전역 노출)
+  // chip 탭 클릭 핸들러 (전역 노출) — 선택된 직원도 localStorage 에 저장
   window._salesSelectEmp = function(uid) {
     _salesEmpFilter = uid || '';
+    try { localStorage.setItem('mc_sales_emp_' + _salesDept, _salesEmpFilter); } catch(e){}
     _salesRender();
   };
 
@@ -23858,6 +23870,7 @@ function _showVendorChooser() {
   window.openSalesActivityChooser  = openSalesActivityChooser;
   window._salesCloseChooser        = _salesCloseChooser;
   window.closeSalesActivityPanel   = closeSalesActivityPanel;
+  window._salesRender              = _salesRender; // journal 로드 후 재렌더 지원
 })();
 </script>
 </body>
