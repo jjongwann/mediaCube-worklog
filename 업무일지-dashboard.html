@@ -12868,6 +12868,34 @@
       container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;font-size:13px">업무 정보를 찾을 수 없습니다.</div>';
       return;
     }
+    // 지시자 뷰: 같은 업무를 여러 담당자에게 지시했는지 확인해 담당자 목록 병합
+    //   그룹 판별 = _renderGivenView 와 동일 키 (title|content|priority|due_date|분단위 created_at)
+    var _isGiverView = d.assigner_id === _userId;
+    var _groupAssignees = [];
+    if (_isGiverView) {
+      var _dt = d.created_at ? new Date(d.created_at) : null;
+      var _minute = _dt && !isNaN(_dt.getTime())
+        ? (_dt.getFullYear() + '-' + (_dt.getMonth()+1) + '-' + _dt.getDate() + ' ' + _dt.getHours() + ':' + _dt.getMinutes())
+        : '';
+      _directives.forEach(function(x){
+        if (x.assigner_id !== _userId) return;
+        if ((x.title||'') !== (d.title||'')) return;
+        if ((x.content||'') !== (d.content||'')) return;
+        if ((x.priority||'') !== (d.priority||'')) return;
+        if ((x.due_date||'') !== (d.due_date||'')) return;
+        var xt = x.created_at ? new Date(x.created_at) : null;
+        var xm = xt && !isNaN(xt.getTime())
+          ? (xt.getFullYear() + '-' + (xt.getMonth()+1) + '-' + xt.getDate() + ' ' + xt.getHours() + ':' + xt.getMinutes())
+          : '';
+        if (xm !== _minute) return;
+        var nm = x.assignee_name || '-';
+        if (_groupAssignees.indexOf(nm) === -1) _groupAssignees.push(nm);
+      });
+    }
+    var _assigneeDisplay = _groupAssignees.length > 1
+      ? _groupAssignees.join(', ')
+      : (d.assignee_name || '-');
+
     var p = _PRIORITY[d.priority] || _PRIORITY.medium;
     var s = _STATUS[d.status]     || _STATUS.pending;
     var todayMs = new Date(); todayMs.setHours(0,0,0,0);
@@ -12928,8 +12956,10 @@
       + '</div>'
       // 메타 카드 (담당자 / 마감일 / 상태)
       + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;padding:18px 22px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:22px">'
-        + '<div><div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:6px;letter-spacing:.4px">담당자</div>'
-          + '<div style="font-size:15px;font-weight:800;color:#0f172a">' + escHtml(d.assignee_name || '-') + '</div></div>'
+        + '<div><div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:6px;letter-spacing:.4px">담당자'
+          + (_groupAssignees.length > 1 ? ' <span style="font-size:10px;font-weight:600;color:#7c3aed">(' + _groupAssignees.length + '명)</span>' : '')
+          + '</div>'
+          + '<div style="font-size:15px;font-weight:800;color:#0f172a;line-height:1.55;word-break:keep-all">' + escHtml(_assigneeDisplay) + '</div></div>'
         + '<div><div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:6px;letter-spacing:.4px">마감일</div>'
           + '<div style="font-size:15px;font-weight:800;color:#0f172a">' + dueLabel + '</div></div>'
         + '<div><div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:6px;letter-spacing:.4px">상태</div>'
