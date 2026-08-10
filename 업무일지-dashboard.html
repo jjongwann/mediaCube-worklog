@@ -12911,36 +12911,44 @@
       container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;font-size:13px">업무 정보를 찾을 수 없습니다.</div>';
       return;
     }
-    // 지시자 뷰: 같은 업무를 여러 담당자에게 지시했는지 확인해 담당자 목록 병합
+    // 지시자 뷰: 같은 업무를 여러 담당자에게 지시했는지 확인해 그룹 조회
     //   그룹 판별 = _renderGivenView 와 동일 키 (title|content|priority|due_date|분단위 created_at)
     var _isGiverView = d.assigner_id === _userId;
-    var _groupAssignees = [];
+    var _groupRecords = [d]; // 기본: 본인 record 하나
     if (_isGiverView) {
       var _dt = d.created_at ? new Date(d.created_at) : null;
       var _minute = _dt && !isNaN(_dt.getTime())
         ? (_dt.getFullYear() + '-' + (_dt.getMonth()+1) + '-' + _dt.getDate() + ' ' + _dt.getHours() + ':' + _dt.getMinutes())
         : '';
-      _directives.forEach(function(x){
-        if (x.assigner_id !== _userId) return;
-        if ((x.title||'') !== (d.title||'')) return;
-        if ((x.content||'') !== (d.content||'')) return;
-        if ((x.priority||'') !== (d.priority||'')) return;
-        if ((x.due_date||'') !== (d.due_date||'')) return;
+      _groupRecords = _directives.filter(function(x){
+        if (x.assigner_id !== _userId) return false;
+        if ((x.title||'') !== (d.title||'')) return false;
+        if ((x.content||'') !== (d.content||'')) return false;
+        if ((x.priority||'') !== (d.priority||'')) return false;
+        if ((x.due_date||'') !== (d.due_date||'')) return false;
         var xt = x.created_at ? new Date(x.created_at) : null;
         var xm = xt && !isNaN(xt.getTime())
           ? (xt.getFullYear() + '-' + (xt.getMonth()+1) + '-' + xt.getDate() + ' ' + xt.getHours() + ':' + xt.getMinutes())
           : '';
-        if (xm !== _minute) return;
-        var nm = x.assignee_name || '-';
-        if (_groupAssignees.indexOf(nm) === -1) _groupAssignees.push(nm);
+        return xm === _minute;
       });
+      if (!_groupRecords.length) _groupRecords = [d];
     }
+    var _groupAssignees = _groupRecords.map(function(x){ return x.assignee_name || '-'; });
     var _assigneeDisplay = _groupAssignees.length > 1
       ? _groupAssignees.join(', ')
       : (d.assignee_name || '-');
 
+    // 대표 상태 (목록과 동일 우선순위): 진행중 > (모두 완료? 완료) > 대기
+    var _statusSet = {};
+    _groupRecords.forEach(function(x){ _statusSet[x.status || 'pending'] = true; });
+    var _aggStatus;
+    if (_statusSet['in_progress']) _aggStatus = 'in_progress';
+    else if (_statusSet['done'] && !_statusSet['pending']) _aggStatus = 'done';
+    else _aggStatus = 'pending';
+
     var p = _PRIORITY[d.priority] || _PRIORITY.medium;
-    var s = _STATUS[d.status]     || _STATUS.pending;
+    var s = _STATUS[_aggStatus]   || _STATUS.pending;
     var todayMs = new Date(); todayMs.setHours(0,0,0,0);
     var dueMs   = d.due_date ? new Date(d.due_date) : null;
     var overdue = dueMs && d.status !== 'done' && dueMs < todayMs;
@@ -13010,9 +13018,53 @@
       + '</div>'
       // 상세 내용
       + '<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:10px;letter-spacing:-.2px">상세 내용</div>'
-      + '<div style="font-size:13.5px;line-height:1.75;color:#1f2937;white-space:pre-wrap;word-break:break-word;padding:16px 18px;background:#fff;border:1px solid #e2e8f0;border-radius:12px">'
+      + '<div style="font-size:13.5px;line-height:1.75;color:#1f2937;white-space:pre-wrap;word-break:break-word;padding:16px 18px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:22px">'
         + escHtml(d.content || '')
       + '</div>'
+      // 담당자별 상태 카드 (지시자 뷰이며 담당자 2명 이상일 때만)
+      + ((_isGiverView && _groupRecords.length > 1) ? (function(){
+          // 상태별 카운트
+          var cnt = { pending: 0, in_progress: 0, done: 0 };
+          _groupRecords.forEach(function(x){
+            var st = x.status || 'pending';
+            if (cnt[st] != null) cnt[st]++;
+          });
+          var totalN = _groupRecords.length;
+          var summary = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'
+            + '<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:14px;background:#f1f5f9;color:#64748b;font-size:12px;font-weight:700"><span style="width:7px;height:7px;border-radius:50%;background:#64748b"></span>대기 <b>' + cnt.pending + '</b></span>'
+            + '<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:14px;background:#eff6ff;color:#2563eb;font-size:12px;font-weight:700"><span style="width:7px;height:7px;border-radius:50%;background:#2563eb"></span>진행중 <b>' + cnt.in_progress + '</b></span>'
+            + '<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:14px;background:#f0fdf4;color:#16a34a;font-size:12px;font-weight:700"><span style="width:7px;height:7px;border-radius:50%;background:#16a34a"></span>완료 <b>' + cnt.done + '</b></span>'
+            + '<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:14px;background:#faf5ff;color:#7c3aed;font-size:12px;font-weight:700;margin-left:auto">진행률 <b>' + Math.round((cnt.done / totalN) * 100) + '%</b></span>'
+            + '</div>';
+          // 담당자별 카드 grid
+          var recSorted = _groupRecords.slice().sort(function(a,b){
+            // 진행중 > 대기 > 완료 순
+            var order = { in_progress: 0, pending: 1, done: 2 };
+            return (order[a.status||'pending'] - order[b.status||'pending'])
+                || String(a.assignee_name||'').localeCompare(String(b.assignee_name||''), 'ko');
+          });
+          var cards = recSorted.map(function(x){
+            var stMeta = _STATUS[x.status || 'pending'] || _STATUS.pending;
+            var initial = (x.assignee_name || '?').charAt(0);
+            var avatarBg;
+            if      (x.status === 'done')        avatarBg = 'linear-gradient(135deg,#16a34a,#059669)';
+            else if (x.status === 'in_progress') avatarBg = 'linear-gradient(135deg,#2563eb,#4f46e5)';
+            else                                 avatarBg = 'linear-gradient(135deg,#94a3b8,#64748b)';
+            var doneMark = x.status === 'done'
+              ? '<div style="position:absolute;top:-3px;right:-3px;width:14px;height:14px;background:#16a34a;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;border:2px solid #fff"><svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>'
+              : '';
+            return '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;transition:border-color .12s" onmouseover="this.style.borderColor=\'#cbd5e1\'" onmouseout="this.style.borderColor=\'#e2e8f0\'">'
+              +   '<div style="position:relative;flex-shrink:0"><div style="width:34px;height:34px;border-radius:50%;background:' + avatarBg + ';color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center">' + escHtml(initial) + '</div>' + doneMark + '</div>'
+              +   '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(x.assignee_name || '-') + '</div></div>'
+              +   '<span style="display:inline-block;font-size:11px;font-weight:700;padding:4px 10px;border-radius:12px;background:' + stMeta.bg + ';color:' + stMeta.color + ';border:1px solid ' + stMeta.border + ';flex-shrink:0">' + stMeta.label + '</span>'
+              + '</div>';
+          }).join('');
+          return '<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:10px;letter-spacing:-.2px;display:flex;align-items:center;gap:8px">담당자별 상태'
+            +   ' <span style="font-size:11px;font-weight:600;color:#94a3b8">' + totalN + '명</span>'
+            + '</div>'
+            + summary
+            + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">' + cards + '</div>';
+        })() : '')
       + actionsHtml;
     container.appendChild(wrap);
   }
@@ -13048,13 +13100,16 @@
       }
     });
     // 표시용 담당자 이름 · 대표 상태
+    //   집계 우선순위: 1명이라도 in_progress → 진행중
+    //                 모두 done → 완료
+    //                 그 외 (일부 pending 포함) → 대기
     var list = order.map(function(k){
       var g = grouped[k];
       g.assignee_name = g._assigneeNames.join(', ');
-      var st = Object.keys(g._statusSet);
-      // 모두 done 이면 done, 하나라도 pending 있으면 pending, 그 외 in_progress
-      if (st.length === 1) g.status = st[0];
-      else if (st.indexOf('done') !== -1 && st.length > 1) g.status = 'in_progress';
+      var st = g._statusSet;
+      if (st['in_progress']) g.status = 'in_progress';
+      else if (st['done'] && !st['pending']) g.status = 'done';
+      else g.status = 'pending';
       return g;
     });
     _renderListTable(body, list, 'giver', { title: '지시한 업무' });
