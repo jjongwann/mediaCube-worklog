@@ -4233,7 +4233,11 @@
     var now = new Date();
     var monthStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
 
-    var html = _getVisibleUsers().map(function(u) {
+    var html = _getVisibleUsers().filter(function(u){
+      // sunlee(이광순 이사) 계정: 본인 카드 숨김 (본인 업무 조회 불필요)
+      if (_currentUsername === 'sunlee' && u.username === 'sunlee') return false;
+      return true;
+    }).map(function(u) {
       var uJournals = all.filter(function(j) { return j.user_id === u.id; });
       var monthCnt  = uJournals.filter(function(j) { return (j.date || '').startsWith(monthStr); }).length;
       var avg = uJournals.length === 0 ? 0 : Math.round(
