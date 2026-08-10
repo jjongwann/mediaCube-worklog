@@ -12824,7 +12824,14 @@
           + '</button>';
       }
       if (role === 'giver') {
-        actionBtns += '<button onclick="event.stopPropagation();window.deleteDirective(\'' + d.id + '\')" title="삭제" '
+        // 그룹핑된 경우: 그룹 전체 삭제 (window._dirDeleteGroup)
+        var delAttr;
+        if (Array.isArray(d._groupIds) && d._groupIds.length > 1) {
+          delAttr = 'window._dirDeleteGroup([' + d._groupIds.map(function(x){ return '\'' + x + '\''; }).join(',') + '])';
+        } else {
+          delAttr = 'window.deleteDirective(\'' + d.id + '\')';
+        }
+        actionBtns += '<button onclick="event.stopPropagation();' + delAttr + '" title="삭제" '
           + 'style="background:none;border:none;color:rgb(182,193,207);cursor:pointer;padding:5px;border-radius:6px;display:inline-flex" '
           + 'onmouseover="this.style.color=\'#dc2626\';this.style.background=\'#fef2f2\'" onmouseout="this.style.color=\'rgb(182,193,207)\';this.style.background=\'none\'">'
           + '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
@@ -12938,7 +12945,45 @@
   }
 
   function _renderGivenView(body) {
-    var list = _directives.filter(function(d){ return d.assigner_id === _userId; });
+    var raw = _directives.filter(function(d){ return d.assigner_id === _userId; });
+    // 같은 업무를 여러 담당자에게 지시한 경우 한 행으로 묶기
+    //   key = title | content | priority | due_date | 분 단위 created_at
+    //   가장 이른 항목을 대표로 두고 담당자 이름 배열/전체 id 목록을 부여
+    var grouped = {}, order = [];
+    raw.forEach(function(d){
+      var t = d.created_at ? new Date(d.created_at) : null;
+      var minute = t ? (isNaN(t.getTime()) ? '' : (t.getFullYear() + '-' + (t.getMonth()+1) + '-' + t.getDate() + ' ' + t.getHours() + ':' + t.getMinutes())) : '';
+      var key = [d.title||'', d.content||'', d.priority||'', d.due_date||'', minute].join('||');
+      if (!grouped[key]) {
+        grouped[key] = Object.assign({}, d, {
+          _groupIds: [d.id],
+          _assigneeNames: [d.assignee_name || '-'],
+          _statusSet: {}
+        });
+        grouped[key]._statusSet[d.status || 'pending'] = true;
+        order.push(key);
+      } else {
+        grouped[key]._groupIds.push(d.id);
+        if (grouped[key]._assigneeNames.indexOf(d.assignee_name || '-') === -1) {
+          grouped[key]._assigneeNames.push(d.assignee_name || '-');
+        }
+        grouped[key]._statusSet[d.status || 'pending'] = true;
+        // 대표 created_at 은 가장 이른 값 유지
+        if (d.created_at && grouped[key].created_at && d.created_at < grouped[key].created_at) {
+          grouped[key].created_at = d.created_at;
+        }
+      }
+    });
+    // 표시용 담당자 이름 · 대표 상태
+    var list = order.map(function(k){
+      var g = grouped[k];
+      g.assignee_name = g._assigneeNames.join(', ');
+      var st = Object.keys(g._statusSet);
+      // 모두 done 이면 done, 하나라도 pending 있으면 pending, 그 외 in_progress
+      if (st.length === 1) g.status = st[0];
+      else if (st.indexOf('done') !== -1 && st.length > 1) g.status = 'in_progress';
+      return g;
+    });
     _renderListTable(body, list, 'giver', { title: '지시한 업무' });
   }
 
@@ -13121,6 +13166,27 @@
 
     _renderPanel();
     showToast('업무 지시가 삭제되었습니다.');
+  };
+
+  // 여러 담당자에게 같은 업무를 지시한 경우 그룹 단위 삭제 (한 번 확인으로 전체 삭제)
+  window._dirDeleteGroup = function(ids) {
+    if (!Array.isArray(ids) || !ids.length) return;
+    var d = _directives.find(function(x){ return x.id === ids[0]; });
+    var title = (d && d.title) ? d.title : '이 업무';
+    if (!confirm('[' + title + ']\n담당자 ' + ids.length + '명에게 지시한 업무를 모두 삭제할까요?')) return;
+    // 로컬 즉시 제거
+    var idSet = {}; ids.forEach(function(x){ idSet[x] = true; });
+    _directives = _directives.filter(function(x){ return !idSet[x.id]; });
+    // 서버 일괄 DELETE (PostgREST in.(...) 필터)
+    var inList = ids.map(function(x){ return encodeURIComponent(x); }).join(',');
+    fetch(SB_URL + '/rest/v1/task_directives?id=in.(' + inList + ')', {
+      method: 'DELETE',
+      headers: SB_DEL_HDR
+    }).then(function(r) {
+      if (!r.ok) r.text().then(function(t){ console.error('_dirDeleteGroup failed', r.status, t); });
+    }).catch(function(e){ console.error('_dirDeleteGroup error', e); });
+    _renderPanel();
+    showToast(ids.length + '건의 업무 지시가 삭제되었습니다.');
   };
 
   window.importDirectiveToJournal = function(id) {
