@@ -4387,15 +4387,17 @@
         if ((t.status || (t.done ? 'done' : 'todo')) !== 'done') return;
         // 사람 눈에 같은 업무명이 공백/보이지 않는 문자 차이로 분리 집계되지 않도록 정규화
         var name = _normTaskName(t.text);
-        var mins = taskMins(t);
-        if (!name || !mins) return;
-        taskMinsMap[name] = (taskMinsMap[name] || 0) + mins;
+        if (!name) return;
+        // 시간 미기록 항목도 항목만 표시 (0분 으로 카운트)
+        if (!(name in taskMinsMap)) taskMinsMap[name] = 0;
+        taskMinsMap[name] += taskMins(t);
       });
     });
 
     var taskList = Object.keys(taskMinsMap).map(function(k) {
       return { name: k, mins: taskMinsMap[k] };
-    }).filter(function(t){ return t.mins > 0; });
+    });
+    // 시간 내림차순 정렬 → 0분 항목은 자연스럽게 하단
     taskList.sort(function(a,b){ return b.mins - a.mins; });
 
     var section = document.getElementById('emp-task-time-section');
@@ -4460,7 +4462,8 @@
       return;
     }
 
-    var maxMins = taskList[0].mins;
+    // 모든 항목이 0분(시간 미기록) 이어도 pct 계산 시 NaN 방지
+    var maxMins = taskList[0].mins || 1;
     var totalMinsEmp = taskList.reduce(function(s,t){ return s+t.mins; }, 0);
     var BAR_COLS = ['#3b82f6','#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899'];
 
