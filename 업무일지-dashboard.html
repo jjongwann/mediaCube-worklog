@@ -12713,7 +12713,15 @@
       + '<textarea id="dir-content" placeholder="업무 내용을 자세히 입력해주세요" rows="6" style="width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;outline:none;font-family:inherit;min-height:120px"></textarea></div>'
       // 담당자 + 마감일 (2열: 담당자 목록 넓게, 마감일 오른쪽)
       + '<div style="display:grid;grid-template-columns:1fr 260px;gap:14px;margin-bottom:16px;align-items:start">'
-      + '<div><label style="font-size:11.5px;font-weight:600;color:#64748b;display:block;margin-bottom:6px">담당자 * <span id="dir-assignee-count" style="font-weight:400;color:#94a3b8">(0명 선택)</span></label>'
+      + '<div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+      +   '<label style="font-size:11.5px;font-weight:600;color:#64748b">담당자 * <span id="dir-assignee-count" style="font-weight:400;color:#94a3b8">(0명 선택)</span></label>'
+      +   '<button type="button" id="dir-assignee-all" onclick="window._dirToggleAllAssignees()" '
+      +     'style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;font-size:11px;font-weight:700;color:#475569;cursor:pointer;font-family:inherit;transition:background .12s,border-color .12s,color .12s" '
+      +     'onmouseover="this.style.background=\'#eef2ff\';this.style.borderColor=\'#c7d2fe\';this.style.color=\'#4338ca\'" onmouseout="if(!this.classList.contains(\'active\')){this.style.background=\'#f8fafc\';this.style.borderColor=\'#e2e8f0\';this.style.color=\'#475569\'}">'
+      +     '<svg id="dir-assignee-all-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+      +     '<span id="dir-assignee-all-label">전체 선택</span>'
+      +   '</button>'
+      + '</div>'
       + '<div style="border:1px solid #e2e8f0;border-radius:8px;overflow-y:auto;max-height:220px;background:#fff">' + assigneeCheckboxes + '</div></div>'
       + '<div><label style="font-size:11.5px;font-weight:600;color:#64748b;display:block;margin-bottom:6px">마감일</label>'
       + '<input id="dir-due" type="date" min="' + today + '" style="width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;font-family:inherit"></div>'
@@ -12722,13 +12730,48 @@
       + '</div>';
     body.appendChild(formDiv);
 
+    // 전체 선택 버튼 활성/비활성 UI 동기화
+    function _syncAllBtn() {
+      var cbs   = formDiv.querySelectorAll('.dir-assignee-cb');
+      var cbsOn = formDiv.querySelectorAll('.dir-assignee-cb:checked');
+      var btn   = document.getElementById('dir-assignee-all');
+      var lbl   = document.getElementById('dir-assignee-all-label');
+      if (!btn || !lbl) return;
+      var allOn = (cbs.length > 0 && cbsOn.length === cbs.length);
+      if (allOn) {
+        btn.classList.add('active');
+        btn.style.background   = '#2563eb';
+        btn.style.borderColor  = '#2563eb';
+        btn.style.color        = '#fff';
+        lbl.textContent = '전체 해제';
+      } else {
+        btn.classList.remove('active');
+        btn.style.background   = '#f8fafc';
+        btn.style.borderColor  = '#e2e8f0';
+        btn.style.color        = '#475569';
+        lbl.textContent = '전체 선택';
+      }
+    }
     formDiv.querySelectorAll('.dir-assignee-cb').forEach(function(cb) {
       cb.addEventListener('change', function() {
         var cnt = formDiv.querySelectorAll('.dir-assignee-cb:checked').length;
         var countEl = document.getElementById('dir-assignee-count');
         if (countEl) countEl.textContent = '(' + cnt + '명 선택)';
+        _syncAllBtn();
       });
     });
+
+    // 전역 토글 함수 (버튼 onclick 에서 호출)
+    window._dirToggleAllAssignees = function() {
+      var cbs   = formDiv.querySelectorAll('.dir-assignee-cb');
+      var cbsOn = formDiv.querySelectorAll('.dir-assignee-cb:checked');
+      var turnOn = cbsOn.length !== cbs.length;
+      cbs.forEach(function(c){ c.checked = turnOn; });
+      var countEl = document.getElementById('dir-assignee-count');
+      if (countEl) countEl.textContent = '(' + (turnOn ? cbs.length : 0) + '명 선택)';
+      _syncAllBtn();
+    };
+    _syncAllBtn();
   }
 
   // 완료 항목 필터링: DB 의 completed_at 기준
