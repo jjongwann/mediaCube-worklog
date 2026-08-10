@@ -12823,7 +12823,7 @@
     }
 
     // 헤더 행 (그리드 컬럼: 제목 | 상태 | 우선순위 | 담당자/지시자 | 마감일 | 액션)
-    var grid = 'display:grid;grid-template-columns:minmax(0,3fr) 92px 92px minmax(0,1.4fr) 130px 74px;'
+    var grid = 'display:grid;grid-template-columns:minmax(0,3fr) 200px 92px minmax(0,1.4fr) 130px 74px;'
              + 'gap:12px;align-items:center;padding:11px 14px';
     var headerRow = '<div style="' + grid + ';font-size:11px;font-weight:700;color:#64748b;background:#f8fafc;'
       + 'border:1px solid #e2e8f0;border-radius:10px 10px 0 0;letter-spacing:.2px;text-transform:uppercase">'
@@ -12854,6 +12854,23 @@
           + '<option value="in_progress"'+ (d.status==='in_progress'?' selected':'') + '>진행중</option>'
           + '<option value="done"'       + (d.status==='done'       ?' selected':'') + '>완료</option>'
           + '</select>';
+      } else if (Array.isArray(d._groupIds) && d._groupIds.length > 1) {
+        // 그룹 지시: 담당자별 상태를 count 배지로 표시
+        var _cntSet = { pending: 0, in_progress: 0, done: 0 };
+        d._groupIds.forEach(function(id){
+          var rec = _directives.find(function(x){ return x.id === id; });
+          if (!rec) return;
+          var st = rec.status || 'pending';
+          if (_cntSet[st] != null) _cntSet[st]++;
+        });
+        var pill = function(color, bg, label, cnt){
+          return '<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;background:' + bg + ';color:' + color + ';font-size:10.5px;font-weight:700;line-height:1.4"><span style="width:5px;height:5px;border-radius:50%;background:' + color + '"></span>' + label + ' ' + cnt + '</span>';
+        };
+        statusEl = '<div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center">'
+          + pill('#64748b', '#f1f5f9', '대기', _cntSet.pending)
+          + pill('#2563eb', '#eff6ff', '진행중', _cntSet.in_progress)
+          + pill('#16a34a', '#f0fdf4', '완료', _cntSet.done)
+          + '</div>';
       } else {
         statusEl = '<span style="display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:14px;background:' + s.bg + ';color:' + s.color + ';border:1px solid ' + s.border + '">' + s.label + '</span>';
       }
