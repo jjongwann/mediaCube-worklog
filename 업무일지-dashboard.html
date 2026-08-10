@@ -15854,6 +15854,8 @@ window.__meeting = (function() {
       }
       // breadcrumb 라벨 갱신
       if (window._dmSetCrumb) window._dmSetCrumb('회의록');
+      // 새로고침 복원용 상태 저장
+      try { localStorage.setItem('mc_dm_embed', JSON.stringify({ feature: 'meeting', arg: null })); } catch(e){}
     } else {
       // 비-dev 사용자: 기존대로 모달로 노출
       document.getElementById('meeting-overlay').style.display = 'flex';
@@ -15866,6 +15868,8 @@ window.__meeting = (function() {
   function closePanel() {
     // 상세보기 상태였다면 목록으로 먼저 되돌림 (다음 진입 시 목록부터 보이도록)
     try { _backToList(); } catch(e){}
+    // 새로고침 복원 상태 삭제 (embed 여부와 무관하게 안전)
+    try { localStorage.removeItem('mc_dm_embed'); } catch(e){}
     if (document.body.classList.contains('meeting-embed')) {
       document.body.classList.remove('meeting-embed');
       _restoreOverlay();
@@ -16627,6 +16631,34 @@ window._devShowcaseClick = function(idx) {
     setTimeout(function(){
       try { if (typeof _dmRenderGrid === 'function') _dmRenderGrid(); }
       catch(err) { console.warn('[dev-mode render]', err); }
+      // 새로고침 embed 복원: 저장된 상태가 있고 view=catalog 이면 해당 opener 호출
+      try {
+        var savedRaw = localStorage.getItem('mc_dm_embed');
+        if (!savedRaw) return;
+        var saved = JSON.parse(savedRaw);
+        if (!saved || !saved.feature) return;
+        if (!document.body.classList.contains('view-catalog')) return;
+        // 각 feature 별 opener 매핑
+        var openers = {
+          'history':        function(){ if (typeof openHistoryPanel==='function')     openHistoryPanel(); },
+          'achievement':    function(){ if (typeof openAchievementPanel==='function') openAchievementPanel(); },
+          'directive':      function(){ if (typeof openDirectivePanel==='function')   openDirectivePanel(); },
+          'soundteam':      function(){ if (typeof openSoundTeamPanel==='function')   openSoundTeamPanel(); },
+          'bmat-modal':     function(){ if (typeof bmatToggleSection==='function')    bmatToggleSection(); },
+          'meeting':        function(){ if (typeof openMeetingPanel==='function')     openMeetingPanel(); },
+          'sales-activity': function(){ if (saved.arg && typeof openSalesActivityPanel==='function') openSalesActivityPanel(saved.arg);
+                                        else if (typeof openSalesActivityChooser==='function') openSalesActivityChooser(); },
+          'vendor-needle':  function(){ if (saved.arg && window.__vendor && window.__vendor.openPanel) window.__vendor.openPanel(saved.arg); },
+          'shared-cal':     function(){ if (saved.arg && typeof openSharedCalendar==='function') openSharedCalendar(saved.arg);
+                                        else if (typeof openSharedCalendarChooser==='function') openSharedCalendarChooser(); },
+          'sales-hub':      function(){ if (saved.arg && typeof window._dmEnterSalesEmbed==='function') window._dmEnterSalesEmbed(saved.arg); }
+        };
+        var fn = openers[saved.feature];
+        if (fn) {
+          // 데이터/DOM 준비 대기 후 opener 호출 (내부에서 각자 async fetch 수행)
+          setTimeout(function(){ try { fn(); } catch(e) { console.warn('[embed restore]', saved.feature, e); } }, 120);
+        }
+      } catch(e) { console.warn('[embed restore parse]', e); }
     }, 0);
   } catch(e) { console.warn('[dev-mode init]', e); }
 })();
@@ -16803,6 +16835,8 @@ window._dmEnterSalesEmbed = function(deptKey) {
   document.body.classList.remove('view-journal');
   document.body.classList.add('view-catalog', 'sales-embed');
   try { localStorage.setItem('mc_dm_view', 'catalog'); } catch(e){}
+  // 새로고침 복원용 상태 저장
+  try { localStorage.setItem('mc_dm_embed', JSON.stringify({ feature: 'sales-hub', arg: deptKey })); } catch(e){}
   // breadcrumb 라벨 갱신
   if (window._dmSetCrumb) window._dmSetCrumb('사업부별 매출 현황');
   // dev-view-switch 도 카탈로그 활성으로 반영
@@ -16820,6 +16854,8 @@ window._dmExitSalesEmbed = function() {
   });
   // cumul-solo 클래스 정리 (열려있었으면)
   document.body.classList.remove('cumul-solo-sound', 'cumul-solo-system');
+  // 새로고침 복원 상태 삭제
+  try { localStorage.removeItem('mc_dm_embed'); } catch(e){}
   // 위젯 + 오버레이 원위치
   if (window._dmSalesOrigin) {
     var host = document.getElementById('dev-sales-embed-host');
@@ -16907,6 +16943,10 @@ window._dmEnterFeatureEmbed = function(overlayId, opts) {
   if (window._dmCrumbLabels && window._dmCrumbLabels[overlayId]) {
     window._dmSetCrumb(window._dmCrumbLabels[overlayId]);
   }
+  // 새로고침 후 복원용 상태 저장 (feature key + optional arg)
+  try {
+    localStorage.setItem('mc_dm_embed', JSON.stringify({ feature: featureKey, arg: (opts && opts.arg) || null }));
+  } catch(e){}
   return true;
 };
 
@@ -16932,6 +16972,8 @@ window._dmExitFeatureEmbed = function() {
     document.body.classList.remove('dir-mode-list', 'dir-mode-form');
   }
   window._dmFeatureEmbedState = null;
+  // 새로고침 복원 상태 삭제
+  try { localStorage.removeItem('mc_dm_embed'); } catch(e){}
   // breadcrumb 복귀
   if (window._dmSetCrumb) window._dmSetCrumb();
 };
@@ -17689,9 +17731,9 @@ window.__vendor = (function() {
     _updateAllBtnStyle();
     // 차트/표 토글 버튼 스타일만 동기화 (실제 render 는 fetchAll().then 에서 1회만 실행)
     _syncDisplayModeBtns(_state.displayMode || 'chart');
-    // dev-mode 사용자는 embed 로 진입
+    // dev-mode 사용자는 embed 로 진입 (cat 을 arg 로 저장 → 새로고침 복원)
     if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function') {
-      window._dmEnterFeatureEmbed('vendor-needle-overlay');
+      window._dmEnterFeatureEmbed('vendor-needle-overlay', { arg: cat });
     }
     document.getElementById('vendor-needle-overlay').style.display = 'block';
     // 항상 최신 데이터 fetch (소스 옵션도 fresh 데이터로 재구성)
@@ -21145,9 +21187,9 @@ function _showVendorChooser() {
     }
     // 진입 시 viewDay 기본값(오늘) 보장 — 표 일별 모드 대비
     if (!SCAL_STATE.viewDay) SCAL_STATE.viewDay = _scalToYmd(new Date());
-    // dev-mode 사용자는 embed 로 진입
+    // dev-mode 사용자는 embed 로 진입 (dept 를 arg 로 저장 → 새로고침 복원)
     if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function') {
-      window._dmEnterFeatureEmbed('shared-cal-overlay');
+      window._dmEnterFeatureEmbed('shared-cal-overlay', { arg: dept });
     }
     ov.style.display = 'flex';
     _scalFetchAndRender();
@@ -23676,9 +23718,9 @@ function _showVendorChooser() {
     }
     _salesDept = dept;
     _ensureSalesOverlay();
-    // dev-mode 사용자는 embed 로 진입
+    // dev-mode 사용자는 embed 로 진입 (dept 를 arg 로 저장 → 새로고침 복원)
     if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function') {
-      window._dmEnterFeatureEmbed('sales-activity-overlay');
+      window._dmEnterFeatureEmbed('sales-activity-overlay', { arg: dept });
     }
     var ov = document.getElementById('sales-activity-overlay');
     if (!ov) return;
