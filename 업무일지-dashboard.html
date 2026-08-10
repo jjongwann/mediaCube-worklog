@@ -23540,6 +23540,21 @@ function _showVendorChooser() {
 
   // 라우터: 두 부서 모두 접근 가능하면 chooser, 한 부서만이면 바로 진입
   function openSalesActivityChooser() {
+    // 계정별 chooser 스킵 라우팅:
+    //  · 관리자(mediacube) · info(김혜진 대리) · developer(임종완 주임): chooser 유지
+    //  · 그 외 화이트리스트(sunlee 등): 본인 소속 부서로 바로 진입 (chooser 불필요)
+    var CHOOSER_USERS = ['mediacube', 'info', 'developer'];
+    var uname = (typeof _currentUsername !== 'undefined') ? _currentUsername : '';
+    if (CHOOSER_USERS.indexOf(uname) === -1) {
+      var me = (typeof ALL_USERS !== 'undefined') ? ALL_USERS.find(function(u){ return u.id === _userId; }) : null;
+      var myDept = me ? me.dept : '';
+      // dept 문자열 → deptKey ('sound' / 'system') 매핑
+      var deptKey = (myDept === '시스템 사업부') ? 'system' : 'sound';
+      if (_salesCanAccessDept(deptKey)) {
+        openSalesActivityPanel(deptKey);
+        return;
+      }
+    }
     var canSys = _salesCanAccessDept('system');
     var canSnd = _salesCanAccessDept('sound');
     if (canSys && canSnd) {
