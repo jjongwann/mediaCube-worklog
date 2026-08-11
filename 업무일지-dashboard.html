@@ -12604,29 +12604,11 @@
       });
   }
 
-  // 완료된 지 24시간 이상 지난 항목을 서버에서 하드 삭제
-  // (지시자/수신자 아무나 이 패널을 열거나 뱃지 갱신 시점에 자동 실행됨)
+  // 완료된 지 24시간 이상 지난 항목 정리 — DB DELETE 는 비활성화됨
+  //   · 이전: 24h 지난 done 을 DB에서 하드 DELETE → 지시자도 못 봄 (사용자 요구사항 위배)
+  //   · 현재: no-op. 대신 _splitByDone(role) 에서 receiver 뷰만 UI 필터
   function _cleanupExpiredDone() {
-    if (!Array.isArray(_directives) || !_directives.length) return;
-    var now = Date.now();
-    var limit = 24 * 3600 * 1000;
-    var expiredIds = _directives.filter(function(d){
-      if (d.status !== 'done') return false;
-      if (!d.completed_at) return false; // 완료 시각 미상은 안전상 유지 (사용자 확인 후 마이그레이션)
-      var t = new Date(d.completed_at).getTime();
-      if (isNaN(t)) return false;
-      return (now - t) > limit;
-    }).map(function(d){ return d.id; });
-    if (!expiredIds.length) return;
-    // 클라이언트 캐시에서 즉시 제거
-    _directives = _directives.filter(function(d){ return expiredIds.indexOf(d.id) === -1; });
-    // 서버 DELETE (병렬)
-    expiredIds.forEach(function(id){
-      fetch(SB_URL + '/rest/v1/task_directives?id=eq.' + encodeURIComponent(id), {
-        method: 'DELETE',
-        headers: SB_DEL_HDR
-      }).catch(function(e){ console.warn('[task_directives] expired delete failed', id, e); });
-    });
+    // intentionally no-op — 자세한 정책은 _splitByDone 참조
   }
 
   function _tabBtn(view, label) {
@@ -12781,17 +12763,19 @@
   }
 
   // 완료 항목 필터링: DB 의 completed_at 기준
-  //  · 24시간 이상 경과 → 리스트에서 숨김 (실제 DELETE 는 _cleanupExpiredDone 에서 실행)
+  //  · role='receiver': 24시간 이상 경과한 done 은 리스트에서 숨김 (수신자 화면 정리)
+  //  · role='giver': 24시간 지나도 계속 표시 (지시자는 이력 보존)
   //  · completed_at 없는 legacy done → 안전상 유지 (다음 상태 변경 시 자동 세팅됨)
-  function _splitByDone(list) {
+  function _splitByDone(list, role) {
     var now = Date.now();
     var limit = 24 * 3600 * 1000;
+    var hideExpired = (role !== 'giver'); // giver 는 숨기지 않음
     var active = [], done = [];
     list.forEach(function(d) {
       if (d.status === 'done') {
-        if (d.completed_at) {
+        if (hideExpired && d.completed_at) {
           var t = new Date(d.completed_at).getTime();
-          if (!isNaN(t) && (now - t) > limit) return; // 24시간 초과 → 숨김
+          if (!isNaN(t) && (now - t) > limit) return; // receiver 뷰만 24시간 초과 숨김
         }
         done.push(d);
       } else { active.push(d); }
@@ -12800,12 +12784,12 @@
   }
 
   var _DONE_NOTICE = '<div style="font-size:11px;color:#94a3b8;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:7px 11px;margin-bottom:12px;line-height:1.5">'
-    + '💡 완료된 업무는 회색으로 표시되며 <strong style="color:#64748b">완료 후 24시간이 지나면 자동으로 사라집니다.</strong></div>';
+    + '💡 완료된 업무는 회색으로 표시됩니다. <strong style="color:#64748b">받은 업무는 완료 후 24시간이 지나면 자동으로 정리되지만, 지시한 업무는 이력으로 계속 보존됩니다.</strong></div>';
 
   // ── 회의록 스타일 테이블 렌더러 ─────────────────────
   function _renderListTable(container, list, role, opts) {
     opts = opts || {};
-    var split = _splitByDone(list);
+    var split = _splitByDone(list, role);
     var total = split.active.length + split.done.length;
     var wrap = document.createElement('div');
     wrap.style.cssText = 'flex:1;padding:18px 22px;overflow-y:auto;background:#fff';
