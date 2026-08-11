@@ -21337,6 +21337,10 @@ function _showVendorChooser() {
       .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .then(function(rows){
         SCAL_STATE.events = Array.isArray(rows) ? rows : [];
+        // 색상 마이그레이션: 김혜진 대리 시안 → 로즈 (기존 이벤트 표시 색상 갱신)
+        SCAL_STATE.events.forEach(function(ev){
+          if (ev && ev.color && ev.color.toLowerCase() === '#06b6d4') ev.color = '#f43f5e';
+        });
         _scalRender();
         // day view 가 열려 있으면 함께 갱신
         if (SCAL_STATE.dayViewDate) _scalRenderDayView();
