@@ -12483,6 +12483,41 @@
     }).catch(function(){});
   }
 
+  // 그룹 record 확장: 이전 DELETE 로 사라진 완료 담당자를 synthetic done 으로 복원
+  //   · 관리자(mediacube) 지시 그룹만 적용 — 관리자는 전체(비관리자) 대상 지시 관행
+  //   · 예상 담당자(ALL_USERS 중 비관리자) 중 현재 그룹에 없는 사람을
+  //     status='done' 으로 간주해 카드/카운트에 노출
+  function _expandGroupWithMissingAsDone(records) {
+    if (!Array.isArray(records) || !records.length) return records || [];
+    var first = records[0];
+    // 관리자(mediacube = 화이트리스트) 가 assigner 인 경우에만 적용
+    var isAdminAssigner = (first.assigner_name === '관리자' || first.assigner_name === 'mediacube');
+    if (!isAdminAssigner) return records;
+    if (typeof ALL_USERS === 'undefined' || !Array.isArray(ALL_USERS)) return records;
+    var presentIds = {};
+    records.forEach(function(r){ if (r.assignee_id) presentIds[r.assignee_id] = true; });
+    var syntheticDones = ALL_USERS
+      .filter(function(u){ return !u.isAdmin && !presentIds[u.id]; })
+      .map(function(u){
+        return {
+          id: '__synthetic_' + u.id,
+          assigner_id: first.assigner_id,
+          assigner_name: first.assigner_name,
+          assignee_id: u.id,
+          assignee_name: u.fullName,
+          title: first.title,
+          content: first.content,
+          priority: first.priority,
+          due_date: first.due_date,
+          created_at: first.created_at,
+          status: 'done',
+          completed_at: null,
+          _synthetic: true
+        };
+      });
+    return records.concat(syntheticDones);
+  }
+
   var _PRIORITY = {
     high:   { label: '🔴 높음', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
     medium: { label: '🟡 중간', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
@@ -12846,10 +12881,13 @@
           + '</select>';
       } else if (Array.isArray(d._groupIds) && d._groupIds.length > 1) {
         // 그룹 지시: 담당자별 상태를 count 배지로 표시
+        // (이전 24h DELETE 로 사라진 담당자는 synthetic done 으로 복원 후 카운트)
+        var _rawGroup = d._groupIds.map(function(id){
+          return _directives.find(function(x){ return x.id === id; });
+        }).filter(Boolean);
+        var _expandedGroup = _expandGroupWithMissingAsDone(_rawGroup);
         var _cntSet = { pending: 0, in_progress: 0, done: 0 };
-        d._groupIds.forEach(function(id){
-          var rec = _directives.find(function(x){ return x.id === id; });
-          if (!rec) return;
+        _expandedGroup.forEach(function(rec){
           var st = rec.status || 'pending';
           if (_cntSet[st] != null) _cntSet[st]++;
         });
@@ -12940,6 +12978,8 @@
         return xm === _minute;
       });
       if (!_groupRecords.length) _groupRecords = [d];
+      // 이전 24h DELETE 로 사라진 완료 담당자를 synthetic done 으로 복원
+      _groupRecords = _expandGroupWithMissingAsDone(_groupRecords);
     }
     var _groupAssignees = _groupRecords.map(function(x){ return x.assignee_name || '-'; });
     var _assigneeDisplay = _groupAssignees.length > 1
