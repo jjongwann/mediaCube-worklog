@@ -17128,8 +17128,10 @@ window.__board = (function(){
       alert('파일이 너무 큽니다 ('+_fmtSize(file.size)+').\n최대 30MB 이하만 업로드 가능합니다.');
       return;
     }
-    var safe = file.name.replace(/[^\w.\-가-힣]/g, '_');
-    var path = 'board/inline_' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '_' + safe;
+    // Supabase Storage 는 key 에 한글 · 특수문자 거부 → ASCII 확장자만 유지, 원본명은 alt 에 보존
+    var m = file.name.match(/\.[a-zA-Z0-9]{1,8}$/);
+    var ext = m ? m[0].toLowerCase() : '';
+    var path = 'board/inline_' + Date.now() + '_' + Math.random().toString(36).slice(2,10) + ext;
     // placeholder 임시 삽입 (업로드 중 표시)
     var phId = 'img_ph_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
     _insertHtmlAtCursor('<span id="'+phId+'" style="display:inline-block;padding:6px 12px;background:#f1f5f9;color:#64748b;border-radius:6px;font-size:12px">📎 업로드 중… '+_esc(file.name)+' ('+_fmtSize(file.size)+')</span>');
@@ -17260,8 +17262,10 @@ window.__board = (function(){
       alert('파일이 너무 큽니다 ('+_fmtSize(file.size)+').\n최대 30MB 이하만 업로드 가능합니다.');
       return;
     }
-    var safe = file.name.replace(/[^\w.\-가-힣]/g, '_');
-    var path = 'board/' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '_' + safe;
+    // Supabase Storage 는 key 에 한글 · 특수문자 거부 → ASCII 확장자만 유지
+    var m2 = file.name.match(/\.[a-zA-Z0-9]{1,8}$/);
+    var ext2 = m2 ? m2[0].toLowerCase() : '';
+    var path = 'board/' + Date.now() + '_' + Math.random().toString(36).slice(2,10) + ext2;
     _sbUpload(path, file)
       .then(function(){
         var publicUrl = SB_URL_B + '/storage/v1/object/public/msg-attachments/' + path;
