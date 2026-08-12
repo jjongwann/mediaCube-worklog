@@ -16839,7 +16839,6 @@ window.__board = (function(){
       + '<div style="display:flex;align-items:center;gap:12px;padding-bottom:16px;border-bottom:1px solid #e2e8f0;font-size:12.5px;color:#64748b">'
         + '<span><strong style="color:#0f172a;font-weight:700">'+_esc(p.author_name||'-')+'</strong>'+(p.author_dept?' · '+_esc(p.author_dept):'')+'</span>'
         + '<span>·</span><span>'+_fmtDateTime(p.created_at)+'</span>'
-        + '<span>·</span><span>조회 '+(p.view_count||0)+'</span>'
         + (canEdit ? '<div style="margin-left:auto;display:flex;gap:6px">'
             + '<button onclick="__board.showEdit(\''+p.id+'\')" style="padding:6px 12px;background:#f8fafc;border:1px solid #e2e8f0;color:#475569;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit">수정</button>'
             + '<button onclick="__board.deletePost(\''+p.id+'\')" style="padding:6px 12px;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit">삭제</button>'
