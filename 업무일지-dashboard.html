@@ -17092,18 +17092,48 @@ window.__board = (function(){
     if (el) el.focus();
     files.forEach(function(f){ _insertInlineImage(f); });
   }
+  // 파일 크기 사람이 읽기 좋게 포맷
+  function _fmtSize(bytes){
+    if (bytes < 1024) return bytes + 'B';
+    if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + 'KB';
+    return (bytes/1024/1024).toFixed(1) + 'MB';
+  }
+  // Supabase Storage 업로드 (일회성 재시도 + 상세 오류)
+  function _sbUpload(path, file){
+    var url = SB_URL_B + '/storage/v1/object/msg-attachments/' + path;
+    var doOnce = function(){
+      return fetch(url, {
+        method:'POST',
+        headers: { 'apikey':SB_KEY_B, 'Authorization':'Bearer '+_tok(), 'x-upsert':'true', 'Content-Type': file.type || 'application/octet-stream' },
+        body: file
+      }).then(function(r){
+        if (r.ok) return true;
+        return r.text().then(function(t){
+          var msg = '';
+          try { var j = JSON.parse(t); msg = j.message || j.error || t; } catch(e){ msg = t; }
+          throw new Error('[' + r.status + '] ' + (msg || '알 수 없음'));
+        });
+      });
+    };
+    return doOnce().catch(function(e){
+      // 1회 재시도 (네트워크 blip 대응)
+      console.warn('[upload retry]', e);
+      return new Promise(function(res){ setTimeout(res, 800); }).then(doOnce);
+    });
+  }
   function _insertInlineImage(file){
+    // 사이즈 검증 (30MB 초과 시 사전 차단)
+    var MAX = 30 * 1024 * 1024;
+    if (file.size > MAX) {
+      alert('파일이 너무 큽니다 ('+_fmtSize(file.size)+').\n최대 30MB 이하만 업로드 가능합니다.');
+      return;
+    }
     var safe = file.name.replace(/[^\w.\-가-힣]/g, '_');
     var path = 'board/inline_' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '_' + safe;
-    var uploadUrl = SB_URL_B + '/storage/v1/object/msg-attachments/' + path;
     // placeholder 임시 삽입 (업로드 중 표시)
     var phId = 'img_ph_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
-    _insertHtmlAtCursor('<span id="'+phId+'" style="display:inline-block;padding:6px 12px;background:#f1f5f9;color:#64748b;border-radius:6px;font-size:12px">📎 업로드 중… '+_esc(file.name)+'</span>');
-    fetch(uploadUrl, {
-      method:'POST',
-      headers: { 'apikey':SB_KEY_B, 'Authorization':'Bearer '+_tok(), 'x-upsert':'false', 'Content-Type': file.type || 'application/octet-stream' },
-      body: file
-    }).then(function(r){ if (!r.ok) return r.text().then(function(t){ throw new Error(t); }); })
+    _insertHtmlAtCursor('<span id="'+phId+'" style="display:inline-block;padding:6px 12px;background:#f1f5f9;color:#64748b;border-radius:6px;font-size:12px">📎 업로드 중… '+_esc(file.name)+' ('+_fmtSize(file.size)+')</span>');
+    _sbUpload(path, file)
       .then(function(){
         var publicUrl = SB_URL_B + '/storage/v1/object/public/msg-attachments/' + path;
         var ph = document.getElementById(phId);
@@ -17111,8 +17141,10 @@ window.__board = (function(){
       })
       .catch(function(e){
         var ph = document.getElementById(phId);
-        if (ph) ph.outerHTML = '<span style="color:#dc2626;font-size:12px">❌ 업로드 실패: '+_esc(file.name)+'</span>';
-        console.warn('[board inline image]', e);
+        var errMsg = (e && e.message) ? e.message : '알 수 없는 오류';
+        if (ph) ph.outerHTML = '<span style="color:#dc2626;font-size:12px" title="'+_esc(errMsg)+'">❌ 업로드 실패: '+_esc(file.name)+'</span>';
+        console.error('[board inline image]', e);
+        alert('이미지 업로드 실패\n\n파일: '+file.name+'\n크기: '+_fmtSize(file.size)+'\n오류: '+errMsg);
       });
   }
   // ── 이미지 리사이즈: 클릭 → 패널 표시 → % 조정 ─────
@@ -17223,21 +17255,23 @@ window.__board = (function(){
     }
   }
   function _uploadFile(file){
-    var ext = (file.name.split('.').pop()||'bin').toLowerCase();
+    var MAX = 30 * 1024 * 1024;
+    if (file.size > MAX) {
+      alert('파일이 너무 큽니다 ('+_fmtSize(file.size)+').\n최대 30MB 이하만 업로드 가능합니다.');
+      return;
+    }
     var safe = file.name.replace(/[^\w.\-가-힣]/g, '_');
     var path = 'board/' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '_' + safe;
-    var url = SB_URL_B + '/storage/v1/object/msg-attachments/' + path;
-    fetch(url, {
-      method:'POST',
-      headers: { 'apikey':SB_KEY_B, 'Authorization':'Bearer '+_tok(), 'x-upsert':'false', 'Content-Type': file.type || 'application/octet-stream' },
-      body: file
-    }).then(function(r){ if (!r.ok) return r.text().then(function(t){ throw new Error(t); }); return r.json(); })
+    _sbUpload(path, file)
       .then(function(){
         var publicUrl = SB_URL_B + '/storage/v1/object/public/msg-attachments/' + path;
         _state.formAttachments.push({ name: file.name, url: publicUrl, size: file.size, type: file.type });
         var el = document.getElementById('board-f-attach-list'); if (el) el.innerHTML = _renderAttachList();
       })
-      .catch(function(e){ alert('파일 업로드 실패: '+file.name+'\n'+(e.message||'')); });
+      .catch(function(e){
+        var errMsg = (e && e.message) ? e.message : '알 수 없는 오류';
+        alert('파일 업로드 실패\n\n파일: '+file.name+'\n크기: '+_fmtSize(file.size)+'\n오류: '+errMsg);
+      });
   }
 
   function savePost(){
