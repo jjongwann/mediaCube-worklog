@@ -3332,8 +3332,8 @@
     <div id="msg2-chat-search-bar" style="display:none;padding:8px 14px;background:#f8fafc;border-bottom:1px solid #f1f5f9;flex-shrink:0;position:relative">
       <div style="position:relative;display:flex;align-items:center;gap:6px">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="msg2-chat-search-input" placeholder="이 대화에서 검색..." oninput="window.__msg2._chatSearchChange(this.value)" style="flex:1;min-width:0;padding:7px 30px 7px 30px;border:1px solid #e2e8f0;border-radius:8px;font-size:12.5px;outline:none;background:#fff" onfocus="this.style.borderColor='#4f46e5'" onblur="this.style.borderColor='#e2e8f0'">
-        <span id="msg2-chat-search-count" style="font-size:11px;color:#64748b;font-weight:700;white-space:nowrap;min-width:36px;text-align:right"></span>
+        <input type="text" id="msg2-chat-search-input" placeholder="이 대화에서 검색... (Enter 다음, Shift+Enter 이전)" oninput="window.__msg2._chatSearchChange(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();window.__msg2._chatSearchNext(event.shiftKey);}" style="flex:1;min-width:0;padding:7px 30px 7px 30px;border:1px solid #e2e8f0;border-radius:8px;font-size:12.5px;outline:none;background:#fff" onfocus="this.style.borderColor='#4f46e5'" onblur="this.style.borderColor='#e2e8f0'">
+        <span id="msg2-chat-search-count" style="font-size:12px;color:#ef4444;font-weight:800;white-space:nowrap;min-width:44px;text-align:center;font-variant-numeric:tabular-nums"></span>
         <button onclick="window.__msg2._chatSearchClear()" title="검색 해제" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:15px;line-height:1;padding:2px 6px" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">×</button>
       </div>
     </div>
@@ -17709,7 +17709,7 @@ function closeBoardPanel(){ window.__board.closePanel(); }
    신규 상태: _s.tab / _s.selConv / _s.files / _s.query / _s.convs / _s.msgs
    ═══════════════════════════════════════════════════════════════ */
 window.__msg2 = (function(){
-  var _s = { tab:'list', selConv:null, files:[], query:'', convs:[], msgs:[], lastMsgId:null, composeIds:[], composeQuery:'', chatQuery:'', filesPartner:null };
+  var _s = { tab:'list', selConv:null, files:[], query:'', convs:[], msgs:[], lastMsgId:null, composeIds:[], composeQuery:'', chatQuery:'', chatMatchCount:0, chatMatchIdx:0, filesPartner:null };
   var _pollTimer = null;
   var _chatPollTimer = null;
 
@@ -17724,17 +17724,21 @@ window.__msg2 = (function(){
     return (d.getMonth()+1)+'/'+d.getDate();
   }
   function _initial(name){ return (name||'?').charAt(0).toUpperCase(); }
-  // 검색어 하이라이트 — escapedHtml 문자열에서 대소문자 무시 매칭, <mark> 로 감싸기
-  function _highlight(escapedHtml, q){
-    if (!q) return escapedHtml;
+  // 검색어 하이라이트 — escapedHtml 내 매칭을 <mark class="msg2-hl" data-mi="N"> 로 감싸기
+  // 반환: { html, count } — startIdx 기반 순번으로 매칭 부여 (누적)
+  function _highlight(escapedHtml, q, startIdx){
+    if (!q) return { html: escapedHtml, count: 0 };
     var qEsc = String(q).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    if (!qEsc) return escapedHtml;
+    if (!qEsc) return { html: escapedHtml, count: 0 };
     var qRe = qEsc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var base = startIdx || 0, count = 0;
     try {
-      return escapedHtml.replace(new RegExp(qRe, 'gi'), function(hit){
-        return '<mark style="background:#fde047;color:#0f172a;padding:0 2px;border-radius:3px;font-weight:800;box-shadow:0 0 0 1px #facc15">'+hit+'</mark>';
+      var html = escapedHtml.replace(new RegExp(qRe, 'gi'), function(hit){
+        var idx = base + count; count++;
+        return '<mark class="msg2-hl" data-mi="'+idx+'" style="background:#fde047;color:#0f172a;padding:0 2px;border-radius:3px;font-weight:800;box-shadow:0 0 0 1px #facc15">'+hit+'</mark>';
       });
-    } catch(e){ return escapedHtml; }
+      return { html: html, count: count };
+    } catch(e){ return { html: escapedHtml, count: 0 }; }
   }
   function _userById(uid){ return (window.ALL_USERS||[]).find(function(u){ return u.id===uid; }); }
   function _avatarHtml(u, name, sz){
@@ -17949,12 +17953,24 @@ window.__msg2 = (function(){
   }
   function _chatSearchChange(v){
     _s.chatQuery = (v||'').toLowerCase().trim();
+    _s.chatMatchIdx = 1; // 검색어 바뀌면 첫 매치로
     _renderMessages(_s.msgs||[]);
   }
+  function _chatSearchNext(reverse){
+    if (!_s.chatQuery || _s.chatMatchCount === 0) return;
+    if (reverse){
+      _s.chatMatchIdx = _s.chatMatchIdx <= 1 ? _s.chatMatchCount : (_s.chatMatchIdx - 1);
+    } else {
+      _s.chatMatchIdx = _s.chatMatchIdx >= _s.chatMatchCount ? 1 : (_s.chatMatchIdx + 1);
+    }
+    var cnt = document.getElementById('msg2-chat-search-count');
+    if (cnt) cnt.textContent = _s.chatMatchIdx + '/' + _s.chatMatchCount;
+    _updateCurrentMark(true);
+  }
   function _chatSearchClear(){
-    _s.chatQuery='';
+    _s.chatQuery=''; _s.chatMatchIdx=0; _s.chatMatchCount=0;
     var inp = document.getElementById('msg2-chat-search-input'); if (inp) inp.value='';
-    var cnt = document.getElementById('msg2-chat-search-count'); if (cnt) cnt.textContent='';
+    var cnt = document.getElementById('msg2-chat-search-count'); if (cnt){ cnt.textContent=''; cnt.style.color='#ef4444'; }
     var bar = document.getElementById('msg2-chat-search-bar'); if (bar) bar.style.display='none';
     _renderMessages(_s.msgs||[]);
   }
@@ -17996,31 +18012,11 @@ window.__msg2 = (function(){
   function _renderMessages(msgs){
     var body = document.getElementById('msg2-detail-body');
     if (!body) return;
-    // 검색어 필터 (본문 · 발신자명 · 첨부파일명)
-    var filtered = msgs;
+    // 검색: 필터 X → 모두 렌더 + 매칭에 하이라이트 + 카운터 갱신
+    _s.chatMatchCount = 0;
     var cntEl = document.getElementById('msg2-chat-search-count');
-    if (_s.chatQuery){
-      var q = _s.chatQuery;
-      filtered = msgs.filter(function(m){
-        if ((m.body||'').toLowerCase().indexOf(q)!==-1) return true;
-        if ((m.sender_name||'').toLowerCase().indexOf(q)!==-1) return true;
-        if (Array.isArray(m.attachments)){
-          for (var i=0;i<m.attachments.length;i++){
-            if ((m.attachments[i].name||'').toLowerCase().indexOf(q)!==-1) return true;
-          }
-        }
-        return false;
-      });
-      if (cntEl) cntEl.textContent = filtered.length+'건';
-    } else {
-      if (cntEl) cntEl.textContent = '';
-    }
-    if (_s.chatQuery && filtered.length===0){
-      body.innerHTML = '<div style="margin:auto;text-align:center;color:#94a3b8;font-size:12.5px;padding:40px 20px">"'+_esc(_s.chatQuery)+'" 검색 결과가 없습니다.</div>';
-      return;
-    }
     var lastDate = '';
-    var html = filtered.map(function(m){
+    var html = (msgs||[]).map(function(m){
       var isMine = m.sender_id===_userId;
       var dt = m.created_at ? new Date(m.created_at) : null;
       var dateKey = dt ? (dt.getFullYear()+'-'+_p2(dt.getMonth()+1)+'-'+_p2(dt.getDate())) : '';
@@ -18039,13 +18035,13 @@ window.__msg2 = (function(){
           var sizeStr = a.size>1024*1024 ? (a.size/1024/1024).toFixed(1)+'MB' : Math.round((a.size||0)/1024)+'KB';
           return '<a href="'+_esc(a.url)+'" target="_blank" download="'+_esc(a.name)+'" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:'+(isMine?'rgba(255,255,255,0.9)':'#fff')+';border-radius:8px;border:1px solid rgba(0,0,0,0.06);text-decoration:none;color:inherit">'
             + '<span style="width:28px;height:28px;border-radius:6px;background:'+bg+';color:#fff;font-size:9.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">'+ext+'</span>'
-            + '<span style="font-size:12px;color:#374151;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">'+(_s.chatQuery?_highlight(_esc(a.name||''),_s.chatQuery):_esc(a.name||''))+'</span>'
+            + '<span style="font-size:12px;color:#374151;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">'+(function(){ var nm=_esc(a.name||''); if(!_s.chatQuery) return nm; var r=_highlight(nm,_s.chatQuery,_s.chatMatchCount); _s.chatMatchCount+=r.count; return r.html; })()+'</span>'
             + '<span style="font-size:10.5px;color:#94a3b8;flex-shrink:0">'+sizeStr+'</span>'
           + '</a>';
         }).join('') + '</div>';
       }
       var bodyRaw = (m.body||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      if (_s.chatQuery) bodyRaw = _highlight(bodyRaw, _s.chatQuery);
+      if (_s.chatQuery){ var r = _highlight(bodyRaw, _s.chatQuery, _s.chatMatchCount); bodyRaw = r.html; _s.chatMatchCount += r.count; }
       var bodyHtml = bodyRaw.replace(/\n/g,'<br>');
       var bubbleBg = isMine ? 'linear-gradient(135deg,#4f46e5,#4338ca)' : '#fff';
       var bubbleColor = isMine ? '#fff' : '#0f172a';
@@ -18059,6 +18055,42 @@ window.__msg2 = (function(){
       + '</div>';
     }).join('');
     body.innerHTML = html;
+    // 검색 카운터 + 현재 매치 표시
+    if (_s.chatQuery){
+      if (_s.chatMatchCount === 0){
+        _s.chatMatchIdx = 0;
+        if (cntEl){ cntEl.textContent = '0/0'; cntEl.style.color = '#94a3b8'; }
+      } else {
+        if (_s.chatMatchIdx < 1 || _s.chatMatchIdx > _s.chatMatchCount) _s.chatMatchIdx = 1;
+        if (cntEl){ cntEl.textContent = _s.chatMatchIdx + '/' + _s.chatMatchCount; cntEl.style.color = '#ef4444'; }
+        _updateCurrentMark(true);
+      }
+    } else {
+      _s.chatMatchIdx = 0;
+      if (cntEl){ cntEl.textContent = ''; cntEl.style.color = '#ef4444'; }
+    }
+  }
+
+  // 현재 매치 표시 (주황) + 나머지 (노랑) · scroll 옵션
+  function _updateCurrentMark(doScroll){
+    var body = document.getElementById('msg2-detail-body');
+    if (!body) return;
+    var marks = body.querySelectorAll('.msg2-hl');
+    marks.forEach(function(el){
+      el.style.background = '#fde047';
+      el.style.color = '#0f172a';
+      el.style.boxShadow = '0 0 0 1px #facc15';
+    });
+    if (_s.chatMatchIdx < 1) return;
+    var cur = body.querySelector('.msg2-hl[data-mi="'+(_s.chatMatchIdx-1)+'"]');
+    if (cur){
+      cur.style.background = '#f97316';
+      cur.style.color = '#fff';
+      cur.style.boxShadow = '0 0 0 2px #ea580c';
+      if (doScroll){
+        try { cur.scrollIntoView({ behavior:'smooth', block:'center' }); } catch(e){ cur.scrollIntoView(); }
+      }
+    }
   }
 
   // ── 파일 첨부 (send) ─────────────────────────
@@ -18371,6 +18403,7 @@ window.__msg2 = (function(){
     _composeSend:_composeSend,
     _toggleChatSearch:_toggleChatSearch,
     _chatSearchChange:_chatSearchChange,
+    _chatSearchNext:_chatSearchNext,
     _chatSearchClear:_chatSearchClear,
     _selectFilesPartner:_selectFilesPartner
   };
