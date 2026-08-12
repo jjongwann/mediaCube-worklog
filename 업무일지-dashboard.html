@@ -23150,9 +23150,6 @@ function _showVendorChooser() {
     var curColor = ev ? (ev.color || _scalDefaultColor()) : _scalDefaultColor();
     SCAL_STATE.pickedColor = curColor;
 
-    var headerEl = document.getElementById('scal-evt-modal-title');
-    if (headerEl) headerEl.textContent = ev ? '일정 수정' : '새 일정 추가';
-
     // 권한 정책: 타인 일정 편집 금지 (관리자 mediacube 만 예외)
     //  · 본인 일정 또는 신규: 편집 가능
     //  · 타인 일정 (일반 직원): 보기 전용 — '수정' 버튼 미노출
@@ -23160,6 +23157,9 @@ function _showVendorChooser() {
     var isMyEvent = !ev || ev.created_by === _userId;
     var canForceEdit = (typeof _isAdmin !== 'undefined' && _isAdmin); // 관리자 예외
     var startInViewMode = !isMyEvent; // 타인 일정은 view-first
+
+    var headerEl = document.getElementById('scal-evt-modal-title');
+    if (headerEl) headerEl.textContent = !ev ? '새 일정 추가' : (startInViewMode ? '일정 보기' : '일정 수정');
 
     // 일정 수정 모달에선 삭제 버튼 숨김 — 삭제는 일자 뷰의 행별 🗑 삭제 버튼에서만 처리
     var delBtn = document.getElementById('scal-evt-delete-btn');
@@ -23171,6 +23171,10 @@ function _showVendorChooser() {
 
     var saveBtn = document.getElementById('scal-evt-save-btn');
     if (saveBtn) {
+      // 일반 직원이 타인 일정 볼 때: 저장 버튼 완전 숨김
+      // 관리자가 타인 일정 볼 때: 처음엔 disabled, '수정' 클릭 시 활성화 (기존 로직)
+      var hideSaveBtn = startInViewMode && !canForceEdit;
+      saveBtn.style.display = hideSaveBtn ? 'none' : '';
       saveBtn.disabled = startInViewMode;
       saveBtn.style.opacity = startInViewMode ? '0.5' : '1';
       saveBtn.style.cursor = startInViewMode ? 'not-allowed' : 'pointer';
