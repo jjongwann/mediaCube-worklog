@@ -3264,7 +3264,11 @@
      메신저 v2 - 플로팅 모달 (backdrop + 카드)
      ═══════════════════════════════════════════ -->
 <div id="msg2-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9995;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;font-family:inherit" onclick="if(event.target===this)window.__msg2.closePanel()">
-  <div id="msg2-modal" onclick="event.stopPropagation()">
+  <div id="msg2-modal" onclick="event.stopPropagation()" style="position:relative">
+    <!-- 우측 상단 X 닫기 (floating) -->
+    <button onclick="window.__msg2.closePanel()" title="닫기 (ESC)" style="position:absolute;top:14px;right:14px;z-index:5;width:34px;height:34px;border:none;background:rgba(15,23,42,0.06);color:#64748b;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s, color 0.15s, transform 0.15s" onmouseover="this.style.background='#fee2e2';this.style.color='#ef4444';this.style.transform='rotate(90deg)'" onmouseout="this.style.background='rgba(15,23,42,0.06)';this.style.color='#64748b';this.style.transform='rotate(0deg)'">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
     <!-- 좌측 아이콘 rail -->
     <div id="msg2-rail" style="background:linear-gradient(180deg,#0f172a,#1e293b);color:#94a3b8;display:flex;flex-direction:column;align-items:center;padding:14px 0 10px;gap:4px;border-right:1px solid #0f172a">
       <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#4338ca);color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:10px;box-shadow:0 4px 12px rgba(99,102,241,0.35)">
@@ -17703,7 +17707,7 @@ function closeBoardPanel(){ window.__board.closePanel(); }
    신규 상태: _s.tab / _s.selConv / _s.files / _s.query / _s.convs / _s.msgs
    ═══════════════════════════════════════════════════════════════ */
 window.__msg2 = (function(){
-  var _s = { tab:'list', selConv:null, files:[], query:'', convs:[], msgs:[], lastMsgId:null, composeIds:[], composeQuery:'', chatQuery:'' };
+  var _s = { tab:'list', selConv:null, files:[], query:'', convs:[], msgs:[], lastMsgId:null, composeIds:[], composeQuery:'', chatQuery:'', filesPartner:null };
   var _pollTimer = null;
   var _chatPollTimer = null;
 
@@ -17766,13 +17770,13 @@ window.__msg2 = (function(){
     var titleEl = document.getElementById('msg2-list-title');
     if (t==='list') { if (titleEl) titleEl.textContent='메시지 목록'; _renderList(); }
     else if (t==='compose') { if (titleEl) titleEl.textContent='새 메시지'; _s.composeIds=[]; _s.composeQuery=''; _renderCompose(); _renderDetailPlaceholder('새 메시지 작성','왼쪽에서 받는 사람을 선택하고 내용을 작성하세요.'); }
-    else if (t==='files') { if (titleEl) titleEl.textContent='첨부파일'; _renderFiles(); _renderDetailPlaceholder('첨부파일','왼쪽 목록에서 파일을 클릭하면 다운로드됩니다.'); }
+    else if (t==='files') { if (titleEl) titleEl.textContent='첨부파일'; _s.filesPartner=null; _renderDetailPlaceholder('첨부파일','왼쪽 직원을 선택하면 주고받은 파일이 표시됩니다.'); _renderFiles(); }
   }
 
   function setQuery(q){
     _s.query = (q||'').toLowerCase().trim();
     if (_s.tab==='list') _renderList();
-    else if (_s.tab==='files') _renderFiles();
+    else if (_s.tab==='files'){ _renderFiles(); if (_s.filesPartner) _renderFilesDetail(_s.filesPartner); }
     else if (_s.tab==='compose') { _s.composeQuery=_s.query; _renderCompose(); }
   }
 
@@ -18208,36 +18212,135 @@ window.__msg2 = (function(){
   }
 
   // ── 첨부파일 뷰 ─────────────────────────
+  // ── 첨부 파일 뷰 (직원별 그룹) ─────────────────────────
   function _renderFiles(){
     var body = document.getElementById('msg2-list-body');
     if (!body) return;
-    // 모든 대화에서 첨부 집계
-    var all = [];
-    _s.convs.forEach(function(c){
+    // 대화 상대별 첨부 집계
+    var groups = _s.convs.map(function(c){
+      var files = [];
       c.allMsgs.forEach(function(m){
         if (m.attachments && m.attachments.length){
           m.attachments.forEach(function(a){
-            all.push({ from:c.otherName, isMine:m.sender_id===_userId, name:a.name||'', url:a.url||'', size:a.size||0, ts:m.created_at });
+            files.push({ isMine:m.sender_id===_userId, name:a.name||'', url:a.url||'', size:a.size||0, ts:m.created_at });
           });
         }
       });
-    });
-    all.sort(function(a,b){ return new Date(b.ts) - new Date(a.ts); });
-    if (_s.query){ all = all.filter(function(a){ return (a.name||'').toLowerCase().indexOf(_s.query)!==-1 || (a.from||'').toLowerCase().indexOf(_s.query)!==-1; }); }
-    if (!all.length){ body.innerHTML='<div style="text-align:center;padding:40px 20px;color:#94a3b8;font-size:13px">첨부파일이 없습니다.</div>'; return; }
-    body.innerHTML = all.map(function(a){
-      var ext = (a.name||'').split('.').pop().toUpperCase().slice(0,3);
-      var extColors = { PDF:'#ef4444', DOC:'#2563eb', XLS:'#16a34a', PPT:'#f59e0b', ZIP:'#7c3aed', PNG:'#06b6d4', JPG:'#06b6d4' };
-      var bg = extColors[ext] || '#64748b';
-      var sz = a.size>1024*1024 ? (a.size/1024/1024).toFixed(1)+'MB' : Math.round((a.size||0)/1024)+'KB';
-      return '<a href="'+_esc(a.url)+'" target="_blank" download="'+_esc(a.name)+'" class="msg2-conv-item" style="text-decoration:none;color:inherit">'
-        + '<span style="width:36px;height:36px;border-radius:8px;background:'+bg+';color:#fff;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">'+ext+'</span>'
+      files.sort(function(a,b){ return new Date(b.ts) - new Date(a.ts); });
+      return { otherId:c.otherId, otherName:c.otherName, otherUser:c.otherUser, files:files, latestTs: files.length ? files[0].ts : null };
+    }).filter(function(g){ return g.files.length > 0; });
+    // 검색: 상대명 or 파일명 매칭
+    if (_s.query){
+      var q = _s.query;
+      groups = groups.map(function(g){
+        var matchesName = (g.otherName||'').toLowerCase().indexOf(q) !== -1;
+        var filtered = matchesName ? g.files : g.files.filter(function(f){ return (f.name||'').toLowerCase().indexOf(q) !== -1; });
+        return Object.assign({}, g, { files: filtered });
+      }).filter(function(g){ return g.files.length > 0; });
+    }
+    // 최신 첨부 순으로 정렬
+    groups.sort(function(a,b){ return new Date(b.latestTs) - new Date(a.latestTs); });
+    if (!groups.length){
+      body.innerHTML='<div style="text-align:center;padding:40px 20px;color:#94a3b8;font-size:13px">'+(_s.query?'검색 결과 없음':'첨부파일이 없습니다.')+'</div>';
+      return;
+    }
+    body.innerHTML = groups.map(function(g){
+      var isActive = _s.filesPartner === g.otherId;
+      return '<div class="msg2-conv-item'+(isActive?' active':'')+'" onclick="window.__msg2._selectFilesPartner(\''+_esc(g.otherId)+'\')">'
+        + _avatarHtml(g.otherUser, g.otherName, 40)
         + '<div style="flex:1;min-width:0">'
-          + '<div style="font-size:12.5px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(a.name)+'</div>'
-          + '<div style="font-size:10.5px;color:#94a3b8;margin-top:2px">'+_esc(a.from)+(a.isMine?' (내가 보냄)':'')+' · '+sz+' · '+_fmtTime(a.ts)+'</div>'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">'
+            + '<span style="font-size:13px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(g.otherName)+'</span>'
+            + '<span style="font-size:10.5px;color:#4f46e5;font-weight:800;background:#eef2ff;padding:2px 8px;border-radius:10px;flex-shrink:0">'+g.files.length+'</span>'
+          + '</div>'
+          + '<div style="font-size:11px;color:#94a3b8;margin-top:2px">'+(g.otherUser&&g.otherUser.dept ? _esc(g.otherUser.dept)+' · ' : '')+'최근 '+_fmtTime(g.latestTs)+'</div>'
         + '</div>'
-      + '</a>';
+      + '</div>';
     }).join('');
+    // 현재 선택 유지 or 첫 항목 자동 선택
+    if (_s.filesPartner && groups.some(function(g){ return g.otherId === _s.filesPartner; })){
+      _renderFilesDetail(_s.filesPartner);
+    } else if (groups.length){
+      // 자동 선택은 사용자 액션이 아니므로 기본 placeholder 유지
+      _renderDetailPlaceholder('첨부파일', '왼쪽 직원을 선택하면 주고받은 파일이 표시됩니다.');
+    }
+  }
+  function _selectFilesPartner(otherId){
+    _s.filesPartner = otherId;
+    _renderFiles();
+    _renderFilesDetail(otherId);
+  }
+  function _renderFilesDetail(otherId){
+    var detail = document.getElementById('msg2-detail-body');
+    if (!detail) return;
+    var conv = _s.convs.find(function(c){ return c.otherId === otherId; });
+    if (!conv){ _renderDetailPlaceholder('첨부파일',''); return; }
+    // 헤더 갱신 (아바타 + 이름)
+    var av = document.getElementById('msg2-detail-avatar');
+    var titleEl = document.getElementById('msg2-detail-title');
+    var subEl = document.getElementById('msg2-detail-sub');
+    var inputEl = document.getElementById('msg2-detail-input');
+    var searchBtn = document.getElementById('msg2-chat-search-btn');
+    if (searchBtn) searchBtn.style.display='none';
+    if (inputEl) inputEl.style.display='none';
+    if (av){
+      av.style.display='flex';
+      if (conv.otherUser && conv.otherUser.img){ av.innerHTML='<img src="'+_esc(conv.otherUser.img)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'; }
+      else { av.innerHTML=''; av.textContent=_initial(conv.otherName); av.style.background='linear-gradient(135deg,#4f46e5,#3730a3)'; }
+    }
+    // 파일 수집
+    var files = [];
+    conv.allMsgs.forEach(function(m){
+      if (m.attachments && m.attachments.length){
+        m.attachments.forEach(function(a){
+          files.push({ isMine:m.sender_id===_userId, name:a.name||'', url:a.url||'', size:a.size||0, ts:m.created_at });
+        });
+      }
+    });
+    files.sort(function(a,b){ return new Date(b.ts) - new Date(a.ts); });
+    if (titleEl) titleEl.textContent = conv.otherName + ' 님과 주고받은 파일';
+    if (subEl) subEl.textContent = files.length + '개';
+    // 파일 검색 필터 (좌측 검색어 공유)
+    var shown = files;
+    if (_s.query) shown = files.filter(function(f){ return (f.name||'').toLowerCase().indexOf(_s.query) !== -1; });
+    // 이미지 vs 문서 분리
+    var imgs = shown.filter(function(f){ return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name); });
+    var docs = shown.filter(function(f){ return !/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name); });
+    var html = '';
+    if (imgs.length){
+      html += '<div style="margin-bottom:18px"><div style="font-size:11.5px;font-weight:700;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">이미지 · '+imgs.length+'개</div>'
+        + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px">'
+        + imgs.map(function(f){
+          var sz = f.size>1024*1024 ? (f.size/1024/1024).toFixed(1)+'MB' : Math.round((f.size||0)/1024)+'KB';
+          return '<a href="'+_esc(f.url)+'" target="_blank" download="'+_esc(f.name)+'" title="'+_esc(f.name)+' · '+sz+'" style="display:block;position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#f1f5f9;border:1px solid #e2e8f0;text-decoration:none;transition:transform 0.15s" onmouseover="this.style.transform=\'scale(1.03)\'" onmouseout="this.style.transform=\'scale(1)\'">'
+            + '<img src="'+_esc(f.url)+'" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">'
+            + '<div style="position:absolute;left:0;right:0;bottom:0;padding:4px 6px;background:linear-gradient(transparent,rgba(0,0,0,0.65));color:#fff;font-size:9.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(f.name)+'</div>'
+            + (f.isMine?'<div style="position:absolute;top:4px;right:4px;padding:1px 6px;background:rgba(79,70,229,0.9);color:#fff;font-size:9px;font-weight:700;border-radius:8px">내가</div>':'')
+          + '</a>';
+        }).join('')
+        + '</div></div>';
+    }
+    if (docs.length){
+      html += '<div><div style="font-size:11.5px;font-weight:700;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">파일 · '+docs.length+'개</div>'
+        + '<div style="display:flex;flex-direction:column;gap:6px">'
+        + docs.map(function(f){
+          var ext = (f.name||'').split('.').pop().toUpperCase().slice(0,3);
+          var extColors = { PDF:'#ef4444', DOC:'#2563eb', DOCX:'#2563eb', XLS:'#16a34a', XLSX:'#16a34a', PPT:'#f59e0b', PPTX:'#f59e0b', ZIP:'#7c3aed', HWP:'#0891b2', TXT:'#64748b' };
+          var bg = extColors[ext] || '#64748b';
+          var sz = f.size>1024*1024 ? (f.size/1024/1024).toFixed(1)+'MB' : Math.round((f.size||0)/1024)+'KB';
+          return '<a href="'+_esc(f.url)+'" target="_blank" download="'+_esc(f.name)+'" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;text-decoration:none;color:inherit;transition:background 0.12s" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'#fff\'">'
+            + '<span style="width:36px;height:36px;border-radius:8px;background:'+bg+';color:#fff;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">'+ext+'</span>'
+            + '<div style="flex:1;min-width:0">'
+              + '<div style="font-size:12.5px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(f.name)+'</div>'
+              + '<div style="font-size:10.5px;color:#94a3b8;margin-top:2px">'+(f.isMine?'내가 보냄 · ':'받음 · ')+sz+' · '+_fmtTime(f.ts)+'</div>'
+            + '</div>'
+            + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>'
+          + '</a>';
+        }).join('')
+        + '</div></div>';
+    }
+    if (!html) html = '<div style="margin:auto;text-align:center;color:#94a3b8;font-size:13px;padding:40px">'+(_s.query?'검색 결과가 없습니다.':'이 직원과 주고받은 파일이 없습니다.')+'</div>';
+    detail.innerHTML = '<div style="max-width:920px;width:100%;margin:0 auto">'+html+'</div>';
   }
 
   return {
@@ -18252,7 +18355,8 @@ window.__msg2 = (function(){
     _composeSend:_composeSend,
     _toggleChatSearch:_toggleChatSearch,
     _chatSearchChange:_chatSearchChange,
-    _chatSearchClear:_chatSearchClear
+    _chatSearchClear:_chatSearchClear,
+    _selectFilesPartner:_selectFilesPartner
   };
 })();
 
