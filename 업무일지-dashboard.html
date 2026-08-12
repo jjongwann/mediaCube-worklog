@@ -16589,7 +16589,7 @@ function openMeetingPanel(){ window.__meeting.openPanel(); }
     }
   });
 </script>
-<!-- 게시글 본문 이미지 리사이즈 · 삭제 컨트롤 (선택 시 이미지 옆에 노출) -->
+<!-- 게시글 본문 이미지 리사이즈 · 정렬 · 삭제 컨트롤 (선택 시 이미지 옆에 노출) -->
 <div id="board-img-resize-panel">
   <button data-w="25">25%</button>
   <button data-w="50">50%</button>
@@ -16598,6 +16598,9 @@ function openMeetingPanel(){ window.__meeting.openPanel(); }
   <span class="sep">|</span>
   <input type="number" id="board-img-resize-input" min="10" max="100" placeholder="%">
   <button id="board-img-resize-apply">적용</button>
+  <span class="sep">|</span>
+  <button id="board-img-align-left" title="왼쪽 정렬"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg></button>
+  <button id="board-img-align-center" title="가운데 정렬"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="18" y1="18" x2="6" y2="18"/></svg></button>
   <span class="sep">|</span>
   <button id="board-img-delete" title="이미지 삭제" style="background:#dc2626 !important;color:#fff">✕ 삭제</button>
 </div>
@@ -17237,6 +17240,23 @@ window.__board = (function(){
         _positionResizePanel(_selectedImg);
       };
     });
+    // 정렬 버튼 (왼쪽 · 가운데)
+    var alignL = document.getElementById('board-img-align-left');
+    var alignC = document.getElementById('board-img-align-center');
+    if (alignL) alignL.onclick = function(){
+      if (!_selectedImg) return;
+      _selectedImg.style.marginLeft = '0';
+      _selectedImg.style.marginRight = '';
+      _selectedImg.style.display = 'block';
+      _positionResizePanel(_selectedImg);
+    };
+    if (alignC) alignC.onclick = function(){
+      if (!_selectedImg) return;
+      _selectedImg.style.marginLeft = 'auto';
+      _selectedImg.style.marginRight = 'auto';
+      _selectedImg.style.display = 'block';
+      _positionResizePanel(_selectedImg);
+    };
     // 삭제 버튼: 선택된 이미지 제거
     var delBtn = document.getElementById('board-img-delete');
     if (delBtn) {
