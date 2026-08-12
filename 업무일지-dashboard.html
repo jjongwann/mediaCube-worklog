@@ -16525,7 +16525,32 @@ function openMeetingPanel(){ window.__meeting.openPanel(); }
   #board-f-content:focus { border-color: #0ea5e9 !important; box-shadow: 0 0 0 2px rgba(14,165,233,0.15); }
   #board-f-content img { max-width: 100%; height: auto; border-radius: 6px; margin: 4px 0; display: block; cursor: pointer; transition: outline .12s; }
   #board-f-content img.board-img-selected { outline: 3px solid #0ea5e9; outline-offset: 2px; }
-  .board-detail-content img { max-width: 100%; height: auto; border-radius: 6px; margin: 8px 0; display: block; }
+  .board-detail-content img { max-width: 100%; height: auto; border-radius: 6px; margin: 8px 0; display: block; cursor: zoom-in; transition: opacity .12s; }
+  .board-detail-content img:hover { opacity: 0.9; }
+  /* Lightbox */
+  #board-lightbox {
+    display: none; position: fixed; inset: 0;
+    background: rgba(15,23,42,0.92); z-index: 9999999;
+    align-items: center; justify-content: center;
+    padding: 40px; cursor: zoom-out;
+    animation: boardLightboxFadeIn .15s ease;
+  }
+  @keyframes boardLightboxFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  #board-lightbox img {
+    max-width: 100%; max-height: 100%;
+    object-fit: contain; border-radius: 8px;
+    box-shadow: 0 24px 72px rgba(0,0,0,0.5);
+    cursor: default;
+  }
+  #board-lightbox-close {
+    position: absolute; top: 20px; right: 24px;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255,255,255,0.12); border: none;
+    color: #fff; font-size: 22px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .12s;
+  }
+  #board-lightbox-close:hover { background: rgba(255,255,255,0.25); }
   /* 이미지 리사이즈 컨트롤 */
   #board-img-resize-panel {
     position: absolute; z-index: 999999;
@@ -16550,6 +16575,20 @@ function openMeetingPanel(){ window.__meeting.openPanel(); }
   }
   #board-img-resize-panel .sep { color: rgba(255,255,255,0.4); padding: 0 2px; }
 </style>
+<!-- 게시글 상세 이미지 확대 lightbox -->
+<div id="board-lightbox" onclick="if(event.target===this||event.target.id==='board-lightbox-close')document.getElementById('board-lightbox').style.display='none'">
+  <button id="board-lightbox-close" title="닫기">×</button>
+  <img id="board-lightbox-img" src="" alt="">
+</div>
+<script>
+  // Lightbox ESC 닫기
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') {
+      var lb = document.getElementById('board-lightbox');
+      if (lb && lb.style.display !== 'none' && lb.style.display) lb.style.display = 'none';
+    }
+  });
+</script>
 <!-- 게시글 본문 이미지 리사이즈 · 삭제 컨트롤 (선택 시 이미지 옆에 노출) -->
 <div id="board-img-resize-panel">
   <button data-w="25">25%</button>
@@ -16914,6 +16953,17 @@ window.__board = (function(){
       + commentsHtml
       + navHtml
       + '</div>';
+    // 본문 이미지 클릭 → lightbox
+    setTimeout(function(){
+      var imgs = container.querySelectorAll('.board-detail-content img');
+      imgs.forEach(function(im){
+        im.addEventListener('click', function(){
+          var lb = document.getElementById('board-lightbox');
+          var lbImg = document.getElementById('board-lightbox-img');
+          if (lb && lbImg) { lbImg.src = im.src; lbImg.alt = im.alt || ''; lb.style.display = 'flex'; }
+        });
+      });
+    }, 0);
   }
 
   function _renderComments(post, comments){
