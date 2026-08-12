@@ -16523,9 +16523,42 @@ function openMeetingPanel(){ window.__meeting.openPanel(); }
   /* contenteditable placeholder */
   #board-f-content:empty:before { content: attr(data-placeholder); color:#94a3b8; pointer-events:none; }
   #board-f-content:focus { border-color: #0ea5e9 !important; box-shadow: 0 0 0 2px rgba(14,165,233,0.15); }
-  #board-f-content img { max-width: 100%; height: auto; border-radius: 6px; margin: 4px 0; display: block; }
+  #board-f-content img { max-width: 100%; height: auto; border-radius: 6px; margin: 4px 0; display: block; cursor: pointer; transition: outline .12s; }
+  #board-f-content img.board-img-selected { outline: 3px solid #0ea5e9; outline-offset: 2px; }
   .board-detail-content img { max-width: 100%; height: auto; border-radius: 6px; margin: 8px 0; display: block; }
+  /* 이미지 리사이즈 컨트롤 */
+  #board-img-resize-panel {
+    position: absolute; z-index: 999999;
+    background: #0f172a; color: #fff; border-radius: 8px;
+    padding: 6px; display: none; align-items: center; gap: 4px;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+    font-family: inherit; font-size: 12px;
+  }
+  #board-img-resize-panel button {
+    background: rgba(255,255,255,0.08); color: #fff; border: none;
+    padding: 5px 10px; border-radius: 5px; cursor: pointer;
+    font-family: inherit; font-size: 11.5px; font-weight: 700;
+    transition: background .12s;
+  }
+  #board-img-resize-panel button:hover { background: rgba(255,255,255,0.2); }
+  #board-img-resize-panel button.active { background: #0ea5e9; }
+  #board-img-resize-panel input[type=number] {
+    width: 54px; padding: 4px 6px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08); color: #fff; font-family: inherit; font-size: 11.5px;
+    outline: none;
+  }
+  #board-img-resize-panel .sep { color: rgba(255,255,255,0.4); padding: 0 2px; }
 </style>
+<!-- 게시글 본문 이미지 리사이즈 컨트롤 (선택 시 이미지 옆에 노출) -->
+<div id="board-img-resize-panel">
+  <button data-w="25">25%</button>
+  <button data-w="50">50%</button>
+  <button data-w="75">75%</button>
+  <button data-w="100">100%</button>
+  <span class="sep">|</span>
+  <input type="number" id="board-img-resize-input" min="10" max="100" placeholder="%">
+  <button id="board-img-resize-apply">적용</button>
+</div>
 <div id="board-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.45);z-index:9990;align-items:center;justify-content:center;padding:20px;box-sizing:border-box" onclick="if(event.target===this)closeBoardPanel()">
   <div style="width:1100px;max-width:calc(100vw - 40px);height:88vh;max-height:900px;background:#fff;border-radius:18px;box-shadow:0 24px 72px rgba(0,0,0,0.28);display:flex;flex-direction:column;font-family:inherit;overflow:hidden">
     <!-- 헤더 -->
@@ -16799,6 +16832,8 @@ window.__board = (function(){
         + '<button onclick="__board.savePost()" style="padding:10px 22px;background:#0ea5e9;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit">'+(_state.editingId?'수정 완료':'게시')+'</button>'
       + '</div>'
       + '</div>';
+    // 렌더 완료 후 이미지 리사이즈 이벤트 바인딩
+    setTimeout(_bindImageResize, 0);
   }
 
   function _renderAttachList(){
@@ -17058,6 +17093,83 @@ window.__board = (function(){
         console.warn('[board inline image]', e);
       });
   }
+  // ── 이미지 리사이즈: 클릭 → 패널 표시 → % 조정 ─────
+  var _selectedImg = null;
+  function _bindImageResize(){
+    var contentEl = document.getElementById('board-f-content');
+    var panel = document.getElementById('board-img-resize-panel');
+    if (!contentEl || !panel) return;
+    // 편집기 내부 클릭
+    contentEl.onclick = function(e){
+      var t = e.target;
+      if (t && t.tagName === 'IMG') {
+        _selectedImg = t;
+        // 이전 선택 해제
+        Array.from(contentEl.querySelectorAll('img.board-img-selected')).forEach(function(im){ im.classList.remove('board-img-selected'); });
+        t.classList.add('board-img-selected');
+        _positionResizePanel(t);
+      } else {
+        _hideResizePanel();
+      }
+    };
+    // 외부 클릭 → 숨김
+    document.addEventListener('click', function(e){
+      if (!panel.contains(e.target) && e.target.tagName !== 'IMG') _hideResizePanel();
+    });
+    // 프리셋 % 버튼
+    Array.from(panel.querySelectorAll('button[data-w]')).forEach(function(btn){
+      btn.onclick = function(){
+        if (!_selectedImg) return;
+        var w = parseInt(btn.getAttribute('data-w'), 10);
+        _selectedImg.style.width = w + '%';
+        _selectedImg.style.height = 'auto';
+        _positionResizePanel(_selectedImg);
+      };
+    });
+    // 수동 % 입력 적용
+    var applyBtn = document.getElementById('board-img-resize-apply');
+    var inputEl = document.getElementById('board-img-resize-input');
+    if (applyBtn && inputEl) {
+      applyBtn.onclick = function(){
+        if (!_selectedImg) return;
+        var v = parseInt(inputEl.value, 10);
+        if (!isNaN(v) && v >= 10 && v <= 100) {
+          _selectedImg.style.width = v + '%';
+          _selectedImg.style.height = 'auto';
+          _positionResizePanel(_selectedImg);
+        } else {
+          alert('10~100 사이 % 값을 입력해주세요.');
+        }
+      };
+      inputEl.onkeydown = function(e){ if (e.key === 'Enter') { e.preventDefault(); applyBtn.click(); } };
+    }
+    _hideResizePanel();
+  }
+  function _positionResizePanel(img){
+    var panel = document.getElementById('board-img-resize-panel');
+    if (!panel || !img) return;
+    var rect = img.getBoundingClientRect();
+    var top = window.scrollY + rect.top - 40;
+    var left = window.scrollX + rect.left;
+    if (top < window.scrollY + 8) top = window.scrollY + rect.bottom + 6; // 상단 잘리면 이미지 아래로
+    panel.style.top = top + 'px';
+    panel.style.left = left + 'px';
+    panel.style.display = 'flex';
+    // 현재 % 를 input 에 반영
+    var input = document.getElementById('board-img-resize-input');
+    if (input) {
+      var wStyle = img.style.width || '';
+      var m = wStyle.match(/^(\d+)%$/);
+      input.value = m ? m[1] : '';
+    }
+  }
+  function _hideResizePanel(){
+    var panel = document.getElementById('board-img-resize-panel');
+    if (panel) panel.style.display = 'none';
+    if (_selectedImg) _selectedImg.classList.remove('board-img-selected');
+    _selectedImg = null;
+  }
+
   function _insertHtmlAtCursor(html){
     var el = document.getElementById('board-f-content');
     if (!el) return;
