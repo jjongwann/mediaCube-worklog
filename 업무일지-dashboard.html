@@ -23052,7 +23052,8 @@ function _showVendorChooser() {
       var safeDesc = _scalEscape(e.description || '');
       var creator = _scalEscape(_scalCreatorName(e.created_by));
       var isMine = e.created_by === _userId;
-      var canEdit = isMine; // RLS 와 동일 정책
+      var _canOp2 = isMine || (typeof _isAdmin !== 'undefined' && _isAdmin); // 본인 or 관리자만 편집/삭제
+      var canEdit = _canOp2;
 
       var timeLabel = '';
       if (e.start_time && e.end_time) timeLabel = e.start_time.slice(0,5) + ' ~ ' + e.end_time.slice(0,5);
@@ -23068,8 +23069,10 @@ function _showVendorChooser() {
       var actionBtn = canEdit
         ? '<button onclick="_scalEditFromDayView(\'' + safeId + '\')" style="padding:5px 12px;background:' + color + ';color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:filter .12s" onmouseover="this.style.filter=\'brightness(0.92)\'" onmouseout="this.style.filter=\'\'">✎ 수정</button>'
         : '<button onclick="_scalEditFromDayView(\'' + safeId + '\')" style="padding:5px 12px;background:#fff;color:#64748b;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">👁 보기</button>';
-      // 삭제 버튼 — 모든 행에 노출 (RLS 허용, confirm 으로 안전망)
-      var deleteBtn = '<button onclick="_scalDeleteFromDayView(\'' + safeId + '\')" title="이 일정 삭제" style="padding:5px 12px;background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;transition:background .12s" onmouseover="this.style.background=\'#fef2f2\'" onmouseout="this.style.background=\'#fff\'">🗑 삭제</button>';
+      // 삭제 버튼 — 본인 or 관리자만 노출
+      var deleteBtn = _canOp2
+        ? '<button onclick="_scalDeleteFromDayView(\'' + safeId + '\')" title="이 일정 삭제" style="padding:5px 12px;background:#fff;color:#dc2626;border:1px solid #fecaca;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;transition:background .12s" onmouseover="this.style.background=\'#fef2f2\'" onmouseout="this.style.background=\'#fff\'">🗑 삭제</button>'
+        : '';
       var actions = '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">' + actionBtn + deleteBtn + '</div>';
 
       return '<div style="display:flex;gap:10px;align-items:flex-start;padding:11px 12px;background:#fff;border:1px solid #e2e8f0;border-left:4px solid ' + color + ';border-radius:9px;transition:background .12s" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'#fff\'">'
@@ -23104,6 +23107,11 @@ function _showVendorChooser() {
   // day view 에서 특정 이벤트 '삭제' → confirm 후 DELETE
   function _scalDeleteFromDayView(eventId) {
     if (!eventId) return;
+    // 권한 재확인 (UI 우회 방어): 본인 or 관리자만 삭제
+    var ev = SCAL_STATE.events.find(function(x){ return x.id === eventId; });
+    var isMine = ev && ev.created_by === _userId;
+    var isAdminOK = (typeof _isAdmin !== 'undefined' && _isAdmin);
+    if (!isMine && !isAdminOK) { alert('본인이 등록한 일정만 삭제할 수 있습니다.'); return; }
     if (!confirm('정말로 삭제하시겠습니까?')) return;
     var url = SB_URL + '/rest/v1/shared_calendar_events?id=eq.' + encodeURIComponent(eventId);
     fetch(url, { method: 'DELETE', headers: SB_DEL_HDR })
@@ -23330,6 +23338,11 @@ function _showVendorChooser() {
 
   function _scalDeleteEvent() {
     if (!SCAL_STATE.editingId) return;
+    // 권한 재확인 (UI 우회 방어)
+    var ev2 = SCAL_STATE.events.find(function(x){ return x.id === SCAL_STATE.editingId; });
+    var isMine2 = ev2 && ev2.created_by === _userId;
+    var isAdminOK2 = (typeof _isAdmin !== 'undefined' && _isAdmin);
+    if (!isMine2 && !isAdminOK2) { alert('본인이 등록한 일정만 삭제할 수 있습니다.'); return; }
     if (!confirm('정말로 삭제하시겠습니까?')) return;
     var url = SB_URL + '/rest/v1/shared_calendar_events?id=eq.' + encodeURIComponent(SCAL_STATE.editingId);
     fetch(url, { method: 'DELETE', headers: SB_DEL_HDR })
