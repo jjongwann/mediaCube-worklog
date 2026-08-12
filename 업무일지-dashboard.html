@@ -16802,10 +16802,19 @@ window.__board = (function(){
         + '<input id="board-f-title" type="text" value="'+_esc(initTitle)+'" placeholder="제목을 입력하세요" style="width:100%;padding:9px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;font-family:inherit"></div>'
       + '</div>'
       + '<div style="margin-bottom:12px">'
-        + '<label style="font-size:11.5px;font-weight:700;color:#64748b;display:block;margin-bottom:5px">본문 *</label>'
-        + '<div id="board-f-content" contenteditable="true" data-placeholder="본문을 입력하세요. 이미지는 드래그·붙여넣기 가능 (Ctrl+V)" '
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">'
+        +   '<label style="font-size:11.5px;font-weight:700;color:#64748b">본문 *</label>'
+        +   '<div style="display:flex;gap:5px">'
+        +     '<button type="button" onclick="document.getElementById(\'board-f-img-input\').click()" style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;background:#f0f9ff;border:1px solid #bae6fd;color:#0369a1;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit" onmouseover="this.style.background=\'#e0f2fe\'" onmouseout="this.style.background=\'#f0f9ff\'">'
+        +       '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
+        +       '이미지 추가'
+        +     '</button>'
+        +   '</div>'
+        + '</div>'
+        + '<input id="board-f-img-input" type="file" accept="image/*" multiple style="display:none" onchange="window.__board._onInlineImgSelect(this)">'
+        + '<div id="board-f-content" contenteditable="true" data-placeholder="본문을 입력하세요. 이미지는 드래그·붙여넣기·[이미지 추가] 버튼으로 삽입 가능" '
         + 'onpaste="window.__board._onContentPaste(event)" ondrop="window.__board._onContentDrop(event)" ondragover="event.preventDefault()" '
-        + 'style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13.5px;line-height:1.7;box-sizing:border-box;outline:none;font-family:inherit;min-height:280px;background:#fff;overflow-y:auto;max-height:520px">'
+        + 'style="width:100%;padding:14px;border:1px solid #e2e8f0;border-radius:8px;font-size:13.5px;line-height:1.75;box-sizing:border-box;outline:none;font-family:inherit;min-height:420px;background:#fff;overflow-y:auto;max-height:720px">'
         + (initContent || '')
         + '</div>'
       + '</div>'
@@ -17068,6 +17077,16 @@ window.__board = (function(){
     var files = Array.from(dt.files||[]).filter(function(f){ return f.type && f.type.indexOf('image/')===0; });
     if (!files.length) return; // 파일 아닌 텍스트 드래그는 기본 처리
     e.preventDefault();
+    files.forEach(function(f){ _insertInlineImage(f); });
+  }
+  // '이미지 추가' 버튼으로 파일 선택
+  function _onInlineImgSelect(input){
+    var files = Array.from(input.files||[]).filter(function(f){ return f.type && f.type.indexOf('image/')===0; });
+    input.value = '';
+    if (!files.length) return;
+    // 커서가 편집기에 없으면 편집기 끝에 삽입되도록 focus
+    var el = document.getElementById('board-f-content');
+    if (el) el.focus();
     files.forEach(function(f){ _insertInlineImage(f); });
   }
   function _insertInlineImage(file){
@@ -17386,7 +17405,7 @@ window.__board = (function(){
     savePost: savePost, deletePost: deletePost,
     addComment: addComment, deleteComment: deleteComment,
     _onVisibilityChange: _onVisibilityChange, _onAttachSelect: _onAttachSelect, _removeAttach: _removeAttach,
-    _onContentPaste: _onContentPaste, _onContentDrop: _onContentDrop,
+    _onContentPaste: _onContentPaste, _onContentDrop: _onContentDrop, _onInlineImgSelect: _onInlineImgSelect,
     _toggleReplyForm: _toggleReplyForm, _submitReply: _submitReply,
     _toggleEditForm: _toggleEditForm, _submitCommentEdit: _submitCommentEdit
   };
