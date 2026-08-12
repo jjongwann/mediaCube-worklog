@@ -355,6 +355,11 @@
   body.embed-directive.dir-mode-list .dm-new-btn-directive { display: inline-flex !important; }
   body.embed-directive.dir-mode-form .dm-new-btn-directive { display: none !important; }
   body.embed-directive.dir-mode-detail .dm-new-btn-directive { display: none !important; }
+  /* board-embed: dm-topbar '카탈로그로' 숨기고 '+ 글쓰기' 노출 (list 뷰만) */
+  body.embed-board .dm-new-btn-catalog-back { display: none !important; }
+  body.embed-board.board-view-list .dm-new-btn-board { display: inline-flex !important; }
+  body.embed-board.board-view-write .dm-new-btn-board { display: none !important; }
+  body.embed-board.board-view-detail .dm-new-btn-board { display: none !important; }
   /* 음원팀은 카탈로그 영역 전체 폭으로 (꽉 채움) */
   body.dev-embed #dev-feature-embed > #soundteam-overlay {
     width: 100% !important;
@@ -2127,6 +2132,10 @@
           <button type="button" class="dm-new-btn dm-new-btn-directive" onclick="if(window._dirShowForm) window._dirShowForm()" title="업무 지시" style="display:none;border:none">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             업무 지시
+          </button>
+          <button type="button" class="dm-new-btn dm-new-btn-board" onclick="if(window.__board) window.__board.showWrite()" title="게시글 작성" style="display:none;border:none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            글쓰기
           </button>
           <button type="button" class="dm-new-btn dm-new-btn-calendar" onclick="if(typeof _scalOpenEventModal==='function') _scalOpenEventModal(null)" title="새 일정 추가" style="display:none;border:none">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -16659,6 +16668,9 @@ window.__board = (function(){
       if (title)  title.textContent = '게시글 조회';
     }
     if (xBtn) xBtn.style.display = isEmbed ? 'none' : 'flex';
+    // body 클래스 동기화 (dm-topbar '+ 글쓰기' 스왑용)
+    document.body.classList.remove('board-view-list','board-view-write','board-view-detail');
+    if (isEmbed) document.body.classList.add('board-view-'+_state.view);
   }
 
   function _render(){
@@ -16692,7 +16704,6 @@ window.__board = (function(){
             + '<svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);pointer-events:none" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
             + '<input id="board-search" type="text" placeholder="제목·내용 검색..." value="'+_esc(_state.search)+'" oninput="__board.setSearch(this.value)" style="padding:7px 10px 7px 32px;border:1px solid #e2e8f0;border-radius:8px;font-size:12.5px;outline:none;font-family:inherit;min-width:220px">'
           + '</div>'
-          + '<button onclick="__board.showWrite()" style="padding:8px 14px;background:#0ea5e9;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px" onmouseover="this.style.background=\'#0284c7\'" onmouseout="this.style.background=\'#0ea5e9\'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>글쓰기</button>'
         + '</div>'
       + '</div>'
     + '</div>';
@@ -16717,7 +16728,8 @@ window.__board = (function(){
     var catOpts = CATS.map(function(c){ return '<option value="'+c.key+'"'+(initCat===c.key?' selected':'')+'>'+c.label+'</option>'; }).join('');
 
     // 부서·직원 옵션 (visibility=dept/user 시)
-    var deptOpts = ['사운드컨텐츠사업부','시스템 사업부','회계·경리팀','개발팀','미디어큐브'].map(function(d){
+    // 관리자(mediacube · 미디어큐브 부서) 는 항상 전 게시글 조회 가능하므로 목록에서 제외
+    var deptOpts = ['사운드컨텐츠사업부','시스템 사업부','회계·경리팀','개발팀'].map(function(d){
       var checked = (initVisibility==='dept' && Array.isArray(editing&&editing.visibility_targets) && editing.visibility_targets.indexOf(d)!==-1);
       return '<label style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;cursor:pointer;font-size:12px"><input type="checkbox" class="board-vis-dept" value="'+d+'"'+(checked?' checked':'')+' style="accent-color:#0ea5e9"><span>'+d+'</span></label>';
     }).join('');
