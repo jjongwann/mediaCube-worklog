@@ -17940,14 +17940,18 @@ window.__msg2 = (function(){
   // ── 대화 검색 ─────────────────────────
   function _toggleChatSearch(){
     var bar = document.getElementById('msg2-chat-search-bar'); if (!bar) return;
+    var pill = document.getElementById('msg2-chat-search-btn');
     var isOpen = bar.style.display !== 'none' && bar.style.display !== '';
     if (isOpen){
       bar.style.display='none';
-      _s.chatQuery=''; var inp = document.getElementById('msg2-chat-search-input'); if (inp) inp.value='';
+      if (pill && _s.selConv) pill.style.display='inline-flex';
+      _s.chatQuery=''; _s.chatMatchIdx=0; _s.chatMatchCount=0;
+      var inp = document.getElementById('msg2-chat-search-input'); if (inp) inp.value='';
       var cnt = document.getElementById('msg2-chat-search-count'); if (cnt) cnt.textContent='';
       _renderMessages(_s.msgs||[]);
     } else {
       bar.style.display='block';
+      if (pill) pill.style.display='none'; // 카운터와 겹치지 않도록 pill 숨김
       var inp = document.getElementById('msg2-chat-search-input'); if (inp){ inp.focus(); }
     }
   }
@@ -17972,6 +17976,7 @@ window.__msg2 = (function(){
     var inp = document.getElementById('msg2-chat-search-input'); if (inp) inp.value='';
     var cnt = document.getElementById('msg2-chat-search-count'); if (cnt){ cnt.textContent=''; cnt.style.color='#ef4444'; }
     var bar = document.getElementById('msg2-chat-search-bar'); if (bar) bar.style.display='none';
+    var pill = document.getElementById('msg2-chat-search-btn'); if (pill && _s.selConv) pill.style.display='inline-flex';
     _renderMessages(_s.msgs||[]);
   }
 
