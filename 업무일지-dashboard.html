@@ -379,30 +379,49 @@
   body.dev-embed #dev-feature-embed > #vendor-needle-overlay,
   body.dev-embed #dev-feature-embed > #bmat-modal-overlay,
   body.dev-embed #dev-feature-embed > #shared-cal-overlay,
-  body.dev-embed #dev-feature-embed > #board-overlay,
-  body.dev-embed #dev-feature-embed > #msg2-overlay {
+  body.dev-embed #dev-feature-embed > #board-overlay {
     width: 100% !important;
   }
   body.dev-embed #dev-feature-embed > #board-overlay > div {
     min-height: 82vh !important;
   }
-  /* 메신저 embed: fixed inset:0 → static / 82vh 카드 */
-  body.dev-embed #dev-feature-embed > #msg2-overlay {
-    position: static !important;
-    inset: auto !important;
-    height: 82vh !important;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 8px 32px rgba(15,23,42,0.08);
+  /* 메신저 모달 backdrop + 카드 */
+  #msg2-overlay { display:none; }
+  #msg2-overlay.open { display:flex !important; }
+  #msg2-modal {
+    display:flex; flex-direction:row;
+    width: 1080px; max-width: 96vw;
+    height: 720px; max-height: 90vh;
+    background:#fff; border-radius:16px; overflow:hidden;
+    box-shadow: 0 24px 72px rgba(15,23,42,0.35), 0 4px 16px rgba(15,23,42,0.15);
+    animation: msg2FadeUp 0.18s ease-out;
   }
-  /* msg2 rail 활성 탭 */
+  @keyframes msg2FadeUp {
+    from { opacity:0; transform:translateY(8px) scale(0.98); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+  }
+  /* 강제: msg2 rail / list-col / detail-col 각자 자기 너비 지킴 */
+  #msg2-modal #msg2-rail { flex: 0 0 76px; }
+  #msg2-modal #msg2-list-col { flex: 0 0 320px; min-width:0; }
+  #msg2-modal #msg2-detail-col { flex: 1 1 auto; min-width:0; }
+  /* msg2 rail 버튼 + 라벨 */
+  #msg2-rail .msg2-rail-btn {
+    width:60px; padding:8px 0; border:none; background:transparent;
+    color:#94a3b8; border-radius:10px; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    position:relative; font-size:10px; font-weight:600;
+    transition:background 0.12s, color 0.12s;
+  }
   #msg2-rail .msg2-rail-btn:hover { background:#1e293b; color:#fff; }
   #msg2-rail .msg2-rail-btn.active { background:#4f46e5; color:#fff; }
+  #msg2-rail .msg2-rail-lbl { font-size:10px; line-height:1; letter-spacing:-0.02em; }
   /* msg2 대화 항목 */
   .msg2-conv-item { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid #eef2f7; cursor:pointer; transition:background 0.12s; }
   .msg2-conv-item:hover { background:#eef2ff; }
   .msg2-conv-item.active { background:#e0e7ff; border-left:3px solid #4f46e5; padding-left:13px; }
+  /* 스크롤바 얇게 */
+  #msg2-list-body::-webkit-scrollbar, #msg2-detail-body::-webkit-scrollbar { width:6px; }
+  #msg2-list-body::-webkit-scrollbar-thumb, #msg2-detail-body::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
   body.dev-embed #dev-feature-embed > #vendor-needle-overlay > div,
   body.dev-embed #dev-feature-embed > #shared-cal-overlay > div {
     min-height: 78vh !important;
@@ -2094,7 +2113,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         프로필 보기
       </button>
-      <button onclick="if(typeof openMsg2==='function'){openMsg2();setTimeout(function(){window.__msg2.setTab('compose');},80);}else{openMsgCompose();}closeUserMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:11px 14px;background:none;border:none;cursor:pointer;font-size:13px;color:#374151;border-bottom:1px solid #f1f5f9" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='none'">
+      <button onclick="if(window.__msg2){window.__msg2.openPanel('compose');}else{openMsgCompose();}closeUserMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:11px 14px;background:none;border:none;cursor:pointer;font-size:13px;color:#374151;border-bottom:1px solid #f1f5f9" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='none'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
         메시지 보내기
       </button>
@@ -3242,32 +3261,37 @@
 </div>
 
 <!-- ═══════════════════════════════════════════
-     메신저 v2 - 3 컬럼 (rail + list + detail)
+     메신저 v2 - 플로팅 모달 (backdrop + 카드)
      ═══════════════════════════════════════════ -->
-<div id="msg2-overlay" style="display:none;position:fixed;inset:0;background:#fff;z-index:9990;flex-direction:row;overflow:hidden;font-family:inherit">
-  <!-- 좌측 아이콘 rail -->
-  <div id="msg2-rail" style="width:64px;background:#0f172a;color:#94a3b8;display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:6px;flex-shrink:0;border-right:1px solid #1e293b">
-    <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#4f46e5,#3730a3);color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:10px">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+<div id="msg2-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9995;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;font-family:inherit" onclick="if(event.target===this)window.__msg2.closePanel()">
+  <div id="msg2-modal" onclick="event.stopPropagation()">
+    <!-- 좌측 아이콘 rail -->
+    <div id="msg2-rail" style="background:linear-gradient(180deg,#0f172a,#1e293b);color:#94a3b8;display:flex;flex-direction:column;align-items:center;padding:14px 0 10px;gap:4px;border-right:1px solid #0f172a">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#4338ca);color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:10px;box-shadow:0 4px 12px rgba(99,102,241,0.35)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <button class="msg2-rail-btn" data-tab="list" onclick="window.__msg2.setTab('list')" title="메시지 목록">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        <span class="msg2-rail-lbl">목록</span>
+        <span id="msg2-rail-badge" style="display:none;position:absolute;top:4px;right:6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;line-height:16px;text-align:center"></span>
+      </button>
+      <button class="msg2-rail-btn" data-tab="compose" onclick="window.__msg2.setTab('compose')" title="새 메시지">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <span class="msg2-rail-lbl">새글</span>
+      </button>
+      <button class="msg2-rail-btn" data-tab="files" onclick="window.__msg2.setTab('files')" title="첨부파일 보기">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        <span class="msg2-rail-lbl">첨부</span>
+      </button>
+      <div style="flex:1"></div>
+      <button onclick="window.__msg2.closePanel()" title="닫기 (ESC)" style="width:60px;padding:8px 0;border:none;background:transparent;color:#64748b;border-radius:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;font-weight:600" onmouseover="this.style.background='#1e293b';this.style.color='#f43f5e'" onmouseout="this.style.background='transparent';this.style.color='#64748b'">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <span class="msg2-rail-lbl">닫기</span>
+      </button>
     </div>
-    <button class="msg2-rail-btn" data-tab="list" onclick="window.__msg2.setTab('list')" title="메시지 목록" style="width:44px;height:44px;border:none;background:transparent;color:inherit;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-      <span id="msg2-rail-badge" style="display:none;position:absolute;top:6px;right:6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;line-height:16px;text-align:center"></span>
-    </button>
-    <button class="msg2-rail-btn" data-tab="compose" onclick="window.__msg2.setTab('compose')" title="새 메시지" style="width:44px;height:44px;border:none;background:transparent;color:inherit;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-    </button>
-    <button class="msg2-rail-btn" data-tab="files" onclick="window.__msg2.setTab('files')" title="첨부파일 보기" style="width:44px;height:44px;border:none;background:transparent;color:inherit;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-    </button>
-    <div style="flex:1"></div>
-    <button onclick="window.__msg2.closePanel()" title="닫기" style="width:44px;height:44px;border:none;background:transparent;color:#64748b;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center" onmouseover="this.style.background='#1e293b';this.style.color='#f43f5e'" onmouseout="this.style.background='transparent';this.style.color='#64748b'">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-  </div>
 
-  <!-- 중앙 리스트 컬럼 -->
-  <div id="msg2-list-col" style="width:340px;background:#f8fafc;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;flex-shrink:0">
+    <!-- 중앙 리스트 컬럼 -->
+    <div id="msg2-list-col" style="background:#f8fafc;border-right:1px solid #e2e8f0;display:flex;flex-direction:column">
     <!-- 리스트 헤더 (탭에 따라 텍스트 바뀜) -->
     <div id="msg2-list-header" style="padding:16px 18px 12px;border-bottom:1px solid #e2e8f0;background:#fff">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -3317,6 +3341,7 @@
       </div>
     </div>
   </div>
+  </div><!-- /#msg2-modal -->
 </div>
 
 <!-- Onboarding -->
@@ -5743,7 +5768,7 @@
       var chatOverlay = document.getElementById('chat-overlay');
       if (chatOverlay && chatOverlay.style.display !== 'none') { closeChatPanel(); return; }
       var msg2Ov = document.getElementById('msg2-overlay');
-      if (msg2Ov && msg2Ov.style.display && msg2Ov.style.display !== 'none') { if (typeof closeMsg2==='function') closeMsg2(); return; }
+      if (msg2Ov && msg2Ov.classList.contains('open')) { if (typeof closeMsg2==='function') closeMsg2(); return; }
       var msgList = document.getElementById('msg-list-panel');
       if (msgList && msgList.style.display !== 'none') { closeMsgList(); return; }
       var msgCompose = document.getElementById('msg-compose-panel');
@@ -17689,31 +17714,29 @@ window.__msg2 = (function(){
   }
 
   // ── 진입/종료 ─────────────────────────
-  function openPanel(){
-    if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function'){
-      window._dmEnterFeatureEmbed('msg2-overlay');
-    }
+  function openPanel(initTab){
     var ov = document.getElementById('msg2-overlay');
-    if (ov) ov.style.display = 'flex';
-    _s.tab = 'list'; _s.selConv = null; _s.files = []; _s.query = '';
+    if (ov) ov.classList.add('open');
+    _s.tab = initTab || 'list';
+    _s.selConv = null; _s.files = []; _s.query = '';
     var srch = document.getElementById('msg2-search'); if (srch) srch.value='';
     _renderRail();
+    // 대화 목록은 항상 백그라운드로 fetch (배지 · 첨부 뷰 대비)
     _loadConvs();
-    _renderDetail();
-    // 5초 폴링 (탭이 list 인 동안만 유의미)
+    // 초기 탭 즉시 렌더 (compose/files 이면 body 를 스피너로 두지 않도록)
+    if (_s.tab === 'list') _renderDetailPlaceholder('대화를 선택하세요','');
+    else if (_s.tab === 'compose') { _s.composeIds=[]; _s.composeQuery=''; _renderCompose(); _renderDetailPlaceholder('새 메시지 작성','왼쪽에서 받는 사람을 선택하고 내용을 작성하세요.'); }
+    else if (_s.tab === 'files') { _renderFiles(); _renderDetailPlaceholder('첨부파일','왼쪽 목록에서 파일을 클릭하면 다운로드됩니다.'); }
+    // 5초 폴링 — modal 닫히면 자동 정리
     if (_pollTimer) clearInterval(_pollTimer);
     _pollTimer = setInterval(function(){
       var ov = document.getElementById('msg2-overlay');
-      if (!ov || ov.style.display === 'none'){ if (_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; } if (_chatPollTimer){ clearInterval(_chatPollTimer); _chatPollTimer=null; } return; }
+      if (!ov || !ov.classList.contains('open')){ if (_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; } if (_chatPollTimer){ clearInterval(_chatPollTimer); _chatPollTimer=null; } return; }
       if (_s.tab==='list' || _s.tab==='files') _loadConvs(true);
     }, 5000);
   }
   function closePanel(){
-    if (document.body.classList.contains('dev-embed') && window._dmFeatureEmbedState && window._dmFeatureEmbedState.overlayId==='msg2-overlay' && typeof window._dmExitFeatureEmbed==='function'){
-      window._dmExitFeatureEmbed();
-    } else {
-      var ov = document.getElementById('msg2-overlay'); if (ov) ov.style.display='none';
-    }
+    var ov = document.getElementById('msg2-overlay'); if (ov) ov.classList.remove('open');
     if (_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; }
     if (_chatPollTimer){ clearInterval(_chatPollTimer); _chatPollTimer=null; }
   }
@@ -18571,8 +18594,7 @@ window._dmCrumbLabels = {
   'bmat-modal-overlay':       'BMAT 모니터링 통계',
   'shared-cal-overlay':       '업무 공유 캘린더',
   'meeting-overlay':          '회의록',
-  'board-overlay':            '게시판',
-  'msg2-overlay':             '메시지'
+  'board-overlay':            '게시판'
 };
 // dm-crumb 텍스트 갱신 (인자 없으면 '기능 카탈로그' 로 복귀)
 window._dmSetCrumb = function(label) {
