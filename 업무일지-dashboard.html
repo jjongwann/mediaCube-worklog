@@ -379,12 +379,30 @@
   body.dev-embed #dev-feature-embed > #vendor-needle-overlay,
   body.dev-embed #dev-feature-embed > #bmat-modal-overlay,
   body.dev-embed #dev-feature-embed > #shared-cal-overlay,
-  body.dev-embed #dev-feature-embed > #board-overlay {
+  body.dev-embed #dev-feature-embed > #board-overlay,
+  body.dev-embed #dev-feature-embed > #msg2-overlay {
     width: 100% !important;
   }
   body.dev-embed #dev-feature-embed > #board-overlay > div {
     min-height: 82vh !important;
   }
+  /* 메신저 embed: fixed inset:0 → static / 82vh 카드 */
+  body.dev-embed #dev-feature-embed > #msg2-overlay {
+    position: static !important;
+    inset: auto !important;
+    height: 82vh !important;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(15,23,42,0.08);
+  }
+  /* msg2 rail 활성 탭 */
+  #msg2-rail .msg2-rail-btn:hover { background:#1e293b; color:#fff; }
+  #msg2-rail .msg2-rail-btn.active { background:#4f46e5; color:#fff; }
+  /* msg2 대화 항목 */
+  .msg2-conv-item { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid #eef2f7; cursor:pointer; transition:background 0.12s; }
+  .msg2-conv-item:hover { background:#eef2ff; }
+  .msg2-conv-item.active { background:#e0e7ff; border-left:3px solid #4f46e5; padding-left:13px; }
   body.dev-embed #dev-feature-embed > #vendor-needle-overlay > div,
   body.dev-embed #dev-feature-embed > #shared-cal-overlay > div {
     min-height: 78vh !important;
@@ -2076,11 +2094,11 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         프로필 보기
       </button>
-      <button onclick="openMsgCompose();closeUserMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:11px 14px;background:none;border:none;cursor:pointer;font-size:13px;color:#374151;border-bottom:1px solid #f1f5f9" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='none'">
+      <button onclick="if(typeof openMsg2==='function'){openMsg2();setTimeout(function(){window.__msg2.setTab('compose');},80);}else{openMsgCompose();}closeUserMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:11px 14px;background:none;border:none;cursor:pointer;font-size:13px;color:#374151;border-bottom:1px solid #f1f5f9" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='none'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
         메시지 보내기
       </button>
-      <button onclick="openMsgList();closeUserMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:11px 14px;background:none;border:none;cursor:pointer;font-size:13px;color:#374151;position:relative;border-bottom:1px solid #f1f5f9" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='none'">
+      <button onclick="(typeof openMsg2==='function'?openMsg2():openMsgList());closeUserMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:11px 14px;background:none;border:none;cursor:pointer;font-size:13px;color:#374151;position:relative;border-bottom:1px solid #f1f5f9" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='none'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         메시지 목록
         <span id="msg-badge2" style="display:none;margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:700;border-radius:9px;min-width:17px;height:17px;line-height:17px;text-align:center;padding:0 4px"></span>
@@ -3216,6 +3234,84 @@
           oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"
           onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();chatSendMsg();}"></textarea>
         <button id="chat-send-btn" onclick="chatSendMsg()" style="padding:9px 16px;background:#2563eb;color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;transition:background 0.15s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     메신저 v2 - 3 컬럼 (rail + list + detail)
+     ═══════════════════════════════════════════ -->
+<div id="msg2-overlay" style="display:none;position:fixed;inset:0;background:#fff;z-index:9990;flex-direction:row;overflow:hidden;font-family:inherit">
+  <!-- 좌측 아이콘 rail -->
+  <div id="msg2-rail" style="width:64px;background:#0f172a;color:#94a3b8;display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:6px;flex-shrink:0;border-right:1px solid #1e293b">
+    <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#4f46e5,#3730a3);color:#fff;display:flex;align-items:center;justify-content:center;margin-bottom:10px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </div>
+    <button class="msg2-rail-btn" data-tab="list" onclick="window.__msg2.setTab('list')" title="메시지 목록" style="width:44px;height:44px;border:none;background:transparent;color:inherit;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      <span id="msg2-rail-badge" style="display:none;position:absolute;top:6px;right:6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;line-height:16px;text-align:center"></span>
+    </button>
+    <button class="msg2-rail-btn" data-tab="compose" onclick="window.__msg2.setTab('compose')" title="새 메시지" style="width:44px;height:44px;border:none;background:transparent;color:inherit;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    </button>
+    <button class="msg2-rail-btn" data-tab="files" onclick="window.__msg2.setTab('files')" title="첨부파일 보기" style="width:44px;height:44px;border:none;background:transparent;color:inherit;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+    </button>
+    <div style="flex:1"></div>
+    <button onclick="window.__msg2.closePanel()" title="닫기" style="width:44px;height:44px;border:none;background:transparent;color:#64748b;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center" onmouseover="this.style.background='#1e293b';this.style.color='#f43f5e'" onmouseout="this.style.background='transparent';this.style.color='#64748b'">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <!-- 중앙 리스트 컬럼 -->
+  <div id="msg2-list-col" style="width:340px;background:#f8fafc;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;flex-shrink:0">
+    <!-- 리스트 헤더 (탭에 따라 텍스트 바뀜) -->
+    <div id="msg2-list-header" style="padding:16px 18px 12px;border-bottom:1px solid #e2e8f0;background:#fff">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div id="msg2-list-title" style="font-size:17px;font-weight:800;color:#0f172a">메시지 목록</div>
+        <button id="msg2-list-refresh" onclick="window.__msg2.refresh()" title="새로고침" style="background:none;border:none;cursor:pointer;color:#94a3b8;padding:4px;border-radius:6px" onmouseover="this.style.color='#2563eb';this.style.background='#f1f5f9'" onmouseout="this.style.color='#94a3b8';this.style.background='none'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </button>
+      </div>
+      <div style="position:relative">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="msg2-search" placeholder="이름·내용 검색" oninput="window.__msg2.setQuery(this.value)" style="width:100%;padding:8px 10px 8px 30px;border:1px solid #e2e8f0;border-radius:8px;font-size:12.5px;outline:none;background:#f8fafc;box-sizing:border-box" onfocus="this.style.borderColor='#2563eb';this.style.background='#fff'" onblur="this.style.borderColor='#e2e8f0';this.style.background='#f8fafc'">
+      </div>
+    </div>
+    <!-- 리스트 바디 (탭별 컨텐츠) -->
+    <div id="msg2-list-body" style="flex:1;overflow-y:auto"></div>
+  </div>
+
+  <!-- 우측 상세 컬럼 -->
+  <div id="msg2-detail-col" style="flex:1;min-width:0;background:#fff;display:flex;flex-direction:column">
+    <!-- 상세 헤더 -->
+    <div id="msg2-detail-header" style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid #f1f5f9;background:#fff;flex-shrink:0;min-height:66px;box-sizing:border-box">
+      <div id="msg2-detail-avatar" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-weight:700;display:none;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden"></div>
+      <div style="flex:1;min-width:0">
+        <div id="msg2-detail-title" style="font-size:15px;font-weight:800;color:#0f172a">대화를 선택하세요</div>
+        <div id="msg2-detail-sub" style="font-size:11.5px;color:#94a3b8;margin-top:2px"></div>
+      </div>
+    </div>
+    <!-- 상세 바디 -->
+    <div id="msg2-detail-body" style="flex:1;overflow-y:auto;background:#f8fafc;padding:16px 20px;display:flex;flex-direction:column;gap:4px">
+      <div style="margin:auto;text-align:center;color:#94a3b8;font-size:13px">
+        <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.35;margin-bottom:10px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <div>왼쪽에서 대화를 선택하세요</div>
+      </div>
+    </div>
+    <!-- 상세 입력 -->
+    <div id="msg2-detail-input" style="display:none;padding:12px 16px;border-top:1px solid #f1f5f9;background:#fff;flex-shrink:0">
+      <div id="msg2-file-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px"></div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <label style="cursor:pointer;color:#94a3b8;padding:8px;border-radius:8px;display:flex;align-items:center;flex-shrink:0" onmouseover="this.style.color='#2563eb';this.style.background='#f1f5f9'" onmouseout="this.style.color='#94a3b8';this.style.background='none'" title="파일 첨부">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          <input type="file" id="msg2-file-input" multiple style="display:none" onchange="window.__msg2._onFile(this)">
+        </label>
+        <textarea id="msg2-input" rows="1" placeholder="메시지를 입력하세요... (Ctrl+Enter 전송)" style="flex:1;border:1px solid #e2e8f0;border-radius:12px;padding:10px 14px;font-size:13.5px;font-family:inherit;resize:none;outline:none;max-height:120px;overflow-y:auto;line-height:1.5;background:#f8fafc" onfocus="this.style.borderColor='#2563eb';this.style.background='#fff'" onblur="this.style.borderColor='#e2e8f0';this.style.background='#f8fafc'" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();window.__msg2.send();}"></textarea>
+        <button onclick="window.__msg2.send()" style="padding:10px 18px;background:#4f46e5;color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0" onmouseover="this.style.background='#3730a3'" onmouseout="this.style.background='#4f46e5'">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
       </div>
@@ -5646,6 +5742,8 @@
       if (directiveOverlay && directiveOverlay.style.display !== 'none') { closeDirectivePanel(); return; }
       var chatOverlay = document.getElementById('chat-overlay');
       if (chatOverlay && chatOverlay.style.display !== 'none') { closeChatPanel(); return; }
+      var msg2Ov = document.getElementById('msg2-overlay');
+      if (msg2Ov && msg2Ov.style.display && msg2Ov.style.display !== 'none') { if (typeof closeMsg2==='function') closeMsg2(); return; }
       var msgList = document.getElementById('msg-list-panel');
       if (msgList && msgList.style.display !== 'none') { closeMsgList(); return; }
       var msgCompose = document.getElementById('msg-compose-panel');
@@ -17561,6 +17659,482 @@ window.__board = (function(){
 // 전역 진입점
 function openBoardPanel(){ window.__board.openPanel(); }
 function closeBoardPanel(){ window.__board.closePanel(); }
+
+/* ═══════════════════════════════════════════════════════════════
+   메신저 v2 - 3 컬럼 UI
+   재사용: msgFetch, ALL_USERS, _userId, _isAdmin, sendMsg, markMsgsRead
+   신규 상태: _s.tab / _s.selConv / _s.files / _s.query / _s.convs / _s.msgs
+   ═══════════════════════════════════════════════════════════════ */
+window.__msg2 = (function(){
+  var _s = { tab:'list', selConv:null, files:[], query:'', convs:[], msgs:[], lastMsgId:null, composeIds:[], composeQuery:'' };
+  var _pollTimer = null;
+  var _chatPollTimer = null;
+
+  function _esc(s){ s = (s==null?'':String(s)); return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function _p2(n){ return (n<10?'0':'')+n; }
+  function _fmtTime(dt){
+    if (!dt) return '';
+    var d = new Date(dt), today = new Date();
+    if (d.toDateString() === today.toDateString()) return _p2(d.getHours())+':'+_p2(d.getMinutes());
+    var yst = new Date(); yst.setDate(yst.getDate()-1);
+    if (d.toDateString() === yst.toDateString()) return '어제';
+    return (d.getMonth()+1)+'/'+d.getDate();
+  }
+  function _initial(name){ return (name||'?').charAt(0).toUpperCase(); }
+  function _userById(uid){ return (window.ALL_USERS||[]).find(function(u){ return u.id===uid; }); }
+  function _avatarHtml(u, name, sz){
+    sz = sz || 40;
+    if (u && u.img) return '<img src="'+_esc(u.img)+'" style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;object-fit:cover;flex-shrink:0">';
+    return '<div style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:linear-gradient(135deg,#a5b4fc,#818cf8);color:#fff;font-weight:700;font-size:'+Math.round(sz*0.4)+'px;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+_esc(_initial(name))+'</div>';
+  }
+
+  // ── 진입/종료 ─────────────────────────
+  function openPanel(){
+    if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function'){
+      window._dmEnterFeatureEmbed('msg2-overlay');
+    }
+    var ov = document.getElementById('msg2-overlay');
+    if (ov) ov.style.display = 'flex';
+    _s.tab = 'list'; _s.selConv = null; _s.files = []; _s.query = '';
+    var srch = document.getElementById('msg2-search'); if (srch) srch.value='';
+    _renderRail();
+    _loadConvs();
+    _renderDetail();
+    // 5초 폴링 (탭이 list 인 동안만 유의미)
+    if (_pollTimer) clearInterval(_pollTimer);
+    _pollTimer = setInterval(function(){
+      var ov = document.getElementById('msg2-overlay');
+      if (!ov || ov.style.display === 'none'){ if (_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; } if (_chatPollTimer){ clearInterval(_chatPollTimer); _chatPollTimer=null; } return; }
+      if (_s.tab==='list' || _s.tab==='files') _loadConvs(true);
+    }, 5000);
+  }
+  function closePanel(){
+    if (document.body.classList.contains('dev-embed') && window._dmFeatureEmbedState && window._dmFeatureEmbedState.overlayId==='msg2-overlay' && typeof window._dmExitFeatureEmbed==='function'){
+      window._dmExitFeatureEmbed();
+    } else {
+      var ov = document.getElementById('msg2-overlay'); if (ov) ov.style.display='none';
+    }
+    if (_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; }
+    if (_chatPollTimer){ clearInterval(_chatPollTimer); _chatPollTimer=null; }
+  }
+
+  function _renderRail(){
+    document.querySelectorAll('#msg2-rail .msg2-rail-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-tab')===_s.tab);
+    });
+  }
+
+  // ── 탭 스위칭 ─────────────────────────
+  function setTab(t){
+    _s.tab = t; _s.query=''; var srch=document.getElementById('msg2-search'); if (srch) srch.value='';
+    _renderRail();
+    var titleEl = document.getElementById('msg2-list-title');
+    if (t==='list') { if (titleEl) titleEl.textContent='메시지 목록'; _renderList(); }
+    else if (t==='compose') { if (titleEl) titleEl.textContent='새 메시지'; _s.composeIds=[]; _s.composeQuery=''; _renderCompose(); _renderDetailPlaceholder('새 메시지 작성','왼쪽에서 받는 사람을 선택하고 내용을 작성하세요.'); }
+    else if (t==='files') { if (titleEl) titleEl.textContent='첨부파일'; _renderFiles(); _renderDetailPlaceholder('첨부파일','왼쪽 목록에서 파일을 클릭하면 다운로드됩니다.'); }
+  }
+
+  function setQuery(q){
+    _s.query = (q||'').toLowerCase().trim();
+    if (_s.tab==='list') _renderList();
+    else if (_s.tab==='files') _renderFiles();
+    else if (_s.tab==='compose') { _s.composeQuery=_s.query; _renderCompose(); }
+  }
+
+  function refresh(){ if (_s.tab==='list' || _s.tab==='files') _loadConvs(); else if (_s.selConv) _loadChatHistory(_s.selConv.otherId, true); }
+
+  // ── 대화 목록 로드 ─────────────────────────
+  function _loadConvs(silent){
+    if (typeof _userId==='undefined' || !_userId) return;
+    var body = document.getElementById('msg2-list-body');
+    if (!silent && body && _s.tab==='list') body.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;font-size:13px">불러오는 중...</div>';
+    var q = 'messages?or=(sender_id.eq.'+_userId+',receiver_id.eq.'+_userId+')&order=created_at.desc&limit=500';
+    msgFetch(q).then(function(r){ return r.json(); }).then(function(msgs){
+      if (!Array.isArray(msgs)) msgs = [];
+      msgs = msgs.filter(function(m){
+        if (m.sender_id===_userId) return !m.deleted_by_sender;
+        if (m.receiver_id===_userId) return !m.deleted_by_receiver;
+        return true;
+      });
+      var convMap = {};
+      msgs.forEach(function(m){
+        var otherId = m.sender_id===_userId ? m.receiver_id : m.sender_id;
+        if (!convMap[otherId]) convMap[otherId] = { otherId:otherId, allMsgs:[], unread:0 };
+        convMap[otherId].allMsgs.push(m);
+        if (m.receiver_id===_userId && !m.is_read) convMap[otherId].unread++;
+      });
+      var convs = Object.keys(convMap).map(function(otherId){
+        var c = convMap[otherId], latest = c.allMsgs[0], otherUser = _userById(otherId);
+        var otherName = otherUser ? otherUser.fullName : (latest.sender_id===_userId ? otherId : (latest.sender_name||otherId));
+        return { otherId:otherId, otherName:otherName, otherUser:otherUser, latest:latest, unread:c.unread, allMsgs:c.allMsgs };
+      });
+      convs.sort(function(a,b){ return new Date(b.latest.created_at) - new Date(a.latest.created_at); });
+      _s.convs = convs;
+      var totalUnread = convs.reduce(function(s,c){ return s + (c.unread||0); }, 0);
+      var b = document.getElementById('msg2-rail-badge');
+      if (b){ if (totalUnread>0){ b.textContent = totalUnread>99?'99+':String(totalUnread); b.style.display='block'; } else b.style.display='none'; }
+      if (_s.tab==='list') _renderList();
+      else if (_s.tab==='files') _renderFiles();
+    }).catch(function(){
+      if (body && _s.tab==='list') body.innerHTML = '<div style="text-align:center;padding:30px;color:#ef4444;font-size:13px">불러오기 실패</div>';
+    });
+  }
+
+  // ── 대화 목록 렌더 ─────────────────────────
+  function _renderList(){
+    var body = document.getElementById('msg2-list-body');
+    if (!body) return;
+    var convs = _s.convs;
+    if (_s.query){
+      convs = convs.filter(function(c){
+        if ((c.otherName||'').toLowerCase().indexOf(_s.query)!==-1) return true;
+        if ((c.latest.body||'').toLowerCase().indexOf(_s.query)!==-1) return true;
+        return false;
+      });
+    }
+    if (!convs.length){
+      body.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#94a3b8;font-size:13px">'+(_s.query?'검색 결과 없음':'메시지가 없습니다.<br><span style="font-size:11.5px;color:#cbd5e1">좌측 상단 <b>새 메시지</b> 아이콘으로 시작</span>')+'</div>';
+      return;
+    }
+    body.innerHTML = convs.map(function(c){
+      var isActive = _s.selConv && _s.selConv.otherId===c.otherId;
+      var latest = c.latest, isMine = latest.sender_id===_userId;
+      var hasAtt = latest.attachments && latest.attachments.length;
+      var preview = isMine ? '나: ' : '';
+      if (latest.body) preview += latest.body.replace(/\n/g,' ').slice(0,32) + (latest.body.length>32?'…':'');
+      else if (hasAtt) preview += '[파일 '+latest.attachments.length+'개]';
+      var badge = c.unread>0 ? '<div style="min-width:18px;height:18px;border-radius:9px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 5px;flex-shrink:0">'+c.unread+'</div>' : '';
+      return '<div class="msg2-conv-item'+(isActive?' active':'')+'" onclick="window.__msg2.selectConv(\''+_esc(c.otherId)+'\')">'
+        + _avatarHtml(c.otherUser, c.otherName, 44)
+        + '<div style="flex:1;min-width:0">'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">'
+            + '<span style="font-size:13.5px;font-weight:'+(c.unread>0?'800':'700')+';color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+_esc(c.otherName)+(c.otherUser&&c.otherUser.dept?'<span style=\"font-size:10.5px;color:#94a3b8;font-weight:500;margin-left:5px\">'+_esc(c.otherUser.dept)+'</span>':'')+'</span>'
+            + '<span style="font-size:10.5px;color:#94a3b8;flex-shrink:0;margin-left:6px">'+_fmtTime(latest.created_at)+'</span>'
+          + '</div>'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">'
+            + '<span style="font-size:12px;color:'+(c.unread>0?'#374151':'#94a3b8')+';font-weight:'+(c.unread>0?'600':'400')+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">'+_esc(preview)+'</span>'
+            + badge
+          + '</div>'
+        + '</div>'
+      + '</div>';
+    }).join('');
+  }
+
+  // ── 대화 선택 ─────────────────────────
+  function selectConv(otherId){
+    var c = _s.convs.find(function(x){ return x.otherId===otherId; });
+    if (!c) return;
+    _s.selConv = c; _s.files = []; _s.lastMsgId=null;
+    _renderList();
+    _renderDetailHeader();
+    _loadChatHistory(otherId, true);
+    if (_chatPollTimer) clearInterval(_chatPollTimer);
+    _chatPollTimer = setInterval(function(){ if (_s.selConv && _s.selConv.otherId===otherId) _loadChatHistory(otherId, false); }, 3000);
+  }
+
+  function _renderDetailHeader(){
+    var c = _s.selConv;
+    var av = document.getElementById('msg2-detail-avatar');
+    var titleEl = document.getElementById('msg2-detail-title');
+    var subEl = document.getElementById('msg2-detail-sub');
+    var inputEl = document.getElementById('msg2-detail-input');
+    if (!c){
+      if (av) av.style.display='none';
+      if (titleEl) titleEl.textContent='대화를 선택하세요';
+      if (subEl) subEl.textContent='';
+      if (inputEl) inputEl.style.display='none';
+      return;
+    }
+    if (av){
+      av.style.display='flex';
+      if (c.otherUser && c.otherUser.img){ av.innerHTML='<img src="'+_esc(c.otherUser.img)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'; }
+      else { av.innerHTML=''; av.textContent=_initial(c.otherName); av.style.background='linear-gradient(135deg,#4f46e5,#3730a3)'; }
+    }
+    if (titleEl) titleEl.textContent = c.otherName;
+    if (subEl) subEl.textContent = c.otherUser ? (c.otherUser.dept||'') : '';
+    if (inputEl) inputEl.style.display='block';
+    var inp = document.getElementById('msg2-input'); if (inp){ inp.value=''; inp.style.height='auto'; }
+    var flist = document.getElementById('msg2-file-list'); if (flist) flist.innerHTML='';
+    var fInp = document.getElementById('msg2-file-input'); if (fInp) fInp.value='';
+  }
+
+  function _renderDetailPlaceholder(title, sub){
+    _s.selConv = null;
+    var av = document.getElementById('msg2-detail-avatar');
+    if (av) av.style.display='none';
+    var titleEl = document.getElementById('msg2-detail-title'); if (titleEl) titleEl.textContent=title;
+    var subEl = document.getElementById('msg2-detail-sub'); if (subEl) subEl.textContent=sub||'';
+    var inputEl = document.getElementById('msg2-detail-input'); if (inputEl) inputEl.style.display='none';
+    var body = document.getElementById('msg2-detail-body');
+    if (body) body.innerHTML = '<div style="margin:auto;text-align:center;color:#cbd5e1;font-size:13px;padding:40px"><div style="font-size:34px;margin-bottom:8px">'+((_s.tab==='compose')?'✎':'📎')+'</div>'+_esc(sub||'')+'</div>';
+  }
+
+  function _renderDetail(){ _renderDetailPlaceholder('대화를 선택하세요',''); }
+
+  // ── 채팅 히스토리 로드 ─────────────────────────
+  function _loadChatHistory(otherId, showSpinner){
+    var body = document.getElementById('msg2-detail-body');
+    if (!body) return;
+    if (showSpinner) body.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;font-size:13px;margin:auto">불러오는 중...</div>';
+    var q = 'messages?or=(and(sender_id.eq.'+_userId+',receiver_id.eq.'+otherId+'),and(sender_id.eq.'+otherId+',receiver_id.eq.'+_userId+'))&order=created_at.asc&limit=200';
+    msgFetch(q).then(function(r){ return r.json(); }).then(function(msgs){
+      if (!Array.isArray(msgs)) msgs = [];
+      msgs = msgs.filter(function(m){
+        if (m.sender_id===_userId) return !m.deleted_by_sender;
+        if (m.receiver_id===_userId) return !m.deleted_by_receiver;
+        return true;
+      });
+      if (!msgs.length){ if (showSpinner) body.innerHTML='<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;margin:auto">대화 내역이 없습니다.<br><span style="font-size:11.5px;color:#cbd5e1">첫 메시지를 보내보세요.</span></div>'; return; }
+      var latestId = msgs[msgs.length-1].id;
+      var hasNew = latestId !== _s.lastMsgId;
+      if (hasNew){
+        var unread = msgs.filter(function(m){ return m.receiver_id===_userId && !m.is_read; }).map(function(m){ return m.id; });
+        if (unread.length && typeof markMsgsRead==='function'){
+          markMsgsRead(unread);
+          var b1 = document.getElementById('msg-badge'); var cur = b1 ? (parseInt(b1.textContent)||0) : 0;
+          if (typeof setBadgeCount==='function') setBadgeCount(Math.max(0, cur - unread.length));
+        }
+      }
+      if (!hasNew && !showSpinner) return;
+      _s.lastMsgId = latestId; _s.msgs = msgs;
+      var wasAtBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 80;
+      _renderMessages(msgs);
+      if (showSpinner || wasAtBottom) setTimeout(function(){ body.scrollTop = body.scrollHeight; }, 30);
+    }).catch(function(){ if (showSpinner) body.innerHTML='<div style="text-align:center;padding:30px;color:#ef4444;font-size:13px;margin:auto">불러오기 실패</div>'; });
+  }
+
+  function _renderMessages(msgs){
+    var body = document.getElementById('msg2-detail-body');
+    if (!body) return;
+    var lastDate = '';
+    var html = msgs.map(function(m){
+      var isMine = m.sender_id===_userId;
+      var dt = m.created_at ? new Date(m.created_at) : null;
+      var dateKey = dt ? (dt.getFullYear()+'-'+_p2(dt.getMonth()+1)+'-'+_p2(dt.getDate())) : '';
+      var timeStr = dt ? (_p2(dt.getHours())+':'+_p2(dt.getMinutes())) : '';
+      var dateLabel = '';
+      if (dateKey && dateKey!==lastDate){
+        lastDate = dateKey;
+        dateLabel = '<div style="text-align:center;margin:14px 0 8px"><span style="font-size:11px;color:#64748b;background:#e2e8f0;border-radius:20px;padding:3px 12px">'+dt.getFullYear()+'년 '+(dt.getMonth()+1)+'월 '+dt.getDate()+'일</span></div>';
+      }
+      var attHtml = '';
+      if (m.attachments && m.attachments.length){
+        attHtml = '<div style="margin-top:6px;display:flex;flex-direction:column;gap:4px">' + m.attachments.map(function(a){
+          var ext = (a.name||'').split('.').pop().toUpperCase().slice(0,3);
+          var extColors = { PDF:'#ef4444', DOC:'#2563eb', XLS:'#16a34a', PPT:'#f59e0b', ZIP:'#7c3aed', PNG:'#06b6d4', JPG:'#06b6d4' };
+          var bg = extColors[ext] || '#64748b';
+          var sizeStr = a.size>1024*1024 ? (a.size/1024/1024).toFixed(1)+'MB' : Math.round((a.size||0)/1024)+'KB';
+          return '<a href="'+_esc(a.url)+'" target="_blank" download="'+_esc(a.name)+'" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:'+(isMine?'rgba(255,255,255,0.9)':'#fff')+';border-radius:8px;border:1px solid rgba(0,0,0,0.06);text-decoration:none;color:inherit">'
+            + '<span style="width:28px;height:28px;border-radius:6px;background:'+bg+';color:#fff;font-size:9.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">'+ext+'</span>'
+            + '<span style="font-size:12px;color:#374151;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">'+_esc(a.name||'')+'</span>'
+            + '<span style="font-size:10.5px;color:#94a3b8;flex-shrink:0">'+sizeStr+'</span>'
+          + '</a>';
+        }).join('') + '</div>';
+      }
+      var bodyHtml = (m.body||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+      var bubbleBg = isMine ? 'linear-gradient(135deg,#4f46e5,#4338ca)' : '#fff';
+      var bubbleColor = isMine ? '#fff' : '#0f172a';
+      var bubbleBorder = isMine ? 'none' : '1px solid #e2e8f0';
+      return dateLabel + '<div style="display:flex;justify-content:'+(isMine?'flex-end':'flex-start')+';margin:2px 0;gap:6px;align-items:flex-end">'
+        + (isMine ? '<span style="font-size:10px;color:#94a3b8;margin-bottom:4px">'+timeStr+'</span>' : '')
+        + '<div style="max-width:70%;padding:9px 13px;background:'+bubbleBg+';color:'+bubbleColor+';border-radius:14px;border:'+bubbleBorder+';word-break:break-word;font-size:13.5px;line-height:1.5">'
+          + bodyHtml + attHtml
+        + '</div>'
+        + (!isMine ? '<span style="font-size:10px;color:#94a3b8;margin-bottom:4px">'+timeStr+'</span>' : '')
+      + '</div>';
+    }).join('');
+    body.innerHTML = html;
+  }
+
+  // ── 파일 첨부 (send) ─────────────────────────
+  function _onFile(inp){
+    var files = inp.files;
+    if (!files || !files.length) return;
+    for (var i=0;i<files.length;i++){
+      if (files[i].size > 30*1024*1024){ alert(files[i].name+' - 30MB 초과'); continue; }
+      _s.files.push(files[i]);
+    }
+    inp.value='';
+    _renderFileList();
+  }
+  function _removeFile(idx){ _s.files.splice(idx,1); _renderFileList(); }
+  window.__msg2._removeFile = _removeFile;
+  function _renderFileList(){
+    var el = document.getElementById('msg2-file-list');
+    if (!el) return;
+    el.innerHTML = _s.files.map(function(f,idx){
+      var szStr = f.size>1024*1024 ? (f.size/1024/1024).toFixed(1)+'MB' : Math.round(f.size/1024)+'KB';
+      return '<div style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:#f1f5f9;border-radius:6px;font-size:11.5px">'
+        + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#374151">'+_esc(f.name)+'</span>'
+        + '<span style="color:#94a3b8">'+szStr+'</span>'
+        + '<button onclick="window.__msg2._removeFile('+idx+')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:14px;line-height:1;padding:0 4px">×</button>'
+      + '</div>';
+    }).join('');
+  }
+
+  // ── 메시지 전송 (선택된 대화) ─────────────────────────
+  function send(){
+    if (!_s.selConv) return;
+    var inp = document.getElementById('msg2-input'); if (!inp) return;
+    var body = inp.value.trim();
+    if (!body && !_s.files.length) return;
+    var otherId = _s.selConv.otherId;
+    var myUser = _userById(_userId); var myName = myUser ? myUser.fullName : '';
+    _uploadFiles(_s.files).then(function(attachments){
+      var row = { sender_id:_userId, receiver_id:otherId, sender_name:myName, body:body, attachments:attachments, is_read:false };
+      return fetch(SB_URL+'/rest/v1/messages', {
+        method:'POST',
+        headers:{ 'apikey':SB_KEY, 'Authorization':'Bearer '+_sbToken, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+        body: JSON.stringify(row)
+      });
+    }).then(function(r){
+      if (!r || !r.ok){ if (r) r.text().then(function(t){ alert('전송 실패: '+t); }); return; }
+      inp.value=''; inp.style.height='auto';
+      _s.files = []; _renderFileList();
+      _loadChatHistory(otherId, false);
+      _loadConvs(true);
+    }).catch(function(e){ alert('전송 오류: '+(e.message||e)); });
+  }
+
+  function _uploadFiles(files){
+    if (!files || !files.length) return Promise.resolve([]);
+    var promises = files.map(function(f){
+      var extMatch = /\.([a-zA-Z0-9]+)$/.exec(f.name||''); var ext = extMatch ? '.'+extMatch[1].toLowerCase() : '';
+      var path = 'messages/'+_userId+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+ext;
+      return fetch(SB_URL+'/storage/v1/object/msg-attachments/'+path, {
+        method:'POST',
+        headers:{ 'Authorization':'Bearer '+_sbToken, 'apikey':SB_KEY, 'Content-Type': f.type||'application/octet-stream', 'x-upsert':'true' },
+        body: f
+      }).then(function(r){ if (!r.ok) return r.text().then(function(t){ throw new Error(t); }); return { name:f.name, url:SB_URL+'/storage/v1/object/public/msg-attachments/'+path, size:f.size, type:f.type }; });
+    });
+    return Promise.all(promises);
+  }
+
+  // ── 새 메시지 (compose) ─────────────────────────
+  function _renderCompose(){
+    var body = document.getElementById('msg2-list-body');
+    if (!body) return;
+    var users = (window.ALL_USERS||[]).filter(function(u){ return u.id !== _userId; });
+    if (_s.query){ users = users.filter(function(u){ return (u.fullName||'').toLowerCase().indexOf(_s.query)!==-1 || (u.dept||'').toLowerCase().indexOf(_s.query)!==-1; }); }
+    var selectedHtml = _s.composeIds.length ? '<div style="padding:8px 14px;border-bottom:1px solid #e2e8f0;background:#eef2ff;font-size:11.5px;color:#4338ca;font-weight:700">받는 사람 '+_s.composeIds.length+'명 선택됨</div>' : '';
+    var listHtml = users.map(function(u){
+      var checked = _s.composeIds.indexOf(u.id) !== -1;
+      return '<label class="msg2-conv-item" style="cursor:pointer;'+(checked?'background:#eef2ff':'')+'">'
+        + '<input type="checkbox" '+(checked?'checked':'')+' onchange="window.__msg2._toggleRecipient(\''+_esc(u.id)+'\')" style="width:16px;height:16px;accent-color:#4f46e5;cursor:pointer;flex-shrink:0">'
+        + _avatarHtml(u, u.fullName, 36)
+        + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:#0f172a">'+_esc(u.fullName||'')+'</div><div style="font-size:11px;color:#94a3b8">'+_esc(u.dept||'')+'</div></div>'
+      + '</label>';
+    }).join('');
+    body.innerHTML = selectedHtml + (listHtml || '<div style="text-align:center;padding:30px;color:#94a3b8;font-size:13px">직원이 없습니다.</div>');
+    // 우측 상세 = 작성 폼
+    var detail = document.getElementById('msg2-detail-body');
+    if (detail){
+      detail.innerHTML = '<div style="max-width:640px;margin:0 auto;padding:8px 0;width:100%">'
+        + '<div style="font-size:13px;color:#64748b;margin-bottom:10px">받는 사람: <b style="color:#4f46e5">'+_s.composeIds.length+'명</b></div>'
+        + '<textarea id="msg2-compose-body" placeholder="메시지 내용을 입력하세요" style="width:100%;min-height:180px;padding:14px;border:1px solid #e2e8f0;border-radius:12px;font-size:13.5px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;background:#fff;line-height:1.6" onfocus="this.style.borderColor=\'#4f46e5\'" onblur="this.style.borderColor=\'#e2e8f0\'"></textarea>'
+        + '<div id="msg2-compose-files" style="display:flex;flex-direction:column;gap:4px;margin-top:8px"></div>'
+        + '<div style="display:flex;gap:8px;margin-top:12px;align-items:center">'
+          + '<label style="padding:8px 14px;background:#f1f5f9;color:#374151;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>파일 첨부<input type="file" multiple style="display:none" onchange="window.__msg2._composeAddFiles(this)"></label>'
+          + '<div style="flex:1"></div>'
+          + '<button onclick="window.__msg2._composeSend()" style="padding:9px 22px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer">보내기</button>'
+        + '</div>'
+      + '</div>';
+      // 로컬 첨부 상태
+      if (!_s._composeFiles) _s._composeFiles = [];
+      _renderComposeFiles();
+    }
+  }
+  function _toggleRecipient(uid){
+    var i = _s.composeIds.indexOf(uid);
+    if (i>=0) _s.composeIds.splice(i,1); else _s.composeIds.push(uid);
+    _renderCompose();
+  }
+  window.__msg2._toggleRecipient = _toggleRecipient;
+  function _composeAddFiles(inp){
+    if (!_s._composeFiles) _s._composeFiles = [];
+    for (var i=0;i<inp.files.length;i++){
+      if (inp.files[i].size > 30*1024*1024){ alert(inp.files[i].name+' - 30MB 초과'); continue; }
+      _s._composeFiles.push(inp.files[i]);
+    }
+    inp.value='';
+    _renderComposeFiles();
+  }
+  window.__msg2._composeAddFiles = _composeAddFiles;
+  function _renderComposeFiles(){
+    var el = document.getElementById('msg2-compose-files'); if (!el) return;
+    var files = _s._composeFiles || [];
+    el.innerHTML = files.map(function(f,idx){
+      var szStr = f.size>1024*1024 ? (f.size/1024/1024).toFixed(1)+'MB' : Math.round(f.size/1024)+'KB';
+      return '<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:#f1f5f9;border-radius:6px;font-size:12px">'
+        + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(f.name)+'</span><span style="color:#94a3b8">'+szStr+'</span>'
+        + '<button onclick="window.__msg2._composeRemoveFile('+idx+')" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:15px;padding:0 4px">×</button>'
+      + '</div>';
+    }).join('');
+  }
+  function _composeRemoveFile(idx){ if (!_s._composeFiles) return; _s._composeFiles.splice(idx,1); _renderComposeFiles(); }
+  window.__msg2._composeRemoveFile = _composeRemoveFile;
+  function _composeSend(){
+    if (!_s.composeIds.length){ alert('받는 사람을 선택해주세요.'); return; }
+    var bodyEl = document.getElementById('msg2-compose-body');
+    var body = bodyEl ? bodyEl.value.trim() : '';
+    var files = _s._composeFiles || [];
+    if (!body && !files.length){ alert('내용 또는 파일을 입력해주세요.'); return; }
+    var myUser = _userById(_userId); var myName = myUser ? myUser.fullName : '';
+    _uploadFiles(files).then(function(attachments){
+      var rows = _s.composeIds.map(function(rid){ return { sender_id:_userId, receiver_id:rid, sender_name:myName, body:body, attachments:attachments, is_read:false }; });
+      return fetch(SB_URL+'/rest/v1/messages', {
+        method:'POST',
+        headers:{ 'apikey':SB_KEY, 'Authorization':'Bearer '+_sbToken, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+        body: JSON.stringify(rows)
+      });
+    }).then(function(r){
+      if (!r || !r.ok){ if (r) r.text().then(function(t){ alert('전송 실패: '+t); }); return; }
+      showToast && showToast(_s.composeIds.length+'명에게 메시지를 보냈습니다.');
+      _s.composeIds = []; _s._composeFiles = [];
+      setTab('list'); _loadConvs();
+    }).catch(function(e){ alert('전송 오류: '+(e.message||e)); });
+  }
+  window.__msg2._composeSend = _composeSend;
+
+  // ── 첨부파일 뷰 ─────────────────────────
+  function _renderFiles(){
+    var body = document.getElementById('msg2-list-body');
+    if (!body) return;
+    // 모든 대화에서 첨부 집계
+    var all = [];
+    _s.convs.forEach(function(c){
+      c.allMsgs.forEach(function(m){
+        if (m.attachments && m.attachments.length){
+          m.attachments.forEach(function(a){
+            all.push({ from:c.otherName, isMine:m.sender_id===_userId, name:a.name||'', url:a.url||'', size:a.size||0, ts:m.created_at });
+          });
+        }
+      });
+    });
+    all.sort(function(a,b){ return new Date(b.ts) - new Date(a.ts); });
+    if (_s.query){ all = all.filter(function(a){ return (a.name||'').toLowerCase().indexOf(_s.query)!==-1 || (a.from||'').toLowerCase().indexOf(_s.query)!==-1; }); }
+    if (!all.length){ body.innerHTML='<div style="text-align:center;padding:40px 20px;color:#94a3b8;font-size:13px">첨부파일이 없습니다.</div>'; return; }
+    body.innerHTML = all.map(function(a){
+      var ext = (a.name||'').split('.').pop().toUpperCase().slice(0,3);
+      var extColors = { PDF:'#ef4444', DOC:'#2563eb', XLS:'#16a34a', PPT:'#f59e0b', ZIP:'#7c3aed', PNG:'#06b6d4', JPG:'#06b6d4' };
+      var bg = extColors[ext] || '#64748b';
+      var sz = a.size>1024*1024 ? (a.size/1024/1024).toFixed(1)+'MB' : Math.round((a.size||0)/1024)+'KB';
+      return '<a href="'+_esc(a.url)+'" target="_blank" download="'+_esc(a.name)+'" class="msg2-conv-item" style="text-decoration:none;color:inherit">'
+        + '<span style="width:36px;height:36px;border-radius:8px;background:'+bg+';color:#fff;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">'+ext+'</span>'
+        + '<div style="flex:1;min-width:0">'
+          + '<div style="font-size:12.5px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(a.name)+'</div>'
+          + '<div style="font-size:10.5px;color:#94a3b8;margin-top:2px">'+_esc(a.from)+(a.isMine?' (내가 보냄)':'')+' · '+sz+' · '+_fmtTime(a.ts)+'</div>'
+        + '</div>'
+      + '</a>';
+    }).join('');
+  }
+
+  return { openPanel:openPanel, closePanel:closePanel, setTab:setTab, setQuery:setQuery, refresh:refresh, selectConv:selectConv, send:send, _onFile:_onFile };
+})();
+
+// 전역 진입점
+function openMsg2(){ window.__msg2.openPanel(); }
+function closeMsg2(){ window.__msg2.closePanel(); }
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════
@@ -17993,7 +18567,8 @@ window._dmCrumbLabels = {
   'bmat-modal-overlay':       'BMAT 모니터링 통계',
   'shared-cal-overlay':       '업무 공유 캘린더',
   'meeting-overlay':          '회의록',
-  'board-overlay':            '게시판'
+  'board-overlay':            '게시판',
+  'msg2-overlay':             '메시지'
 };
 // dm-crumb 텍스트 갱신 (인자 없으면 '기능 카탈로그' 로 복귀)
 window._dmSetCrumb = function(label) {
@@ -18084,7 +18659,7 @@ window._DM_ITEMS = [
   { key:'perf',      title:'업무 성과',            desc:'직원별 성과 · 랭킹 확인',            grad:'#10b981,#059669', cat:'analytics', icon:'trophy',   action:function(){ if (typeof openAchievementPanel==='function') openAchievementPanel(); } },
   { key:'sales',     title:'영업 활동',            desc:'기존 · 신규 고객 영업 활동 조회',    grad:'#f59e0b,#d97706', cat:'workflow',  icon:'trend',    action:function(){ if (typeof openSalesActivityChooser==='function') openSalesActivityChooser(); } },
   { key:'directive', title:'업무 지시',            desc:'업무 지시 · 받은 업무 관리',         grad:'#2563eb,#1d4ed8', cat:'collab',    icon:'check',    action:function(){ if (typeof openDirectivePanel==='function') openDirectivePanel(); } },
-  { key:'msg',       title:'메시지',                desc:'사내 실시간 채팅 · 파일 첨부',       grad:'#4f46e5,#3730a3', cat:'collab',    icon:'msg',      action:function(){ if (typeof openMsgList==='function') openMsgList(); } },
+  { key:'msg',       title:'메시지',                desc:'사내 실시간 채팅 · 파일 첨부',       grad:'#4f46e5,#3730a3', cat:'collab',    icon:'msg',      action:function(){ if (typeof openMsg2==='function') openMsg2(); else if (typeof openMsgList==='function') openMsgList(); } },
   { key:'sound',     title:'음원팀 업무 현황',     desc:'사운드 컨텐츠 사업부 현황 통계',     grad:'#8b5cf6,#7c3aed', cat:'analytics', icon:'users',    action:function(){ if (typeof openSoundTeamPanel==='function') openSoundTeamPanel(); } },
   { key:'vendor',    title:'거래처별 매출 분석',   desc:'사운드 · 시스템 사업부 매출 분석',   grad:'#65a30d,#4d7c0f', cat:'analytics', icon:'shop',     action:function(){ if (typeof openVendorMenu==='function') openVendorMenu(); } },
   { key:'bmat',      title:'BMAT 모니터링 통계',   desc:'채널별 BMAT 모니터링 수치',          grad:'#0891b2,#0e7490', cat:'analytics', icon:'chart',    action:function(){ if (typeof bmatToggleSection==='function') bmatToggleSection(); } },
