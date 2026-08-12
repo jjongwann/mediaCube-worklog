@@ -10596,7 +10596,7 @@
 
 <!-- 일정 추가/수정 모달 -->
 <!-- 일자 뷰 모달 (캘린더에서 일 칸/칩 클릭 시 노출 → 그 날 일정 리스트) -->
-<div id="shared-cal-day-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9991;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)_scalCloseDayView()">
+<div id="shared-cal-day-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9991;align-items:center;justify-content:center;padding:20px">
   <div style="background:#fff;border-radius:14px;max-width:540px;width:100%;box-shadow:0 24px 70px rgba(0,0,0,0.3);font-family:inherit;overflow:hidden;display:flex;flex-direction:column;max-height:80vh">
     <div style="padding:16px 22px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;flex-shrink:0">
       <div>
@@ -10615,7 +10615,7 @@
   </div>
 </div>
 
-<div id="shared-cal-event-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:9992;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)_scalCloseEventModal()">
+<div id="shared-cal-event-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.65);z-index:9992;align-items:center;justify-content:center;padding:20px">
   <div style="background:#fff;border-radius:14px;max-width:480px;width:100%;box-shadow:0 24px 70px rgba(0,0,0,0.3);font-family:inherit;overflow:hidden">
     <div style="padding:16px 22px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff">
       <div id="scal-evt-modal-title" style="font-size:15px;font-weight:800">새 일정 추가</div>
@@ -16581,11 +16581,25 @@ function openMeetingPanel(){ window.__meeting.openPanel(); }
   <img id="board-lightbox-img" src="" alt="">
 </div>
 <script>
-  // Lightbox ESC 닫기
+  // Lightbox + 캘린더 모달 ESC 닫기
   document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape') {
-      var lb = document.getElementById('board-lightbox');
-      if (lb && lb.style.display !== 'none' && lb.style.display) lb.style.display = 'none';
+    if (e.key !== 'Escape') return;
+    // Board Lightbox
+    var lb = document.getElementById('board-lightbox');
+    if (lb && lb.style.display && lb.style.display !== 'none') { lb.style.display = 'none'; return; }
+    // 캘린더 event modal (일정 수정/보기/새 일정)
+    var em = document.getElementById('shared-cal-event-overlay');
+    if (em && em.style.display && em.style.display !== 'none') {
+      if (typeof window._scalCloseEventModal === 'function') window._scalCloseEventModal();
+      else em.style.display = 'none';
+      return;
+    }
+    // 캘린더 day view
+    var dv = document.getElementById('shared-cal-day-overlay');
+    if (dv && dv.style.display && dv.style.display !== 'none') {
+      if (typeof window._scalCloseDayView === 'function') window._scalCloseDayView();
+      else dv.style.display = 'none';
+      return;
     }
   });
 </script>
