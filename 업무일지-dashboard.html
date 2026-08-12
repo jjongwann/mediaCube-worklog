@@ -3318,6 +3318,18 @@
         <div id="msg2-detail-title" style="font-size:15px;font-weight:800;color:#0f172a">대화를 선택하세요</div>
         <div id="msg2-detail-sub" style="font-size:11.5px;color:#94a3b8;margin-top:2px"></div>
       </div>
+      <button id="msg2-chat-search-btn" onclick="window.__msg2._toggleChatSearch()" title="이 대화에서 검색" style="display:none;background:none;border:none;cursor:pointer;color:#64748b;padding:6px;border-radius:8px" onmouseover="this.style.background='#f1f5f9';this.style.color='#4f46e5'" onmouseout="this.style.background='none';this.style.color='#64748b'">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+    </div>
+    <!-- 대화 검색바 (토글) -->
+    <div id="msg2-chat-search-bar" style="display:none;padding:8px 14px;background:#f8fafc;border-bottom:1px solid #f1f5f9;flex-shrink:0;position:relative">
+      <div style="position:relative;display:flex;align-items:center;gap:6px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="msg2-chat-search-input" placeholder="이 대화에서 검색..." oninput="window.__msg2._chatSearchChange(this.value)" style="flex:1;min-width:0;padding:7px 30px 7px 30px;border:1px solid #e2e8f0;border-radius:8px;font-size:12.5px;outline:none;background:#fff" onfocus="this.style.borderColor='#4f46e5'" onblur="this.style.borderColor='#e2e8f0'">
+        <span id="msg2-chat-search-count" style="font-size:11px;color:#64748b;font-weight:700;white-space:nowrap;min-width:36px;text-align:right"></span>
+        <button onclick="window.__msg2._chatSearchClear()" title="검색 해제" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:15px;line-height:1;padding:2px 6px" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">×</button>
+      </div>
     </div>
     <!-- 상세 바디 -->
     <div id="msg2-detail-body" style="flex:1;overflow-y:auto;background:#f8fafc;padding:16px 20px;display:flex;flex-direction:column;gap:4px">
@@ -17691,7 +17703,7 @@ function closeBoardPanel(){ window.__board.closePanel(); }
    신규 상태: _s.tab / _s.selConv / _s.files / _s.query / _s.convs / _s.msgs
    ═══════════════════════════════════════════════════════════════ */
 window.__msg2 = (function(){
-  var _s = { tab:'list', selConv:null, files:[], query:'', convs:[], msgs:[], lastMsgId:null, composeIds:[], composeQuery:'' };
+  var _s = { tab:'list', selConv:null, files:[], query:'', convs:[], msgs:[], lastMsgId:null, composeIds:[], composeQuery:'', chatQuery:'' };
   var _pollTimer = null;
   var _chatPollTimer = null;
 
@@ -17848,6 +17860,11 @@ window.__msg2 = (function(){
     var c = _s.convs.find(function(x){ return x.otherId===otherId; });
     if (!c) return;
     _s.selConv = c; _s.files = []; _s.lastMsgId=null;
+    // 대화 검색 상태 초기화
+    _s.chatQuery = '';
+    var csInp = document.getElementById('msg2-chat-search-input'); if (csInp) csInp.value='';
+    var csBar = document.getElementById('msg2-chat-search-bar'); if (csBar) csBar.style.display='none';
+    var csCnt = document.getElementById('msg2-chat-search-count'); if (csCnt) csCnt.textContent='';
     _renderList();
     _renderDetailHeader();
     _loadChatHistory(otherId, true);
@@ -17861,11 +17878,13 @@ window.__msg2 = (function(){
     var titleEl = document.getElementById('msg2-detail-title');
     var subEl = document.getElementById('msg2-detail-sub');
     var inputEl = document.getElementById('msg2-detail-input');
+    var searchBtn = document.getElementById('msg2-chat-search-btn');
     if (!c){
       if (av) av.style.display='none';
       if (titleEl) titleEl.textContent='대화를 선택하세요';
       if (subEl) subEl.textContent='';
       if (inputEl) inputEl.style.display='none';
+      if (searchBtn) searchBtn.style.display='none';
       return;
     }
     if (av){
@@ -17876,6 +17895,7 @@ window.__msg2 = (function(){
     if (titleEl) titleEl.textContent = c.otherName;
     if (subEl) subEl.textContent = c.otherUser ? (c.otherUser.dept||'') : '';
     if (inputEl) inputEl.style.display='block';
+    if (searchBtn) searchBtn.style.display='flex';
     var inp = document.getElementById('msg2-input'); if (inp){ inp.value=''; inp.style.height='auto'; }
     var flist = document.getElementById('msg2-file-list'); if (flist) flist.innerHTML='';
     var fInp = document.getElementById('msg2-file-input'); if (fInp) fInp.value='';
@@ -17883,13 +17903,42 @@ window.__msg2 = (function(){
 
   function _renderDetailPlaceholder(title, sub){
     _s.selConv = null;
+    _s.chatQuery = '';
     var av = document.getElementById('msg2-detail-avatar');
     if (av) av.style.display='none';
     var titleEl = document.getElementById('msg2-detail-title'); if (titleEl) titleEl.textContent=title;
     var subEl = document.getElementById('msg2-detail-sub'); if (subEl) subEl.textContent=sub||'';
     var inputEl = document.getElementById('msg2-detail-input'); if (inputEl) inputEl.style.display='none';
+    var searchBtn = document.getElementById('msg2-chat-search-btn'); if (searchBtn) searchBtn.style.display='none';
+    var searchBar = document.getElementById('msg2-chat-search-bar'); if (searchBar) searchBar.style.display='none';
     var body = document.getElementById('msg2-detail-body');
     if (body) body.innerHTML = '<div style="margin:auto;text-align:center;color:#cbd5e1;font-size:13px;padding:40px"><div style="font-size:34px;margin-bottom:8px">'+((_s.tab==='compose')?'✎':'📎')+'</div>'+_esc(sub||'')+'</div>';
+  }
+
+  // ── 대화 검색 ─────────────────────────
+  function _toggleChatSearch(){
+    var bar = document.getElementById('msg2-chat-search-bar'); if (!bar) return;
+    var isOpen = bar.style.display !== 'none' && bar.style.display !== '';
+    if (isOpen){
+      bar.style.display='none';
+      _s.chatQuery=''; var inp = document.getElementById('msg2-chat-search-input'); if (inp) inp.value='';
+      var cnt = document.getElementById('msg2-chat-search-count'); if (cnt) cnt.textContent='';
+      _renderMessages(_s.msgs||[]);
+    } else {
+      bar.style.display='block';
+      var inp = document.getElementById('msg2-chat-search-input'); if (inp){ inp.focus(); }
+    }
+  }
+  function _chatSearchChange(v){
+    _s.chatQuery = (v||'').toLowerCase().trim();
+    _renderMessages(_s.msgs||[]);
+  }
+  function _chatSearchClear(){
+    _s.chatQuery='';
+    var inp = document.getElementById('msg2-chat-search-input'); if (inp) inp.value='';
+    var cnt = document.getElementById('msg2-chat-search-count'); if (cnt) cnt.textContent='';
+    var bar = document.getElementById('msg2-chat-search-bar'); if (bar) bar.style.display='none';
+    _renderMessages(_s.msgs||[]);
   }
 
   function _renderDetail(){ _renderDetailPlaceholder('대화를 선택하세요',''); }
@@ -17929,8 +17978,31 @@ window.__msg2 = (function(){
   function _renderMessages(msgs){
     var body = document.getElementById('msg2-detail-body');
     if (!body) return;
+    // 검색어 필터 (본문 · 발신자명 · 첨부파일명)
+    var filtered = msgs;
+    var cntEl = document.getElementById('msg2-chat-search-count');
+    if (_s.chatQuery){
+      var q = _s.chatQuery;
+      filtered = msgs.filter(function(m){
+        if ((m.body||'').toLowerCase().indexOf(q)!==-1) return true;
+        if ((m.sender_name||'').toLowerCase().indexOf(q)!==-1) return true;
+        if (Array.isArray(m.attachments)){
+          for (var i=0;i<m.attachments.length;i++){
+            if ((m.attachments[i].name||'').toLowerCase().indexOf(q)!==-1) return true;
+          }
+        }
+        return false;
+      });
+      if (cntEl) cntEl.textContent = filtered.length+'건';
+    } else {
+      if (cntEl) cntEl.textContent = '';
+    }
+    if (_s.chatQuery && filtered.length===0){
+      body.innerHTML = '<div style="margin:auto;text-align:center;color:#94a3b8;font-size:12.5px;padding:40px 20px">"'+_esc(_s.chatQuery)+'" 검색 결과가 없습니다.</div>';
+      return;
+    }
     var lastDate = '';
-    var html = msgs.map(function(m){
+    var html = filtered.map(function(m){
       var isMine = m.sender_id===_userId;
       var dt = m.created_at ? new Date(m.created_at) : null;
       var dateKey = dt ? (dt.getFullYear()+'-'+_p2(dt.getMonth()+1)+'-'+_p2(dt.getDate())) : '';
@@ -18038,7 +18110,13 @@ window.__msg2 = (function(){
     if (!body) return;
     var users = (window.ALL_USERS||[]).filter(function(u){ return u.id !== _userId; });
     if (_s.query){ users = users.filter(function(u){ return (u.fullName||'').toLowerCase().indexOf(_s.query)!==-1 || (u.dept||'').toLowerCase().indexOf(_s.query)!==-1; }); }
-    var selectedHtml = _s.composeIds.length ? '<div style="padding:8px 14px;border-bottom:1px solid #e2e8f0;background:#eef2ff;font-size:11.5px;color:#4338ca;font-weight:700">받는 사람 '+_s.composeIds.length+'명 선택됨</div>' : '';
+    // 전체 선택 상태: 현재 표시된 users 가 모두 선택됐는지
+    var allSelected = users.length > 0 && users.every(function(u){ return _s.composeIds.indexOf(u.id) !== -1; });
+    var toolbarHtml = '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #e2e8f0;background:'+(_s.composeIds.length?'#eef2ff':'#f8fafc')+'">'
+      + '<span style="font-size:11.5px;font-weight:700;color:'+(_s.composeIds.length?'#4338ca':'#64748b')+'">받는 사람 '+_s.composeIds.length+'명 선택'+(_s.query?' · 검색 '+users.length+'명':'')+'</span>'
+      + '<button onclick="window.__msg2._toggleSelectAll()" style="padding:4px 10px;background:'+(allSelected?'#ef4444':'#4f46e5')+';color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">'+(allSelected?'전체 해제':'전체 선택')+'</button>'
+    + '</div>';
+    var selectedHtml = toolbarHtml;
     var listHtml = users.map(function(u){
       var checked = _s.composeIds.indexOf(u.id) !== -1;
       return '<label class="msg2-conv-item" style="cursor:pointer;'+(checked?'background:#eef2ff':'')+'">'
@@ -18065,6 +18143,21 @@ window.__msg2 = (function(){
       if (!_s._composeFiles) _s._composeFiles = [];
       _renderComposeFiles();
     }
+  }
+  function _toggleSelectAll(){
+    var users = (window.ALL_USERS||[]).filter(function(u){ return u.id !== _userId; });
+    if (_s.query){ users = users.filter(function(u){ return (u.fullName||'').toLowerCase().indexOf(_s.query)!==-1 || (u.dept||'').toLowerCase().indexOf(_s.query)!==-1; }); }
+    var allSelected = users.length > 0 && users.every(function(u){ return _s.composeIds.indexOf(u.id) !== -1; });
+    if (allSelected){
+      // 현재 표시된 users id 를 composeIds 에서 제거
+      var toRemove = {};
+      users.forEach(function(u){ toRemove[u.id]=1; });
+      _s.composeIds = _s.composeIds.filter(function(id){ return !toRemove[id]; });
+    } else {
+      // 표시된 users 모두 추가 (중복 제거)
+      users.forEach(function(u){ if (_s.composeIds.indexOf(u.id) === -1) _s.composeIds.push(u.id); });
+    }
+    _renderCompose();
   }
   function _toggleRecipient(uid){
     var i = _s.composeIds.indexOf(uid);
@@ -18153,9 +18246,13 @@ window.__msg2 = (function(){
     selectConv:selectConv, send:send,
     _onFile:_onFile, _removeFile:_removeFile,
     _toggleRecipient:_toggleRecipient,
+    _toggleSelectAll:_toggleSelectAll,
     _composeAddFiles:_composeAddFiles,
     _composeRemoveFile:_composeRemoveFile,
-    _composeSend:_composeSend
+    _composeSend:_composeSend,
+    _toggleChatSearch:_toggleChatSearch,
+    _chatSearchChange:_chatSearchChange,
+    _chatSearchClear:_chatSearchClear
   };
 })();
 
