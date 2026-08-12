@@ -16519,6 +16519,13 @@ function openMeetingPanel(){ window.__meeting.openPanel(); }
      · IIFE window.__board 로 완전 격리 (다른 모듈과 무관)
      · 진입점: openBoardPanel() / 카탈로그 카드
      ═══════════════════════════════════════════════════════════════════ -->
+<style>
+  /* contenteditable placeholder */
+  #board-f-content:empty:before { content: attr(data-placeholder); color:#94a3b8; pointer-events:none; }
+  #board-f-content:focus { border-color: #0ea5e9 !important; box-shadow: 0 0 0 2px rgba(14,165,233,0.15); }
+  #board-f-content img { max-width: 100%; height: auto; border-radius: 6px; margin: 4px 0; display: block; }
+  .board-detail-content img { max-width: 100%; height: auto; border-radius: 6px; margin: 8px 0; display: block; }
+</style>
 <div id="board-overlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.45);z-index:9990;align-items:center;justify-content:center;padding:20px;box-sizing:border-box" onclick="if(event.target===this)closeBoardPanel()">
   <div style="width:1100px;max-width:calc(100vw - 40px);height:88vh;max-height:900px;background:#fff;border-radius:18px;box-shadow:0 24px 72px rgba(0,0,0,0.28);display:flex;flex-direction:column;font-family:inherit;overflow:hidden">
     <!-- 헤더 -->
@@ -16561,6 +16568,13 @@ window.__board = (function(){
   function _delHdr(){ return { 'apikey':SB_KEY_B, 'Authorization':'Bearer '+_tok(), 'Content-Type':'application/json', 'Prefer':'return=minimal' }; }
   function _esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
   function _br(s){ return _esc(s).replace(/\n/g,'<br>'); }
+  // contenteditable 로 저장된 content: HTML 태그가 이미 있으면 그대로 렌더 (인라인 이미지 지원)
+  //   순수 텍스트인 경우 개행을 <br> 로 변환
+  function _htmlOrBr(s){
+    if (!s) return '';
+    if (/<[a-z][\s\S]*>/i.test(s)) return s; // 이미 HTML
+    return _br(s);
+  }
   function _fmtDate(d){ if(!d) return ''; var dt=new Date(d); if(isNaN(dt.getTime())) return ''; return dt.getFullYear()+'.'+String(dt.getMonth()+1).padStart(2,'0')+'.'+String(dt.getDate()).padStart(2,'0'); }
   function _fmtDateTime(d){ if(!d) return ''; var dt=new Date(d); if(isNaN(dt.getTime())) return ''; return _fmtDate(d)+' '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0'); }
   function _isNew(d){ if(!d) return false; return (Date.now() - new Date(d).getTime()) < 3*24*3600*1000; } // 3일
@@ -16756,7 +16770,11 @@ window.__board = (function(){
       + '</div>'
       + '<div style="margin-bottom:12px">'
         + '<label style="font-size:11.5px;font-weight:700;color:#64748b;display:block;margin-bottom:5px">본문 *</label>'
-        + '<textarea id="board-f-content" placeholder="본문을 입력하세요. (엔터로 줄바꿈)" rows="12" style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13.5px;line-height:1.7;box-sizing:border-box;outline:none;font-family:inherit;resize:vertical;min-height:280px">'+_esc(initContent)+'</textarea>'
+        + '<div id="board-f-content" contenteditable="true" data-placeholder="본문을 입력하세요. 이미지는 드래그·붙여넣기 가능 (Ctrl+V)" '
+        + 'onpaste="window.__board._onContentPaste(event)" ondrop="window.__board._onContentDrop(event)" ondragover="event.preventDefault()" '
+        + 'style="width:100%;padding:12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13.5px;line-height:1.7;box-sizing:border-box;outline:none;font-family:inherit;min-height:280px;background:#fff;overflow-y:auto;max-height:520px">'
+        + (initContent || '')
+        + '</div>'
       + '</div>'
       + '<div style="margin-bottom:12px">'
         + '<label style="font-size:11.5px;font-weight:700;color:#64748b;display:block;margin-bottom:6px">첨부파일</label>'
@@ -16844,7 +16862,7 @@ window.__board = (function(){
             + '<button onclick="__board.deletePost(\''+p.id+'\')" style="padding:6px 12px;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit">삭제</button>'
           + '</div>' : '')
       + '</div>'
-      + '<div style="padding:22px 0;font-size:14px;line-height:1.85;color:#1f2937;white-space:pre-wrap;word-break:break-word;min-height:180px">'+_br(p.content||'')+'</div>'
+      + '<div class="board-detail-content" style="padding:22px 0;font-size:14px;line-height:1.85;color:#1f2937;word-break:break-word;min-height:180px">'+_htmlOrBr(p.content||'')+'</div>'
       + attHtml
       + commentsHtml
       + navHtml
@@ -16993,6 +17011,74 @@ window.__board = (function(){
     if (!files.length) return;
     files.forEach(function(f){ _uploadFile(f); });
   }
+
+  // ── 본문 인라인 이미지: 붙여넣기·드래그 처리 ─────
+  function _onContentPaste(e){
+    var items = (e.clipboardData || window.clipboardData || {}).items;
+    if (!items) return;
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      if (item.type && item.type.indexOf('image/') === 0) {
+        e.preventDefault();
+        var file = item.getAsFile();
+        if (file) _insertInlineImage(file);
+        return;
+      }
+    }
+    // 텍스트/HTML 붙여넣기는 브라우저 기본 동작 (플레인 텍스트 우선)
+  }
+  function _onContentDrop(e){
+    var dt = e.dataTransfer;
+    if (!dt) return;
+    var files = Array.from(dt.files||[]).filter(function(f){ return f.type && f.type.indexOf('image/')===0; });
+    if (!files.length) return; // 파일 아닌 텍스트 드래그는 기본 처리
+    e.preventDefault();
+    files.forEach(function(f){ _insertInlineImage(f); });
+  }
+  function _insertInlineImage(file){
+    var safe = file.name.replace(/[^\w.\-가-힣]/g, '_');
+    var path = 'board/inline_' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '_' + safe;
+    var uploadUrl = SB_URL_B + '/storage/v1/object/msg-attachments/' + path;
+    // placeholder 임시 삽입 (업로드 중 표시)
+    var phId = 'img_ph_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    _insertHtmlAtCursor('<span id="'+phId+'" style="display:inline-block;padding:6px 12px;background:#f1f5f9;color:#64748b;border-radius:6px;font-size:12px">📎 업로드 중… '+_esc(file.name)+'</span>');
+    fetch(uploadUrl, {
+      method:'POST',
+      headers: { 'apikey':SB_KEY_B, 'Authorization':'Bearer '+_tok(), 'x-upsert':'false', 'Content-Type': file.type || 'application/octet-stream' },
+      body: file
+    }).then(function(r){ if (!r.ok) return r.text().then(function(t){ throw new Error(t); }); })
+      .then(function(){
+        var publicUrl = SB_URL_B + '/storage/v1/object/public/msg-attachments/' + path;
+        var ph = document.getElementById(phId);
+        if (ph) ph.outerHTML = '<img src="'+publicUrl+'" alt="'+_esc(file.name)+'">';
+      })
+      .catch(function(e){
+        var ph = document.getElementById(phId);
+        if (ph) ph.outerHTML = '<span style="color:#dc2626;font-size:12px">❌ 업로드 실패: '+_esc(file.name)+'</span>';
+        console.warn('[board inline image]', e);
+      });
+  }
+  function _insertHtmlAtCursor(html){
+    var el = document.getElementById('board-f-content');
+    if (!el) return;
+    el.focus();
+    try {
+      if (document.queryCommandSupported && document.queryCommandSupported('insertHTML')) {
+        document.execCommand('insertHTML', false, html);
+        return;
+      }
+    } catch(e){}
+    // Fallback
+    var sel = window.getSelection();
+    if (sel && sel.rangeCount) {
+      var range = sel.getRangeAt(0);
+      var frag = range.createContextualFragment(html);
+      range.deleteContents();
+      range.insertNode(frag);
+    } else {
+      el.insertAdjacentHTML('beforeend', html);
+    }
+  }
   function _uploadFile(file){
     var ext = (file.name.split('.').pop()||'bin').toLowerCase();
     var safe = file.name.replace(/[^\w.\-가-힣]/g, '_');
@@ -17016,9 +17102,13 @@ window.__board = (function(){
     if (!me.id) { alert('로그인 세션이 유효하지 않습니다.'); return; }
     var cat = (document.getElementById('board-f-cat')||{}).value;
     var title = (document.getElementById('board-f-title')||{}).value.trim();
-    var content = (document.getElementById('board-f-content')||{}).value;
+    // contenteditable: innerHTML 사용 (인라인 <img> 지원)
+    var _contentEl = document.getElementById('board-f-content');
+    var content = _contentEl ? _contentEl.innerHTML : '';
+    var _plain = _contentEl ? (_contentEl.textContent||'').trim() : '';
     if (!title) { alert('제목을 입력해주세요.'); return; }
-    if (!content.trim()) { alert('본문을 입력해주세요.'); return; }
+    // 텍스트 or 이미지 하나라도 있으면 통과 (contenteditable 은 <img>만 있어도 innerHTML 채워짐)
+    if (!_plain && !/<img/i.test(content)) { alert('본문을 입력해주세요.'); return; }
     var visibility = (document.getElementById('board-f-visibility')||{}).value || 'all';
     var allowComments = !!(document.getElementById('board-f-allow-comments')||{}).checked;
     var isPinned = !!(document.getElementById('board-f-pinned')||{}).checked;
@@ -17184,6 +17274,7 @@ window.__board = (function(){
     savePost: savePost, deletePost: deletePost,
     addComment: addComment, deleteComment: deleteComment,
     _onVisibilityChange: _onVisibilityChange, _onAttachSelect: _onAttachSelect, _removeAttach: _removeAttach,
+    _onContentPaste: _onContentPaste, _onContentDrop: _onContentDrop,
     _toggleReplyForm: _toggleReplyForm, _submitReply: _submitReply,
     _toggleEditForm: _toggleEditForm, _submitCommentEdit: _submitCommentEdit
   };
