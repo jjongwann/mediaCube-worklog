@@ -16847,6 +16847,11 @@ window.__board = (function(){
         + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">'
         +   '<label style="font-size:11.5px;font-weight:700;color:#64748b">본문 *</label>'
         +   '<div style="display:flex;gap:5px">'
+        // 서식 툴바: 굵게 · 가운데 정렬
+        +     '<button type="button" title="굵게 (Ctrl+B)" onmousedown="event.preventDefault()" onclick="window.__board._fmt(\'bold\',this)" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:#fff;border:1px solid #e2e8f0;color:#334155;border-radius:6px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit" onmouseover="this.style.background=\'#f1f5f9\'" onmouseout="this.style.background=\'#fff\'">B</button>'
+        +     '<button type="button" title="가운데 정렬" onmousedown="event.preventDefault()" onclick="window.__board._fmt(\'justifyCenter\',this)" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:#fff;border:1px solid #e2e8f0;color:#334155;border-radius:6px;cursor:pointer;font-family:inherit" onmouseover="this.style.background=\'#f1f5f9\'" onmouseout="this.style.background=\'#fff\'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="18" y1="18" x2="6" y2="18"/></svg></button>'
+        +     '<button type="button" title="왼쪽 정렬" onmousedown="event.preventDefault()" onclick="window.__board._fmt(\'justifyLeft\',this)" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:#fff;border:1px solid #e2e8f0;color:#334155;border-radius:6px;cursor:pointer;font-family:inherit" onmouseover="this.style.background=\'#f1f5f9\'" onmouseout="this.style.background=\'#fff\'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg></button>'
+        +     '<span style="width:1px;background:#e2e8f0;margin:0 2px"></span>'
         +     '<button type="button" onclick="document.getElementById(\'board-f-img-input\').click()" style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;background:#f0f9ff;border:1px solid #bae6fd;color:#0369a1;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit" onmouseover="this.style.background=\'#e0f2fe\'" onmouseout="this.style.background=\'#f0f9ff\'">'
         +       '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
         +       '이미지 첨부'
@@ -17285,6 +17290,13 @@ window.__board = (function(){
     _selectedImg = null;
   }
 
+  // 서식 명령 (execCommand) — 편집기 포커스 유지한 채 실행
+  function _fmt(cmd){
+    var el = document.getElementById('board-f-content');
+    if (!el) return;
+    el.focus();
+    try { document.execCommand(cmd, false, null); } catch(e){ console.warn('[board fmt]', cmd, e); }
+  }
   function _insertHtmlAtCursor(html){
     var el = document.getElementById('board-f-content');
     if (!el) return;
@@ -17506,6 +17518,7 @@ window.__board = (function(){
     addComment: addComment, deleteComment: deleteComment,
     _onVisibilityChange: _onVisibilityChange, _onAttachSelect: _onAttachSelect, _removeAttach: _removeAttach,
     _onContentPaste: _onContentPaste, _onContentDrop: _onContentDrop, _onInlineImgSelect: _onInlineImgSelect,
+    _fmt: _fmt,
     _toggleReplyForm: _toggleReplyForm, _submitReply: _submitReply,
     _toggleEditForm: _toggleEditForm, _submitCommentEdit: _submitCommentEdit
   };
