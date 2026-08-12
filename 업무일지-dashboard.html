@@ -17958,7 +17958,6 @@ window.__msg2 = (function(){
     _renderFileList();
   }
   function _removeFile(idx){ _s.files.splice(idx,1); _renderFileList(); }
-  window.__msg2._removeFile = _removeFile;
   function _renderFileList(){
     var el = document.getElementById('msg2-file-list');
     if (!el) return;
@@ -18049,7 +18048,6 @@ window.__msg2 = (function(){
     if (i>=0) _s.composeIds.splice(i,1); else _s.composeIds.push(uid);
     _renderCompose();
   }
-  window.__msg2._toggleRecipient = _toggleRecipient;
   function _composeAddFiles(inp){
     if (!_s._composeFiles) _s._composeFiles = [];
     for (var i=0;i<inp.files.length;i++){
@@ -18059,7 +18057,6 @@ window.__msg2 = (function(){
     inp.value='';
     _renderComposeFiles();
   }
-  window.__msg2._composeAddFiles = _composeAddFiles;
   function _renderComposeFiles(){
     var el = document.getElementById('msg2-compose-files'); if (!el) return;
     var files = _s._composeFiles || [];
@@ -18072,7 +18069,6 @@ window.__msg2 = (function(){
     }).join('');
   }
   function _composeRemoveFile(idx){ if (!_s._composeFiles) return; _s._composeFiles.splice(idx,1); _renderComposeFiles(); }
-  window.__msg2._composeRemoveFile = _composeRemoveFile;
   function _composeSend(){
     if (!_s.composeIds.length){ alert('받는 사람을 선택해주세요.'); return; }
     var bodyEl = document.getElementById('msg2-compose-body');
@@ -18094,7 +18090,6 @@ window.__msg2 = (function(){
       setTab('list'); _loadConvs();
     }).catch(function(e){ alert('전송 오류: '+(e.message||e)); });
   }
-  window.__msg2._composeSend = _composeSend;
 
   // ── 첨부파일 뷰 ─────────────────────────
   function _renderFiles(){
@@ -18129,7 +18124,16 @@ window.__msg2 = (function(){
     }).join('');
   }
 
-  return { openPanel:openPanel, closePanel:closePanel, setTab:setTab, setQuery:setQuery, refresh:refresh, selectConv:selectConv, send:send, _onFile:_onFile };
+  return {
+    openPanel:openPanel, closePanel:closePanel,
+    setTab:setTab, setQuery:setQuery, refresh:refresh,
+    selectConv:selectConv, send:send,
+    _onFile:_onFile, _removeFile:_removeFile,
+    _toggleRecipient:_toggleRecipient,
+    _composeAddFiles:_composeAddFiles,
+    _composeRemoveFile:_composeRemoveFile,
+    _composeSend:_composeSend
+  };
 })();
 
 // 전역 진입점
