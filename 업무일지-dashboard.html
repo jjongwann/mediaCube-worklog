@@ -2135,7 +2135,7 @@
           </button>
           <button type="button" class="dm-new-btn dm-new-btn-board" onclick="if(window.__board) window.__board.showWrite()" title="게시글 작성" style="display:none;border:none">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            글쓰기
+            게시판 작성
           </button>
           <button type="button" class="dm-new-btn dm-new-btn-calendar" onclick="if(typeof _scalOpenEventModal==='function') _scalOpenEventModal(null)" title="새 일정 추가" style="display:none;border:none">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -16938,9 +16938,9 @@ window.__board = (function(){
     var totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
     if (_state.page > totalPages) _state.page = totalPages;
     var pageRows = visible.slice((_state.page-1)*PAGE_SIZE, (_state.page-1)*PAGE_SIZE + PAGE_SIZE);
-    var grid = 'display:grid;grid-template-columns:90px minmax(0,1fr) 130px 100px 60px 60px 50px;gap:10px;padding:11px 18px;align-items:center';
+    var grid = 'display:grid;grid-template-columns:90px minmax(0,1fr) 130px 110px 70px 60px;gap:10px;padding:11px 18px;align-items:center';
     var listHdr = '<div style="'+grid+';font-size:11px;font-weight:700;color:#64748b;background:#f8fafc;border-bottom:2px solid #e2e8f0;letter-spacing:.2px;text-transform:uppercase">'
-      + '<div>카테고리</div><div>제목</div><div>작성자</div><div>작성일</div><div style="text-align:center">조회</div><div style="text-align:center">댓글</div><div style="text-align:center">첨부</div>'
+      + '<div>카테고리</div><div>제목</div><div>작성자</div><div>작성일</div><div style="text-align:center">댓글</div><div style="text-align:center">첨부</div>'
     + '</div>';
     var rowsHtml = '';
     if (!pageRows.length) {
@@ -16962,7 +16962,6 @@ window.__board = (function(){
           + '<div style="min-width:0;overflow:hidden">'+pinBadge+impBadge+'<span style="font-weight:'+titleWeight+';color:'+titleColor+';overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(p.title||'무제')+'</span>'+newBadge+'</div>'
           + '<div style="color:#0f172a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(p.author_name||'-')+'</div>'
           + '<div style="color:#64748b;font-variant-numeric:tabular-nums">'+_fmtDate(p.created_at)+'</div>'
-          + '<div style="text-align:center;color:#64748b;font-variant-numeric:tabular-nums">'+(p.view_count||0)+'</div>'
           + '<div style="text-align:center;color:'+(cntComments>0?'#2563eb':'#94a3b8')+';font-weight:'+(cntComments>0?'700':'400')+';font-variant-numeric:tabular-nums">'+cntComments+'</div>'
           + '<div style="text-align:center">'+attIcon+'</div>'
           + '</div>';
