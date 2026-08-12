@@ -3333,7 +3333,7 @@
       <div style="position:relative;display:flex;align-items:center;gap:6px">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="msg2-chat-search-input" placeholder="이 대화에서 검색... (Enter 다음, Shift+Enter 이전)" oninput="window.__msg2._chatSearchChange(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();window.__msg2._chatSearchNext(event.shiftKey);}" style="flex:1;min-width:0;padding:7px 30px 7px 30px;border:1px solid #e2e8f0;border-radius:8px;font-size:12.5px;outline:none;background:#fff" onfocus="this.style.borderColor='#4f46e5'" onblur="this.style.borderColor='#e2e8f0'">
-        <span id="msg2-chat-search-count" style="font-size:12px;color:#ef4444;font-weight:800;white-space:nowrap;min-width:44px;text-align:center;font-variant-numeric:tabular-nums"></span>
+        <span id="msg2-chat-search-count" style="font-size:12px;color:#64748b;font-weight:800;white-space:nowrap;min-width:44px;text-align:center;font-variant-numeric:tabular-nums"></span>
         <button onclick="window.__msg2._chatSearchClear()" title="검색 해제" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:15px;line-height:1;padding:2px 6px" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">×</button>
       </div>
     </div>
@@ -17974,7 +17974,7 @@ window.__msg2 = (function(){
   function _chatSearchClear(){
     _s.chatQuery=''; _s.chatMatchIdx=0; _s.chatMatchCount=0;
     var inp = document.getElementById('msg2-chat-search-input'); if (inp) inp.value='';
-    var cnt = document.getElementById('msg2-chat-search-count'); if (cnt){ cnt.textContent=''; cnt.style.color='#ef4444'; }
+    var cnt = document.getElementById('msg2-chat-search-count'); if (cnt){ cnt.textContent=''; cnt.style.color='#64748b'; }
     var bar = document.getElementById('msg2-chat-search-bar'); if (bar) bar.style.display='none';
     var pill = document.getElementById('msg2-chat-search-btn'); if (pill && _s.selConv) pill.style.display='inline-flex';
     _renderMessages(_s.msgs||[]);
@@ -18064,15 +18064,15 @@ window.__msg2 = (function(){
     if (_s.chatQuery){
       if (_s.chatMatchCount === 0){
         _s.chatMatchIdx = 0;
-        if (cntEl){ cntEl.textContent = '0/0'; cntEl.style.color = '#94a3b8'; }
+        if (cntEl){ cntEl.textContent = '0/0'; cntEl.style.color = '#64748b'; }
       } else {
         if (_s.chatMatchIdx < 1 || _s.chatMatchIdx > _s.chatMatchCount) _s.chatMatchIdx = 1;
-        if (cntEl){ cntEl.textContent = _s.chatMatchIdx + '/' + _s.chatMatchCount; cntEl.style.color = '#ef4444'; }
+        if (cntEl){ cntEl.textContent = _s.chatMatchIdx + '/' + _s.chatMatchCount; cntEl.style.color = '#64748b'; }
         _updateCurrentMark(true);
       }
     } else {
       _s.chatMatchIdx = 0;
-      if (cntEl){ cntEl.textContent = ''; cntEl.style.color = '#ef4444'; }
+      if (cntEl){ cntEl.textContent = ''; cntEl.style.color = '#64748b'; }
     }
   }
 
