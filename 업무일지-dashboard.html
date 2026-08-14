@@ -12641,39 +12641,13 @@
     }).catch(function(){});
   }
 
-  // 그룹 record 확장: 이전 DELETE 로 사라진 완료 담당자를 synthetic done 으로 복원
-  //   · 관리자(mediacube) 지시 그룹만 적용 — 관리자는 전체(비관리자) 대상 지시 관행
-  //   · 예상 담당자(ALL_USERS 중 비관리자) 중 현재 그룹에 없는 사람을
-  //     status='done' 으로 간주해 카드/카운트에 노출
+  // 그룹 record 확장 — DEPRECATED / no-op (2026-08-14)
+  //   구 로직: 관리자 지시에서 records 에 없는 비관리자를 synthetic done 으로 복원
+  //   문제: "관리자는 전 직원 지시" 가정에 근거해 애초에 대상이 아니었던 사용자까지
+  //         팬텀 완료로 표시 → 실제 담당자/진행률/완료 카운트 왜곡
+  //   auto-delete 는 이미 비활성 상태라 복원 필요성도 사라짐 → no-op 로 유지
   function _expandGroupWithMissingAsDone(records) {
-    if (!Array.isArray(records) || !records.length) return records || [];
-    var first = records[0];
-    // 관리자(mediacube = 화이트리스트) 가 assigner 인 경우에만 적용
-    var isAdminAssigner = (first.assigner_name === '관리자' || first.assigner_name === 'mediacube');
-    if (!isAdminAssigner) return records;
-    if (typeof ALL_USERS === 'undefined' || !Array.isArray(ALL_USERS)) return records;
-    var presentIds = {};
-    records.forEach(function(r){ if (r.assignee_id) presentIds[r.assignee_id] = true; });
-    var syntheticDones = ALL_USERS
-      .filter(function(u){ return !u.isAdmin && !presentIds[u.id]; })
-      .map(function(u){
-        return {
-          id: '__synthetic_' + u.id,
-          assigner_id: first.assigner_id,
-          assigner_name: first.assigner_name,
-          assignee_id: u.id,
-          assignee_name: u.fullName,
-          title: first.title,
-          content: first.content,
-          priority: first.priority,
-          due_date: first.due_date,
-          created_at: first.created_at,
-          status: 'done',
-          completed_at: null,
-          _synthetic: true
-        };
-      });
-    return records.concat(syntheticDones);
+    return Array.isArray(records) ? records : (records ? [records] : []);
   }
 
   var _PRIORITY = {
