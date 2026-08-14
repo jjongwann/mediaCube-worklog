@@ -2068,6 +2068,10 @@
       <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
       시스템팀 업무 현황
     </div>
+    <div class="sidebar-item" id="sidebar-saleshub-btn" style="display:none" onclick="if(window._dmOpenSalesChooser)window._dmOpenSalesChooser()" title="사업부별 매출 현황">
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
+      사업부별 매출 현황
+    </div>
     <div class="sidebar-item" id="sidebar-vendor-btn" onclick="openVendorMenu()">
       <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v4H3z"/><path d="M5 7v13h14V7"/><path d="M9 11h6"/><path d="M9 15h6"/></svg></span>
       거래처별 매출 분석
@@ -3792,6 +3796,11 @@
         || (_userDeptKey(_userId) === 'system')
         || (typeof _currentUsername !== 'undefined' && _currentUsername === 'info');
       quoteBtn.style.display = canSeeQuote ? '' : 'none';
+    }
+    // 사업부별 매출 현황: 관리자(mediacube) 전용
+    var saleshubBtn = document.getElementById('sidebar-saleshub-btn');
+    if (saleshubBtn) {
+      saleshubBtn.style.display = _isAdmin ? '' : 'none';
     }
     // 직원별 필터 셀렉트: 관리자 또는 전체 일지 열람 화이트리스트 계정에 노출
     try { if (typeof window._populateEmployeeFilter === 'function') window._populateEmployeeFilter(); } catch(e) {}
