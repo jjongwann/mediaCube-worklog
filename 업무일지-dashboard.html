@@ -416,9 +416,20 @@
   #msg2-rail .msg2-rail-btn.active { background:#4f46e5; color:#fff; }
   #msg2-rail .msg2-rail-lbl { font-size:10px; line-height:1; letter-spacing:-0.02em; }
   /* msg2 대화 항목 */
-  .msg2-conv-item { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid #eef2f7; cursor:pointer; transition:background 0.12s; }
+  .msg2-conv-item { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid #eef2f7; cursor:pointer; transition:background 0.12s; position:relative; }
   .msg2-conv-item:hover { background:#eef2ff; }
   .msg2-conv-item.active { background:#e0e7ff; border-left:3px solid #4f46e5; padding-left:13px; }
+  /* 대화 삭제 X 버튼 — hover 시 서서히 나타남 */
+  .msg2-conv-del {
+    position:absolute; top:50%; right:10px; transform:translateY(-50%);
+    width:22px; height:22px; border-radius:50%;
+    border:none; background:rgba(15,23,42,0.06); color:#64748b;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none;
+    transition:opacity 0.2s, background 0.15s, color 0.15s, transform 0.15s;
+  }
+  .msg2-conv-item:hover .msg2-conv-del { opacity:1; pointer-events:auto; }
+  .msg2-conv-del:hover { background:#fee2e2; color:#ef4444; transform:translateY(-50%) scale(1.1); }
   /* 스크롤바 얇게 */
   #msg2-list-body::-webkit-scrollbar, #msg2-detail-body::-webkit-scrollbar { width:6px; }
   #msg2-list-body::-webkit-scrollbar-thumb, #msg2-detail-body::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
@@ -17837,7 +17848,7 @@ window.__msg2 = (function(){
       var badge = c.unread>0 ? '<div style="min-width:18px;height:18px;border-radius:9px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 5px;flex-shrink:0">'+c.unread+'</div>' : '';
       return '<div class="msg2-conv-item'+(isActive?' active':'')+'" onclick="window.__msg2.selectConv(\''+_esc(c.otherId)+'\')">'
         + _avatarHtml(c.otherUser, c.otherName, 44)
-        + '<div style="flex:1;min-width:0">'
+        + '<div style="flex:1;min-width:0;padding-right:24px">'
           + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">'
             + '<span style="font-size:13.5px;font-weight:'+(c.unread>0?'800':'700')+';color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+_esc(c.otherName)+(c.otherUser&&c.otherUser.dept?'<span style=\"font-size:10.5px;color:#94a3b8;font-weight:500;margin-left:5px\">'+_esc(c.otherUser.dept)+'</span>':'')+'</span>'
             + '<span style="font-size:10.5px;color:#94a3b8;flex-shrink:0;margin-left:6px">'+_fmtTime(latest.created_at)+'</span>'
@@ -17847,6 +17858,9 @@ window.__msg2 = (function(){
             + badge
           + '</div>'
         + '</div>'
+        + '<button class="msg2-conv-del" onclick="event.stopPropagation();window.__msg2._deleteConv(\''+_esc(c.otherId)+'\')" title="이 대화 삭제">'
+          + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+        + '</button>'
       + '</div>';
     }).join('');
   }
@@ -17866,6 +17880,50 @@ window.__msg2 = (function(){
     _loadChatHistory(otherId, true);
     if (_chatPollTimer) clearInterval(_chatPollTimer);
     _chatPollTimer = setInterval(function(){ if (_s.selConv && _s.selConv.otherId===otherId) _loadChatHistory(otherId, false); }, 3000);
+  }
+
+  // ── 대화 소프트 삭제 (내 쪽만) ─────────────────────────
+  //   · deleted_by_sender / deleted_by_receiver 를 true 로 세팅 → 내 목록에서 사라짐
+  //   · 상대방 화면에는 그대로 남고, 새 메시지가 오거나 내가 보내면 대화 재출현
+  function _deleteConv(otherId){
+    var c = _s.convs.find(function(x){ return x.otherId === otherId; });
+    if (!c) return;
+    if (!confirm((c.otherName||'상대') + ' 님과의 대화를 삭제할까요?\n\n· 상대방 화면에는 그대로 남습니다.\n· 새 메시지가 오면 대화가 다시 나타납니다.')) return;
+    var sentIds = [], receivedIds = [];
+    (c.allMsgs || []).forEach(function(m){
+      if (m.sender_id === _userId) sentIds.push(m.id);
+      else if (m.receiver_id === _userId) receivedIds.push(m.id);
+    });
+    var patches = [];
+    if (sentIds.length){
+      patches.push(fetch(SB_URL+'/rest/v1/messages?id=in.('+sentIds.join(',')+')', {
+        method:'PATCH',
+        headers:{ 'apikey':SB_KEY, 'Authorization':'Bearer '+_sbToken, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+        body: JSON.stringify({ deleted_by_sender: true })
+      }));
+    }
+    if (receivedIds.length){
+      patches.push(fetch(SB_URL+'/rest/v1/messages?id=in.('+receivedIds.join(',')+')', {
+        method:'PATCH',
+        headers:{ 'apikey':SB_KEY, 'Authorization':'Bearer '+_sbToken, 'Content-Type':'application/json', 'Prefer':'return=minimal' },
+        body: JSON.stringify({ deleted_by_receiver: true })
+      }));
+    }
+    if (!patches.length){ _loadConvs(); return; }
+    Promise.all(patches).then(function(){
+      // 현재 열려있던 대화가 지워진 것이면 detail 초기화 + poll 정리
+      if (_s.selConv && _s.selConv.otherId === otherId){
+        _s.selConv = null; _s.msgs = []; _s.lastMsgId = null;
+        _s.chatQuery=''; _s.chatMatchCount=0; _s.chatMatchIdx=0;
+        _renderDetailPlaceholder('대화를 선택하세요','');
+        if (_chatPollTimer){ clearInterval(_chatPollTimer); _chatPollTimer = null; }
+      }
+      _loadConvs();
+      if (typeof updateMsgBadge === 'function') { try { updateMsgBadge(); } catch(e){} }
+      if (typeof showToast === 'function') { try { showToast('대화를 삭제했습니다.'); } catch(e){} }
+    }).catch(function(e){
+      alert('삭제 실패: ' + (e && e.message || e));
+    });
   }
 
   function _renderDetailHeader(){
@@ -18384,7 +18442,8 @@ window.__msg2 = (function(){
     _chatSearchChange:_chatSearchChange,
     _chatSearchNext:_chatSearchNext,
     _chatSearchClear:_chatSearchClear,
-    _selectFilesPartner:_selectFilesPartner
+    _selectFilesPartner:_selectFilesPartner,
+    _deleteConv:_deleteConv
   };
 })();
 
