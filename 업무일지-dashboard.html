@@ -18783,6 +18783,11 @@ window._dmEnterSalesEmbed = function(deptKey) {
   if (document.body.classList.contains('meeting-embed')) {
     try { window.__meeting && window.__meeting.closePanel(); } catch(e){}
   }
+  // 다른 feature embed (업무성과 · 히스토리 · 음원팀 등) 활성 상태였다면 먼저 정리
+  //  · 사이드바 '사업부별 매출 현황' 클릭으로 다른 embed 페이지에서 바로 진입 시 잔재 방지
+  if (document.body.classList.contains('dev-embed') && window._dmFeatureEmbedState && typeof window._dmExitFeatureEmbed === 'function') {
+    try { window._dmExitFeatureEmbed(); } catch(e){}
+  }
   _dmSaveSalesOrigin();
   var host    = document.getElementById('dev-sales-embed-host');
   var embed   = document.getElementById('dev-sales-embed');
