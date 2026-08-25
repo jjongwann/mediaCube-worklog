@@ -16156,8 +16156,11 @@ window.__meeting = (function() {
     var _sbToken = _sbKey;
     try { var s = JSON.parse(localStorage.getItem('mc_session') || 'null'); if (s && s.access_token) _sbToken = s.access_token; } catch(e){}
     return Promise.all(files.map(function(file){
-      var safeName = String(file.name).replace(/[^\w가-힣.\-]/g, '_');
-      var path = 'meetings/' + Date.now() + '_' + Math.random().toString(36).slice(2,7) + '_' + safeName;
+      // Supabase Storage 는 key 에 ASCII 만 허용 → 한글 파일명이 400 InvalidKey 유발.
+      // path 는 timestamp+random+ASCII 확장자로 만들고, 원본 파일명은 attachments.name 에 별도 보존.
+      var extMatch = /\.([a-zA-Z0-9]+)$/.exec(file.name || '');
+      var ext = extMatch ? '.' + extMatch[1].toLowerCase() : '';
+      var path = 'meetings/' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + ext;
       return fetch(_sbUrl + '/storage/v1/object/msg-attachments/' + path, {
         method: 'POST',
         headers: { 'apikey': _sbKey, 'Authorization': 'Bearer ' + _sbToken, 'Content-Type': file.type || 'application/octet-stream', 'x-upsert': 'true' },
