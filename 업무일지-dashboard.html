@@ -16530,9 +16530,15 @@ window.__meeting = (function() {
         + '</div>'
       : '';
 
+    var printBtnHtml = '<button class="mtg-detail-print-btn" onclick="__meeting._printDetail(\'' + _esc(r.id) + '\')" title="이 회의록만 인쇄" style="position:absolute;top:0;right:0;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;border:1px solid #2c8bdb;color:#2066ff;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .12s,color .12s" onmouseover="this.style.background=\'#2066ff\';this.style.color=\'#fff\'" onmouseout="this.style.background=\'#fff\';this.style.color=\'#2066ff\'">'
+      + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>'
+      + '인쇄하기'
+      + '</button>';
+
     return ''
       + '<div class="mtg-detail-inner">'
-      +   '<div class="mtg-detail-title-block">'
+      +   '<div class="mtg-detail-title-block" style="position:relative;padding-right:110px">'
+      +     printBtnHtml
       +     '<div class="mtg-detail-chips">' + chipsHtml + '</div>'
       +     '<h2 class="mtg-detail-h1">' + _esc(r.title || '무제') + '</h2>'
       +     '<div class="mtg-detail-sub">'
@@ -16574,6 +16580,90 @@ window.__meeting = (function() {
   function _editFromDetail(id) {
     _backToList();
     setTimeout(function(){ openForm(id); }, 80);
+  }
+
+  // ── 인쇄 (새 창에 인쇄 전용 HTML 렌더 → 자동 print) ──
+  function _printDetail(id) {
+    var r = _state.records.find(function(x){ return x.id === id; });
+    if (!r) { _toast('회의록을 찾을 수 없습니다.'); return; }
+    var w = window.open('', '_blank', 'width=900,height=1000');
+    if (!w) { alert('팝업이 차단되어 있습니다. 브라우저 팝업 차단을 해제해주세요.'); return; }
+
+    var visLbl = { sound:'사운드 사업부', system:'시스템 사업부', all:'전사 공개' }[r.visibility || 'all'];
+    var attendees = _sortAttendees(Array.isArray(r.attendees) ? r.attendees : []);
+    var atts = Array.isArray(r.attachments) ? r.attachments : [];
+    var _s = _fmtTime(r.start_time), _e = _fmtTime(r.end_time);
+    var timePart = _s && _e ? _s + ' ~ ' + _e : (_s ? _s + ' ~' : (_e ? '~ ' + _e : ''));
+    var dateStr = r.meeting_date ? (_fmtDate(r.meeting_date) + (timePart ? ' · ' + timePart : '')) : '—';
+    var esc = _esc;
+    var section = function(label, body){
+      return '<section><h3>' + esc(label) + '</h3>' + body + '</section>';
+    };
+    var plainBody = function(v){
+      return v ? '<div class="body">' + esc(v).replace(/\n/g,'<br>') + '</div>' : '<div class="body empty">— 입력된 내용이 없습니다 —</div>';
+    };
+    var attendeesHtml = attendees.length
+      ? '<ul class="attendees">' + attendees.map(function(a){ return '<li>' + esc(a.name || '?') + ' <span class="dept">· ' + esc(a.dept || '') + '</span></li>'; }).join('') + '</ul>'
+      : '<div class="body empty">— 참석자가 지정되지 않았습니다 —</div>';
+    var filesHtml = atts.length
+      ? '<ul class="files">' + atts.map(function(a){
+          var name = (typeof a === 'string') ? a : (a.name || 'file');
+          return '<li>📎 ' + esc(name) + '</li>';
+        }).join('') + '</ul>'
+      : '<div class="body empty">— 첨부된 파일이 없습니다 —</div>';
+
+    var html = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>' + esc(r.title || '회의록') + '</title>'
+      + '<style>'
+      + '@page{margin:18mm 15mm}'
+      + '*{box-sizing:border-box}'
+      + 'body{font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#0f172a;margin:0;padding:24px;line-height:1.55}'
+      + 'header{border-bottom:2px solid #2066ff;padding-bottom:14px;margin-bottom:18px}'
+      + '.kicker{font-size:10px;color:#64748b;font-weight:800;letter-spacing:2px;margin-bottom:4px}'
+      + 'h1{font-size:22px;font-weight:800;margin:0 0 8px;letter-spacing:-0.4px;line-height:1.35}'
+      + '.sub{font-size:11.5px;color:#64748b}.sub strong{color:#0f172a}'
+      + '.chips{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}'
+      + '.chip{font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:12px;background:#eff6ff;color:#2066ff;border:1px solid #bfdbfe}'
+      + '.chip.vis{background:#f0fdf4;color:#16a34a;border-color:#bbf7d0}'
+      + '.meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;padding:14px 18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:20px}'
+      + '.meta .lbl{font-size:10px;font-weight:700;color:#64748b;letter-spacing:.4px;margin-bottom:4px}'
+      + '.meta .val{font-size:13px;font-weight:700;color:#0f172a}'
+      + 'section{margin-bottom:18px;page-break-inside:avoid}'
+      + 'section h3{font-size:12px;font-weight:800;color:#2066ff;letter-spacing:0.4px;margin:0 0 8px;padding-bottom:5px;border-bottom:1px solid #e2e8f0;text-transform:uppercase}'
+      + '.body{font-size:12.5px;white-space:pre-wrap;word-break:break-word;color:#1f2937;padding:8px 0}'
+      + '.body.empty{color:#94a3b8;font-style:italic}'
+      + '.attendees{list-style:none;padding:0;margin:0;display:flex;gap:6px;flex-wrap:wrap}'
+      + '.attendees li{font-size:11.5px;padding:3px 10px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;color:#0f172a;font-weight:600}'
+      + '.attendees li .dept{color:#64748b;font-weight:400;font-size:10.5px}'
+      + '.files{list-style:none;padding:0;margin:0}'
+      + '.files li{font-size:12px;padding:5px 0;color:#0f172a}'
+      + 'footer{margin-top:24px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:right}'
+      + '@media print{body{padding:0}header{margin-bottom:14px}}'
+      + '</style></head><body>'
+      + '<header>'
+      +   '<div class="kicker">MEETING MINUTES</div>'
+      +   '<div class="chips"><span class="chip">' + esc(_typeLabel(r.meeting_type)) + '</span><span class="chip vis">' + esc(visLbl) + '</span></div>'
+      +   '<h1>' + esc(r.title || '무제') + '</h1>'
+      +   '<div class="sub">작성자 · <strong>' + esc(r.author_name || '-') + '</strong>  ·  작성일 ' + _fmtDate((r.created_at||'').slice(0,10)) + '</div>'
+      + '</header>'
+      + '<div class="meta">'
+      +   '<div><div class="lbl">회의 일시</div><div class="val">' + esc(dateStr) + '</div></div>'
+      +   '<div><div class="lbl">회의 장소</div><div class="val">' + esc(r.location || '—') + '</div></div>'
+      +   '<div><div class="lbl">주관 부서</div><div class="val">' + esc(r.dept || '—') + '</div></div>'
+      + '</div>'
+      + section('참석자 (' + attendees.length + '명)', attendeesHtml)
+      + section('회의 안건', plainBody(r.agenda))
+      + section('회의 내용', plainBody(r.content))
+      + section('주요 결정사항', plainBody(r.decisions))
+      + section('참고사항', plainBody(r.notes))
+      + section('첨부파일', filesHtml)
+      + '<footer>미디어큐브 · CubeWorks · ' + _fmtDate(new Date().toISOString().slice(0,10)) + ' 출력</footer>'
+      + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});window.addEventListener("afterprint",function(){window.close();});<\/script>'
+      + '</body></html>';
+
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.focus();
   }
 
   /* ── 회의 유형 관리 (관리자 전용) ── */
@@ -16636,7 +16726,7 @@ window.__meeting = (function() {
     openPanel: openPanel, closePanel: closePanel, render: render, clearFilters: clearFilters,
     openForm: openForm, closeForm: closeForm, saveMinute: saveMinute, deleteMinute: deleteMinute,
     openDetail: openDetail, _setFormMode: _setFormMode, _deleteById: _deleteById,
-    _backToList: _backToList, _editFromDetail: _editFromDetail,
+    _backToList: _backToList, _editFromDetail: _editFromDetail, _printDetail: _printDetail,
     openTypeManager: openTypeManager, closeTypeManager: closeTypeManager, addType: addType,
     _toggleAttendee: _toggleAttendee, _renderAttendeeChips: _renderAttendeeChips,
     _addExternalAttendee: _addExternalAttendee, _removeExternalAttendee: _removeExternalAttendee,
