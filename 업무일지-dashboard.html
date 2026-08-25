@@ -16584,7 +16584,7 @@ window.__meeting = (function() {
 
   // ── 인쇄 (새 창에 인쇄 전용 HTML 렌더 → 자동 print) ──
   function _printDetail(id) {
-    var r = _state.records.find(function(x){ return x.id === id; });
+    var r = _state.rows.find(function(x){ return x.id === id; });
     if (!r) { _toast('회의록을 찾을 수 없습니다.'); return; }
     var w = window.open('', '_blank', 'width=900,height=1000');
     if (!w) { alert('팝업이 차단되어 있습니다. 브라우저 팝업 차단을 해제해주세요.'); return; }
