@@ -16546,13 +16546,13 @@ window.__mq = (function(){
       cell.border = BD;
     }
     // 비고 (20~23 · 4행) — 라벨 세로 병합 · 본문 전체(4행 × N열) 한 칸으로 병합
-    // 배경색: TOTAL 과 동일 (연하늘색 · FILL.total)
+    // 라벨은 TOTAL 색 (연하늘색) · 본문은 흰색 (입력 영역)
     ws.mergeCells(colSpec.notesLbl); // A20:A23
     set(ws, colSpec.notesLbl.split(':')[0], '비 고', { font:F(11,true), fill:FILL.total, align:A.center });
     ws.mergeCells(colSpec.notesBody); // B20:{last}23
     set(ws, colSpec.notesBody.split(':')[0], r.notes || '', {
       align: { horizontal:'left', vertical:'top', wrapText:true, indent:1 },
-      font: F(10), fill: FILL.total
+      font: F(10)
     });
     // ── medium border 강조 ──
     //  1) 전체 외곽 프레임 (rows 3~23, cols 1~lastCol)
