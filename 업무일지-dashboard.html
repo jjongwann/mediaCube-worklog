@@ -16493,13 +16493,10 @@ window.__mq = (function(){
     }
     // 컬럼 너비
     colSpec.widths.forEach(function(w,i){ ws.getColumn(i+1).width = w; });
-    // 행 높이 (참조 xlsx 스펙 반영 · 데이터 행 늘려 여유 확보)
+    // 행 높이 preset — 상단 폼 · 표 헤더까지만 (데이터/TOTAL/비고 는 동적 렌더에서 설정)
     ws.getRow(1).height = 30; ws.getRow(2).height = 30;
     for (var i=3;i<=8;i++) ws.getRow(i).height = 28;
-    ws.getRow(9).height = 32; ws.getRow(10).height = 42; ws.getRow(11).height = 50;
-    for (var i=12;i<=18;i++) ws.getRow(i).height = 50;
-    ws.getRow(19).height = 40;
-    for (var i=20;i<=23;i++) ws.getRow(i).height = 40; // 비고 4행 (크게)
+    ws.getRow(9).height = 32; ws.getRow(10).height = 42;
     // 제목
     ws.mergeCells(colSpec.titleRange);
     set(ws, colSpec.titleRange.split(':')[0], '견        적        서', { font:F(26,true), border:false });
@@ -16573,14 +16570,18 @@ window.__mq = (function(){
     colSpec.headers.forEach(function(h, i){
       set(ws, ws.getRow(10).getCell(i+1).address, h, { font:F(10,true), fill:FILL.header });
     });
-    // items → group/song 배열
+    // items → group/song 배열 · 동적 행 개수 지원
     var rows = _MQ_XL.itemsToRows(r.items);
-    var maxDataRows = 7;
     var dataStart = 11;
-    var idx = 0;
-    for (var ri = 0; ri < 8 && idx < rows.length; ri++) {
-      var row = rows[idx];
+    var MIN_DATA_ROWS = 7; // 최소 슬롯 (없으면 채워 빈 표 형태 유지)
+    var actualDataRows = Math.max(rows.length, MIN_DATA_ROWS);
+    var totalRowNum = dataStart + actualDataRows;              // TOTAL 위치
+    var notesStartRow = totalRowNum + 1;
+    var notesEndRow = notesStartRow + 3;                        // 비고 4행
+    // 데이터 행 렌더
+    rows.forEach(function(row, ri){
       var rr = dataStart + ri;
+      ws.getRow(rr).height = 32;
       if (row.type === 'group') {
         set(ws, ws.getRow(rr).getCell(1).address, row.no, { font:F(10,true), fill:FILL.group });
         ws.mergeCells('B'+rr+':'+lastColLetter+rr);
@@ -16588,7 +16589,6 @@ window.__mq = (function(){
       } else {
         var it = row.raw;
         var vals;
-        // 부모 행 판단 (row.no 에 '-' 없음 = 부모, 있음 = 자식)
         var isParent = String(row.no).indexOf('-') === -1;
         var unitDefault = isParent ? 'sync' : '';
         if (mode === 'ott') {
@@ -16599,8 +16599,6 @@ window.__mq = (function(){
           vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||unitDefault, _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.domestic)||'', _MQ_XL.num(it.worldwide)||''];
         }
         vals.forEach(function(v, c){
-          // 모든 데이터 셀 중앙 정렬 · 숫자 컬럼은 #,##0 · 나머지는 '@' (문자열)
-          // '@' 로 지정하면 "1-1", "2-3" 같은 값을 Excel 이 날짜(01월 01일) 로 자동 변환 안 함
           var isNumCol = colSpec.sumCols.indexOf(c+1) !== -1;
           set(ws, ws.getRow(rr).getCell(c+1).address, v, {
             align: A.center,
@@ -16608,82 +16606,72 @@ window.__mq = (function(){
           });
         });
       }
-      idx++;
-    }
-    // 빈 슬롯 6줄 이상 반드시 표시 (border + 빈 값 명시)
-    // 사용자가 나중에 값 입력할 때 자동으로 중앙 정렬 되도록 alignment 미리 세팅
-    var lastFilledRow = dataStart + Math.max(idx-1, 0);
-    for (var rr2 = lastFilledRow+1; rr2 <= 18; rr2++) {
+    });
+    // 최소 슬롯 미만이면 빈 행 padding (border + alignment preset)
+    var lastFilledRow = dataStart + rows.length - 1;
+    var lastDataRow = dataStart + actualDataRows - 1;
+    for (var rr2 = lastFilledRow+1; rr2 <= lastDataRow; rr2++) {
+      ws.getRow(rr2).height = 32;
       for (var cc = 1; cc <= colSpec.widths.length; cc++) {
         var cell = ws.getRow(rr2).getCell(cc);
         cell.value = null;
         cell.border = _MQ_XL.BD;
-        cell.alignment = _MQ_XL.ALIGN.center; // 상하좌우 중앙
-        if (colSpec.sumCols.indexOf(cc) !== -1) {
-          cell.numFmt = '#,##0'; // 숫자 → 자동 콤마
-        } else {
-          cell.numFmt = '@'; // 문자열 → "1-1" 등 자동 날짜 변환 방지
-        }
+        cell.alignment = _MQ_XL.ALIGN.center;
+        if (colSpec.sumCols.indexOf(cc) !== -1) cell.numFmt = '#,##0';
+        else cell.numFmt = '@';
       }
     }
-    // TOTAL (19행) — A19:D19 병합 'TOTAL (Excluding V.A.T)' · 단위 컬럼 'sync' · 합계 계산 + result
-    ws.mergeCells(colSpec.totalRange); // A19:D19
-    set(ws, colSpec.totalRange.split(':')[0], 'TOTAL (Excluding V.A.T)', { font:F(11,true), fill:FILL.total, align:A.center });
-    // 나머지 좌측 셀 (E, F) 은 빈 값 + fill
+    // TOTAL 행 (동적 위치)
+    ws.getRow(totalRowNum).height = 40;
+    var totalRangeStart = 'A'+totalRowNum;
+    var totalRangeEnd = 'D'+totalRowNum;
+    ws.mergeCells(totalRangeStart+':'+totalRangeEnd);
+    set(ws, totalRangeStart, 'TOTAL (Excluding V.A.T)', { font:F(11,true), fill:FILL.total, align:A.center });
     for (var mc = 5; mc < colSpec.unitCol; mc++) {
-      var addr = ws.getRow(19).getCell(mc).address;
+      var addr = ws.getRow(totalRowNum).getCell(mc).address;
       set(ws, addr, '', { fill:FILL.total });
     }
-    // 단위 컬럼: 'sync' 기본값 (Needle 견적서)
-    var unitAddr = ws.getRow(19).getCell(colSpec.unitCol).address;
+    var unitAddr = ws.getRow(totalRowNum).getCell(colSpec.unitCol).address;
     set(ws, unitAddr, 'sync', { font:F(10,true), fill:FILL.total, align:A.center });
-    // SUM 합계 (JS 사전 계산 + formula+result)
-    //   그룹 헤더 없이 곡을 바로 채운 경우 첫 곡이 row 11 에 위치 → 11 부터 포함
-    //   그룹이 있는 경우 row 11 = 그룹헤더인데 sum 대상 컬럼(H, I, J)에 값 없어 0 이므로 안전
-    var sumRange = { start:11, end:18 };
+    // SUM 합계 (row 11 ~ lastDataRow 전체)
     var sumFieldMap;
     if (mode === 'movie') sumFieldMap = { 8:'qty', 9:'domestic', 10:'worldwide' };
     else if (mode === 'ad') sumFieldMap = { 8:'qty', 9:'amount' };
     else sumFieldMap = { 8:'qty', 9:'dw' };
     colSpec.sumCols.forEach(function(cn){
-      var addr = ws.getRow(19).getCell(cn).address;
+      var addr = ws.getRow(totalRowNum).getCell(cn).address;
       var colL = addr.replace(/\d+/,'');
       var sumVal = 0;
       (r.items || []).forEach(function(it){ if (it._type !== 'group') sumVal += _MQ_XL.num(it[sumFieldMap[cn]]); });
-      // 수량(qty) 컬럼은 그대로 #,##0 · 가격(dw/amount/domestic/worldwide) 은 ₩ 통화 기호 붙임
       var isQty = sumFieldMap[cn] === 'qty';
       var fmt = isQty ? '#,##0' : '"₩ "#,##0';
-      set(ws, addr, { formula: 'SUM('+colL+sumRange.start+':'+colL+sumRange.end+')', result: sumVal }, { font:F(10,true), fill:FILL.total, numFmt:fmt, align:A.center });
+      set(ws, addr, { formula: 'SUM('+colL+dataStart+':'+colL+lastDataRow+')', result: sumVal }, { font:F(10,true), fill:FILL.total, numFmt:fmt, align:A.center });
     });
-    // 나머지 열 border · fill
     for (var c=1; c<=colSpec.widths.length; c++) {
-      var cell = ws.getRow(19).getCell(c);
+      var cell = ws.getRow(totalRowNum).getCell(c);
       if (!cell.fill) cell.fill = FILL.total;
       cell.border = BD;
     }
-    // 비고 (20~23 · 4행) — 라벨 세로 병합 · 본문 전체(4행 × N열) 한 칸으로 병합
-    // 라벨은 TOTAL 색 (연하늘색) · 본문은 흰색 (입력 영역)
-    ws.mergeCells(colSpec.notesLbl); // A20:A23
-    set(ws, colSpec.notesLbl.split(':')[0], '비 고', { font:F(11,true), fill:FILL.total, align:A.center });
-    ws.mergeCells(colSpec.notesBody); // B20:{last}23
-    set(ws, colSpec.notesBody.split(':')[0], r.notes || '', {
+    // 비고 (동적 위치, 4행)
+    for (var nr = notesStartRow; nr <= notesEndRow; nr++) ws.getRow(nr).height = 32;
+    var notesLblRange = 'A'+notesStartRow+':A'+notesEndRow;
+    var notesBodyRange = 'B'+notesStartRow+':'+lastColLetter+notesEndRow;
+    ws.mergeCells(notesLblRange);
+    set(ws, 'A'+notesStartRow, '비 고', { font:F(11,true), fill:FILL.total, align:A.center });
+    ws.mergeCells(notesBodyRange);
+    set(ws, 'B'+notesStartRow, r.notes || '', {
       align: { horizontal:'left', vertical:'top', wrapText:true, indent:1 },
       font: F(10)
     });
-    // ── medium border 강조 ──
-    //  1) 전체 외곽 프레임 (rows 3~23, cols 1~lastCol)
-    //  2) 상단 폼 ↔ 표 헤더 사이 (row 9 아래)
-    //  3) 표 ↔ TOTAL (row 19 위)
-    //  4) TOTAL ↔ 비고 (row 19 아래)
-    //  5) 비고 하단 (row 23 아래) — 외곽에 포함되지만 명시적 강조
+    // ── medium border 강조 (동적 범위) ──
     var lastColNum = colSpec.widths.length;
-    _MQ_XL.thickOuter(ws, 3, 1, 23, lastColNum);
+    _MQ_XL.thickOuter(ws, 3, 1, notesEndRow, lastColNum);
     _MQ_XL.thickHLine(ws, 9,  1, lastColNum, 'bottom');
-    _MQ_XL.thickHLine(ws, 19, 1, lastColNum, 'top');
-    _MQ_XL.thickHLine(ws, 19, 1, lastColNum, 'bottom');
-    _MQ_XL.thickHLine(ws, 23, 1, lastColNum, 'bottom');
+    _MQ_XL.thickHLine(ws, totalRowNum, 1, lastColNum, 'top');
+    _MQ_XL.thickHLine(ws, totalRowNum, 1, lastColNum, 'bottom');
+    _MQ_XL.thickHLine(ws, notesEndRow, 1, lastColNum, 'bottom');
     // 비고 라벨(A) 우측 세로선도 진하게 (B와 구분)
-    for (var rr4=20; rr4<=23; rr4++) {
+    for (var rr4=notesStartRow; rr4<=notesEndRow; rr4++) {
       var cell = ws.getCell(rr4, 1);
       cell.border = Object.assign({}, cell.border||{}, { right: { style:'medium', color:{argb:'FF000000'} } });
     }
@@ -16699,8 +16687,8 @@ window.__mq = (function(){
       var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
       ws.addImage(sid, { tl:{col:colSpec.stampExt.col,row:colSpec.stampExt.row}, ext:{width:colSpec.stampExt.w,height:colSpec.stampExt.h}, editAs:'oneCell' });
     }
-    // 인쇄 영역 명시 → 페이지 나누기 미리보기에서 파란 경계선 정확히 표시
-    var printArea = 'A1:'+colSpec.lastColLetter+'23';
+    // 인쇄 영역 명시 → 페이지 나누기 미리보기에서 파란 경계선 정확히 표시 (동적 끝 행)
+    var printArea = 'A1:'+colSpec.lastColLetter+notesEndRow;
     ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:1, printArea:printArea, margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
     return ws;
   }
