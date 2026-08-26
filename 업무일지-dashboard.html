@@ -16117,9 +16117,30 @@ window.__mq = (function(){
   // ────────────────────────────────────────────────────────────
   // Export: PDF (window.print · 인쇄 전용 CSS)
   // ────────────────────────────────────────────────────────────
+  function _fetchAsDataUrl(path){
+    return fetch(encodeURI(path))
+      .then(function(r){ if (!r.ok) throw new Error('img '+r.status); return r.blob(); })
+      .then(function(blob){
+        return new Promise(function(res){
+          var fr = new FileReader();
+          fr.onload = function(){ res(fr.result); };
+          fr.readAsDataURL(blob);
+        });
+      })
+      .catch(function(){ return ''; });
+  }
   function _exportPdf(id){
     var r = _state.rows.find(function(x){ return x.id === id; });
     if (!r) { _toast('견적서를 찾을 수 없습니다'); return; }
+    // 이미지 미리 로드 (base64 로 embed)
+    Promise.all([
+      _fetchAsDataUrl('/Quote Management/mediacube logo.png'),
+      _fetchAsDataUrl('/Quote Management/미디어 큐브 도장.png')
+    ]).then(function(imgs){
+      _renderPrintWindow(r, imgs[0], imgs[1]);
+    });
+  }
+  function _renderPrintWindow(r, logoDataUrl, stampDataUrl){
     var w = window.open('', '_blank', 'width=1000,height=1000');
     if (!w) { _toast('팝업이 차단되어 있습니다. 팝업 차단을 해제해주세요.'); return; }
     var docLabel = r.doc_type==='invoice' ? '거 래 명 세 서' : '견 적 서';
@@ -16161,6 +16182,13 @@ window.__mq = (function(){
         return '<td class="'+cls+'">'+esc(disp)+'</td>';
       }).join('') + '</tr>';
     }).join('');
+    // 빈 슬롯 padding (Needle: 최소 6줄 · Annual/Invoice: 표는 실제 항목 수만 · 여기선 Needle 만 padding)
+    if (isNeedle) {
+      var songRowsCount = items.filter(function(it){ return it._type !== 'group'; }).length;
+      var padCount = Math.max(0, 6 - songRowsCount);
+      var emptyRow = '<tr>' + cols.map(function(){ return '<td>&nbsp;</td>'; }).join('') + '</tr>';
+      for (var pi=0; pi<padCount; pi++) tbHtml += emptyRow;
+    }
     // TOTAL 행
     var sumStartIdx = -1;
     cols.forEach(function(c, i){ if (c.sum && sumStartIdx===-1) sumStartIdx = i; });
@@ -16183,7 +16211,11 @@ window.__mq = (function(){
       + '@page{size:A4;margin:12mm 10mm;@top-*{content:""}@bottom-left{content:"MEDIACUBE";font-family:sans-serif;font-size:9.5px;font-weight:800;color:#94a3b8;letter-spacing:1.6px}@bottom-right{content:counter(page)" / "counter(pages);font-family:sans-serif;font-size:9.5px;color:#94a3b8;font-weight:600}}'
       + '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
       + 'body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif;color:#0f172a;margin:0;padding:0;font-size:11px;line-height:1.5}'
-      + 'h1{text-align:center;font-size:22px;font-weight:800;letter-spacing:10px;margin:0 0 12px;padding-bottom:10px;border-bottom:3px double #0f766e}'
+      // 헤더 영역 (로고+제목+도장 위치 잡기)
+      + '.doc-hd{position:relative;padding:8px 0 14px;border-bottom:3px double #0f766e;margin-bottom:14px;min-height:80px}'
+      + '.doc-hd .logo{position:absolute;left:0;top:6px;width:170px;height:auto}'
+      + '.doc-hd .stamp{position:absolute;right:0;top:6px;width:88px;height:auto;opacity:0.95}'
+      + '.doc-hd h1{text-align:center;font-size:26px;font-weight:800;letter-spacing:14px;margin:14px 0 4px}'
       + '.top{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}'
       + '.top table{width:100%;border-collapse:collapse}'
       + '.top th,.top td{border:1px solid #cbd5e1;padding:5px 8px;font-size:10.5px;text-align:left}'
@@ -16199,7 +16231,11 @@ window.__mq = (function(){
       + 'table.items th.notes{background:#f8fafc;color:#475569;font-weight:700;width:'+cols[0].w+'px;text-align:center;vertical-align:top;padding:8px 6px}'
       + 'table.items td.notes-body{white-space:pre-wrap;min-height:60px;vertical-align:top;padding:8px}'
       + '</style></head><body>'
-      + '<h1>'+docLabel+'</h1>'
+      + '<div class="doc-hd">'
+        + (logoDataUrl ? '<img class="logo" src="'+logoDataUrl+'" alt="mediacube">' : '')
+        + '<h1>'+docLabel+'</h1>'
+        + (stampDataUrl ? '<img class="stamp" src="'+stampDataUrl+'" alt="stamp">' : '')
+      + '</div>'
       + '<div class="top"><table>'+topL+'</table><table>'+topR+'</table></div>'
       + '<table class="items"><thead>'+thHtml+'</thead><tbody>'+tbHtml+'</tbody><tfoot>'+totalRow+notesRow+'</tfoot></table>'
       + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});window.addEventListener("afterprint",function(){window.close();});<\/script>'
