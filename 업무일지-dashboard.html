@@ -16289,6 +16289,32 @@ window.__mq = (function(){
       return c;
     }
     function box(ws, r1, c1, r2, c2){ for (var r=r1;r<=r2;r++) for (var c=c1;c<=c2;c++) ws.getCell(r,c).border = BD; }
+    // 특정 범위의 외곽 4변 만 medium 두께로 강조 (내부 셀 기존 border 유지 · 병합에도 안전)
+    function thickOuter(ws, r1, c1, r2, c2){
+      var med = { style:'medium', color:{argb:'FF000000'} };
+      for (var c=c1; c<=c2; c++) {
+        var tc = ws.getCell(r1, c);
+        tc.border = Object.assign({}, tc.border||{}, { top: med });
+        var bc = ws.getCell(r2, c);
+        bc.border = Object.assign({}, bc.border||{}, { bottom: med });
+      }
+      for (var r=r1; r<=r2; r++) {
+        var lc = ws.getCell(r, c1);
+        lc.border = Object.assign({}, lc.border||{}, { left: med });
+        var rc = ws.getCell(r, c2);
+        rc.border = Object.assign({}, rc.border||{}, { right: med });
+      }
+    }
+    // 특정 행 아래(또는 위)에 두꺼운 가로선 하나 그리기
+    function thickHLine(ws, row, c1, c2, edge){
+      var med = { style:'medium', color:{argb:'FF000000'} };
+      for (var c=c1; c<=c2; c++) {
+        var cell = ws.getCell(row, c);
+        var patch = {};
+        patch[edge] = med;
+        cell.border = Object.assign({}, cell.border||{}, patch);
+      }
+    }
     function fmtDate(d){ if (!d) return ''; var s = String(d); if (s.length>=10) return s.slice(0,4)+'-'+s.slice(5,7)+'-'+s.slice(8,10); return s; }
     // items 를 group + song 배열로 분해 (with numbering)
     function itemsToRows(items){
@@ -16300,7 +16326,7 @@ window.__mq = (function(){
       return out;
     }
     function num(v){ if(v==null||v==='') return 0; var n=parseFloat(String(v).replace(/,/g,'')); return isNaN(n)?0:n; }
-    return { BD:BD, FONT:FONT, ALIGN:ALIGN, FILL:FILL, set:set, box:box, fmtDate:fmtDate, itemsToRows:itemsToRows, num:num };
+    return { BD:BD, FONT:FONT, ALIGN:ALIGN, FILL:FILL, set:set, box:box, thickOuter:thickOuter, thickHLine:thickHLine, fmtDate:fmtDate, itemsToRows:itemsToRows, num:num };
   })();
 
   // ── 상단 폼 (좌·우) 공통 렌더러 (Needle · Annual · Invoice 는 각자 sheet-scope 로 재정의) ──
@@ -16517,6 +16543,24 @@ window.__mq = (function(){
       align: { horizontal:'left', vertical:'top', wrapText:true, indent:1 },
       font: F(10)
     });
+    // ── medium border 강조 ──
+    //  1) 전체 외곽 프레임 (rows 3~23, cols 1~lastCol)
+    //  2) 상단 폼 ↔ 표 헤더 사이 (row 9 아래)
+    //  3) 표 ↔ TOTAL (row 19 위)
+    //  4) TOTAL ↔ 비고 (row 19 아래)
+    //  5) 비고 하단 (row 23 아래) — 외곽에 포함되지만 명시적 강조
+    var lastColNum = colSpec.widths.length;
+    _MQ_XL.thickOuter(ws, 3, 1, 23, lastColNum);
+    _MQ_XL.thickHLine(ws, 9,  1, lastColNum, 'bottom');
+    _MQ_XL.thickHLine(ws, 19, 1, lastColNum, 'top');
+    _MQ_XL.thickHLine(ws, 19, 1, lastColNum, 'bottom');
+    _MQ_XL.thickHLine(ws, 23, 1, lastColNum, 'bottom');
+    // 비고 라벨(A) 우측 세로선도 진하게 (B와 구분)
+    for (var rr4=20; rr4<=23; rr4++) {
+      var cell = ws.getCell(rr4, 1);
+      cell.border = Object.assign({}, cell.border||{}, { right: { style:'medium', color:{argb:'FF000000'} } });
+    }
+
     // 이미지 (로고 - 넓게 · 도장 - 세로 길게)
     if (logoBuf) {
       var lid = wb.addImage({ buffer:logoBuf, extension:'png' });
