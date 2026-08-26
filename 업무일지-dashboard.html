@@ -15908,19 +15908,36 @@ window.__mq = (function(){
         var trCls = sel.has(idx) ? ' class="mq-row-selected"' : '';
         return '<tr'+trCls+' data-idx="'+idx+'">'+groupCheckTd+cellsHtml+delBtn+'</tr>';
       }
-      // 일반 곡/품목 행
-      var cellsHtml = cols.map(function(c){
+      // 일반 곡/품목 행 · 부모 행 (NO='1','2','3'...) 은 g:1 컬럼을 하나의 label 셀로 병합
+      var isParentRow = gStart >= 0 && String(nums[idx].label).indexOf('-') === -1;
+      var labelKey = isParentRow ? cols[gStart].k : null; // 예: 'cdTitle' / 'item'
+      var cellsHtmlArr = [];
+      cols.forEach(function(c, ci){
         var cls = c.c ? 'center' : (c.r ? 'num' : '');
         if (c.t === 'auto') {
-          return '<td class="'+cls+'" style="font-weight:600">'+_esc(nums[idx].label)+'</td>';
+          cellsHtmlArr.push('<td class="'+cls+'" style="font-weight:600">'+_esc(nums[idx].label)+'</td>');
+          return;
         }
+        // 부모 행 병합 셀 (gStart 위치에만 렌더, 나머지 g 컬럼은 skip)
+        if (isParentRow && ci === gStart) {
+          var lVal = it[labelKey] == null ? '' : it[labelKey];
+          if (readonly) {
+            cellsHtmlArr.push('<td colspan="'+groupSpan+'" style="font-weight:700">'+_esc(lVal)+'</td>');
+          } else {
+            cellsHtmlArr.push('<td colspan="'+groupSpan+'"><input type="text" value="'+_esc(lVal)+'" oninput="window.__mq._setItemField('+idx+',\''+labelKey+'\',this.value)" style="font-weight:700"></td>');
+          }
+          return;
+        }
+        if (isParentRow && ci > gStart && ci <= gEnd) return; // 병합 skip
         var val = it[c.k] == null ? '' : it[c.k];
         if (readonly) {
           var disp = (c.t === 'num' && val !== '') ? _fmtN(val) : val;
-          return '<td class="'+cls+'">'+_esc(disp)+'</td>';
+          cellsHtmlArr.push('<td class="'+cls+'">'+_esc(disp)+'</td>');
+          return;
         }
-        return '<td class="'+cls+'"><input type="text" value="'+_esc(val)+'" oninput="window.__mq._setItemField('+idx+',\''+c.k+'\',this.value)"'+(c.r?' style="text-align:right"':(c.c?' style="text-align:center"':''))+'></td>';
-      }).join('');
+        cellsHtmlArr.push('<td class="'+cls+'"><input type="text" value="'+_esc(val)+'" oninput="window.__mq._setItemField('+idx+',\''+c.k+'\',this.value)"'+(c.r?' style="text-align:right"':(c.c?' style="text-align:center"':''))+'></td>');
+      });
+      var cellsHtml = cellsHtmlArr.join('');
       var delBtn = readonly ? '' : '<td class="center"><button class="mq-item-del" title="행 삭제" onclick="window.__mq._removeItem('+idx+')">×</button></td>';
       var itemCheckTd = readonly ? '' : '<td class="mq-check-cell center" data-idx="'+idx+'"><input type="checkbox" tabindex="-1"'+(sel.has(idx)?' checked':'')+'></td>';
       var trCls = sel.has(idx) ? ' class="mq-row-selected"' : '';
@@ -16394,15 +16411,25 @@ window.__mq = (function(){
       }
       // 부모 행 판단 (label 에 '-' 없음)
       var isParentRow = String(nums[idx].label).indexOf('-') === -1;
-      return '<tr>' + cols.map(function(c){
+      // 부모 행: g:1 컬럼들을 하나의 label 셀로 병합 (그룹 헤더와 시각적으로 동일)
+      var pLabelKey = (isParentRow && gStart >= 0) ? cols[gStart].k : null;
+      var cellArr = [];
+      cols.forEach(function(c, ci){
         var cls = c.c ? 'center' : (c.r ? 'num' : '');
-        if (c.t === 'auto') return '<td class="'+cls+'">'+esc(nums[idx].label)+'</td>';
+        if (c.t === 'auto') { cellArr.push('<td class="'+cls+'">'+esc(nums[idx].label)+'</td>'); return; }
+        if (isParentRow && gStart >= 0 && ci === gStart) {
+          var lv = it[pLabelKey] == null ? '' : it[pLabelKey];
+          cellArr.push('<td colspan="'+groupSpan+'" class="bold">'+esc(lv)+'</td>');
+          return;
+        }
+        if (isParentRow && gStart >= 0 && ci > gStart && ci <= gEnd) return;
         var v = it[c.k]==null?'':it[c.k];
         // Needle 의 단위 컬럼: 부모 행에만 'sync' default · 자식 행은 빈칸
         if (isNeedle && c.k === 'unit' && !v && isParentRow) v = 'sync';
         var disp = (c.t === 'num' && v !== '') ? _fmtN(v) : v;
-        return '<td class="'+cls+'">'+esc(disp)+'</td>';
-      }).join('') + '</tr>';
+        cellArr.push('<td class="'+cls+'">'+esc(disp)+'</td>');
+      });
+      return '<tr>' + cellArr.join('') + '</tr>';
     }).join('');
     // 빈 슬롯 padding (Needle: 최소 6줄 · Annual/Invoice: 표는 실제 항목 수만 · 여기선 Needle 만 padding)
     if (isNeedle) {
@@ -16759,13 +16786,30 @@ window.__mq = (function(){
         } else {
           vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||unitDefault, _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.domestic)||'', _MQ_XL.num(it.worldwide)||''];
         }
-        vals.forEach(function(v, c){
-          var isNumCol = colSpec.sumCols.indexOf(c+1) !== -1;
-          set(ws, ws.getRow(rr).getCell(c+1).address, v, {
-            align: A.center,
-            numFmt: isNumCol ? '#,##0' : '@'
+        // 부모 행 (NO='1','2','3'...) 은 CD Title:CUE (B:D) 병합해 프로젝트 label 로 표시
+        if (isParent) {
+          ws.mergeCells('B'+rr+':D'+rr);
+          // A(NO)
+          set(ws, ws.getRow(rr).getCell(1).address, vals[0], { align:A.center, numFmt:'@' });
+          // B:D 병합 label = cdTitle
+          set(ws, 'B'+rr, vals[1], { align:{horizontal:'left', vertical:'middle', indent:1}, font:F(10,true), numFmt:'@' });
+          // E~ (Track No 이후 컬럼들)
+          for (var c = 4; c < vals.length; c++) {
+            var isNumCol_p = colSpec.sumCols.indexOf(c+1) !== -1;
+            set(ws, ws.getRow(rr).getCell(c+1).address, vals[c], {
+              align: A.center,
+              numFmt: isNumCol_p ? '#,##0' : '@'
+            });
+          }
+        } else {
+          vals.forEach(function(v, c){
+            var isNumCol = colSpec.sumCols.indexOf(c+1) !== -1;
+            set(ws, ws.getRow(rr).getCell(c+1).address, v, {
+              align: A.center,
+              numFmt: isNumCol ? '#,##0' : '@'
+            });
           });
-        });
+        }
       }
     });
     // 최소 슬롯 미만이면 빈 행 padding (border + alignment preset)
@@ -16945,6 +16989,21 @@ window.__mq = (function(){
       }
       var it = row.raw;
       var vals = [row.no, it.item||'', it.code||'', it.spec||'', it.unit||'', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.unitPrice)||'', _MQ_XL.num(it.supplyPrice)||'', _MQ_XL.num(it.vat)||'', _MQ_XL.num(it.totalWithVat)||''];
+      var isParent = String(row.no).indexOf('-') === -1;
+      // 부모 행 (NO='1','2','3'...): 품목:규격 (B:D) 병합 label
+      if (isParent) {
+        ws.mergeCells('B'+rr+':D'+rr);
+        set(ws, ws.getRow(rr).getCell(1).address, vals[0], { align:A.center });
+        set(ws, 'B'+rr, vals[1], { align:{horizontal:'left', vertical:'middle', indent:1}, font:F(10,true) });
+        for (var c = 4; c < vals.length; c++) {
+          var isNumCol_p = c >= 5;
+          set(ws, ws.getRow(rr).getCell(c+1).address, vals[c], {
+            align: A.center,
+            numFmt: isNumCol_p ? '#,##0' : undefined
+          });
+        }
+        return;
+      }
       vals.forEach(function(v, c){
         // 모든 데이터 셀 중앙 정렬 · 숫자 컬럼(QTY 이상, 인덱스 5~9) #,##0 포맷
         var isNumCol = c >= 5;
