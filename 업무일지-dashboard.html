@@ -16363,7 +16363,7 @@ window.__mq = (function(){
         titleRange:'A1:J2', groupRange:'B11:J11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:J23',
         sumCols:[8,9,10], lastColLetter:'J',
-        stampExt:{col:8.45,row:3.0,w:115,h:115}
+        stampExt:{col:7.2,row:3.4,w:100,h:100}
       };
     } else if (mode === 'ad') {
       colSpec = { widths:[7,25.625,10.625,28.75,9.5,24.5,6.5,10,16.625],
@@ -16371,7 +16371,7 @@ window.__mq = (function(){
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
-        stampExt:{col:8.05,row:3.0,w:110,h:110}
+        stampExt:{col:7.2,row:3.4,w:100,h:100}
       };
     } else {
       colSpec = { widths:[7,25.625,10.625,28.75,9.5,24.5,6.5,10,16.625],
@@ -16379,7 +16379,7 @@ window.__mq = (function(){
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
-        stampExt:{col:8.05,row:3.0,w:110,h:110}
+        stampExt:{col:7.2,row:3.4,w:100,h:100}
       };
     }
     // 컬럼 너비
@@ -16429,7 +16429,8 @@ window.__mq = (function(){
     };
     mkRSimple(3, '등록번호', r.sender_reg_no||'');
     mkRSimple(4, '상호명',   r.sender_company||'');
-    mkRSimple(5, '대표자',   r.sender_ceo||'');
+    // 대표자 이름 옆에 (인) 표기 · 도장 이미지가 이 셀 위에 오버레이됨
+    mkRSimple(5, '대표자',   (r.sender_ceo || '') ? (r.sender_ceo + '   (인)') : '(인)');
     mkRSimple(6, '소재지',   r.sender_address||'');
     // 7행: 업태 + 종목 (한 줄에 두 칸)
     //   movie(10열 F~J): F=업태, G:H=업태값, I=종목, J=종목값 (실제 종목값 좁으면 J만)
