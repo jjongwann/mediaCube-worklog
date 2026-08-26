@@ -15434,7 +15434,9 @@ window.__mq = (function(){
     filter: { q:'', docType:'all', subType:'all', status:'all' },
     // 다중 선택 (item index Set) · 드래그 선택 · 일괄 삭제용
     selectedIdx: new Set(),
-    _dragBound: false, _dragActive: false, _dragBase: null
+    _dragBound: false, _dragActive: false, _dragBase: null,
+    _dragMode: 'add',   // 'add' | 'remove' — mousedown 시 초기 토글 방향
+    _lastAnchor: null   // Shift+click 범위 선택 기준점 (마지막 단순 클릭 idx)
   };
 
   // ────────────────────────────────────────────────────────────
@@ -16115,11 +16117,15 @@ window.__mq = (function(){
     _state.selectedIdx.clear();
     if (checked) {
       _state.form.items.forEach(function(it, i){ _state.selectedIdx.add(i); });
+      _state._lastAnchor = 0; // 전체 선택 후 첫 행부터 Shift+click 가능하도록
+    } else {
+      _state._lastAnchor = null;
     }
     _renderForm();
   }
   function _clearSelection(){
     _state.selectedIdx.clear();
+    _state._lastAnchor = null;
     _renderForm();
   }
   function _deleteSelected(){
@@ -16164,22 +16170,25 @@ window.__mq = (function(){
     _state._dragBound = true;
     host.addEventListener('mousedown', function(e){
       var cell = e.target.closest && e.target.closest('.mq-check-cell');
-      if (!cell || !cell.hasAttribute('data-idx')) return; // 헤더의 전체 선택 체크박스는 여기 미해당
+      if (!cell || !cell.hasAttribute('data-idx')) return; // 헤더 전체 선택 체크박스는 미해당
       e.preventDefault();
       var idx = parseInt(cell.getAttribute('data-idx'), 10);
       if (isNaN(idx)) return;
-      _state._dragActive = true;
-      _state._dragBase = idx;
-      // Ctrl/Cmd → 개별 토글, Shift → 기존 유지+범위, 그 외 → 기존 초기화+해당 행 토글
-      if (e.ctrlKey || e.metaKey) {
-        if (_state.selectedIdx.has(idx)) _state.selectedIdx.delete(idx); else _state.selectedIdx.add(idx);
-      } else if (e.shiftKey) {
-        _state.selectedIdx.add(idx);
+      if (e.shiftKey && _state._lastAnchor != null) {
+        // Shift+클릭 → 마지막 앵커부터 클릭 대상까지 범위 선택 (기존 선택 유지)
+        var lo = Math.min(_state._lastAnchor, idx), hi = Math.max(_state._lastAnchor, idx);
+        for (var i = lo; i <= hi; i++) _state.selectedIdx.add(i);
+        _state._dragActive = false; // Shift 클릭은 드래그로 전이 안 함
       } else {
-        // 이미 선택된 유일한 행을 다시 클릭하면 해제, 아니면 해당 행만 선택
-        var only = _state.selectedIdx.size === 1 && _state.selectedIdx.has(idx);
-        _state.selectedIdx.clear();
-        if (!only) _state.selectedIdx.add(idx);
+        // 일반 클릭 · Ctrl/Cmd 클릭 → 해당 행만 토글 (기존 다른 선택은 유지)
+        //   전체 선택 상태에서 하나 클릭 시 해당 행만 해제되는 동작
+        var wasSelected = _state.selectedIdx.has(idx);
+        if (wasSelected) _state.selectedIdx.delete(idx); else _state.selectedIdx.add(idx);
+        _state._lastAnchor = idx;
+        // 드래그 시작 준비 — 초기 토글 방향을 기준으로 드래그 모드 결정
+        _state._dragActive = true;
+        _state._dragBase = idx;
+        _state._dragMode = wasSelected ? 'remove' : 'add';
       }
       _updateSelectionUI();
     });
@@ -16190,8 +16199,11 @@ window.__mq = (function(){
       var idx = parseInt(cell.getAttribute('data-idx'), 10);
       if (isNaN(idx) || _state._dragBase == null) return;
       var lo = Math.min(_state._dragBase, idx), hi = Math.max(_state._dragBase, idx);
-      // 드래그 범위 내 모든 행 선택 (기존 선택은 유지)
-      for (var i = lo; i <= hi; i++) _state.selectedIdx.add(i);
+      // 초기 토글 방향대로 범위 적용 (Excel 스타일: 선택→드래그면 추가, 해제→드래그면 제거)
+      for (var i = lo; i <= hi; i++) {
+        if (_state._dragMode === 'add') _state.selectedIdx.add(i);
+        else _state.selectedIdx.delete(i);
+      }
       _updateSelectionUI();
     });
     document.addEventListener('mouseup', function(){
