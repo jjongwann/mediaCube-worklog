@@ -16363,7 +16363,7 @@ window.__mq = (function(){
         titleRange:'A1:J2', groupRange:'B11:J11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:J23',
         sumCols:[8,9,10], lastColLetter:'J',
-        stampExt:{col:7.2,row:3.4,w:100,h:100}
+        stampExt:{col:7.3,row:3.7,w:65,h:65}
       };
     } else if (mode === 'ad') {
       colSpec = { widths:[7,25.625,10.625,28.75,9.5,24.5,6.5,10,16.625],
@@ -16371,7 +16371,7 @@ window.__mq = (function(){
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
-        stampExt:{col:7.2,row:3.4,w:100,h:100}
+        stampExt:{col:7.15,row:3.7,w:65,h:65}
       };
     } else {
       colSpec = { widths:[7,25.625,10.625,28.75,9.5,24.5,6.5,10,16.625],
@@ -16379,7 +16379,7 @@ window.__mq = (function(){
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
-        stampExt:{col:7.2,row:3.4,w:100,h:100}
+        stampExt:{col:7.15,row:3.7,w:65,h:65}
       };
     }
     // 컬럼 너비
@@ -16707,7 +16707,7 @@ window.__mq = (function(){
     }
     if (stampBuf) {
       var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
-      ws.addImage(sid, { tl:{col:6.3,row:3.2}, ext:{width:110,height:110}, editAs:'oneCell' });
+      ws.addImage(sid, { tl:{col:5.3,row:3.7}, ext:{width:65,height:65}, editAs:'oneCell' });
     }
     ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:1, printArea:'A1:J'+(notesEnd), margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
     return ws;
