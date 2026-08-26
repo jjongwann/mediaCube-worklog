@@ -16287,42 +16287,42 @@ window.__mq = (function(){
     // mode: 'ott' | 'ad' | 'movie'
     var set = _MQ_XL.set, F = _MQ_XL.FONT, A = _MQ_XL.ALIGN, FILL = _MQ_XL.FILL, BD = _MQ_XL.BD, box = _MQ_XL.box;
     var ws = wb.addWorksheet('견적서', { views:[{ showGridLines:false }] });
-    // 컬럼 스펙 (모드별)
+    // 컬럼 스펙 (모드별) · 참조 xlsx 열너비 그대로 · sumCols 는 SUM 대상 열번호
     var colSpec;
     if (mode === 'movie') {
-      // A~J (10열): No, CD Title, CD No, CUE, Track No, Publisher, 단위, 수량, Domestic, Worldwide
       colSpec = { widths:[7,23.375,9.125,24.5,8,22.25,6.5,10,14.125,13.875],
         headers:['No','CD Title','CD No','CUE','Track No','Publisher / Composer','단위','수량','Domestic','Worldwide'],
         titleRange:'A1:J2', groupRange:'B11:J11', totalRange:'B19:G19',
-        notesLbl:'A20:A25', notesBodies:['B20:G20','B23:G23','B24:G24'], notesEnd:10,
-        sumCols:[8,9,10], stampCol:8.7, stampBr:{col:9.95,row:5.8}
+        notesLbl:'A20:A25', notesBodies:['B20:G20','B23:G23','B24:G24'],
+        sumCols:[8,9,10], lastColLetter:'J',
+        stampExt:{col:8.5,row:2.6,w:110,h:135}
       };
     } else if (mode === 'ad') {
-      // A~I (9열): No, CD Title, CD No, CUE, Track No, Publisher, 용도, 수량, 금액
       colSpec = { widths:[7,25.625,10.625,28.75,9.5,24.5,6.5,10,16.625],
         headers:['No','CD Title','CD No','CUE','Track No','Publisher / Composer','용도','수량','금액'],
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'B19:G19',
-        notesLbl:'A20:A25', notesBodies:['B20:G20','B23:G23','B24:G24'], notesEnd:9,
-        sumCols:[8,9], stampCol:8.3, stampBr:{col:8.95,row:5.8}
+        notesLbl:'A20:A25', notesBodies:['B20:G20','B23:G23','B24:G24'],
+        sumCols:[8,9], lastColLetter:'I',
+        stampExt:{col:8.15,row:2.8,w:100,h:135}
       };
     } else {
-      // OTT: A~I (9열): No, CD Title, CD No, CUE, Track No, Publisher, 권리, 수량, Domestic & Worldwide
       colSpec = { widths:[7,25.625,10.625,28.75,9.5,24.5,6.5,10,16.625],
         headers:['No','CD Title','CD No','CUE','Track No','Publisher / Composer','권리','수량','Domestic & Worldwide'],
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'B19:G19',
-        notesLbl:'A20:A25', notesBodies:['B20:G20','B23:G23','B24:G24'], notesEnd:9,
-        sumCols:[8,9], stampCol:8.3, stampBr:{col:8.95,row:5.8}
+        notesLbl:'A20:A25', notesBodies:['B20:G20','B23:G23','B24:G24'],
+        sumCols:[8,9], lastColLetter:'I',
+        stampExt:{col:8.15,row:2.8,w:100,h:135}
       };
     }
     // 컬럼 너비
     colSpec.widths.forEach(function(w,i){ ws.getColumn(i+1).width = w; });
-    // 행 높이
-    ws.getRow(1).height = 37.5; ws.getRow(2).height = 33;
-    for (var i=3;i<=8;i++) ws.getRow(i).height = 27.95;
-    ws.getRow(9).height = 32.25; ws.getRow(10).height = 51; ws.getRow(11).height = 53.25;
-    for (var i=12;i<=18;i++) ws.getRow(i).height = 60;
-    ws.getRow(19).height = 42;
-    for (var i=20;i<=25;i++) ws.getRow(i).height = 30;
+    // 행 높이 (참조 xlsx 스펙 반영 · 데이터 행 늘려 여유 확보)
+    ws.getRow(1).height = 45; ws.getRow(2).height = 33;
+    for (var i=3;i<=8;i++) ws.getRow(i).height = 28;
+    ws.getRow(9).height = 32; ws.getRow(10).height = 42; ws.getRow(11).height = 45;
+    for (var i=12;i<=18;i++) ws.getRow(i).height = 75;
+    ws.getRow(19).height = 45;
+    for (var i=20;i<=25;i++) ws.getRow(i).height = 32;
     // 제목
     ws.mergeCells(colSpec.titleRange);
     set(ws, colSpec.titleRange.split(':')[0], '견 적 서', { font:F(26,true), border:false });
@@ -16398,9 +16398,16 @@ window.__mq = (function(){
       }
       idx++;
     }
-    // 빈 슬롯 border 만 유지
-    var lastFilledRow = dataStart + Math.min(idx-1, 7);
-    for (var rr2 = lastFilledRow+1; rr2 <= 18; rr2++) box(ws, rr2, 1, colSpec.widths.length);
+    // 빈 슬롯 6줄 이상 반드시 표시 (border + 빈 값 명시)
+    var lastFilledRow = dataStart + Math.max(idx-1, 0);
+    var totalDataRows = 12 - 11 + 6; // 최소 데이터+빈행 슬롯 = row 12~18 (7행)
+    for (var rr2 = lastFilledRow+1; rr2 <= 18; rr2++) {
+      for (var cc = 1; cc <= colSpec.widths.length; cc++) {
+        var cell = ws.getRow(rr2).getCell(cc);
+        cell.value = null;
+        cell.border = _MQ_XL.BD;
+      }
+    }
     // TOTAL (19행)
     set(ws, 'A19', '', { fill:FILL.total });
     ws.mergeCells(colSpec.totalRange);
@@ -16427,14 +16434,14 @@ window.__mq = (function(){
       set(ws, range.split(':')[0], notesText[i]||'', { align:A.left });
     });
     for (var rr3=20; rr3<=25; rr3++) box(ws, rr3, 2, colSpec.widths.length);
-    // 이미지
+    // 이미지 (로고 - 넓게 · 도장 - 세로 길게)
     if (logoBuf) {
       var lid = wb.addImage({ buffer:logoBuf, extension:'png' });
-      ws.addImage(lid, { tl:{col:0.1,row:0.1}, br:{col:1.95,row:1.9}, editAs:'oneCell' });
+      ws.addImage(lid, { tl:{col:0.15,row:0.15}, ext:{width:230,height:70}, editAs:'oneCell' });
     }
     if (stampBuf) {
       var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
-      ws.addImage(sid, { tl:{col:colSpec.stampCol,row:3.2}, br:colSpec.stampBr, editAs:'oneCell' });
+      ws.addImage(sid, { tl:{col:colSpec.stampExt.col,row:colSpec.stampExt.row}, ext:{width:colSpec.stampExt.w,height:colSpec.stampExt.h}, editAs:'oneCell' });
     }
     ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:1, margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
     return ws;
@@ -16542,14 +16549,14 @@ window.__mq = (function(){
     ws.mergeCells('B'+notesStart+':J'+notesEnd);
     set(ws, 'B'+notesStart, r.notes||'', { align:{horizontal:'left',vertical:'top',wrapText:true,indent:1}, font:F(10) });
     for (var rr=notesStart; rr<=notesEnd; rr++) box(ws, rr, 1, 10);
-    // 이미지
+    // 이미지 (로고 - 넓게 · 도장 - 세로 길게)
     if (logoBuf) {
       var lid = wb.addImage({ buffer:logoBuf, extension:'png' });
-      ws.addImage(lid, { tl:{col:0.1,row:0.1}, br:{col:1.95,row:1.9}, editAs:'oneCell' });
+      ws.addImage(lid, { tl:{col:0.15,row:0.15}, ext:{width:230,height:70}, editAs:'oneCell' });
     }
     if (stampBuf) {
       var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
-      ws.addImage(sid, { tl:{col:6.3,row:3.2}, br:{col:7.3,row:5.5}, editAs:'oneCell' });
+      ws.addImage(sid, { tl:{col:6.3,row:3.2}, ext:{width:110,height:135}, editAs:'oneCell' });
     }
     ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:1, margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
     return ws;
