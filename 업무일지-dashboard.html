@@ -16208,22 +16208,394 @@ window.__mq = (function(){
   }
 
   // ────────────────────────────────────────────────────────────
-  // Export: Excel (SheetJS CDN 동적 로드 · 기본 표 · 이미지/서식은 Phase 2)
+  // Export: Excel (ExcelJS CDN · 참조 xlsx 양식 재현 · 로고/도장 이미지 삽입)
+  //   · 5개 빌더 (needle OTT/ad/movie · annual · invoice)
+  //   · 이미지는 /Quote Management/ 폴더에서 fetch (URL encoding)
   // ────────────────────────────────────────────────────────────
-  function _loadSheetJs(){
-    if (window.XLSX) return Promise.resolve(window.XLSX);
+  function _loadExcelJs(){
+    if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
     return new Promise(function(res, rej){
       var s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
-      s.onload = function(){ res(window.XLSX); };
-      s.onerror = function(){ rej(new Error('SheetJS 로드 실패')); };
+      s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+      s.onload = function(){ res(window.ExcelJS); };
+      s.onerror = function(){ rej(new Error('ExcelJS 로드 실패')); };
       document.head.appendChild(s);
     });
   }
+  function _loadImageBuf(path){
+    return fetch(encodeURI(path))
+      .then(function(r){ if (!r.ok) throw new Error('img '+r.status); return r.arrayBuffer(); })
+      .catch(function(){ return null; });
+  }
+
+  // 공통 헬퍼
+  var _MQ_XL = (function(){
+    var thin = { style:'thin', color:{argb:'FF000000'} };
+    var BD = { top:thin, left:thin, bottom:thin, right:thin };
+    var FONT = function(sz, b, color){ return { name:'맑은 고딕', size:sz||10, bold:!!b, color: color?{argb:color}:undefined }; };
+    var ALIGN = { center:{horizontal:'center',vertical:'middle',wrapText:true},
+                  left:{horizontal:'left',vertical:'middle',wrapText:true,indent:1},
+                  right:{horizontal:'right',vertical:'middle'} };
+    var FILL = { label:{type:'pattern',pattern:'solid',fgColor:{argb:'FFF2F2F2'}},
+                 header:{type:'pattern',pattern:'solid',fgColor:{argb:'FFE6E6E6'}},
+                 total:{type:'pattern',pattern:'solid',fgColor:{argb:'FFD9E1F2'}},
+                 group:{type:'pattern',pattern:'solid',fgColor:{argb:'FFF5F5F5'}} };
+    function set(ws, addr, val, opt){
+      opt = opt || {};
+      var c = ws.getCell(addr);
+      if (val !== undefined && val !== null) c.value = val;
+      c.font = opt.font || FONT();
+      c.alignment = opt.align || ALIGN.center;
+      if (opt.border !== false) c.border = BD;
+      if (opt.fill) c.fill = opt.fill;
+      if (opt.numFmt) c.numFmt = opt.numFmt;
+      return c;
+    }
+    function box(ws, r1, c1, r2, c2){ for (var r=r1;r<=r2;r++) for (var c=c1;c<=c2;c++) ws.getCell(r,c).border = BD; }
+    function fmtDate(d){ if (!d) return ''; var s = String(d); if (s.length>=10) return s.slice(0,4)+'-'+s.slice(5,7)+'-'+s.slice(8,10); return s; }
+    // items 를 group + song 배열로 분해 (with numbering)
+    function itemsToRows(items){
+      var out = [], gi = 0, si = 0, seenG = false;
+      (items||[]).forEach(function(it){
+        if (it && it._type === 'group') { gi++; si=0; seenG=true; out.push({type:'group', no:String(gi), label: it.label||'', raw:it}); }
+        else { si++; out.push({type:'song', no: seenG ? (gi+'-'+si) : String(si), raw:it}); }
+      });
+      return out;
+    }
+    function num(v){ if(v==null||v==='') return 0; var n=parseFloat(String(v).replace(/,/g,'')); return isNaN(n)?0:n; }
+    return { BD:BD, FONT:FONT, ALIGN:ALIGN, FILL:FILL, set:set, box:box, fmtDate:fmtDate, itemsToRows:itemsToRows, num:num };
+  })();
+
+  // ── 상단 폼 (좌·우) 공통 렌더러 (Needle · Annual · Invoice 는 각자 sheet-scope 로 재정의) ──
+  function _renderXlsxTopForm(ws, r, leftRows, rightRows, opts){
+    // leftRows/rightRows: [ [labelCell, labelText, valueRange, valueText] ]
+    var set = _MQ_XL.set, F = _MQ_XL.FONT, A = _MQ_XL.ALIGN, FILL = _MQ_XL.FILL;
+    leftRows.forEach(function(row){
+      set(ws, row[0], row[1], { font:F(10,true), fill:FILL.label });
+      if (row[2] && row[2].indexOf(':') >= 0) ws.mergeCells(row[2]);
+      set(ws, row[2] ? row[2].split(':')[0] : row[0], row[3], { align: A.left });
+    });
+    rightRows.forEach(function(row){
+      set(ws, row[0], row[1], { font:F(10,true), fill:FILL.label });
+      if (row[2] && row[2].indexOf(':') >= 0) ws.mergeCells(row[2]);
+      set(ws, row[2] ? row[2].split(':')[0] : row[0], row[3], { align: A.left });
+    });
+  }
+
+  // ── Needle OTT / 광고 / 영화 공통 빌더 (컬럼만 다름) ──
+  function _buildXlsx_needle(wb, r, logoBuf, stampBuf, mode){
+    // mode: 'ott' | 'ad' | 'movie'
+    var set = _MQ_XL.set, F = _MQ_XL.FONT, A = _MQ_XL.ALIGN, FILL = _MQ_XL.FILL, BD = _MQ_XL.BD, box = _MQ_XL.box;
+    var ws = wb.addWorksheet('견적서', { views:[{ showGridLines:false }] });
+    // 컬럼 스펙 (모드별)
+    var colSpec;
+    if (mode === 'movie') {
+      // A~J (10열): No, CD Title, CD No, CUE, Track No, Publisher, 단위, 수량, Domestic, Worldwide
+      colSpec = { widths:[7,23.375,9.125,24.5,8,22.25,6.5,10,14.125,13.875],
+        headers:['No','CD Title','CD No','CUE','Track No','Publisher / Composer','단위','수량','Domestic','Worldwide'],
+        titleRange:'A1:J2', groupRange:'B11:J11', totalRange:'B19:G19',
+        notesLbl:'A20:A25', notesBodies:['B20:G20','B23:G23','B24:G24'], notesEnd:10,
+        sumCols:[8,9,10], stampCol:8.7, stampBr:{col:9.95,row:5.8}
+      };
+    } else if (mode === 'ad') {
+      // A~I (9열): No, CD Title, CD No, CUE, Track No, Publisher, 용도, 수량, 금액
+      colSpec = { widths:[7,25.625,10.625,28.75,9.5,24.5,6.5,10,16.625],
+        headers:['No','CD Title','CD No','CUE','Track No','Publisher / Composer','용도','수량','금액'],
+        titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'B19:G19',
+        notesLbl:'A20:A25', notesBodies:['B20:G20','B23:G23','B24:G24'], notesEnd:9,
+        sumCols:[8,9], stampCol:8.3, stampBr:{col:8.95,row:5.8}
+      };
+    } else {
+      // OTT: A~I (9열): No, CD Title, CD No, CUE, Track No, Publisher, 권리, 수량, Domestic & Worldwide
+      colSpec = { widths:[7,25.625,10.625,28.75,9.5,24.5,6.5,10,16.625],
+        headers:['No','CD Title','CD No','CUE','Track No','Publisher / Composer','권리','수량','Domestic & Worldwide'],
+        titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'B19:G19',
+        notesLbl:'A20:A25', notesBodies:['B20:G20','B23:G23','B24:G24'], notesEnd:9,
+        sumCols:[8,9], stampCol:8.3, stampBr:{col:8.95,row:5.8}
+      };
+    }
+    // 컬럼 너비
+    colSpec.widths.forEach(function(w,i){ ws.getColumn(i+1).width = w; });
+    // 행 높이
+    ws.getRow(1).height = 37.5; ws.getRow(2).height = 33;
+    for (var i=3;i<=8;i++) ws.getRow(i).height = 27.95;
+    ws.getRow(9).height = 32.25; ws.getRow(10).height = 51; ws.getRow(11).height = 53.25;
+    for (var i=12;i<=18;i++) ws.getRow(i).height = 60;
+    ws.getRow(19).height = 42;
+    for (var i=20;i<=25;i++) ws.getRow(i).height = 30;
+    // 제목
+    ws.mergeCells(colSpec.titleRange);
+    set(ws, colSpec.titleRange.split(':')[0], '견 적 서', { font:F(26,true), border:false });
+    // 상단 폼 좌
+    var leftLbl = { font:F(10,true), fill:FILL.label };
+    var leftVal = { align:A.left };
+    var L = [
+      ['A3','DATE','B3:E3', _MQ_XL.fmtDate(r.doc_date)],
+      ['A4','수신','B4:E4', r.receiver_company||''],
+      ['A5','참조','B5:E5', r.receiver_person||''],
+      ['A6','Tel','B6:E6', r.receiver_tel||''],
+      ['A7','Fax','B7:E7', r.receiver_fax||''],
+      ['A8','제목','B8:E8', r.doc_title||'']
+    ];
+    L.forEach(function(row){
+      set(ws, row[0], row[1], leftLbl);
+      ws.mergeCells(row[2]);
+      set(ws, row[2].split(':')[0], row[3], leftVal);
+    });
+    ws.mergeCells('A9:E9');
+    set(ws, 'A9', '아래와 같이 견적합니다.', { font:F(11,true), align:A.center });
+    // 상단 폼 우 (F~마지막)
+    var lastColLetter = mode === 'movie' ? 'J' : 'I';
+    var valRange = function(row){ return 'G'+row+':'+lastColLetter+row; };
+    var R = [
+      ['F3','등록번호', valRange(3), r.sender_reg_no||''],
+      ['F4','상호명',   valRange(4), r.sender_company||''],
+      ['F5','대표자',   valRange(5), r.sender_ceo||''],
+      ['F6','소재지',   valRange(6), r.sender_address||''],
+      ['F7','업태',     valRange(7), r.sender_biz_type||''],
+      ['F8','업종',     valRange(8), r.sender_biz_item||''],
+      ['F9','Tel',      valRange(9), r.sender_tel||'']
+    ];
+    R.forEach(function(row){
+      set(ws, row[0], row[1], leftLbl);
+      ws.mergeCells(row[2]);
+      set(ws, row[2].split(':')[0], row[3], leftVal);
+    });
+    // 표 헤더 (10행)
+    colSpec.headers.forEach(function(h, i){
+      set(ws, ws.getRow(10).getCell(i+1).address, h, { font:F(10,true), fill:FILL.header });
+    });
+    // items → group/song 배열
+    var rows = _MQ_XL.itemsToRows(r.items);
+    var maxDataRows = 7;
+    var dataStart = 11;
+    var idx = 0;
+    for (var ri = 0; ri < 8 && idx < rows.length; ri++) {
+      var row = rows[idx];
+      var rr = dataStart + ri;
+      if (row.type === 'group') {
+        set(ws, ws.getRow(rr).getCell(1).address, row.no, { font:F(10,true), fill:FILL.group });
+        ws.mergeCells('B'+rr+':'+lastColLetter+rr);
+        set(ws, 'B'+rr, row.label, { font:F(11,true), align:A.left, fill:FILL.group });
+      } else {
+        var it = row.raw;
+        var vals;
+        if (mode === 'ott') {
+          vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||'sync', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.dw)||''];
+        } else if (mode === 'ad') {
+          vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||'', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.amount)||''];
+        } else {
+          vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||'sync', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.domestic)||'', _MQ_XL.num(it.worldwide)||''];
+        }
+        vals.forEach(function(v, c){
+          var isLeft = (c===1 || c===5);
+          var isRight = colSpec.sumCols.indexOf(c+1) !== -1;
+          set(ws, ws.getRow(rr).getCell(c+1).address, v, {
+            align: isLeft ? A.left : (isRight ? A.right : A.center),
+            numFmt: (isRight && typeof v === 'number') ? '#,##0' : undefined
+          });
+        });
+      }
+      idx++;
+    }
+    // 빈 슬롯 border 만 유지
+    var lastFilledRow = dataStart + Math.min(idx-1, 7);
+    for (var rr2 = lastFilledRow+1; rr2 <= 18; rr2++) box(ws, rr2, 1, colSpec.widths.length);
+    // TOTAL (19행)
+    set(ws, 'A19', '', { fill:FILL.total });
+    ws.mergeCells(colSpec.totalRange);
+    set(ws, colSpec.totalRange.split(':')[0], 'TOTAL (Excluding V.A.T)', { font:F(11,true), fill:FILL.total });
+    var sumRange = { start:12, end:18 };
+    colSpec.sumCols.forEach(function(cn){
+      var addr = ws.getRow(19).getCell(cn).address;
+      var colL = addr.replace(/\d+/,'');
+      set(ws, addr, { formula: 'SUM('+colL+sumRange.start+':'+colL+sumRange.end+')' }, { font:F(10,true), fill:FILL.total, numFmt:'#,##0', align:A.right });
+    });
+    // 나머지 열 border · fill
+    for (var c=1; c<=colSpec.widths.length; c++) {
+      var cell = ws.getRow(19).getCell(c);
+      if (!cell.fill) cell.fill = FILL.total;
+      cell.border = BD;
+    }
+    // 비고 (20~25)
+    ws.mergeCells(colSpec.notesLbl);
+    set(ws, colSpec.notesLbl.split(':')[0], '비 고', { font:F(11,true), fill:FILL.label });
+    var notesText = (r.notes || '').split('\n');
+    var noteBodyStart = { movie:2, ad:2, ott:2 }[mode];
+    colSpec.notesBodies.forEach(function(range, i){
+      ws.mergeCells(range);
+      set(ws, range.split(':')[0], notesText[i]||'', { align:A.left });
+    });
+    for (var rr3=20; rr3<=25; rr3++) box(ws, rr3, 2, colSpec.widths.length);
+    // 이미지
+    if (logoBuf) {
+      var lid = wb.addImage({ buffer:logoBuf, extension:'png' });
+      ws.addImage(lid, { tl:{col:0.1,row:0.1}, br:{col:1.95,row:1.9}, editAs:'oneCell' });
+    }
+    if (stampBuf) {
+      var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
+      ws.addImage(sid, { tl:{col:colSpec.stampCol,row:3.2}, br:colSpec.stampBr, editAs:'oneCell' });
+    }
+    ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:1, margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
+    return ws;
+  }
+
+  // ── Annual · Invoice 공통 빌더 (품목·코드·규격·단위·QTY·단가·공급가액·부가가치세·합계) ──
+  function _buildXlsx_annual(wb, r, logoBuf, stampBuf, isInvoice){
+    var set = _MQ_XL.set, F = _MQ_XL.FONT, A = _MQ_XL.ALIGN, FILL = _MQ_XL.FILL, BD = _MQ_XL.BD, box = _MQ_XL.box;
+    var docLabel = isInvoice ? '거래명세서' : '견적서';
+    var ws = wb.addWorksheet(docLabel, { views:[{ showGridLines:false }] });
+    // 컬럼: A~J
+    [5.13, 35, 15.13, 6, 6.5, 10.25, 13, 13, 15, 10].forEach(function(w,i){ ws.getColumn(i+1).width = w; });
+    // 행 높이
+    ws.getRow(1).height = 42; ws.getRow(2).height = 20;
+    for (var i=3;i<=8;i++) ws.getRow(i).height = 24;
+    ws.getRow(9).height = 30; ws.getRow(10).height = 42;
+    for (var i=11;i<=44;i++) ws.getRow(i).height = 22;
+    ws.getRow(45).height = 32;
+    for (var i=46;i<=55;i++) ws.getRow(i).height = 22;
+    // 제목
+    ws.mergeCells('A1:J2');
+    set(ws, 'A1', docLabel, { font:F(26,true), border:false });
+    // 상단 폼 (5열 우측 발신자)
+    var lastCol = 'J';
+    var leftLbl = { font:F(10,true), fill:FILL.label };
+    var leftVal = { align:A.left };
+    var L = isInvoice ? [
+      ['A3','DATE','B3:D3',_MQ_XL.fmtDate(r.doc_date)],
+      ['A4','수신','B4:D4', r.receiver_company||''],
+      ['A5','제목','B5:D5', r.doc_title||''],
+    ] : [
+      ['A3','DATE','B3:D3',_MQ_XL.fmtDate(r.doc_date)],
+      ['A4','수신','B4:D4', r.receiver_company||''],
+      ['A5','참조','B5:D5', r.receiver_person||''],
+      ['A6','Tel','B6:D6', r.receiver_tel||''],
+      ['A7','Fax','B7:D7', r.receiver_fax||''],
+      ['A8','제목','B8:D8', r.doc_title||'']
+    ];
+    L.forEach(function(row){
+      set(ws, row[0], row[1], leftLbl);
+      ws.mergeCells(row[2]);
+      set(ws, row[2].split(':')[0], row[3], leftVal);
+    });
+    ws.mergeCells('A9:D9');
+    set(ws, 'A9', isInvoice ? '아래와 같이 청구합니다.' : '아래와 같이 견적합니다.', { font:F(11,true), align:A.center });
+    var bizItemLabel = isInvoice ? '종목' : '업종';
+    var R = [
+      ['E3','등록번호','F3:J3', r.sender_reg_no||''],
+      ['E4','상호명',  'F4:J4', r.sender_company||''],
+      ['E5','대표자',  'F5:J5', r.sender_ceo||''],
+      ['E6','소재지',  'F6:J6', r.sender_address||''],
+      ['E7','업태',    'F7:J7', r.sender_biz_type||''],
+      ['E8',bizItemLabel,'F8:J8', r.sender_biz_item||''],
+      ['E9','Tel',     'F9:J9', r.sender_tel||'']
+    ];
+    R.forEach(function(row){
+      set(ws, row[0], row[1], leftLbl);
+      ws.mergeCells(row[2]);
+      set(ws, row[2].split(':')[0], row[3], leftVal);
+    });
+    // 합계금액 (10행)
+    set(ws, 'A10', '합계 금액', { font:F(12,true), fill:FILL.total });
+    ws.mergeCells('B10:E10');
+    var total = 0; (r.items||[]).forEach(function(it){ if (it._type !== 'group') total += _MQ_XL.num(it.totalWithVat); });
+    set(ws, 'B10', '일금 ' + total.toLocaleString() + ' 원정 (₩'+ total.toLocaleString() +')', { font:F(11,true), align:A.center, fill:FILL.total });
+    ws.mergeCells('F10:J10');
+    set(ws, 'F10', total, { font:F(13,true), align:A.right, numFmt:'₩#,##0', fill:FILL.total });
+    // 표 헤더 (11행)
+    var headers = ['NO','품목','코드','규격','단위','QTY','단가','공급가액','부가가치세','합계 금액 (V.A.T포함)'];
+    headers.forEach(function(h,i){
+      set(ws, ws.getRow(11).getCell(i+1).address, h, { font:F(10,true), fill:FILL.header });
+    });
+    // 데이터 (12행 ~ 최대 43행 = 32슬롯)
+    var rows = _MQ_XL.itemsToRows(r.items);
+    var maxDataRows = 32;
+    var dataStart = 12;
+    for (var i=0; i<maxDataRows; i++) {
+      var rr = dataStart + i;
+      var row = rows[i];
+      if (!row) { box(ws, rr, 1, 10); continue; }
+      var it = row.raw;
+      var vals = [row.no, it.item||'', it.code||'', it.spec||'', it.unit||'', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.unitPrice)||'', _MQ_XL.num(it.supplyPrice)||'', _MQ_XL.num(it.vat)||'', _MQ_XL.num(it.totalWithVat)||''];
+      vals.forEach(function(v, c){
+        var isLeft = (c===1 || c===2 || c===3);
+        var isRight = c >= 5;
+        set(ws, ws.getRow(rr).getCell(c+1).address, v, {
+          align: isLeft ? A.left : (isRight ? A.right : A.center),
+          numFmt: (isRight && typeof v === 'number') ? '#,##0' : undefined
+        });
+      });
+    }
+    // TOTAL (44행)
+    var totalRow = dataStart + maxDataRows;
+    ws.mergeCells('A'+totalRow+':E'+totalRow);
+    set(ws, 'A'+totalRow, 'TOTAL', { font:F(12,true), fill:FILL.header, align:A.center });
+    ['F','G','H','I','J'].forEach(function(col){
+      var addr = col + totalRow;
+      set(ws, addr, { formula:'SUM('+col+dataStart+':'+col+(totalRow-1)+')' }, { font:F(10,true), fill:FILL.header, numFmt:'#,##0', align:A.right });
+    });
+    // 비고 (45~53행)
+    var notesStart = totalRow + 1;
+    var notesEnd = notesStart + 8;
+    ws.mergeCells('A'+notesStart+':A'+notesEnd);
+    set(ws, 'A'+notesStart, '비 고', { font:F(11,true), fill:FILL.label });
+    ws.mergeCells('B'+notesStart+':J'+notesEnd);
+    set(ws, 'B'+notesStart, r.notes||'', { align:{horizontal:'left',vertical:'top',wrapText:true,indent:1}, font:F(10) });
+    for (var rr=notesStart; rr<=notesEnd; rr++) box(ws, rr, 1, 10);
+    // 이미지
+    if (logoBuf) {
+      var lid = wb.addImage({ buffer:logoBuf, extension:'png' });
+      ws.addImage(lid, { tl:{col:0.1,row:0.1}, br:{col:1.95,row:1.9}, editAs:'oneCell' });
+    }
+    if (stampBuf) {
+      var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
+      ws.addImage(sid, { tl:{col:6.3,row:3.2}, br:{col:7.3,row:5.5}, editAs:'oneCell' });
+    }
+    ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:1, margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
+    return ws;
+  }
+
   function _exportExcel(id){
     var r = _state.rows.find(function(x){ return x.id === id; });
     if (!r) { _toast('견적서를 찾을 수 없습니다'); return; }
-    _loadSheetJs().then(function(XLSX){
+    _toast('Excel 생성 중...');
+    Promise.all([
+      _loadExcelJs(),
+      _loadImageBuf('/Quote Management/mediacube logo.png'),
+      _loadImageBuf('/Quote Management/미디어 큐브 도장.png')
+    ]).then(function(arr){
+      var XLS = arr[0], logoBuf = arr[1], stampBuf = arr[2];
+      var wb = new XLS.Workbook();
+      if (r.doc_type === 'needle') {
+        _buildXlsx_needle(wb, r, logoBuf, stampBuf, r.sub_type || 'ott');
+      } else if (r.doc_type === 'annual') {
+        _buildXlsx_annual(wb, r, logoBuf, stampBuf, false);
+      } else if (r.doc_type === 'invoice') {
+        _buildXlsx_annual(wb, r, logoBuf, stampBuf, true);
+      } else {
+        _buildXlsx_needle(wb, r, logoBuf, stampBuf, 'ott');
+      }
+      return wb.xlsx.writeBuffer();
+    }).then(function(buf){
+      var blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      var docLabel = r.doc_type === 'invoice' ? '거래명세서' : '견적서';
+      a.href = url; a.download = (r.quote_no || r.id.slice(0,8)) + '_' + docLabel + '.xlsx';
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(url); document.body.removeChild(a); }, 300);
+      _toast('Excel 파일이 다운로드되었습니다');
+    }).catch(function(e){ console.error('[__mq] excel', e); _toast('Excel 내보내기 실패 — '+(e.message||e)); });
+  }
+
+  // 구 SheetJS 함수는 사용 안함 (호환용 stub)
+  function _loadSheetJs_deprecated(){
+    return _loadExcelJs();
+  }
+  function _exportExcel_deprecated(id){
+    var r = _state.rows.find(function(x){ return x.id === id; });
+    if (!r) { _toast('견적서를 찾을 수 없습니다'); return; }
+    _loadSheetJs_deprecated().then(function(XLSX){
       var docLabel = r.doc_type==='invoice' ? '거래명세서' : '견적서';
       var cols = _cols(r);
       var items = Array.isArray(r.items) ? r.items : [];
