@@ -16335,7 +16335,7 @@ window.__mq = (function(){
         titleRange:'A1:J2', groupRange:'B11:J11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:J23',
         sumCols:[8,9,10], lastColLetter:'J',
-        stampExt:{col:8.5,row:2.6,w:110,h:135}
+        stampExt:{col:8.45,row:3.0,w:115,h:115}
       };
     } else if (mode === 'ad') {
       colSpec = { widths:[7,25.625,10.625,28.75,9.5,24.5,6.5,10,16.625],
@@ -16343,7 +16343,7 @@ window.__mq = (function(){
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
-        stampExt:{col:8.15,row:2.8,w:100,h:135}
+        stampExt:{col:8.05,row:3.0,w:110,h:110}
       };
     } else {
       colSpec = { widths:[7,25.625,10.625,28.75,9.5,24.5,6.5,10,16.625],
@@ -16351,7 +16351,7 @@ window.__mq = (function(){
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
-        stampExt:{col:8.15,row:2.8,w:100,h:135}
+        stampExt:{col:8.05,row:3.0,w:110,h:110}
       };
     }
     // 컬럼 너비
@@ -16366,41 +16366,72 @@ window.__mq = (function(){
     // 제목
     ws.mergeCells(colSpec.titleRange);
     set(ws, colSpec.titleRange.split(':')[0], '견 적 서', { font:F(26,true), border:false });
-    // 상단 폼 좌
+    // 상단 폼 좌 (5열: A~E) — Tel/Fax 한 줄 (A=Tel라벨, B:C=tel값, D=Fax라벨, E=fax값)
     var leftLbl = { font:F(10,true), fill:FILL.label };
     var leftVal = { align:A.left };
-    var L = [
-      ['A3','DATE','B3:E3', _MQ_XL.fmtDate(r.doc_date)],
-      ['A4','수신','B4:E4', r.receiver_company||''],
-      ['A5','참조','B5:E5', r.receiver_person||''],
-      ['A6','Tel','B6:E6', r.receiver_tel||''],
-      ['A7','Fax','B7:E7', r.receiver_fax||''],
-      ['A8','제목','B8:E8', r.doc_title||'']
-    ];
-    L.forEach(function(row){
-      set(ws, row[0], row[1], leftLbl);
-      ws.mergeCells(row[2]);
-      set(ws, row[2].split(':')[0], row[3], leftVal);
-    });
+    // 단일 라벨+값 행 (전체 병합)
+    var mkSimple = function(rowNum, label, val){
+      set(ws, 'A'+rowNum, label, leftLbl);
+      ws.mergeCells('B'+rowNum+':E'+rowNum);
+      set(ws, 'B'+rowNum, val, leftVal);
+    };
+    mkSimple(3, 'DATE', _MQ_XL.fmtDate(r.doc_date));
+    mkSimple(4, '수신', r.receiver_company||'');
+    mkSimple(5, '참조', r.receiver_person||'');
+    // 6행: Tel + Fax (한 줄에 두 칸)
+    set(ws, 'A6', 'Tel', leftLbl);
+    ws.mergeCells('B6:C6');
+    set(ws, 'B6', r.receiver_tel||'', leftVal);
+    set(ws, 'D6', 'Fax', leftLbl);
+    set(ws, 'E6', r.receiver_fax||'', leftVal);
+    mkSimple(7, '제목', r.doc_title||'');
+    ws.mergeCells('A8:E8');
+    set(ws, 'A8', '', { border:false });
     ws.mergeCells('A9:E9');
-    set(ws, 'A9', '아래와 같이 견적합니다.', { font:F(11,true), align:A.center });
-    // 상단 폼 우 (F~마지막)
+    set(ws, 'A9', '- 아래와 같이 견적합니다.', { font:F(11,true), align:A.left, border:false });
+
+    // 상단 폼 우 (F~마지막) — 업태/종목 한 줄 · Tel/Fax 한 줄
     var lastColLetter = mode === 'movie' ? 'J' : 'I';
-    var valRange = function(row){ return 'G'+row+':'+lastColLetter+row; };
-    var R = [
-      ['F3','등록번호', valRange(3), r.sender_reg_no||''],
-      ['F4','상호명',   valRange(4), r.sender_company||''],
-      ['F5','대표자',   valRange(5), r.sender_ceo||''],
-      ['F6','소재지',   valRange(6), r.sender_address||''],
-      ['F7','업태',     valRange(7), r.sender_biz_type||''],
-      ['F8','업종',     valRange(8), r.sender_biz_item||''],
-      ['F9','Tel',      valRange(9), r.sender_tel||'']
-    ];
-    R.forEach(function(row){
-      set(ws, row[0], row[1], leftLbl);
-      ws.mergeCells(row[2]);
-      set(ws, row[2].split(':')[0], row[3], leftVal);
-    });
+    var rightValRange = function(row){ return 'G'+row+':'+lastColLetter+row; };
+    var mkRSimple = function(rowNum, label, val){
+      set(ws, 'F'+rowNum, label, leftLbl);
+      ws.mergeCells(rightValRange(rowNum));
+      set(ws, 'G'+rowNum, val, leftVal);
+    };
+    mkRSimple(3, '등록번호', r.sender_reg_no||'');
+    mkRSimple(4, '상호명',   r.sender_company||'');
+    mkRSimple(5, '대표자',   r.sender_ceo||'');
+    mkRSimple(6, '소재지',   r.sender_address||'');
+    // 7행: 업태 + 종목 (한 줄에 두 칸)
+    //   movie(10열 F~J): F=업태, G:H=업태값, I=종목, J=종목값 (실제 종목값 좁으면 J만)
+    //   ott/ad(9열 F~I): F=업태, G=업태값, H=종목, I=종목값
+    if (mode === 'movie') {
+      set(ws, 'F7', '업태', leftLbl);
+      ws.mergeCells('G7:H7');
+      set(ws, 'G7', r.sender_biz_type||'', leftVal);
+      set(ws, 'I7', '종목', leftLbl);
+      set(ws, 'J7', r.sender_biz_item||'', leftVal);
+      // 8행: Tel + Fax
+      set(ws, 'F8', 'Tel', leftLbl);
+      ws.mergeCells('G8:H8');
+      set(ws, 'G8', r.sender_tel||'', leftVal);
+      set(ws, 'I8', 'Fax', leftLbl);
+      set(ws, 'J8', r.sender_fax||'', leftVal);
+      // 9행: 담당자
+      mkRSimple(9, '담당자', r.sender_person||'');
+    } else {
+      set(ws, 'F7', '업태', leftLbl);
+      set(ws, 'G7', r.sender_biz_type||'', leftVal);
+      set(ws, 'H7', '종목', leftLbl);
+      set(ws, 'I7', r.sender_biz_item||'', leftVal);
+      // 8행: Tel + Fax
+      set(ws, 'F8', 'Tel', leftLbl);
+      set(ws, 'G8', r.sender_tel||'', leftVal);
+      set(ws, 'H8', 'Fax', leftLbl);
+      set(ws, 'I8', r.sender_fax||'', leftVal);
+      // 9행: 담당자
+      mkRSimple(9, '담당자', r.sender_person||'');
+    }
     // 표 헤더 (10행)
     colSpec.headers.forEach(function(h, i){
       set(ws, ws.getRow(10).getCell(i+1).address, h, { font:F(10,true), fill:FILL.header });
