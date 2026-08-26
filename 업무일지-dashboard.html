@@ -15438,6 +15438,10 @@ window.__mq = (function(){
     refresh();
   }
   function closePanel(){
+    // .open 클래스는 embed/모달 어느 상태든 반드시 제거
+    // (남아있으면 #mq-overlay.open { display:flex !important } 가 embed exit 후에도 모달로 재출현시킴)
+    var ov = document.getElementById('mq-overlay');
+    if (ov) ov.classList.remove('open');
     // embed 상태였다면 embed exit (사이드바 카탈로그로 복귀)
     if (document.body.classList.contains('dev-embed')
         && window._dmFeatureEmbedState
@@ -15446,8 +15450,6 @@ window.__mq = (function(){
       window._dmExitFeatureEmbed();
       return;
     }
-    var ov = document.getElementById('mq-overlay');
-    if (ov) ov.classList.remove('open');
   }
   function refresh(){
     return fetch(_URL + '/rest/v1/music_quotes?select=*&order=created_at.desc&limit=500', { headers: _hdr() })
