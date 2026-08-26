@@ -15300,8 +15300,10 @@ function openQuotePanel() {
         <option value="진행">진행</option>
         <option value="완료">완료</option>
       </select>
+      <select class="mq-sel" onchange="window.__mq._setFilter('receiver', this.value)" id="mq-fil-receiver" title="수신처별 조회">
+        <option value="all">전체 수신처</option>
+      </select>
       <button class="mq-hbtn" style="background:#e2e8f0;color:#475569;border-color:#cbd5e1" onclick="window.__mq._clearFilter()">필터 초기화</button>
-      <button class="mq-hbtn" style="background:#e2e8f0;color:#475569;border-color:#cbd5e1" onclick="window.__mq.refresh()">새로고침</button>
     </div>
     <!-- 리스트 -->
     <div id="mq-list-wrap">
@@ -15431,7 +15433,7 @@ window.__mq = (function(){
     // 폼용 임시 편집 데이터
     form: null, // { doc_type, sub_type, ...fields, items:[], attachments:[], pendingFiles:[] }
     // 필터
-    filter: { q:'', docType:'all', subType:'all', status:'all' },
+    filter: { q:'', docType:'all', subType:'all', status:'all', receiver:'all' },
     // 다중 선택 (item index Set) · 드래그 선택 · 일괄 삭제용
     selectedIdx: new Set(),
     _dragBound: false, _dragActive: false, _dragBase: null,
@@ -15663,8 +15665,8 @@ window.__mq = (function(){
   // ────────────────────────────────────────────────────────────
   function _setFilter(k, v){ _state.filter[k] = v; _renderList(); }
   function _clearFilter(){
-    _state.filter = { q:'', docType:'all', subType:'all', status:'all' };
-    ['mq-search-inp','mq-fil-doctype','mq-fil-subtype','mq-fil-status'].forEach(function(id){
+    _state.filter = { q:'', docType:'all', subType:'all', status:'all', receiver:'all' };
+    ['mq-search-inp','mq-fil-doctype','mq-fil-subtype','mq-fil-status','mq-fil-receiver'].forEach(function(id){
       var el=document.getElementById(id); if (!el) return;
       if (el.tagName==='INPUT') el.value=''; else el.value='all';
     });
@@ -15676,12 +15678,32 @@ window.__mq = (function(){
       if (f.docType !== 'all' && r.doc_type !== f.docType) return false;
       if (f.subType !== 'all' && r.sub_type !== f.subType) return false;
       if (f.status !== 'all' && r.status !== f.status) return false;
+      if (f.receiver !== 'all' && (r.receiver_company||'') !== f.receiver) return false;
       if (q) {
         var hay = [r.doc_title, r.receiver_company, r.receiver_person, r.quote_no].join(' ').toLowerCase();
         if (hay.indexOf(q) === -1) return false;
       }
       return true;
     });
+  }
+  // 수신처 select 를 현재 로드된 rows 로 동기화
+  function _syncReceiverOptions(){
+    var sel = document.getElementById('mq-fil-receiver');
+    if (!sel) return;
+    var uniq = {};
+    (_state.rows || []).forEach(function(r){
+      var v = (r.receiver_company || '').trim();
+      if (v) uniq[v] = true;
+    });
+    var names = Object.keys(uniq).sort(function(a,b){ return a.localeCompare(b,'ko'); });
+    var cur = _state.filter.receiver || 'all';
+    var html = '<option value="all">전체 수신처</option>' + names.map(function(n){
+      return '<option value="'+_esc(n)+'"'+(n===cur?' selected':'')+'>'+_esc(n)+'</option>';
+    }).join('');
+    // 옵션 자체가 바뀌었을 때만 innerHTML 갱신 (사용자 select 상태 유지)
+    if (sel.innerHTML !== html) sel.innerHTML = html;
+    // 현재 선택값이 사라졌으면 all 로
+    if (cur !== 'all' && !uniq[cur]) { _state.filter.receiver = 'all'; sel.value = 'all'; }
   }
 
   // ────────────────────────────────────────────────────────────
@@ -15691,6 +15713,7 @@ window.__mq = (function(){
     var wrap = document.getElementById('mq-list');
     if (!wrap) return;
     if (!_state.loaded) { wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px">불러오는 중...</div>'; return; }
+    _syncReceiverOptions();
     var rows = _applyFilter(_state.rows);
     var header = '<div class="mq-row mq-row-header">'
       + '<div>NO</div><div>종류</div><div>번호</div><div>제목</div><div>수신처</div><div>DATE</div><div>발행일</div><div>상태</div><div>등록일</div><div style="text-align:center">액션</div>'
