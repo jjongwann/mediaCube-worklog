@@ -16572,12 +16572,12 @@ window.__mq = (function(){
       cell.border = Object.assign({}, cell.border||{}, { right: { style:'medium', color:{argb:'FF000000'} } });
     }
 
-    // 이미지 — br 좌표로 셀 범위 지정 (col/row 는 0-indexed 경계)
-    //   로고: 좌상단 (col:0,row:0) ~ (col:2,row:2) = A1:B2 전체
-    //   도장: 우측 상단 (등록번호/상호명 옆 정사각형)
+    // 이미지 — 로고 (A1:B2 영역 내부 · 축소 · 상하좌우 padding · 세로 중앙)
+    //   ext 픽셀 지정 · tl 로 padding 위치 · A1:B2 총 폭 약 230px · 높이 78px
+    //   로고 165×45 → 좌우 padding ~30px, 세로 padding ~17px (중앙)
     if (logoBuf) {
       var lid = wb.addImage({ buffer:logoBuf, extension:'png' });
-      ws.addImage(lid, { tl:{col:0, row:0}, br:{col:2, row:2}, editAs:'oneCell' });
+      ws.addImage(lid, { tl:{col:0.2, row:0.35}, ext:{width:165, height:45}, editAs:'oneCell' });
     }
     if (stampBuf) {
       var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
@@ -16700,10 +16700,10 @@ window.__mq = (function(){
     ws.mergeCells('B'+notesStart+':J'+notesEnd);
     set(ws, 'B'+notesStart, r.notes||'', { align:{horizontal:'left',vertical:'top',wrapText:true,indent:1}, font:F(10) });
     for (var rr=notesStart; rr<=notesEnd; rr++) box(ws, rr, 1, 10);
-    // 이미지 — 로고 A1:B2 정확히 채우기 · 도장 우측
+    // 이미지 — 로고 축소 · 세로 중앙 (A1:B2 내부 padding)
     if (logoBuf) {
       var lid = wb.addImage({ buffer:logoBuf, extension:'png' });
-      ws.addImage(lid, { tl:{col:0, row:0}, br:{col:2, row:2}, editAs:'oneCell' });
+      ws.addImage(lid, { tl:{col:0.2, row:0.35}, ext:{width:165, height:45}, editAs:'oneCell' });
     }
     if (stampBuf) {
       var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
