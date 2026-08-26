@@ -16486,11 +16486,11 @@ window.__mq = (function(){
           vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||'sync', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.domestic)||'', _MQ_XL.num(it.worldwide)||''];
         }
         vals.forEach(function(v, c){
-          var isLeft = (c===1 || c===5);
-          var isRight = colSpec.sumCols.indexOf(c+1) !== -1;
+          // 모든 데이터 셀 중앙 정렬 · 숫자 컬럼은 #,##0 자동 포맷
+          var isNumCol = colSpec.sumCols.indexOf(c+1) !== -1;
           set(ws, ws.getRow(rr).getCell(c+1).address, v, {
-            align: isLeft ? A.left : (isRight ? A.right : A.center),
-            numFmt: (isRight && typeof v === 'number') ? '#,##0' : undefined
+            align: A.center,
+            numFmt: isNumCol ? '#,##0' : undefined
           });
         });
       }
@@ -16530,7 +16530,10 @@ window.__mq = (function(){
       var colL = addr.replace(/\d+/,'');
       var sumVal = 0;
       (r.items || []).forEach(function(it){ if (it._type !== 'group') sumVal += _MQ_XL.num(it[sumFieldMap[cn]]); });
-      set(ws, addr, { formula: 'SUM('+colL+sumRange.start+':'+colL+sumRange.end+')', result: sumVal }, { font:F(10,true), fill:FILL.total, numFmt:'#,##0', align:A.right });
+      // 수량(qty) 컬럼은 그대로 #,##0 · 가격(dw/amount/domestic/worldwide) 은 ₩ 통화 기호 붙임
+      var isQty = sumFieldMap[cn] === 'qty';
+      var fmt = isQty ? '#,##0' : '₩#,##0';
+      set(ws, addr, { formula: 'SUM('+colL+sumRange.start+':'+colL+sumRange.end+')', result: sumVal }, { font:F(10,true), fill:FILL.total, numFmt:fmt, align:A.center });
     });
     // 나머지 열 border · fill
     for (var c=1; c<=colSpec.widths.length; c++) {
@@ -16660,11 +16663,11 @@ window.__mq = (function(){
       var it = row.raw;
       var vals = [row.no, it.item||'', it.code||'', it.spec||'', it.unit||'', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.unitPrice)||'', _MQ_XL.num(it.supplyPrice)||'', _MQ_XL.num(it.vat)||'', _MQ_XL.num(it.totalWithVat)||''];
       vals.forEach(function(v, c){
-        var isLeft = (c===1 || c===2 || c===3);
-        var isRight = c >= 5;
+        // 모든 데이터 셀 중앙 정렬 · 숫자 컬럼(QTY 이상, 인덱스 5~9) #,##0 포맷
+        var isNumCol = c >= 5;
         set(ws, ws.getRow(rr).getCell(c+1).address, v, {
-          align: isLeft ? A.left : (isRight ? A.right : A.center),
-          numFmt: (isRight && typeof v === 'number') ? '#,##0' : undefined
+          align: A.center,
+          numFmt: isNumCol ? '#,##0' : undefined
         });
       });
     }
@@ -16679,7 +16682,10 @@ window.__mq = (function(){
       var key = annualKeys[col];
       var sumVal = 0;
       (r.items || []).forEach(function(it){ if (it._type !== 'group') sumVal += _MQ_XL.num(it[key]); });
-      set(ws, addr, { formula:'SUM('+col+dataStart+':'+col+(totalRow-1)+')', result: sumVal }, { font:F(10,true), fill:FILL.header, numFmt:'#,##0', align:A.right });
+      // 수량(F) 은 그대로 · 나머지 가격 (G~J) 은 ₩ 통화 기호
+      var isQty = (key === 'qty');
+      var fmt = isQty ? '#,##0' : '₩#,##0';
+      set(ws, addr, { formula:'SUM('+col+dataStart+':'+col+(totalRow-1)+')', result: sumVal }, { font:F(10,true), fill:FILL.header, numFmt:fmt, align:A.center });
     });
     // 비고 (45~53행)
     var notesStart = totalRow + 1;
