@@ -16445,15 +16445,29 @@ window.__mq = (function(){
         cell.border = _MQ_XL.BD;
       }
     }
-    // TOTAL (19행)
+    // TOTAL (19행) — JS 에서 합계 계산 · formula + result 함께 저장 (Excel 재계산 없이도 표시)
     set(ws, 'A19', '', { fill:FILL.total });
     ws.mergeCells(colSpec.totalRange);
     set(ws, colSpec.totalRange.split(':')[0], 'TOTAL (Excluding V.A.T)', { font:F(11,true), fill:FILL.total });
     var sumRange = { start:12, end:18 };
+    // 컬럼 이름 매핑 (row 데이터에서 sum 계산용)
+    var sumKeyMap = {};
+    colSpec.sumCols.forEach(function(cn){ sumKeyMap[cn] = colSpec.headers[cn-1]; });
     colSpec.sumCols.forEach(function(cn){
       var addr = ws.getRow(19).getCell(cn).address;
       var colL = addr.replace(/\d+/,'');
-      set(ws, addr, { formula: 'SUM('+colL+sumRange.start+':'+colL+sumRange.end+')' }, { font:F(10,true), fill:FILL.total, numFmt:'#,##0', align:A.right });
+      // items 에서 실제 합계 계산 (그룹 헤더 제외)
+      var itemsArr = r.items || [];
+      // key mapping 은 mode 별로 다름 → colSpec.headers 는 라벨이니 별도 매핑 필요
+      // mode 별 sum 필드 map
+      var sumFieldMap;
+      if (mode === 'movie') sumFieldMap = { 8:'qty', 9:'domestic', 10:'worldwide' };
+      else if (mode === 'ad') sumFieldMap = { 8:'qty', 9:'amount' };
+      else sumFieldMap = { 8:'qty', 9:'dw' };
+      var key = sumFieldMap[cn];
+      var sumVal = 0;
+      itemsArr.forEach(function(it){ if (it._type !== 'group') sumVal += _MQ_XL.num(it[key]); });
+      set(ws, addr, { formula: 'SUM('+colL+sumRange.start+':'+colL+sumRange.end+')', result: sumVal }, { font:F(10,true), fill:FILL.total, numFmt:'#,##0', align:A.right });
     });
     // 나머지 열 border · fill
     for (var c=1; c<=colSpec.widths.length; c++) {
@@ -16570,13 +16584,18 @@ window.__mq = (function(){
         });
       });
     }
-    // TOTAL (44행)
+    // TOTAL (44행) — JS 에서 합계 계산 + formula + result 저장
     var totalRow = dataStart + maxDataRows;
     ws.mergeCells('A'+totalRow+':E'+totalRow);
     set(ws, 'A'+totalRow, 'TOTAL', { font:F(12,true), fill:FILL.header, align:A.center });
+    // Annual/Invoice item 키: qty / unitPrice / supplyPrice / vat / totalWithVat 순 (F~J)
+    var annualKeys = { F:'qty', G:'unitPrice', H:'supplyPrice', I:'vat', J:'totalWithVat' };
     ['F','G','H','I','J'].forEach(function(col){
       var addr = col + totalRow;
-      set(ws, addr, { formula:'SUM('+col+dataStart+':'+col+(totalRow-1)+')' }, { font:F(10,true), fill:FILL.header, numFmt:'#,##0', align:A.right });
+      var key = annualKeys[col];
+      var sumVal = 0;
+      (r.items || []).forEach(function(it){ if (it._type !== 'group') sumVal += _MQ_XL.num(it[key]); });
+      set(ws, addr, { formula:'SUM('+col+dataStart+':'+col+(totalRow-1)+')', result: sumVal }, { font:F(10,true), fill:FILL.header, numFmt:'#,##0', align:A.right });
     });
     // 비고 (45~53행)
     var notesStart = totalRow + 1;
@@ -16610,6 +16629,8 @@ window.__mq = (function(){
     ]).then(function(arr){
       var XLS = arr[0], logoBuf = arr[1], stampBuf = arr[2];
       var wb = new XLS.Workbook();
+      wb.calcProperties = wb.calcProperties || {};
+      wb.calcProperties.fullCalcOnLoad = true;
       if (r.doc_type === 'needle') {
         _buildXlsx_needle(wb, r, logoBuf, stampBuf, r.sub_type || 'ott');
       } else if (r.doc_type === 'annual') {
