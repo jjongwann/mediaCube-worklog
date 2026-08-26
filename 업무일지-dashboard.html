@@ -16616,10 +16616,17 @@ window.__meeting = (function() {
 
     var html = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>' + esc(r.title || '회의록') + '</title>'
       + '<style>'
-      // @page margin:0 → 브라우저 기본 헤더(날짜/제목) · 푸터(URL/페이지번호) 숨김
-      + '@page{margin:0;size:A4}'
+      // @page 여백 + margin box 로 브라우저 기본 헤더/푸터 대체
+      //   · @top-left/@top-right 비워서 상단 날짜/제목 숨김
+      //   · @bottom-left = MEDIACUBE, @bottom-right = 1/2 페이지 표시
+      + '@page{size:A4;margin:18mm 14mm 18mm 14mm;'
+      +   '@top-left{content:""}@top-center{content:""}@top-right{content:""}'
+      +   '@bottom-left{content:"MEDIACUBE";font-family:sans-serif;font-size:9.5px;font-weight:800;color:#94a3b8;letter-spacing:1.6px}'
+      +   '@bottom-center{content:""}'
+      +   '@bottom-right{content:counter(page) " / " counter(pages);font-family:sans-serif;font-size:9.5px;color:#94a3b8;font-weight:600}'
+      + '}'
       + '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-      + 'body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#0f172a;margin:0;padding:16mm 14mm 20mm;line-height:1.6;font-size:12px;background:#fff}'
+      + 'body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#0f172a;margin:0;padding:0;line-height:1.6;font-size:12px;background:#fff}'
       // header - accent bar + minimal ink
       + 'header{position:relative;padding:0 0 14px 14px;margin-bottom:18px;border-bottom:1px solid #e2e8f0}'
       + 'header::before{content:"";position:absolute;left:0;top:2px;bottom:16px;width:4px;background:linear-gradient(180deg,#2066ff,#7c3aed);border-radius:2px}'
@@ -16650,7 +16657,6 @@ window.__meeting = (function() {
       + '.files{list-style:none;padding:2px 0 0 10px;margin:0}'
       + '.files li{font-size:11.5px;padding:5px 10px;color:#0f172a;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:4px;display:inline-block;margin-right:6px}'
       // footer
-      + 'footer{margin-top:22px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:10.5px;color:#94a3b8;text-align:left;letter-spacing:1.6px;font-weight:800}'
       // print refinements
       + '@media print{body{padding:0}header{margin-bottom:14px}.meta{border-color:#cbd5e1}.meta > div{background:#fff}}'
       + '</style></head><body>'
@@ -16671,7 +16677,6 @@ window.__meeting = (function() {
       + section('주요 결정사항', plainBody(r.decisions))
       + section('참고사항', plainBody(r.notes))
       + section('첨부파일', filesHtml)
-      + '<footer>MEDIACUBE</footer>'
       + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});window.addEventListener("afterprint",function(){window.close();});<\/script>'
       + '</body></html>';
 
