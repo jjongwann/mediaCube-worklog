@@ -15927,12 +15927,16 @@ window.__mq = (function(){
     var addBtns = '';
     if (!readonly) {
       if (isNeedle) {
-        addBtns = '<div style="display:flex;gap:6px;margin-top:8px">'
+        addBtns = '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'
           + '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addGroup()" style="background:#eff6ff;color:#2066ff;border-color:#bfdbfe"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 프로젝트 추가</button>'
           + '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addItem()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 곡 추가</button>'
+          + '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addManySongs(30)" style="background:#fef3c7;color:#a16207;border-color:#fde68a"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 곡 30개 추가</button>'
         + '</div>';
       } else {
-        addBtns = '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addItem()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 행 추가</button>';
+        addBtns = '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'
+          + '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addItem()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 행 추가</button>'
+          + '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addManySongs(30)" style="background:#fef3c7;color:#a16207;border-color:#fde68a"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 행 30개 추가</button>'
+        + '</div>';
       }
     }
     return '<table class="mq-items">'+thead+tbody+tfoot+'</table>' + addBtns;
@@ -16035,6 +16039,12 @@ window.__mq = (function(){
     if (!_state.form) return;
     _state.form.items.push({ _type: 'group', label: '' });
     _state.form.items.push(_newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type)));
+    _renderForm();
+  }
+  function _addManySongs(n){
+    if (!_state.form) return;
+    var key = _schemaKey(_state.form.doc_type, _state.form.sub_type);
+    for (var i=0; i<n; i++) _state.form.items.push(_newItem(key));
     _renderForm();
   }
   function _setGroupLabel(idx, v){
@@ -16970,7 +16980,7 @@ window.__mq = (function(){
     _showList: _showList, _showForm: _showForm, _showDetail: _showDetail,
     _setFilter: _setFilter, _clearFilter: _clearFilter,
     _setFormField: _setFormField, _setItemField: _setItemField,
-    _addItem: _addItem, _addGroup: _addGroup, _setGroupLabel: _setGroupLabel, _removeItem: _removeItem,
+    _addItem: _addItem, _addGroup: _addGroup, _addManySongs: _addManySongs, _setGroupLabel: _setGroupLabel, _removeItem: _removeItem,
     _onFileSelect: _onFileSelect, _removePendingFile: _removePendingFile, _removeExistingAttach: _removeExistingAttach,
     _save: _save, _deleteById: _deleteById,
     _openChooser: _openChooser, _closeChooser: _closeChooser, _chooserBack: _chooserBack,
