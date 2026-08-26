@@ -16349,8 +16349,9 @@ window.__mq = (function(){
   function _buildXlsx_needle(wb, r, logoBuf, stampBuf, mode){
     // mode: 'ott' | 'ad' | 'movie'
     var set = _MQ_XL.set, F = _MQ_XL.FONT, A = _MQ_XL.ALIGN, FILL = _MQ_XL.FILL, BD = _MQ_XL.BD, box = _MQ_XL.box;
-    // 페이지 나누기 미리보기 (Page Break Preview) 를 기본 뷰로 → 인쇄 영역이 시각적으로 표시
-    var ws = wb.addWorksheet('견적서', { views:[{ state:'normal', view:'pageBreakPreview', showGridLines:false }] });
+    // 페이지 나누기 미리보기 기본 뷰 (파란 인쇄 경계선 표시)
+    var ws = wb.addWorksheet('견적서');
+    ws.views = [{ view:'pageBreakPreview', zoomScale:100, showGridLines:false }];
     // 컬럼 스펙 (모드별) · 참조 xlsx 열너비 그대로 · sumCols 는 SUM 대상 열번호
     //   totalRange: A19:D19 (NO+CD Title+CD No+CUE 4열 병합으로 TOTAL 라벨 표시)
     //   unitCol: 단위 컬럼 번호 (G=7) - Needle 은 'sync' 기본값 배치
@@ -16561,16 +16562,20 @@ window.__mq = (function(){
       cell.border = Object.assign({}, cell.border||{}, { right: { style:'medium', color:{argb:'FF000000'} } });
     }
 
-    // 이미지 (로고 - 넓게 · 도장 - 세로 길게)
+    // 이미지 — br 좌표로 셀 범위 지정 (col/row 는 0-indexed 경계)
+    //   로고: 좌상단 (col:0,row:0) ~ (col:2,row:2) = A1:B2 전체
+    //   도장: 우측 상단 (등록번호/상호명 옆 정사각형)
     if (logoBuf) {
       var lid = wb.addImage({ buffer:logoBuf, extension:'png' });
-      ws.addImage(lid, { tl:{col:0.15,row:0.15}, ext:{width:230,height:70}, editAs:'oneCell' });
+      ws.addImage(lid, { tl:{col:0, row:0}, br:{col:2, row:2}, editAs:'oneCell' });
     }
     if (stampBuf) {
       var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
       ws.addImage(sid, { tl:{col:colSpec.stampExt.col,row:colSpec.stampExt.row}, ext:{width:colSpec.stampExt.w,height:colSpec.stampExt.h}, editAs:'oneCell' });
     }
-    ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:1, margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
+    // 인쇄 영역 명시 → 페이지 나누기 미리보기에서 파란 경계선 정확히 표시
+    var printArea = 'A1:'+colSpec.lastColLetter+'23';
+    ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:1, printArea:printArea, margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
     return ws;
   }
 
@@ -16578,7 +16583,8 @@ window.__mq = (function(){
   function _buildXlsx_annual(wb, r, logoBuf, stampBuf, isInvoice){
     var set = _MQ_XL.set, F = _MQ_XL.FONT, A = _MQ_XL.ALIGN, FILL = _MQ_XL.FILL, BD = _MQ_XL.BD, box = _MQ_XL.box;
     var docLabel = isInvoice ? '거래명세서' : '견적서';
-    var ws = wb.addWorksheet(docLabel, { views:[{ state:'normal', view:'pageBreakPreview', showGridLines:false }] });
+    var ws = wb.addWorksheet(docLabel);
+    ws.views = [{ view:'pageBreakPreview', zoomScale:100, showGridLines:false }];
     // 컬럼: A~J
     [5.13, 35, 15.13, 6, 6.5, 10.25, 13, 13, 15, 10].forEach(function(w,i){ ws.getColumn(i+1).width = w; });
     // 행 높이
@@ -16681,16 +16687,16 @@ window.__mq = (function(){
     ws.mergeCells('B'+notesStart+':J'+notesEnd);
     set(ws, 'B'+notesStart, r.notes||'', { align:{horizontal:'left',vertical:'top',wrapText:true,indent:1}, font:F(10) });
     for (var rr=notesStart; rr<=notesEnd; rr++) box(ws, rr, 1, 10);
-    // 이미지 (로고 - 넓게 · 도장 - 세로 길게)
+    // 이미지 — 로고 A1:B2 정확히 채우기 · 도장 우측
     if (logoBuf) {
       var lid = wb.addImage({ buffer:logoBuf, extension:'png' });
-      ws.addImage(lid, { tl:{col:0.15,row:0.15}, ext:{width:230,height:70}, editAs:'oneCell' });
+      ws.addImage(lid, { tl:{col:0, row:0}, br:{col:2, row:2}, editAs:'oneCell' });
     }
     if (stampBuf) {
       var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
-      ws.addImage(sid, { tl:{col:6.3,row:3.2}, ext:{width:110,height:135}, editAs:'oneCell' });
+      ws.addImage(sid, { tl:{col:6.3,row:3.2}, ext:{width:110,height:110}, editAs:'oneCell' });
     }
-    ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:1, margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
+    ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:1, printArea:'A1:J'+(notesEnd), margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
     return ws;
   }
 
