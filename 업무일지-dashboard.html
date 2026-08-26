@@ -16646,7 +16646,20 @@ window.__mq = (function(){
       return out;
     }
     function num(v){ if(v==null||v==='') return 0; var n=parseFloat(String(v).replace(/,/g,'')); return isNaN(n)?0:n; }
-    return { BD:BD, FONT:FONT, ALIGN:ALIGN, FILL:FILL, set:set, box:box, thickOuter:thickOuter, thickHLine:thickHLine, fmtDate:fmtDate, itemsToRows:itemsToRows, num:num };
+    // 텍스트 길이 · 컬럼 폭 기반 필요 줄 수 추정 (한글 1자 ≈ 영문 1.8자 가중)
+    function estimateLines(text, colWidth){
+      if (!text) return 1;
+      var t = String(text);
+      var effective = 0;
+      for (var i=0; i<t.length; i++) {
+        var code = t.charCodeAt(i);
+        effective += (code < 128) ? 1 : 1.8;
+      }
+      var explicitLines = (t.match(/\n/g) || []).length + 1;
+      var charsPerLine = Math.max(6, Math.floor(colWidth * 0.9));
+      return Math.max(1, Math.ceil(effective / charsPerLine), explicitLines);
+    }
+    return { BD:BD, FONT:FONT, ALIGN:ALIGN, FILL:FILL, set:set, box:box, thickOuter:thickOuter, thickHLine:thickHLine, fmtDate:fmtDate, itemsToRows:itemsToRows, num:num, estimateLines:estimateLines };
   })();
 
   // ── 상단 폼 (좌·우) 공통 렌더러 (Needle · Annual · Invoice 는 각자 sheet-scope 로 재정의) ──
@@ -16789,10 +16802,39 @@ window.__mq = (function(){
     var totalRowNum = dataStart + actualDataRows;              // TOTAL 위치
     var notesStartRow = totalRowNum + 1;
     var notesEndRow = notesStartRow + 3;                        // 비고 4행
-    // 데이터 행 렌더
+    // 데이터 행 렌더 (행 높이는 공유 helper _MQ_XL.estimateLines 사용)
+    var _estimateLines = _MQ_XL.estimateLines;
     rows.forEach(function(row, ri){
       var rr = dataStart + ri;
-      ws.getRow(rr).height = 32;
+      if (row.type === 'group') {
+        ws.getRow(rr).height = 32;
+      } else {
+        // 컬럼별 text 길이로 필요한 최대 줄 수 계산
+        var it = row.raw;
+        var isParentPre = String(row.no).indexOf('-') === -1;
+        var wCT = colSpec.widths[1] || 24;   // CD Title / 품목
+        var wCN = colSpec.widths[2] || 10;   // CD No / 코드
+        var wCU = colSpec.widths[3] || 24;   // CUE / 규격
+        var wPub = colSpec.widths[5] || 22;  // Publisher/Composer
+        var lines;
+        if (isParentPre) {
+          // 부모: B:D 병합 (합계 폭) + Publisher 도 볼 필요 있음
+          var wMerged = wCT + wCN + wCU;
+          lines = Math.max(
+            _estimateLines(it.cdTitle, wMerged),
+            _estimateLines(it.publisher, wPub)
+          );
+        } else {
+          lines = Math.max(
+            _estimateLines(it.cdTitle, wCT),
+            _estimateLines(it.cdNo, wCN),
+            _estimateLines(it.cue, wCU),
+            _estimateLines(it.publisher, wPub)
+          );
+        }
+        // 최소 50px · 줄 하나 늘 때마다 15px 추가 (1줄 = 50, 2줄 = 50, 3줄 = 60, 4줄 = 75, 6줄 = 105)
+        ws.getRow(rr).height = Math.max(50, 20 + lines * 15);
+      }
       if (row.type === 'group') {
         set(ws, ws.getRow(rr).getCell(1).address, row.no, { font:F(10,true), fill:FILL.group });
         ws.mergeCells('B'+rr+':'+lastColLetter+rr);
@@ -16814,8 +16856,8 @@ window.__mq = (function(){
           ws.mergeCells('B'+rr+':D'+rr);
           // A(NO)
           set(ws, ws.getRow(rr).getCell(1).address, vals[0], { align:A.center, numFmt:'@' });
-          // B:D 병합 label = cdTitle
-          set(ws, 'B'+rr, vals[1], { align:{horizontal:'left', vertical:'middle', indent:1}, font:F(10,true), numFmt:'@' });
+          // B:D 병합 label = cdTitle (wrapText 로 여러 줄 대응)
+          set(ws, 'B'+rr, vals[1], { align:{horizontal:'left', vertical:'middle', indent:1, wrapText:true}, font:F(10,true), numFmt:'@' });
           // E~ (Track No 이후 컬럼들)
           for (var c = 4; c < vals.length; c++) {
             var isNumCol_p = colSpec.sumCols.indexOf(c+1) !== -1;
@@ -16839,7 +16881,7 @@ window.__mq = (function(){
     var lastFilledRow = dataStart + rows.length - 1;
     var lastDataRow = dataStart + actualDataRows - 1;
     for (var rr2 = lastFilledRow+1; rr2 <= lastDataRow; rr2++) {
-      ws.getRow(rr2).height = 32;
+      ws.getRow(rr2).height = 50;
       for (var cc = 1; cc <= colSpec.widths.length; cc++) {
         var cell = ws.getRow(rr2).getCell(cc);
         cell.value = null;
@@ -16930,13 +16972,10 @@ window.__mq = (function(){
     ws.views = [{ view:'pageBreakPreview', zoomScale:80, zoomScaleSheetLayoutView:80, showGridLines:false }];
     // 컬럼: A~J
     [5.13, 35, 15.13, 6, 6.5, 10.25, 13, 13, 15, 10].forEach(function(w,i){ ws.getColumn(i+1).width = w; });
-    // 행 높이
+    // 행 높이 (헤더/제목/상단폼 영역만 사전 지정 · 데이터 행 높이는 렌더 중 동적 결정)
     ws.getRow(1).height = 42; ws.getRow(2).height = 20;
     for (var i=3;i<=8;i++) ws.getRow(i).height = 24;
     ws.getRow(9).height = 30; ws.getRow(10).height = 42;
-    for (var i=11;i<=44;i++) ws.getRow(i).height = 22;
-    ws.getRow(45).height = 32;
-    for (var i=46;i<=55;i++) ws.getRow(i).height = 22;
     // 제목 (문자 사이 8칸 간격 · 견 적 서 / 거 래 명 세 서)
     ws.mergeCells('A1:J2');
     var titleSpaced = docLabel.split('').join('        ');
@@ -16999,6 +17038,7 @@ window.__mq = (function(){
     rows.forEach(function(row, ri){
       var rr = dataStart + ri;
       if (row.type === 'group') {
+        ws.getRow(rr).height = 32;
         // 그룹 헤더: NO + 병합된 label (B:D = 품목/코드/규격)
         set(ws, ws.getRow(rr).getCell(1).address, row.no, { font:F(10,true), fill:FILL.group, align:A.center });
         ws.mergeCells('B'+rr+':D'+rr);
@@ -17013,11 +17053,24 @@ window.__mq = (function(){
       var it = row.raw;
       var vals = [row.no, it.item||'', it.code||'', it.spec||'', it.unit||'', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.unitPrice)||'', _MQ_XL.num(it.supplyPrice)||'', _MQ_XL.num(it.vat)||'', _MQ_XL.num(it.totalWithVat)||''];
       var isParent = String(row.no).indexOf('-') === -1;
+      // 동적 행 높이: 품목 · 규격 · 코드 텍스트 길이 기반
+      // Annual 컬럼 폭 A=5.13, B(품목)=35, C(코드)=15.13, D(규격)=6
+      var _lines;
+      if (isParent) {
+        _lines = _MQ_XL.estimateLines(it.item, 35+15.13+6);
+      } else {
+        _lines = Math.max(
+          _MQ_XL.estimateLines(it.item, 35),
+          _MQ_XL.estimateLines(it.code, 15.13),
+          _MQ_XL.estimateLines(it.spec, 6)
+        );
+      }
+      ws.getRow(rr).height = Math.max(50, 20 + _lines * 15);
       // 부모 행 (NO='1','2','3'...): 품목:규격 (B:D) 병합 label
       if (isParent) {
         ws.mergeCells('B'+rr+':D'+rr);
         set(ws, ws.getRow(rr).getCell(1).address, vals[0], { align:A.center });
-        set(ws, 'B'+rr, vals[1], { align:{horizontal:'left', vertical:'middle', indent:1}, font:F(10,true) });
+        set(ws, 'B'+rr, vals[1], { align:{horizontal:'left', vertical:'middle', indent:1, wrapText:true}, font:F(10,true) });
         for (var c = 4; c < vals.length; c++) {
           var isNumCol_p = c >= 5;
           set(ws, ws.getRow(rr).getCell(c+1).address, vals[c], {
@@ -17040,6 +17093,7 @@ window.__mq = (function(){
     var lastFilledRow = dataStart + rows.length - 1;
     var lastDataRow = dataStart + actualDataRows - 1;
     for (var rr2 = lastFilledRow+1; rr2 <= lastDataRow; rr2++) {
+      ws.getRow(rr2).height = 50;
       box(ws, rr2, 1, 10);
     }
     // TOTAL (동적 위치) — JS 에서 합계 계산 + formula + result 저장
