@@ -16153,14 +16153,45 @@ window.__mq = (function(){
     var gStart = -1, gEnd = -1;
     cols.forEach(function(c, i){ if (c.g) { if (gStart===-1) gStart = i; gEnd = i; } });
     var groupSpan = (gStart>=0 && gEnd>gStart) ? (gEnd - gStart + 1) : 1;
-    // 상단 좌우 폼
+    // 상단 좌우 폼 — Excel 양식과 동일 (Tel/Fax 한 줄 · 업태/업종 한 줄 · 대표자 (인))
     var isInvoice = r.doc_type === 'invoice';
-    var LKeys = isInvoice
-      ? [['DATE','doc_date'],['수신','receiver_company'],['제목','doc_title']]
-      : [['DATE','doc_date'],['수신','receiver_company'],['참조','receiver_person'],['Tel','receiver_tel'],['Fax','receiver_fax'],['제목','doc_title']];
-    var RKeys = [['등록번호','sender_reg_no'],['상호명','sender_company'],['대표자','sender_ceo'],['소재지','sender_address'],['업태','sender_biz_type'],[isInvoice?'종목':'업종','sender_biz_item'],['Tel','sender_tel'],['Fax','sender_fax'],['담당자','sender_person']];
-    var topL = LKeys.map(function(kv){ return '<tr><th>'+esc(kv[0])+'</th><td>'+esc(r[kv[1]]||'')+'</td></tr>'; }).join('');
-    var topR = RKeys.map(function(kv){ return '<tr><th>'+esc(kv[0])+'</th><td>'+esc(r[kv[1]]||'')+'</td></tr>'; }).join('');
+    // 좌측(수신자) 행 배열 — 각 행은 1개 또는 2개의 [라벨, 값] pair
+    var LRows = isInvoice ? [
+      [['DATE', _MQ_XL.fmtDate(r.doc_date)]],
+      [['수신', r.receiver_company||'']],
+      [['제목', r.doc_title||'']]
+    ] : [
+      [['DATE', _MQ_XL.fmtDate(r.doc_date)]],
+      [['수신', r.receiver_company||'']],
+      [['참조', r.receiver_person||'']],
+      [['Tel', r.receiver_tel||''], ['Fax', r.receiver_fax||'']],
+      [['제목', r.doc_title||'']]
+    ];
+    // 우측(발신자) 행 — 대표자에 (인), 업태/업종 · Tel/Fax 조합
+    var senderCeoText = (r.sender_ceo || '') + '   (인)';
+    var bizItemLabel = isInvoice ? '업태 / 종목' : '업태 / 업종';
+    var bizItemCombined = (r.sender_biz_type||'') + '   /   ' + (r.sender_biz_item||'');
+    var senderTelCombined = (r.sender_tel||'') + '     Fax   ' + (r.sender_fax||'');
+    var RRows = [
+      [['등록번호', r.sender_reg_no||'']],
+      [['상호명', r.sender_company||'']],
+      [['대표자', senderCeoText]],
+      [['소재지', r.sender_address||'']],
+      [[bizItemLabel, bizItemCombined]],
+      [['Tel', senderTelCombined]],
+      [['담당자', r.sender_person||'']]
+    ];
+    var rowHtml = function(row){
+      if (row.length === 1) {
+        return '<tr><th>'+esc(row[0][0])+'</th><td colspan="3">'+esc(row[0][1])+'</td></tr>';
+      }
+      return '<tr>'
+        + '<th>'+esc(row[0][0])+'</th><td>'+esc(row[0][1])+'</td>'
+        + '<th>'+esc(row[1][0])+'</th><td>'+esc(row[1][1])+'</td>'
+      + '</tr>';
+    };
+    var topL = LRows.map(rowHtml).join('');
+    var topR = RRows.map(rowHtml).join('');
     // 표 헤더
     var thHtml = '<tr>' + cols.map(function(c){ return '<th style="width:'+c.w+'px">'+esc(c.label)+'</th>'; }).join('') + '</tr>';
     // 표 rows
@@ -16190,55 +16221,88 @@ window.__mq = (function(){
       var emptyRow = '<tr>' + cols.map(function(){ return '<td>&nbsp;</td>'; }).join('') + '</tr>';
       for (var pi=0; pi<padCount; pi++) tbHtml += emptyRow;
     }
-    // TOTAL 행
-    var sumStartIdx = -1;
-    cols.forEach(function(c, i){ if (c.sum && sumStartIdx===-1) sumStartIdx = i; });
-    var totalRow = '';
-    if (sumStartIdx > 0) {
-      var totals = {};
-      cols.forEach(function(c){ if (c.sum) totals[c.k] = 0; });
-      items.forEach(function(it){ if (it._type === 'group') return; cols.forEach(function(c){ if (c.sum) totals[c.k] += _num(it[c.k]); }); });
+    // TOTAL 행 — Excel 과 동일: A~D 병합 라벨 + 단위 sync + 수량/가격 합계 (₩)
+    var totals = {};
+    cols.forEach(function(c){ if (c.sum) totals[c.k] = 0; });
+    items.forEach(function(it){ if (it._type === 'group') return; cols.forEach(function(c){ if (c.sum) totals[c.k] += _num(it[c.k]); }); });
+    // Needle 은 컬럼 매핑 필요 (단위 컬럼 인덱스 · sum 컬럼)
+    var totalRow;
+    if (isNeedle) {
+      // 4열 병합 (NO, CD Title, CD No, CUE) + Track No 빈칸 + Publisher 빈칸 + 단위 sync + 수량 + 나머지 합계
+      var totalCells = '<td colspan="4" class="totalrow-label">TOTAL (Excluding V.A.T)</td>';
+      for (var ci = 4; ci < cols.length; ci++) {
+        var col = cols[ci];
+        if (col.k === 'unit' || col.label === '단위' || col.label === '용도' || col.label === '권리') {
+          totalCells += '<td class="center totalrow-cell">sync</td>';
+        } else if (col.sum) {
+          var v = totals[col.k];
+          var isPrice = col.k !== 'qty';
+          var disp = isPrice ? ('₩ '+_fmtN(v)) : _fmtN(v);
+          totalCells += '<td class="center totalrow-cell">'+esc(disp)+'</td>';
+        } else {
+          totalCells += '<td class="totalrow-cell">&nbsp;</td>';
+        }
+      }
+      totalRow = '<tr class="totalrow">'+totalCells+'</tr>';
+    } else {
+      // Annual/Invoice: NO 만 라벨 · 나머지는 각각 합계 or 빈칸
+      var sumStartIdx = -1;
+      cols.forEach(function(c, i){ if (c.sum && sumStartIdx===-1) sumStartIdx = i; });
       totalRow = '<tr class="totalrow">'
-        + '<td colspan="'+sumStartIdx+'" class="center">TOTAL (Excluding V.A.T)</td>'
-        + cols.slice(sumStartIdx).map(function(c){ return c.sum ? '<td class="num">'+_fmtN(totals[c.k])+'</td>' : '<td></td>'; }).join('')
+        + '<td colspan="'+sumStartIdx+'" class="totalrow-label">TOTAL</td>'
+        + cols.slice(sumStartIdx).map(function(c){
+            if (!c.sum) return '<td class="totalrow-cell">&nbsp;</td>';
+            var v = totals[c.k];
+            var isPrice = c.k !== 'qty';
+            var disp = isPrice ? ('₩ '+_fmtN(v)) : _fmtN(v);
+            return '<td class="center totalrow-cell">'+esc(disp)+'</td>';
+          }).join('')
       + '</tr>';
     }
-    // 비고
+    // 비고 — Excel 과 동일: 라벨(연하늘색) + 본문(흰색 큰 박스)
     var totalCols = cols.length;
-    var notesRow = '<tr><th class="notes">비고</th><td colspan="'+(totalCols-1)+'" class="notes-body">'+esc(r.notes||'')+'</td></tr>';
+    var notesRow = '<tr class="notes-row">'
+      + '<th class="notes-label">비 고</th>'
+      + '<td colspan="'+(totalCols-1)+'" class="notes-body">'+esc(r.notes||'')+'</td>'
+    + '</tr>';
 
     var html = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>'+esc(r.doc_title||docLabel)+'</title>'
       + '<style>'
       + '@page{size:A4;margin:12mm 10mm;@top-*{content:""}@bottom-left{content:"MEDIACUBE";font-family:sans-serif;font-size:9.5px;font-weight:800;color:#94a3b8;letter-spacing:1.6px}@bottom-right{content:counter(page)" / "counter(pages);font-family:sans-serif;font-size:9.5px;color:#94a3b8;font-weight:600}}'
       + '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
       + 'body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif;color:#0f172a;margin:0;padding:0;font-size:11px;line-height:1.5}'
-      // 헤더 영역 (로고+제목+도장 위치 잡기)
-      + '.doc-hd{position:relative;padding:8px 0 14px;border-bottom:3px double #0f766e;margin-bottom:14px;min-height:80px}'
-      + '.doc-hd .logo{position:absolute;left:0;top:6px;width:170px;height:auto}'
-      + '.doc-hd .stamp{position:absolute;right:0;top:6px;width:88px;height:auto;opacity:0.95}'
-      + '.doc-hd h1{text-align:center;font-size:26px;font-weight:800;letter-spacing:14px;margin:14px 0 4px}'
-      + '.top{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}'
-      + '.top table{width:100%;border-collapse:collapse}'
-      + '.top th,.top td{border:1px solid #cbd5e1;padding:5px 8px;font-size:10.5px;text-align:left}'
-      + '.top th{background:#f8fafc;color:#475569;font-weight:700;width:80px;white-space:nowrap}'
-      + 'table.items{width:100%;border-collapse:collapse;margin-top:8px}'
-      + 'table.items th,table.items td{border:1px solid #cbd5e1;padding:5px 6px;font-size:10.5px}'
-      + 'table.items thead th{background:#f0fdfa;color:#0f766e;font-weight:800;text-align:center;font-size:10px}'
+      // 헤더 영역 (로고+제목 · 도장은 상단 우측 발신자 폼 위에 절대 배치)
+      + '.doc-wrap{position:relative}'
+      + '.doc-hd{position:relative;padding:6px 0 12px;margin-bottom:12px;min-height:60px}'
+      + '.doc-hd .logo{position:absolute;left:0;top:4px;width:200px;height:auto}'
+      + '.doc-hd h1{text-align:center;font-size:28px;font-weight:800;letter-spacing:14px;margin:8px 0 4px}'
+      // 도장 - 상단 폼 우측 (대표자 위치, 약 top 190px, right 90px)
+      + '.doc-wrap .stamp{position:absolute;top:158px;right:85px;width:80px;height:80px;opacity:0.9;z-index:5;pointer-events:none}'
+      + '.top{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}'
+      + '.top table{width:100%;border-collapse:collapse;border:1.5px solid #0f172a}'
+      + '.top th,.top td{border:1px solid #94a3b8;padding:6px 10px;font-size:11px;text-align:left;vertical-align:middle}'
+      + '.top th{background:#f2f2f2;color:#0f172a;font-weight:700;width:70px;white-space:nowrap;text-align:center}'
+      + 'table.items{width:100%;border-collapse:collapse;border:1.5px solid #0f172a}'
+      + 'table.items th,table.items td{border:1px solid #94a3b8;padding:6px 4px;font-size:10.5px;text-align:center;vertical-align:middle}'
+      + 'table.items thead th{background:#ddebf7;color:#0f172a;font-weight:800;font-size:10px}'
       + 'table.items .center{text-align:center}'
       + 'table.items .num{text-align:right;font-variant-numeric:tabular-nums}'
       + 'table.items .bold{font-weight:700}'
-      + 'table.items .grow td{background:#f8fafc}'
-      + 'table.items .totalrow td{background:#f0fdfa;font-weight:800;color:#0f766e}'
-      + 'table.items th.notes{background:#f8fafc;color:#475569;font-weight:700;width:'+cols[0].w+'px;text-align:center;vertical-align:top;padding:8px 6px}'
-      + 'table.items td.notes-body{white-space:pre-wrap;min-height:60px;vertical-align:top;padding:8px}'
+      + 'table.items .grow td{background:#f5f5f5;text-align:left;font-weight:700;padding:6px 10px}'
+      + 'table.items .totalrow-label{background:#d9e1f2;font-weight:800;color:#0f172a;text-align:center;font-size:11px}'
+      + 'table.items .totalrow-cell{background:#d9e1f2;font-weight:800;color:#0f172a}'
+      + 'table.items th.notes-label{background:#d9e1f2;color:#0f172a;font-weight:800;text-align:center;vertical-align:middle;width:'+cols[0].w+'px;font-size:11px}'
+      + 'table.items td.notes-body{background:#fff;white-space:pre-wrap;min-height:80px;height:80px;vertical-align:top;padding:8px 10px;text-align:left}'
       + '</style></head><body>'
-      + '<div class="doc-hd">'
-        + (logoDataUrl ? '<img class="logo" src="'+logoDataUrl+'" alt="mediacube">' : '')
-        + '<h1>'+docLabel+'</h1>'
+      + '<div class="doc-wrap">'
+        + '<div class="doc-hd">'
+          + (logoDataUrl ? '<img class="logo" src="'+logoDataUrl+'" alt="mediacube">' : '')
+          + '<h1>'+docLabel.split('').join('        ')+'</h1>'
+        + '</div>'
+        + '<div class="top"><table>'+topL+'</table><table>'+topR+'</table></div>'
         + (stampDataUrl ? '<img class="stamp" src="'+stampDataUrl+'" alt="stamp">' : '')
+        + '<table class="items"><thead>'+thHtml+'</thead><tbody>'+tbHtml+'</tbody><tfoot>'+totalRow+notesRow+'</tfoot></table>'
       + '</div>'
-      + '<div class="top"><table>'+topL+'</table><table>'+topR+'</table></div>'
-      + '<table class="items"><thead>'+thHtml+'</thead><tbody>'+tbHtml+'</tbody><tfoot>'+totalRow+notesRow+'</tfoot></table>'
       + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});window.addEventListener("afterprint",function(){window.close();});<\/script>'
       + '</body></html>';
     w.document.open(); w.document.write(html); w.document.close(); w.focus();
