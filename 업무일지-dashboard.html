@@ -15548,7 +15548,7 @@ function openQuotePanel() {
   .mtg-vis-system { background: #ecfeff; color: #0891b2; border: 1px solid #a5f3fc; }
   .mtg-vis-all    { background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; }
   /* 상세 페이지 */
-  .mtg-detail-inner { padding: 28px 32px 40px; max-width: 1080px; margin: 0 auto; }
+  .mtg-detail-inner { padding: 28px 32px 40px; max-width: 1080px; margin: 0 auto; position: relative; }
   .mtg-detail-title-block { padding-bottom: 22px; border-bottom: 1px solid #f1f5f9; margin-bottom: 24px; }
   .mtg-detail-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   .mtg-detail-h1 {
@@ -16530,15 +16530,16 @@ window.__meeting = (function() {
         + '</div>'
       : '';
 
-    var printBtnHtml = '<button class="mtg-detail-print-btn" onclick="__meeting._printDetail(\'' + _esc(r.id) + '\')" title="이 회의록만 인쇄" style="position:absolute;top:0;right:0;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;border:1px solid #2c8bdb;color:#2066ff;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .12s,color .12s" onmouseover="this.style.background=\'#2066ff\';this.style.color=\'#fff\'" onmouseout="this.style.background=\'#fff\';this.style.color=\'#2066ff\'">'
+    var printBtnHtml = '<button class="mtg-detail-print-btn" onclick="__meeting._printDetail(\'' + _esc(r.id) + '\')" title="이 회의록만 인쇄" style="position:absolute;top:22px;right:24px;z-index:5;display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#fff;border:1px solid #2c8bdb;color:#2066ff;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .12s,color .12s,box-shadow .12s;box-shadow:0 1px 3px rgba(32,102,255,0.12)" onmouseover="this.style.background=\'#2066ff\';this.style.color=\'#fff\';this.style.boxShadow=\'0 4px 12px rgba(32,102,255,0.28)\'" onmouseout="this.style.background=\'#fff\';this.style.color=\'#2066ff\';this.style.boxShadow=\'0 1px 3px rgba(32,102,255,0.12)\'">'
       + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>'
       + '인쇄하기'
       + '</button>';
 
     return ''
+      + '<div style="position:relative">'
+      + printBtnHtml
       + '<div class="mtg-detail-inner">'
-      +   '<div class="mtg-detail-title-block" style="position:relative;padding-right:110px">'
-      +     printBtnHtml
+      +   '<div class="mtg-detail-title-block">'
       +     '<div class="mtg-detail-chips">' + chipsHtml + '</div>'
       +     '<h2 class="mtg-detail-h1">' + _esc(r.title || '무제') + '</h2>'
       +     '<div class="mtg-detail-sub">'
@@ -16573,6 +16574,7 @@ window.__meeting = (function() {
       +     filesHtml
       +   '</div>'
       +   actionsHtml
+      + '</div>'
       + '</div>';
   }
 
