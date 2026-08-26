@@ -15225,6 +15225,20 @@ function openQuotePanel() {
   .mq-items .center { text-align:center; }
   .mq-item-add-btn { margin-top:8px; padding:7px 14px; background:#f0fdfa; color:#0f766e; border:1px solid #99f6e4; border-radius:7px; cursor:pointer; font-size:12px; font-weight:700; font-family:inherit; display:inline-flex; align-items:center; gap:5px; }
   .mq-item-add-btn:hover { background:#ccfbf1; }
+  /* 다중 선택 · 드래그 선택 · 일괄 삭제 */
+  .mq-items .mq-check-cell { cursor:pointer; user-select:none; -webkit-user-select:none; padding:2px 4px !important; }
+  /* 체크박스는 클릭을 셀에 위임 — 셀 전체가 hit target 이 되어 좁은 checkbox 를 정확히 안 눌러도 선택 */
+  .mq-items .mq-check-cell input[type=checkbox] { pointer-events:none; margin:0; }
+  .mq-items thead .mq-check-cell input[type=checkbox] { pointer-events:auto; cursor:pointer; }
+  .mq-items tr.mq-row-selected td { background:#dbeafe !important; }
+  .mq-items tr.mq-row-selected td input { background:transparent !important; }
+  .mq-select-bar { display:none; position:sticky; top:8px; z-index:10; margin:0 auto 10px; padding:10px 14px; background:#fff; border:1px solid #93c5fd; border-radius:10px; box-shadow:0 4px 16px rgba(59,130,246,0.18); align-items:center; gap:12px; font-size:12.5px; font-weight:700; color:#1e40af; max-width:600px; }
+  .mq-select-bar .mq-sel-count { display:inline-flex; align-items:center; justify-content:center; min-width:24px; height:24px; padding:0 8px; background:#2563eb; color:#fff; border-radius:12px; font-weight:800; }
+  .mq-select-bar button { padding:6px 12px; border:none; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .mq-select-bar .mq-del-btn { background:#dc2626; color:#fff; }
+  .mq-select-bar .mq-del-btn:hover { background:#b91c1c; }
+  .mq-select-bar .mq-clear-btn { background:#f1f5f9; color:#475569; margin-left:auto; }
+  .mq-select-bar .mq-clear-btn:hover { background:#e2e8f0; }
   .mq-item-del { background:none; border:none; color:#cbd5e1; cursor:pointer; font-size:14px; padding:0 6px; }
   .mq-item-del:hover { color:#ef4444; }
   /* 첨부 · 액션 */
@@ -15417,7 +15431,10 @@ window.__mq = (function(){
     // 폼용 임시 편집 데이터
     form: null, // { doc_type, sub_type, ...fields, items:[], attachments:[], pendingFiles:[] }
     // 필터
-    filter: { q:'', docType:'all', subType:'all', status:'all' }
+    filter: { q:'', docType:'all', subType:'all', status:'all' },
+    // 다중 선택 (item index Set) · 드래그 선택 · 일괄 삭제용
+    selectedIdx: new Set(),
+    _dragBound: false, _dragActive: false, _dragBase: null
   };
 
   // ────────────────────────────────────────────────────────────
@@ -15463,6 +15480,7 @@ window.__mq = (function(){
   // ────────────────────────────────────────────────────────────
   function _showList(){
     _state.view = 'list'; _state.editingId=null; _state.viewingId=null; _state.form=null;
+    _state.selectedIdx.clear();
     _visible('mq-list-wrap', true); _visible('mq-detail-view', false); _visible('mq-form-view', false);
     _visible('mq-filter-bar', true, 'flex');
     _showBtn('mq-new-btn', true); _showBtn('mq-back-btn', false);
@@ -15471,6 +15489,7 @@ window.__mq = (function(){
   function _showForm(id){
     // id = null → 신규, id = uuid → 수정
     _state.view = 'form'; _state.editingId = id || null; _state.viewingId = null;
+    _state.selectedIdx.clear();
     if (id) {
       var r = _state.rows.find(function(x){ return x.id === id; });
       if (!r) { _toast('견적서를 찾을 수 없습니다'); return; }
@@ -15712,6 +15731,8 @@ window.__mq = (function(){
     var host = document.getElementById('mq-form-view');
     if (!host) return;
     host.innerHTML = _docHtml(_state.form, false);
+    // 드래그 다중 선택 바인딩 (mq-form-view 는 재생성되지 않으므로 최초 1회만 등록)
+    _bindDragSelect();
     // input change bind — delegation via oninput on inputs
   }
 
@@ -15848,8 +15869,10 @@ window.__mq = (function(){
     var cols = _cols(r);
     var items = Array.isArray(r.items) ? r.items : [];
     var isNeedle = _isNeedle(r);
-    // 헤더
-    var thead = '<thead><tr>' + cols.map(function(c){ return '<th style="width:'+c.w+'px">'+_esc(c.label)+'</th>'; }).join('') + (readonly?'':'<th style="width:36px"></th>') + '</tr></thead>';
+    var sel = _state.selectedIdx;
+    // 헤더 (편집 모드: 맨 앞에 다중 선택 체크박스 컬럼 추가)
+    var checkTh = readonly ? '' : '<th class="mq-check-cell" style="width:28px" title="드래그 또는 클릭으로 다중 선택"><input type="checkbox" onclick="window.__mq._toggleAllSelect(this.checked)"></th>';
+    var thead = '<thead><tr>' + checkTh + cols.map(function(c){ return '<th style="width:'+c.w+'px">'+_esc(c.label)+'</th>'; }).join('') + (readonly?'':'<th style="width:36px"></th>') + '</tr></thead>';
     var nums = _computeNumbering(items);
     // 병합 대상 컬럼 인덱스 (g:1 표시된 컬럼들의 인덱스 범위)
     var gStart = -1, gEnd = -1;
@@ -15879,7 +15902,9 @@ window.__mq = (function(){
           }
         });
         var delBtn = readonly ? '' : '<td class="center" style="background:#f8fafc"><button class="mq-item-del" title="그룹 삭제" onclick="window.__mq._removeItem('+idx+')">×</button></td>';
-        return '<tr>'+cellsHtml+delBtn+'</tr>';
+        var groupCheckTd = readonly ? '' : '<td class="mq-check-cell center" data-idx="'+idx+'" style="background:#f8fafc"><input type="checkbox" tabindex="-1"'+(sel.has(idx)?' checked':'')+'></td>';
+        var trCls = sel.has(idx) ? ' class="mq-row-selected"' : '';
+        return '<tr'+trCls+' data-idx="'+idx+'">'+groupCheckTd+cellsHtml+delBtn+'</tr>';
       }
       // 일반 곡/품목 행
       var cellsHtml = cols.map(function(c){
@@ -15895,17 +15920,22 @@ window.__mq = (function(){
         return '<td class="'+cls+'"><input type="text" value="'+_esc(val)+'" oninput="window.__mq._setItemField('+idx+',\''+c.k+'\',this.value)"'+(c.r?' style="text-align:right"':(c.c?' style="text-align:center"':''))+'></td>';
       }).join('');
       var delBtn = readonly ? '' : '<td class="center"><button class="mq-item-del" title="행 삭제" onclick="window.__mq._removeItem('+idx+')">×</button></td>';
-      return '<tr>'+cellsHtml+delBtn+'</tr>';
+      var itemCheckTd = readonly ? '' : '<td class="mq-check-cell center" data-idx="'+idx+'"><input type="checkbox" tabindex="-1"'+(sel.has(idx)?' checked':'')+'></td>';
+      var trCls = sel.has(idx) ? ' class="mq-row-selected"' : '';
+      return '<tr'+trCls+' data-idx="'+idx+'">'+itemCheckTd+cellsHtml+delBtn+'</tr>';
     }).join('');
     // TOTAL 행 (하단)
     var sumStartIdx = -1;
     cols.forEach(function(c, i){ if (c.sum && sumStartIdx===-1) sumStartIdx = i; });
     var totalRow = '';
+    // 편집 모드에서 앞에 추가된 체크박스 컬럼 정렬용 빈 셀
+    var leadCheckTd = readonly ? '' : '<td style="background:#f8fafc"></td>';
     if (sumStartIdx > 0) {
       var totals = {};
       cols.forEach(function(c){ if (c.sum) totals[c.k] = 0; });
       items.forEach(function(it){ if (it._type === 'group') return; cols.forEach(function(c){ if (c.sum) totals[c.k] += _num(it[c.k]); }); });
       totalRow = '<tr style="background:#f0fdfa;font-weight:800">'
+        + leadCheckTd
         + '<td colspan="'+sumStartIdx+'" class="center" style="color:#0f766e;font-size:11.5px;letter-spacing:0.4px">TOTAL (Excluding V.A.T)</td>'
         + cols.slice(sumStartIdx).map(function(c){
             if (!c.sum) return '<td>&nbsp;</td>';
@@ -15921,7 +15951,8 @@ window.__mq = (function(){
       notesRow = '<tr><td class="center" style="font-weight:700;background:#f8fafc;width:'+cols[0].w+'px">비고</td>'
         + '<td colspan="'+(totalCols-1)+'" style="padding:12px 10px;min-height:60px;vertical-align:top;white-space:pre-wrap">'+_esc(r.notes||'')+'</td></tr>';
     } else {
-      notesRow = '<tr><td class="center" style="font-weight:700;background:#f8fafc">비고</td>'
+      notesRow = '<tr>' + leadCheckTd
+        + '<td class="center" style="font-weight:700;background:#f8fafc">비고</td>'
         + '<td colspan="'+(totalCols-1)+'" style="padding:0"><textarea placeholder="비고 사항 입력" oninput="window.__mq._setFormField(\'notes\',this.value)" style="width:100%;min-height:60px;box-sizing:border-box;border:none;outline:none;padding:8px 10px;font-family:inherit;font-size:12px;resize:vertical;background:transparent">'+_esc(r.notes||'')+'</textarea></td></tr>';
     }
     var tfoot = '<tfoot>'+totalRow+notesRow+'</tfoot>';
@@ -15941,7 +15972,18 @@ window.__mq = (function(){
         + '</div>';
       }
     }
-    return '<table class="mq-items">'+thead+tbody+tfoot+'</table>' + addBtns;
+    // 다중 선택 액션 바 (편집 모드 전용, 선택된 행 있을 때만 노출)
+    var selBar = '';
+    if (!readonly) {
+      var selCount = _state.selectedIdx.size;
+      var showBar = selCount > 0 ? 'flex' : 'none';
+      selBar = '<div id="mq-select-bar" class="mq-select-bar" style="display:'+showBar+'">'
+        + '<span>선택됨</span><span class="mq-sel-count">'+selCount+'</span>'
+        + '<button type="button" class="mq-del-btn" onclick="window.__mq._deleteSelected()">선택 행 삭제</button>'
+        + '<button type="button" class="mq-clear-btn" onclick="window.__mq._clearSelection()">선택 해제</button>'
+        + '</div>';
+    }
+    return selBar + '<table class="mq-items">'+thead+tbody+tfoot+'</table>' + addBtns;
   }
 
   // ────────────────────────────────────────────────────────────
@@ -16057,7 +16099,106 @@ window.__mq = (function(){
   function _removeItem(idx){
     if (!_state.form) return;
     _state.form.items.splice(idx, 1);
+    _state.selectedIdx.clear();
     _renderForm();
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 다중 선택 · 드래그 · 일괄 삭제
+  // ────────────────────────────────────────────────────────────
+  function _toggleRowSelect(idx, checked){
+    if (checked) _state.selectedIdx.add(idx); else _state.selectedIdx.delete(idx);
+    _updateSelectionUI();
+  }
+  function _toggleAllSelect(checked){
+    if (!_state.form) return;
+    _state.selectedIdx.clear();
+    if (checked) {
+      _state.form.items.forEach(function(it, i){ _state.selectedIdx.add(i); });
+    }
+    _renderForm();
+  }
+  function _clearSelection(){
+    _state.selectedIdx.clear();
+    _renderForm();
+  }
+  function _deleteSelected(){
+    if (!_state.form || _state.selectedIdx.size === 0) return;
+    var n = _state.selectedIdx.size;
+    if (!confirm(n + '개 행을 삭제할까요?')) return;
+    var arr = Array.from(_state.selectedIdx).sort(function(a,b){ return b-a; });
+    arr.forEach(function(i){ _state.form.items.splice(i, 1); });
+    _state.selectedIdx.clear();
+    _renderForm();
+  }
+  function _updateSelectionUI(){
+    // 재렌더 없이 시각 상태만 갱신 (드래그 중 성능)
+    var n = _state.selectedIdx.size;
+    var bar = document.getElementById('mq-select-bar');
+    if (bar) {
+      bar.style.display = n > 0 ? 'flex' : 'none';
+      var cnt = bar.querySelector('.mq-sel-count');
+      if (cnt) cnt.textContent = n;
+    }
+    var trs = document.querySelectorAll('.mq-items tr[data-idx]');
+    trs.forEach(function(tr){
+      var i = parseInt(tr.getAttribute('data-idx'), 10);
+      if (isNaN(i)) return;
+      var on = _state.selectedIdx.has(i);
+      tr.classList.toggle('mq-row-selected', on);
+      var cb = tr.querySelector('.mq-check-cell input[type=checkbox]');
+      if (cb) cb.checked = on;
+    });
+    // 헤더 "전체 선택" 체크박스: 모두 선택 시 checked, 일부만 선택 시 indeterminate
+    var head = document.querySelector('.mq-items thead .mq-check-cell input[type=checkbox]');
+    if (head) {
+      var total = _state.form && _state.form.items ? _state.form.items.length : 0;
+      head.checked = n > 0 && n === total;
+      head.indeterminate = n > 0 && n < total;
+    }
+  }
+  function _bindDragSelect(){
+    if (_state._dragBound) return;
+    var host = document.getElementById('mq-form-view');
+    if (!host) return;
+    _state._dragBound = true;
+    host.addEventListener('mousedown', function(e){
+      var cell = e.target.closest && e.target.closest('.mq-check-cell');
+      if (!cell || !cell.hasAttribute('data-idx')) return; // 헤더의 전체 선택 체크박스는 여기 미해당
+      e.preventDefault();
+      var idx = parseInt(cell.getAttribute('data-idx'), 10);
+      if (isNaN(idx)) return;
+      _state._dragActive = true;
+      _state._dragBase = idx;
+      // Ctrl/Cmd → 개별 토글, Shift → 기존 유지+범위, 그 외 → 기존 초기화+해당 행 토글
+      if (e.ctrlKey || e.metaKey) {
+        if (_state.selectedIdx.has(idx)) _state.selectedIdx.delete(idx); else _state.selectedIdx.add(idx);
+      } else if (e.shiftKey) {
+        _state.selectedIdx.add(idx);
+      } else {
+        // 이미 선택된 유일한 행을 다시 클릭하면 해제, 아니면 해당 행만 선택
+        var only = _state.selectedIdx.size === 1 && _state.selectedIdx.has(idx);
+        _state.selectedIdx.clear();
+        if (!only) _state.selectedIdx.add(idx);
+      }
+      _updateSelectionUI();
+    });
+    host.addEventListener('mousemove', function(e){
+      if (!_state._dragActive) return;
+      var cell = e.target.closest && e.target.closest('.mq-check-cell');
+      if (!cell || !cell.hasAttribute('data-idx')) return;
+      var idx = parseInt(cell.getAttribute('data-idx'), 10);
+      if (isNaN(idx) || _state._dragBase == null) return;
+      var lo = Math.min(_state._dragBase, idx), hi = Math.max(_state._dragBase, idx);
+      // 드래그 범위 내 모든 행 선택 (기존 선택은 유지)
+      for (var i = lo; i <= hi; i++) _state.selectedIdx.add(i);
+      _updateSelectionUI();
+    });
+    document.addEventListener('mouseup', function(){
+      if (_state._dragActive) _state._dragActive = false;
+    });
+    // 폼 밖으로 마우스가 나가면 드래그 종료
+    host.addEventListener('mouseleave', function(){ _state._dragActive = false; });
   }
 
   // ────────────────────────────────────────────────────────────
@@ -16979,6 +17120,7 @@ window.__mq = (function(){
     _setFilter: _setFilter, _clearFilter: _clearFilter,
     _setFormField: _setFormField, _setItemField: _setItemField,
     _addItem: _addItem, _addGroup: _addGroup, _addManySongs: _addManySongs, _setGroupLabel: _setGroupLabel, _removeItem: _removeItem,
+    _toggleRowSelect: _toggleRowSelect, _toggleAllSelect: _toggleAllSelect, _clearSelection: _clearSelection, _deleteSelected: _deleteSelected,
     _onFileSelect: _onFileSelect, _removePendingFile: _removePendingFile, _removeExistingAttach: _removeExistingAttach,
     _save: _save, _deleteById: _deleteById,
     _openChooser: _openChooser, _closeChooser: _closeChooser, _chooserBack: _chooserBack,
