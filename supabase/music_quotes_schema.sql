@@ -69,5 +69,11 @@ CREATE POLICY "music_quotes_all" ON music_quotes
 GRANT SELECT, INSERT, UPDATE, DELETE ON music_quotes TO anon, authenticated;
 
 -- ═══════════════════════════════════════════════════════════════════
+-- 마이그레이션 v2 (2026-08-27): 비고(notes) 컬럼 추가
+--   * 기존 테이블에 후행 컬럼만 추가, 데이터 무영향, 재실행 안전
+-- ═══════════════════════════════════════════════════════════════════
+ALTER TABLE music_quotes ADD COLUMN IF NOT EXISTS notes TEXT;
+
+-- ═══════════════════════════════════════════════════════════════════
 -- 롤백: DROP TABLE IF EXISTS music_quotes CASCADE;
 -- ═══════════════════════════════════════════════════════════════════

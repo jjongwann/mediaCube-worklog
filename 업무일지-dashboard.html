@@ -15337,51 +15337,51 @@ window.__mq = (function(){
   // 표 컬럼 스키마 (sub_type 별로 다름) — key/label/w/type/center|right
   // ────────────────────────────────────────────────────────────
   var _ANNUAL_COLS = [
-    {k:'no',label:'NO',w:40,t:'auto',c:1},
-    {k:'item',label:'품목',w:180,t:'text'},
-    {k:'code',label:'코드',w:100,t:'text'},
-    {k:'spec',label:'규격',w:100,t:'text'},
+    {k:'no',label:'NO',w:50,t:'auto',c:1},
+    {k:'item',label:'품목',w:200,t:'text'},
+    {k:'code',label:'코드',w:110,t:'text'},
+    {k:'spec',label:'규격',w:110,t:'text'},
     {k:'unit',label:'단위',w:60,t:'text',c:1},
-    {k:'qty',label:'QTY',w:60,t:'num',r:1},
-    {k:'unitPrice',label:'단가',w:100,t:'num',r:1},
-    {k:'supplyPrice',label:'공급가액',w:110,t:'num',r:1},
-    {k:'vat',label:'부가가치세',w:110,t:'num',r:1},
-    {k:'totalWithVat',label:'합계 금액 (V.A.T포함)',w:140,t:'num',r:1,calc:1}
+    {k:'qty',label:'QTY',w:60,t:'num',r:1,sum:1},
+    {k:'unitPrice',label:'단가',w:110,t:'num',r:1},
+    {k:'supplyPrice',label:'공급가액',w:120,t:'num',r:1,sum:1},
+    {k:'vat',label:'부가가치세',w:120,t:'num',r:1,sum:1},
+    {k:'totalWithVat',label:'합계 금액 (V.A.T포함)',w:150,t:'num',r:1,calc:1,sum:1}
   ];
   var ITEM_COLS = {
     needle_ott: [
-      {k:'no',label:'NO',w:40,t:'auto',c:1},
-      {k:'cdTitle',label:'CD Title',w:180,t:'text'},
-      {k:'cdNo',label:'CD No',w:80,t:'text'},
-      {k:'cue',label:'CUE',w:55,t:'text',c:1},
-      {k:'trackNo',label:'Track No',w:70,t:'text',c:1},
-      {k:'publisher',label:'Publisher / Composer',w:200,t:'text'},
-      {k:'unit',label:'단위',w:55,t:'text',c:1},
-      {k:'qty',label:'수량',w:55,t:'num',r:1},
-      {k:'dw',label:'Domestic & Worldwide',w:150,t:'num',r:1}
+      {k:'no',label:'NO',w:50,t:'auto',c:1},
+      {k:'cdTitle',label:'CD Title',w:220,t:'text',g:1},
+      {k:'cdNo',label:'CD No',w:90,t:'text',g:1},
+      {k:'cue',label:'CUE',w:160,t:'text',c:1,g:1},
+      {k:'trackNo',label:'Track No',w:75,t:'text',c:1},
+      {k:'publisher',label:'Publisher / Composer',w:220,t:'text'},
+      {k:'unit',label:'단위',w:60,t:'text',c:1},
+      {k:'qty',label:'수량',w:60,t:'num',r:1,sum:1},
+      {k:'dw',label:'Domestic & Worldwide',w:150,t:'num',r:1,sum:1}
     ],
     needle_ad: [
-      {k:'no',label:'NO',w:40,t:'auto',c:1},
-      {k:'cdTitle',label:'CD Title',w:180,t:'text'},
-      {k:'cdNo',label:'CD No',w:80,t:'text'},
-      {k:'cue',label:'CUE',w:55,t:'text',c:1},
-      {k:'trackNo',label:'Track No',w:70,t:'text',c:1},
-      {k:'publisher',label:'Publisher / Composer',w:200,t:'text'},
-      {k:'unit',label:'단위',w:55,t:'text',c:1},
-      {k:'qty',label:'수량',w:55,t:'num',r:1},
-      {k:'amount',label:'금액',w:110,t:'num',r:1}
+      {k:'no',label:'NO',w:50,t:'auto',c:1},
+      {k:'cdTitle',label:'CD Title',w:220,t:'text',g:1},
+      {k:'cdNo',label:'CD No',w:90,t:'text',g:1},
+      {k:'cue',label:'CUE',w:160,t:'text',c:1,g:1},
+      {k:'trackNo',label:'Track No',w:75,t:'text',c:1},
+      {k:'publisher',label:'Publisher / Composer',w:220,t:'text'},
+      {k:'unit',label:'단위',w:60,t:'text',c:1},
+      {k:'qty',label:'수량',w:60,t:'num',r:1,sum:1},
+      {k:'amount',label:'금액',w:120,t:'num',r:1,sum:1}
     ],
     needle_movie: [
-      {k:'no',label:'NO',w:40,t:'auto',c:1},
-      {k:'cdTitle',label:'CD Title',w:170,t:'text'},
-      {k:'cdNo',label:'CD No',w:75,t:'text'},
-      {k:'cue',label:'CUE',w:55,t:'text',c:1},
-      {k:'trackNo',label:'Track No',w:65,t:'text',c:1},
-      {k:'publisher',label:'Publisher / Composer',w:180,t:'text'},
-      {k:'unit',label:'단위',w:55,t:'text',c:1},
-      {k:'qty',label:'수량',w:55,t:'num',r:1},
-      {k:'domestic',label:'Domestic',w:100,t:'num',r:1},
-      {k:'worldwide',label:'Worldwide',w:100,t:'num',r:1}
+      {k:'no',label:'NO',w:50,t:'auto',c:1},
+      {k:'cdTitle',label:'CD Title',w:200,t:'text',g:1},
+      {k:'cdNo',label:'CD No',w:85,t:'text',g:1},
+      {k:'cue',label:'CUE',w:150,t:'text',c:1,g:1},
+      {k:'trackNo',label:'Track No',w:70,t:'text',c:1},
+      {k:'publisher',label:'Publisher / Composer',w:200,t:'text'},
+      {k:'unit',label:'단위',w:60,t:'text',c:1},
+      {k:'qty',label:'수량',w:60,t:'num',r:1,sum:1},
+      {k:'domestic',label:'Domestic',w:110,t:'num',r:1,sum:1},
+      {k:'worldwide',label:'Worldwide',w:110,t:'num',r:1,sum:1}
     ],
     annual: _ANNUAL_COLS,
     invoice: _ANNUAL_COLS
@@ -15517,6 +15517,7 @@ window.__mq = (function(){
       receiver_company: '', receiver_person: '', receiver_tel: '', receiver_fax: '',
       doc_title: '',
       items: [ _newItem(_schemaKey(docType, subType)) ],
+      notes: '',
       attachments: [], pendingFiles: []
     };
     Object.assign(f, _defaultSender());
@@ -15618,6 +15619,7 @@ window.__mq = (function(){
       sender_tel: r.sender_tel||'', sender_fax: r.sender_fax||'',
       sender_person: r.sender_person||'',
       items: (Array.isArray(r.items) ? r.items.map(function(it){ return Object.assign({}, it); }) : []),
+      notes: r.notes || '',
       attachments: (Array.isArray(r.attachments) ? r.attachments.slice() : []),
       pendingFiles: []
     };
@@ -15746,7 +15748,6 @@ window.__mq = (function(){
         + '<div class="mq-doc-title">' + docLabel + '</div>'
         + _topGridHtml(r, readonly)
         + _itemsTableHtml(r, readonly)
-        + (readonly ? _attachmentsHtml(r) : _attachmentsEditableHtml(r))
         + _actionsBar(r, readonly)
       + '</div>';
   }
@@ -15807,26 +15808,117 @@ window.__mq = (function(){
 
   // ────────────────────────────────────────────────────────────
   // items 표 렌더 (sub_type/doc_type 별로 동적)
+  //   · Needle: 프로젝트 헤더(그룹) + 곡 상세 → 번호 1 / 1-1 / 1-2 / 2 / 2-1
+  //     - 그룹 헤더 행은 CD Title+CD No+CUE 3개 컬럼 병합, label 하나만 입력
+  //   · Annual/invoice: 플랫 리스트 (그룹 개념 없음, 일반 행만)
+  //   · 하단 TOTAL 행: sum:1 컬럼들 자동 합계
+  //   · 하단 비고 행: notes textarea
   // ────────────────────────────────────────────────────────────
+  function _isNeedle(r){ return r && r.doc_type === 'needle'; }
+  function _computeNumbering(items){
+    // 반환: [{ label: '1' | '1-1' | ... }, ...]  (items 와 같은 길이)
+    var out = [];
+    var groupIdx = 0, songIdx = 0, seenGroup = false;
+    (items||[]).forEach(function(it){
+      if (it && it._type === 'group') { groupIdx++; songIdx = 0; seenGroup = true; out.push({label: String(groupIdx)}); }
+      else { songIdx++; out.push({label: seenGroup ? (groupIdx + '-' + songIdx) : String(songIdx)}); }
+    });
+    return out;
+  }
   function _itemsTableHtml(r, readonly){
     var cols = _cols(r);
     var items = Array.isArray(r.items) ? r.items : [];
-    var thead = '<thead><tr>' + cols.map(function(c){ return '<th style="width:'+c.w+'px">'+_esc(c.label)+'</th>'; }).join('') + (readonly?'':'<th style="width:32px"></th>') + '</tr></thead>';
+    var isNeedle = _isNeedle(r);
+    // 헤더
+    var thead = '<thead><tr>' + cols.map(function(c){ return '<th style="width:'+c.w+'px">'+_esc(c.label)+'</th>'; }).join('') + (readonly?'':'<th style="width:36px"></th>') + '</tr></thead>';
+    var nums = _computeNumbering(items);
+    // 병합 대상 컬럼 인덱스 (g:1 표시된 컬럼들의 인덱스 범위)
+    var gStart = -1, gEnd = -1;
+    cols.forEach(function(c, i){ if (c.g) { if (gStart===-1) gStart = i; gEnd = i; } });
+    var groupSpan = (gStart>=0 && gEnd>gStart) ? (gEnd - gStart + 1) : 1;
+    // tbody
     var tbody = '<tbody>' + items.map(function(it, idx){
+      var isGroup = it && it._type === 'group';
+      if (isGroup && isNeedle) {
+        // 그룹 헤더 행: NO 셀 + 병합된 label 셀 + 나머지 빈 셀
+        var cellsHtml = '';
+        cols.forEach(function(c, ci){
+          if (ci === 0) {
+            cellsHtml += '<td class="center" style="font-weight:800;background:#f8fafc">'+_esc(nums[idx].label)+'</td>';
+          } else if (ci === gStart) {
+            var labelVal = it.label || '';
+            if (readonly) {
+              cellsHtml += '<td colspan="'+groupSpan+'" style="font-weight:700;background:#f8fafc;color:#0f172a">'+_esc(labelVal)+'</td>';
+            } else {
+              cellsHtml += '<td colspan="'+groupSpan+'" style="background:#f8fafc"><input type="text" value="'+_esc(labelVal)+'" oninput="window.__mq._setGroupLabel('+idx+',this.value)" placeholder="프로젝트 · 카테고리 (예: 애니메이션 &lsquo;...&rsquo; 메인예고편 음원사용료)" style="width:100%;box-sizing:border-box;border:none;outline:none;font-weight:700;color:#0f172a;background:transparent;padding:3px 4px"></td>';
+            }
+          } else if (ci > gStart && ci <= gEnd) {
+            // 병합 대상 (skip 렌더)
+            return;
+          } else {
+            cellsHtml += '<td style="background:#f8fafc">&nbsp;</td>';
+          }
+        });
+        var delBtn = readonly ? '' : '<td class="center" style="background:#f8fafc"><button class="mq-item-del" title="그룹 삭제" onclick="window.__mq._removeItem('+idx+')">×</button></td>';
+        return '<tr>'+cellsHtml+delBtn+'</tr>';
+      }
+      // 일반 곡/품목 행
       var cellsHtml = cols.map(function(c){
         var cls = c.c ? 'center' : (c.r ? 'num' : '');
-        var val = c.t === 'auto' ? (idx+1) : (it[c.k] == null ? '' : it[c.k]);
-        if (readonly || c.t === 'auto') {
+        if (c.t === 'auto') {
+          return '<td class="'+cls+'" style="font-weight:600">'+_esc(nums[idx].label)+'</td>';
+        }
+        var val = it[c.k] == null ? '' : it[c.k];
+        if (readonly) {
           var disp = (c.t === 'num' && val !== '') ? _fmtN(val) : val;
           return '<td class="'+cls+'">'+_esc(disp)+'</td>';
         }
-        return '<td class="'+cls+'"><input type="'+(c.t==='num'?'text':'text')+'" value="'+_esc(val)+'" oninput="window.__mq._setItemField('+idx+',\''+c.k+'\',this.value)"'+(c.r?' style="text-align:right"':(c.c?' style="text-align:center"':''))+'></td>';
+        return '<td class="'+cls+'"><input type="text" value="'+_esc(val)+'" oninput="window.__mq._setItemField('+idx+',\''+c.k+'\',this.value)"'+(c.r?' style="text-align:right"':(c.c?' style="text-align:center"':''))+'></td>';
       }).join('');
       var delBtn = readonly ? '' : '<td class="center"><button class="mq-item-del" title="행 삭제" onclick="window.__mq._removeItem('+idx+')">×</button></td>';
       return '<tr>'+cellsHtml+delBtn+'</tr>';
-    }).join('') + '</tbody>';
-    var addBtn = readonly ? '' : '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addItem()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 행 추가</button>';
-    return '<table class="mq-items">'+thead+tbody+'</table>' + addBtn;
+    }).join('');
+    // TOTAL 행 (하단)
+    var sumStartIdx = -1;
+    cols.forEach(function(c, i){ if (c.sum && sumStartIdx===-1) sumStartIdx = i; });
+    var totalRow = '';
+    if (sumStartIdx > 0) {
+      var totals = {};
+      cols.forEach(function(c){ if (c.sum) totals[c.k] = 0; });
+      items.forEach(function(it){ if (it._type === 'group') return; cols.forEach(function(c){ if (c.sum) totals[c.k] += _num(it[c.k]); }); });
+      totalRow = '<tr style="background:#f0fdfa;font-weight:800">'
+        + '<td colspan="'+sumStartIdx+'" class="center" style="color:#0f766e;font-size:11.5px;letter-spacing:0.4px">TOTAL (Excluding V.A.T)</td>'
+        + cols.slice(sumStartIdx).map(function(c){
+            if (!c.sum) return '<td>&nbsp;</td>';
+            return '<td class="num" style="color:#0f766e">'+_fmtN(totals[c.k])+'</td>';
+          }).join('')
+        + (readonly?'':'<td></td>')
+      + '</tr>';
+    }
+    // 비고 행 (하단 · 표 안에 통합)
+    var notesRow = '';
+    var totalCols = cols.length + (readonly?0:1);
+    if (readonly) {
+      notesRow = '<tr><td class="center" style="font-weight:700;background:#f8fafc;width:'+cols[0].w+'px">비고</td>'
+        + '<td colspan="'+(totalCols-1)+'" style="padding:12px 10px;min-height:60px;vertical-align:top;white-space:pre-wrap">'+_esc(r.notes||'')+'</td></tr>';
+    } else {
+      notesRow = '<tr><td class="center" style="font-weight:700;background:#f8fafc">비고</td>'
+        + '<td colspan="'+(totalCols-1)+'" style="padding:0"><textarea placeholder="비고 사항 입력" oninput="window.__mq._setFormField(\'notes\',this.value)" style="width:100%;min-height:60px;box-sizing:border-box;border:none;outline:none;padding:8px 10px;font-family:inherit;font-size:12px;resize:vertical;background:transparent">'+_esc(r.notes||'')+'</textarea></td></tr>';
+    }
+    var tfoot = '<tfoot>'+totalRow+notesRow+'</tfoot>';
+    // 추가 버튼
+    var addBtns = '';
+    if (!readonly) {
+      if (isNeedle) {
+        addBtns = '<div style="display:flex;gap:6px;margin-top:8px">'
+          + '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addGroup()" style="background:#eff6ff;color:#2066ff;border-color:#bfdbfe"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 프로젝트 추가</button>'
+          + '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addItem()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 곡 추가</button>'
+        + '</div>';
+      } else {
+        addBtns = '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addItem()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 행 추가</button>';
+      }
+    }
+    return '<table class="mq-items">'+thead+tbody+tfoot+'</table>' + addBtns;
   }
 
   // ────────────────────────────────────────────────────────────
@@ -15863,13 +15955,22 @@ window.__mq = (function(){
   // 액션 바 (하단)
   // ────────────────────────────────────────────────────────────
   function _actionsBar(r, readonly){
+    // Export 버튼 (모든 뷰에서 - 저장된 견적서에만)
+    var exportBtns = (r && r.id) ? (
+        '<button class="mq-btn ghost" style="border:1px solid #16a34a;background:#f0fdf4;color:#16a34a" onclick="window.__mq._exportExcel(\''+_esc(r.id)+'\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Excel 내보내기</button>'
+      + '<button class="mq-btn ghost" style="border:1px solid #ef4444;background:#fef2f2;color:#dc2626" onclick="window.__mq._exportPdf(\''+_esc(r.id)+'\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> PDF 인쇄</button>'
+    ) : '';
     if (readonly) {
       return '<div class="mq-actions">'
+        + exportBtns
+        + '<div style="flex:1"></div>'
         + '<button class="mq-btn danger" onclick="window.__mq._deleteById(\''+_esc(r.id)+'\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> 삭제</button>'
         + '<button class="mq-btn primary" onclick="window.__mq._showForm(\''+_esc(r.id)+'\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> 수정</button>'
       + '</div>';
     }
     return '<div class="mq-actions">'
+      + exportBtns
+      + '<div style="flex:1"></div>'
       + '<button class="mq-btn ghost" onclick="window.__mq._showList()">취소</button>'
       + '<button class="mq-btn primary" onclick="window.__mq._save()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> 저장</button>'
     + '</div>';
@@ -15912,6 +16013,17 @@ window.__mq = (function(){
     if (!_state.form) return;
     _state.form.items.push(_newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type)));
     _renderForm();
+  }
+  function _addGroup(){
+    if (!_state.form) return;
+    _state.form.items.push({ _type: 'group', label: '' });
+    _state.form.items.push(_newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type)));
+    _renderForm();
+  }
+  function _setGroupLabel(idx, v){
+    if (!_state.form || !_state.form.items[idx]) return;
+    _state.form.items[idx].label = v;
+    // label 변경만: 재렌더 X (input 이 이미 값 유지)
   }
   function _removeItem(idx){
     if (!_state.form) return;
@@ -15979,6 +16091,7 @@ window.__mq = (function(){
         sender_tel: f.sender_tel||null, sender_fax: f.sender_fax||null,
         sender_person: f.sender_person||null,
         items: f.items||[],
+        notes: f.notes||null,
         attachments: (f.attachments||[]).concat(uploaded),
         author_id: me.user_id || me._username || (typeof _currentUsername!=='undefined'?_currentUsername:null),
         author_name: meDisplay || null,
@@ -16000,6 +16113,213 @@ window.__mq = (function(){
     }).catch(function(e){ console.error('[__mq] save', e); _toast('저장 실패 — '+ (e.message||e)); });
   }
 
+  // ────────────────────────────────────────────────────────────
+  // Export: PDF (window.print · 인쇄 전용 CSS)
+  // ────────────────────────────────────────────────────────────
+  function _exportPdf(id){
+    var r = _state.rows.find(function(x){ return x.id === id; });
+    if (!r) { _toast('견적서를 찾을 수 없습니다'); return; }
+    var w = window.open('', '_blank', 'width=1000,height=1000');
+    if (!w) { _toast('팝업이 차단되어 있습니다. 팝업 차단을 해제해주세요.'); return; }
+    var docLabel = r.doc_type==='invoice' ? '거 래 명 세 서' : '견 적 서';
+    var esc = _esc;
+    var cols = _cols(r);
+    var items = Array.isArray(r.items) ? r.items : [];
+    var nums = _computeNumbering(items);
+    var isNeedle = _isNeedle(r);
+    var gStart = -1, gEnd = -1;
+    cols.forEach(function(c, i){ if (c.g) { if (gStart===-1) gStart = i; gEnd = i; } });
+    var groupSpan = (gStart>=0 && gEnd>gStart) ? (gEnd - gStart + 1) : 1;
+    // 상단 좌우 폼
+    var isInvoice = r.doc_type === 'invoice';
+    var LKeys = isInvoice
+      ? [['DATE','doc_date'],['수신','receiver_company'],['제목','doc_title']]
+      : [['DATE','doc_date'],['수신','receiver_company'],['참조','receiver_person'],['Tel','receiver_tel'],['Fax','receiver_fax'],['제목','doc_title']];
+    var RKeys = [['등록번호','sender_reg_no'],['상호명','sender_company'],['대표자','sender_ceo'],['소재지','sender_address'],['업태','sender_biz_type'],[isInvoice?'종목':'업종','sender_biz_item'],['Tel','sender_tel'],['Fax','sender_fax'],['담당자','sender_person']];
+    var topL = LKeys.map(function(kv){ return '<tr><th>'+esc(kv[0])+'</th><td>'+esc(r[kv[1]]||'')+'</td></tr>'; }).join('');
+    var topR = RKeys.map(function(kv){ return '<tr><th>'+esc(kv[0])+'</th><td>'+esc(r[kv[1]]||'')+'</td></tr>'; }).join('');
+    // 표 헤더
+    var thHtml = '<tr>' + cols.map(function(c){ return '<th style="width:'+c.w+'px">'+esc(c.label)+'</th>'; }).join('') + '</tr>';
+    // 표 rows
+    var tbHtml = items.map(function(it, idx){
+      if (it._type === 'group' && isNeedle) {
+        var out = '<tr class="grow">';
+        cols.forEach(function(c, ci){
+          if (ci === 0) out += '<td class="center bold">'+esc(nums[idx].label)+'</td>';
+          else if (ci === gStart) out += '<td colspan="'+groupSpan+'" class="bold">'+esc(it.label||'')+'</td>';
+          else if (ci > gStart && ci <= gEnd) return;
+          else out += '<td>&nbsp;</td>';
+        });
+        return out + '</tr>';
+      }
+      return '<tr>' + cols.map(function(c){
+        var cls = c.c ? 'center' : (c.r ? 'num' : '');
+        if (c.t === 'auto') return '<td class="'+cls+'">'+esc(nums[idx].label)+'</td>';
+        var v = it[c.k]==null?'':it[c.k];
+        var disp = (c.t === 'num' && v !== '') ? _fmtN(v) : v;
+        return '<td class="'+cls+'">'+esc(disp)+'</td>';
+      }).join('') + '</tr>';
+    }).join('');
+    // TOTAL 행
+    var sumStartIdx = -1;
+    cols.forEach(function(c, i){ if (c.sum && sumStartIdx===-1) sumStartIdx = i; });
+    var totalRow = '';
+    if (sumStartIdx > 0) {
+      var totals = {};
+      cols.forEach(function(c){ if (c.sum) totals[c.k] = 0; });
+      items.forEach(function(it){ if (it._type === 'group') return; cols.forEach(function(c){ if (c.sum) totals[c.k] += _num(it[c.k]); }); });
+      totalRow = '<tr class="totalrow">'
+        + '<td colspan="'+sumStartIdx+'" class="center">TOTAL (Excluding V.A.T)</td>'
+        + cols.slice(sumStartIdx).map(function(c){ return c.sum ? '<td class="num">'+_fmtN(totals[c.k])+'</td>' : '<td></td>'; }).join('')
+      + '</tr>';
+    }
+    // 비고
+    var totalCols = cols.length;
+    var notesRow = '<tr><th class="notes">비고</th><td colspan="'+(totalCols-1)+'" class="notes-body">'+esc(r.notes||'')+'</td></tr>';
+
+    var html = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>'+esc(r.doc_title||docLabel)+'</title>'
+      + '<style>'
+      + '@page{size:A4;margin:12mm 10mm;@top-*{content:""}@bottom-left{content:"MEDIACUBE";font-family:sans-serif;font-size:9.5px;font-weight:800;color:#94a3b8;letter-spacing:1.6px}@bottom-right{content:counter(page)" / "counter(pages);font-family:sans-serif;font-size:9.5px;color:#94a3b8;font-weight:600}}'
+      + '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+      + 'body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif;color:#0f172a;margin:0;padding:0;font-size:11px;line-height:1.5}'
+      + 'h1{text-align:center;font-size:22px;font-weight:800;letter-spacing:10px;margin:0 0 12px;padding-bottom:10px;border-bottom:3px double #0f766e}'
+      + '.top{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}'
+      + '.top table{width:100%;border-collapse:collapse}'
+      + '.top th,.top td{border:1px solid #cbd5e1;padding:5px 8px;font-size:10.5px;text-align:left}'
+      + '.top th{background:#f8fafc;color:#475569;font-weight:700;width:80px;white-space:nowrap}'
+      + 'table.items{width:100%;border-collapse:collapse;margin-top:8px}'
+      + 'table.items th,table.items td{border:1px solid #cbd5e1;padding:5px 6px;font-size:10.5px}'
+      + 'table.items thead th{background:#f0fdfa;color:#0f766e;font-weight:800;text-align:center;font-size:10px}'
+      + 'table.items .center{text-align:center}'
+      + 'table.items .num{text-align:right;font-variant-numeric:tabular-nums}'
+      + 'table.items .bold{font-weight:700}'
+      + 'table.items .grow td{background:#f8fafc}'
+      + 'table.items .totalrow td{background:#f0fdfa;font-weight:800;color:#0f766e}'
+      + 'table.items th.notes{background:#f8fafc;color:#475569;font-weight:700;width:'+cols[0].w+'px;text-align:center;vertical-align:top;padding:8px 6px}'
+      + 'table.items td.notes-body{white-space:pre-wrap;min-height:60px;vertical-align:top;padding:8px}'
+      + '</style></head><body>'
+      + '<h1>'+docLabel+'</h1>'
+      + '<div class="top"><table>'+topL+'</table><table>'+topR+'</table></div>'
+      + '<table class="items"><thead>'+thHtml+'</thead><tbody>'+tbHtml+'</tbody><tfoot>'+totalRow+notesRow+'</tfoot></table>'
+      + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});window.addEventListener("afterprint",function(){window.close();});<\/script>'
+      + '</body></html>';
+    w.document.open(); w.document.write(html); w.document.close(); w.focus();
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // Export: Excel (SheetJS CDN 동적 로드 · 기본 표 · 이미지/서식은 Phase 2)
+  // ────────────────────────────────────────────────────────────
+  function _loadSheetJs(){
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    return new Promise(function(res, rej){
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.onload = function(){ res(window.XLSX); };
+      s.onerror = function(){ rej(new Error('SheetJS 로드 실패')); };
+      document.head.appendChild(s);
+    });
+  }
+  function _exportExcel(id){
+    var r = _state.rows.find(function(x){ return x.id === id; });
+    if (!r) { _toast('견적서를 찾을 수 없습니다'); return; }
+    _loadSheetJs().then(function(XLSX){
+      var docLabel = r.doc_type==='invoice' ? '거래명세서' : '견적서';
+      var cols = _cols(r);
+      var items = Array.isArray(r.items) ? r.items : [];
+      var nums = _computeNumbering(items);
+      var isNeedle = _isNeedle(r);
+      var gStart = -1, gEnd = -1;
+      cols.forEach(function(c, i){ if (c.g) { if (gStart===-1) gStart = i; gEnd = i; } });
+      var groupSpan = (gStart>=0 && gEnd>gStart) ? (gEnd - gStart + 1) : 1;
+      var totalCols = cols.length;
+      // AOA (2D array) 구성
+      var aoa = [];
+      aoa.push([docLabel]);                                         // 제목 (병합)
+      aoa.push([]);                                                 // 빈 행
+      // 상단 정보 (좌우 병합 없이 단순 나열)
+      var isInvoice = r.doc_type === 'invoice';
+      var topRows = [];
+      topRows.push(['DATE', r.doc_date||'', '', '등록번호', r.sender_reg_no||'']);
+      topRows.push(['수신', r.receiver_company||'', '', '상호명', r.sender_company||'']);
+      if (!isInvoice) topRows.push(['참조', r.receiver_person||'', '', '대표자', r.sender_ceo||'']);
+      else topRows.push(['제목', r.doc_title||'', '', '대표자', r.sender_ceo||'']);
+      if (!isInvoice) {
+        topRows.push(['Tel', r.receiver_tel||'', '', '소재지', r.sender_address||'']);
+        topRows.push(['Fax', r.receiver_fax||'', '', '업태', r.sender_biz_type||'']);
+        topRows.push(['제목', r.doc_title||'', '', '업종', r.sender_biz_item||'']);
+        topRows.push(['', '', '', 'Tel', r.sender_tel||'']);
+        topRows.push(['', '', '', 'Fax', r.sender_fax||'']);
+        topRows.push(['', '', '', '담당자', r.sender_person||'']);
+      } else {
+        topRows.push(['', '', '', '소재지', r.sender_address||'']);
+        topRows.push(['', '', '', '업태', r.sender_biz_type||'']);
+        topRows.push(['', '', '', '종목', r.sender_biz_item||'']);
+        topRows.push(['', '', '', 'Tel', r.sender_tel||'']);
+        topRows.push(['', '', '', 'Fax', r.sender_fax||'']);
+        topRows.push(['', '', '', '담당자', r.sender_person||'']);
+      }
+      topRows.forEach(function(row){ aoa.push(row); });
+      aoa.push([]);
+      // 표 헤더
+      aoa.push(cols.map(function(c){ return c.label; }));
+      // 표 rows
+      var merges = [];
+      var tableStartRowIdx = aoa.length - 1;
+      items.forEach(function(it, idx){
+        if (it._type === 'group' && isNeedle) {
+          var row = cols.map(function(c, ci){
+            if (ci === 0) return nums[idx].label;
+            if (ci === gStart) return it.label||'';
+            return '';
+          });
+          aoa.push(row);
+          // 병합 정의: gStart 부터 gEnd 까지
+          var rIdx = aoa.length - 1;
+          if (groupSpan > 1) merges.push({ s:{r:rIdx, c:gStart}, e:{r:rIdx, c:gEnd} });
+        } else {
+          aoa.push(cols.map(function(c){
+            if (c.t === 'auto') return nums[idx].label;
+            var v = it[c.k];
+            return c.t === 'num' ? _num(v) : (v||'');
+          }));
+        }
+      });
+      // TOTAL 행
+      var sumStartIdx = -1;
+      cols.forEach(function(c, i){ if (c.sum && sumStartIdx===-1) sumStartIdx = i; });
+      if (sumStartIdx > 0) {
+        var totals = {};
+        cols.forEach(function(c){ if (c.sum) totals[c.k] = 0; });
+        items.forEach(function(it){ if (it._type === 'group') return; cols.forEach(function(c){ if (c.sum) totals[c.k] += _num(it[c.k]); }); });
+        var totalRow = cols.map(function(c, i){
+          if (i === 0) return 'TOTAL (Excluding V.A.T)';
+          if (i < sumStartIdx) return '';
+          return c.sum ? totals[c.k] : '';
+        });
+        aoa.push(totalRow);
+        // 앞부분 TOTAL 라벨 병합
+        merges.push({ s:{r:aoa.length-1, c:0}, e:{r:aoa.length-1, c:sumStartIdx-1} });
+      }
+      // 비고
+      aoa.push(['비고', r.notes||'']);
+      merges.push({ s:{r:aoa.length-1, c:1}, e:{r:aoa.length-1, c:totalCols-1} });
+
+      var ws = XLSX.utils.aoa_to_sheet(aoa);
+      // 열 너비
+      ws['!cols'] = cols.map(function(c){ return { wpx: c.w }; });
+      // 병합
+      if (merges.length) ws['!merges'] = merges;
+      // 제목행 병합 (첫 행 A1 을 마지막 컬럼까지)
+      ws['!merges'] = (ws['!merges']||[]).concat([{ s:{r:0, c:0}, e:{r:0, c:totalCols-1} }]);
+
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, docLabel);
+      var filename = (r.quote_no || r.id.slice(0,8)) + '_' + docLabel + '.xlsx';
+      XLSX.writeFile(wb, filename);
+      _toast('Excel 파일이 다운로드되었습니다');
+    }).catch(function(e){ console.error('[__mq] excel export', e); _toast('Excel 내보내기 실패 — ' + (e.message||e)); });
+  }
+
   function _deleteById(id){
     if (!id) return;
     if (!confirm('이 견적서를 삭제하시겠습니까? (되돌릴 수 없음)')) return;
@@ -16017,11 +16337,12 @@ window.__mq = (function(){
     _showList: _showList, _showForm: _showForm, _showDetail: _showDetail,
     _setFilter: _setFilter, _clearFilter: _clearFilter,
     _setFormField: _setFormField, _setItemField: _setItemField,
-    _addItem: _addItem, _removeItem: _removeItem,
+    _addItem: _addItem, _addGroup: _addGroup, _setGroupLabel: _setGroupLabel, _removeItem: _removeItem,
     _onFileSelect: _onFileSelect, _removePendingFile: _removePendingFile, _removeExistingAttach: _removeExistingAttach,
     _save: _save, _deleteById: _deleteById,
     _openChooser: _openChooser, _closeChooser: _closeChooser, _chooserBack: _chooserBack,
     _pickDocType: _pickDocType, _pickSubType: _pickSubType,
+    _exportPdf: _exportPdf, _exportExcel: _exportExcel,
     _state: _state
   };
 })();
