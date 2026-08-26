@@ -16487,11 +16487,12 @@ window.__mq = (function(){
           vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||'sync', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.domestic)||'', _MQ_XL.num(it.worldwide)||''];
         }
         vals.forEach(function(v, c){
-          // 모든 데이터 셀 중앙 정렬 · 숫자 컬럼은 #,##0 자동 포맷
+          // 모든 데이터 셀 중앙 정렬 · 숫자 컬럼은 #,##0 · 나머지는 '@' (문자열)
+          // '@' 로 지정하면 "1-1", "2-3" 같은 값을 Excel 이 날짜(01월 01일) 로 자동 변환 안 함
           var isNumCol = colSpec.sumCols.indexOf(c+1) !== -1;
           set(ws, ws.getRow(rr).getCell(c+1).address, v, {
             align: A.center,
-            numFmt: isNumCol ? '#,##0' : undefined
+            numFmt: isNumCol ? '#,##0' : '@'
           });
         });
       }
@@ -16506,8 +16507,11 @@ window.__mq = (function(){
         cell.value = null;
         cell.border = _MQ_XL.BD;
         cell.alignment = _MQ_XL.ALIGN.center; // 상하좌우 중앙
-        // 숫자 컬럼은 #,##0 포맷 미리 → 나중에 숫자 입력 시 자동 콤마
-        if (colSpec.sumCols.indexOf(cc) !== -1) cell.numFmt = '#,##0';
+        if (colSpec.sumCols.indexOf(cc) !== -1) {
+          cell.numFmt = '#,##0'; // 숫자 → 자동 콤마
+        } else {
+          cell.numFmt = '@'; // 문자열 → "1-1" 등 자동 날짜 변환 방지
+        }
       }
     }
     // TOTAL (19행) — A19:D19 병합 'TOTAL (Excluding V.A.T)' · 단위 컬럼 'sync' · 합계 계산 + result
