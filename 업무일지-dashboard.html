@@ -16325,28 +16325,31 @@ window.__mq = (function(){
     var set = _MQ_XL.set, F = _MQ_XL.FONT, A = _MQ_XL.ALIGN, FILL = _MQ_XL.FILL, BD = _MQ_XL.BD, box = _MQ_XL.box;
     var ws = wb.addWorksheet('견적서', { views:[{ showGridLines:false }] });
     // 컬럼 스펙 (모드별) · 참조 xlsx 열너비 그대로 · sumCols 는 SUM 대상 열번호
+    //   totalRange: A19:D19 (NO+CD Title+CD No+CUE 4열 병합으로 TOTAL 라벨 표시)
+    //   unitCol: 단위 컬럼 번호 (G=7) - Needle 은 'sync' 기본값 배치
+    //   notesLbl: A20:A23 (4행) · notesBody: B20:{last}23 (모든 칸 병합 · 큰 텍스트 박스)
     var colSpec;
     if (mode === 'movie') {
       colSpec = { widths:[7,23.375,9.125,24.5,8,22.25,6.5,10,14.125,13.875],
         headers:['No','CD Title','CD No','CUE','Track No','Publisher / Composer','단위','수량','Domestic','Worldwide'],
-        titleRange:'A1:J2', groupRange:'B11:J11', totalRange:'B19:G19',
-        notesLbl:'A20:A25', notesBodies:['B20:G20','B23:G23','B24:G24'],
+        titleRange:'A1:J2', groupRange:'B11:J11', totalRange:'A19:D19', unitCol:7,
+        notesLbl:'A20:A23', notesBody:'B20:J23',
         sumCols:[8,9,10], lastColLetter:'J',
         stampExt:{col:8.5,row:2.6,w:110,h:135}
       };
     } else if (mode === 'ad') {
       colSpec = { widths:[7,25.625,10.625,28.75,9.5,24.5,6.5,10,16.625],
         headers:['No','CD Title','CD No','CUE','Track No','Publisher / Composer','용도','수량','금액'],
-        titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'B19:G19',
-        notesLbl:'A20:A25', notesBodies:['B20:G20','B23:G23','B24:G24'],
+        titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
+        notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
         stampExt:{col:8.15,row:2.8,w:100,h:135}
       };
     } else {
       colSpec = { widths:[7,25.625,10.625,28.75,9.5,24.5,6.5,10,16.625],
         headers:['No','CD Title','CD No','CUE','Track No','Publisher / Composer','권리','수량','Domestic & Worldwide'],
-        titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'B19:G19',
-        notesLbl:'A20:A25', notesBodies:['B20:G20','B23:G23','B24:G24'],
+        titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
+        notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
         stampExt:{col:8.15,row:2.8,w:100,h:135}
       };
@@ -16359,7 +16362,7 @@ window.__mq = (function(){
     ws.getRow(9).height = 32; ws.getRow(10).height = 42; ws.getRow(11).height = 45;
     for (var i=12;i<=18;i++) ws.getRow(i).height = 75;
     ws.getRow(19).height = 45;
-    for (var i=20;i<=25;i++) ws.getRow(i).height = 32;
+    for (var i=20;i<=23;i++) ws.getRow(i).height = 40; // 비고 4행 (크게)
     // 제목
     ws.mergeCells(colSpec.titleRange);
     set(ws, colSpec.titleRange.split(':')[0], '견 적 서', { font:F(26,true), border:false });
@@ -16445,28 +16448,28 @@ window.__mq = (function(){
         cell.border = _MQ_XL.BD;
       }
     }
-    // TOTAL (19행) — JS 에서 합계 계산 · formula + result 함께 저장 (Excel 재계산 없이도 표시)
-    set(ws, 'A19', '', { fill:FILL.total });
-    ws.mergeCells(colSpec.totalRange);
-    set(ws, colSpec.totalRange.split(':')[0], 'TOTAL (Excluding V.A.T)', { font:F(11,true), fill:FILL.total });
+    // TOTAL (19행) — A19:D19 병합 'TOTAL (Excluding V.A.T)' · 단위 컬럼 'sync' · 합계 계산 + result
+    ws.mergeCells(colSpec.totalRange); // A19:D19
+    set(ws, colSpec.totalRange.split(':')[0], 'TOTAL (Excluding V.A.T)', { font:F(11,true), fill:FILL.total, align:A.center });
+    // 나머지 좌측 셀 (E, F) 은 빈 값 + fill
+    for (var mc = 5; mc < colSpec.unitCol; mc++) {
+      var addr = ws.getRow(19).getCell(mc).address;
+      set(ws, addr, '', { fill:FILL.total });
+    }
+    // 단위 컬럼: 'sync' 기본값 (Needle 견적서)
+    var unitAddr = ws.getRow(19).getCell(colSpec.unitCol).address;
+    set(ws, unitAddr, 'sync', { font:F(10,true), fill:FILL.total, align:A.center });
+    // SUM 합계 (JS 사전 계산 + formula+result)
     var sumRange = { start:12, end:18 };
-    // 컬럼 이름 매핑 (row 데이터에서 sum 계산용)
-    var sumKeyMap = {};
-    colSpec.sumCols.forEach(function(cn){ sumKeyMap[cn] = colSpec.headers[cn-1]; });
+    var sumFieldMap;
+    if (mode === 'movie') sumFieldMap = { 8:'qty', 9:'domestic', 10:'worldwide' };
+    else if (mode === 'ad') sumFieldMap = { 8:'qty', 9:'amount' };
+    else sumFieldMap = { 8:'qty', 9:'dw' };
     colSpec.sumCols.forEach(function(cn){
       var addr = ws.getRow(19).getCell(cn).address;
       var colL = addr.replace(/\d+/,'');
-      // items 에서 실제 합계 계산 (그룹 헤더 제외)
-      var itemsArr = r.items || [];
-      // key mapping 은 mode 별로 다름 → colSpec.headers 는 라벨이니 별도 매핑 필요
-      // mode 별 sum 필드 map
-      var sumFieldMap;
-      if (mode === 'movie') sumFieldMap = { 8:'qty', 9:'domestic', 10:'worldwide' };
-      else if (mode === 'ad') sumFieldMap = { 8:'qty', 9:'amount' };
-      else sumFieldMap = { 8:'qty', 9:'dw' };
-      var key = sumFieldMap[cn];
       var sumVal = 0;
-      itemsArr.forEach(function(it){ if (it._type !== 'group') sumVal += _MQ_XL.num(it[key]); });
+      (r.items || []).forEach(function(it){ if (it._type !== 'group') sumVal += _MQ_XL.num(it[sumFieldMap[cn]]); });
       set(ws, addr, { formula: 'SUM('+colL+sumRange.start+':'+colL+sumRange.end+')', result: sumVal }, { font:F(10,true), fill:FILL.total, numFmt:'#,##0', align:A.right });
     });
     // 나머지 열 border · fill
@@ -16475,16 +16478,14 @@ window.__mq = (function(){
       if (!cell.fill) cell.fill = FILL.total;
       cell.border = BD;
     }
-    // 비고 (20~25)
-    ws.mergeCells(colSpec.notesLbl);
-    set(ws, colSpec.notesLbl.split(':')[0], '비 고', { font:F(11,true), fill:FILL.label });
-    var notesText = (r.notes || '').split('\n');
-    var noteBodyStart = { movie:2, ad:2, ott:2 }[mode];
-    colSpec.notesBodies.forEach(function(range, i){
-      ws.mergeCells(range);
-      set(ws, range.split(':')[0], notesText[i]||'', { align:A.left });
+    // 비고 (20~23 · 4행) — 라벨 세로 병합 · 본문 전체(4행 × N열) 한 칸으로 병합
+    ws.mergeCells(colSpec.notesLbl); // A20:A23
+    set(ws, colSpec.notesLbl.split(':')[0], '비 고', { font:F(11,true), fill:FILL.label, align:A.center });
+    ws.mergeCells(colSpec.notesBody); // B20:{last}23
+    set(ws, colSpec.notesBody.split(':')[0], r.notes || '', {
+      align: { horizontal:'left', vertical:'top', wrapText:true, indent:1 },
+      font: F(10)
     });
-    for (var rr3=20; rr3<=25; rr3++) box(ws, rr3, 2, colSpec.widths.length);
     // 이미지 (로고 - 넓게 · 도장 - 세로 길게)
     if (logoBuf) {
       var lid = wb.addImage({ buffer:logoBuf, extension:'png' });
