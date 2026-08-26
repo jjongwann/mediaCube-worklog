@@ -15491,13 +15491,27 @@ window.__mq = (function(){
   function _visible(id, on, mode){ var el=document.getElementById(id); if (el) el.style.display = on ? (mode||'block') : 'none'; }
   function _showBtn(id, on){ var el=document.getElementById(id); if (el) el.style.display = on ? 'inline-flex' : 'none'; }
 
+  // 견적서 번호 자동 채번 — YYYY-NNN (년도별 리셋 · 작성 순서대로)
+  //   기존 rows 에서 같은 년도의 quote_no (YYYY-NNN 패턴) 최대값 + 1
+  function _nextQuoteNo(){
+    var year = new Date().getFullYear();
+    var maxN = 0;
+    (_state.rows || []).forEach(function(r){
+      if (!r.quote_no) return;
+      var m = /^(\d{4})-(\d+)$/.exec(String(r.quote_no).trim());
+      if (!m || parseInt(m[1],10) !== year) return;
+      var n = parseInt(m[2],10);
+      if (n > maxN) maxN = n;
+    });
+    return year + '-' + String(maxN + 1).padStart(3, '0');
+  }
   function _newForm(docType, subType){
     docType = docType || 'needle';
     subType = subType || 'ott';
     var f = {
       id: null,
       doc_type: docType, sub_type: subType,
-      quote_no: '', status: '미결',
+      quote_no: _nextQuoteNo(), status: '미결',
       tax_invoice_date: '',
       doc_date: _today(),
       receiver_company: '', receiver_person: '', receiver_tel: '', receiver_fax: '',
