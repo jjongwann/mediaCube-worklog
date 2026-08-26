@@ -16518,7 +16518,9 @@ window.__mq = (function(){
     var unitAddr = ws.getRow(19).getCell(colSpec.unitCol).address;
     set(ws, unitAddr, 'sync', { font:F(10,true), fill:FILL.total, align:A.center });
     // SUM 합계 (JS 사전 계산 + formula+result)
-    var sumRange = { start:12, end:18 };
+    //   그룹 헤더 없이 곡을 바로 채운 경우 첫 곡이 row 11 에 위치 → 11 부터 포함
+    //   그룹이 있는 경우 row 11 = 그룹헤더인데 sum 대상 컬럼(H, I, J)에 값 없어 0 이므로 안전
+    var sumRange = { start:11, end:18 };
     var sumFieldMap;
     if (mode === 'movie') sumFieldMap = { 8:'qty', 9:'domestic', 10:'worldwide' };
     else if (mode === 'ad') sumFieldMap = { 8:'qty', 9:'amount' };
