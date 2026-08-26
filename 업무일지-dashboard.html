@@ -16436,13 +16436,13 @@ window.__mq = (function(){
     //   movie(10열 F~J): F=업태, G:H=업태값, I=종목, J=종목값 (실제 종목값 좁으면 J만)
     //   ott/ad(9열 F~I): F=업태, G=업태값, H=종목, I=종목값
     // 우측 좁은 컬럼(G=6.5) 문제로 우측은 조합 텍스트 방식 사용 (참조 양식과 동일)
-    //   업태 : 서비스  /  종목 : 사운드
+    //   업태 / 업종 : 서비스 / 음원제작·유통
     //   Tel : 02)534-8408   Fax : 02)534-8486
-    var bizCombined = (r.sender_biz_type||'') + '   /   종목 : ' + (r.sender_biz_item||'');
+    var bizCombined = (r.sender_biz_type||'') + '   /   ' + (r.sender_biz_item||'');
     var telCombined = (r.sender_tel||'') + '     Fax  ' + (r.sender_fax||'');
     if (mode === 'movie') {
-      // 7행: 업태 (라벨) + 조합값
-      set(ws, 'F7', '업태', leftLbl);
+      // 7행: 업태 / 업종 (라벨) + 조합값
+      set(ws, 'F7', '업태 / 업종', leftLbl);
       ws.mergeCells('G7:J7');
       set(ws, 'G7', bizCombined, leftVal);
       // 8행: Tel (라벨) + 조합값
@@ -16452,7 +16452,7 @@ window.__mq = (function(){
       // 9행: 담당자
       mkRSimple(9, '담당자', r.sender_person||'');
     } else {
-      set(ws, 'F7', '업태', leftLbl);
+      set(ws, 'F7', '업태 / 업종', leftLbl);
       ws.mergeCells('G7:I7');
       set(ws, 'G7', bizCombined, leftVal);
       set(ws, 'F8', 'Tel', leftLbl);
