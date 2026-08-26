@@ -2084,6 +2084,10 @@
       <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></span>
       견적 관리
     </div>
+    <div class="sidebar-item" id="mq-sidebar-btn" style="display:none" onclick="openMusicQuotePanel()" title="음원 견적 관리 (사운드팀)">
+      <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+      음원 견적 관리
+    </div>
   </div>
 
   <!-- 관리자 전용 섹션 -->
@@ -3801,6 +3805,12 @@
     var saleshubBtn = document.getElementById('sidebar-saleshub-btn');
     if (saleshubBtn) {
       saleshubBtn.style.display = _isAdmin ? '' : 'none';
+    }
+    // 음원 견적 관리 (사운드팀): 우선 developer(임종완 주임) 테스트 전용
+    var mqBtn = document.getElementById('mq-sidebar-btn');
+    if (mqBtn) {
+      var canSeeMq = (typeof _currentUsername !== 'undefined' && _currentUsername === 'developer');
+      mqBtn.style.display = canSeeMq ? '' : 'none';
     }
     // 직원별 필터 셀렉트: 관리자 또는 전체 일지 열람 화이트리스트 계정에 노출
     try { if (typeof window._populateEmployeeFilter === 'function') window._populateEmployeeFilter(); } catch(e) {}
@@ -15128,6 +15138,740 @@ function openQuotePanel() {
 }
 </script>
 
+<!-- ═══════════════════════════════════════════════════════════════════
+     음원 견적 관리 (Music Quote Management) — 사운드팀 전용
+       · Supabase 테이블: music_quotes
+       · window.__mq 로 격리 (기존 __quote 시스템팀 견적과 완전 별개)
+       · doc_type: needle (sub: ott/ad/movie) · annual · invoice
+       · 상태: 미결 / 진행 / 완료
+     ═══════════════════════════════════════════════════════════════════ -->
+<style>
+  #mq-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9992; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; font-family:inherit; }
+  #mq-overlay.open { display:flex !important; }
+  #mq-modal { width:1240px; max-width:98vw; height:88vh; max-height:900px; background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 24px 72px rgba(15,23,42,0.32); display:flex; flex-direction:column; position:relative; animation:mqFadeUp 0.2s ease-out; }
+  @keyframes mqFadeUp { from{opacity:0;transform:translateY(8px) scale(0.99);} to{opacity:1;transform:translateY(0) scale(1);} }
+  /* 헤더 (teal-emerald 그라디언트) */
+  #mq-header { padding:16px 24px; display:flex; align-items:center; justify-content:space-between; background:linear-gradient(135deg,#0d9488,#0f766e); color:#fff; flex-shrink:0; }
+  #mq-header .kicker { font-size:10px; font-weight:800; letter-spacing:1.6px; color:rgba(255,255,255,0.75); text-transform:uppercase; }
+  #mq-header .title { font-size:17px; font-weight:800; letter-spacing:-0.3px; margin-top:2px; }
+  .mq-hbtn { background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.22); color:#fff; padding:7px 13px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; transition:background 0.15s; }
+  .mq-hbtn:hover { background:rgba(255,255,255,0.28); }
+  .mq-hbtn.primary { background:#fff; color:#0d9488; border-color:#fff; }
+  .mq-hbtn.primary:hover { background:#f0fdfa; }
+  /* 필터 바 (list view 만) */
+  #mq-filter-bar { display:flex; gap:8px; padding:12px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; flex-wrap:wrap; align-items:center; flex-shrink:0; }
+  .mq-inp, .mq-sel { padding:7px 10px; border:1px solid #e2e8f0; border-radius:7px; font-size:12px; font-family:inherit; outline:none; background:#fff; color:#0f172a; }
+  .mq-inp:focus, .mq-sel:focus { border-color:#0d9488; }
+  #mq-search-inp { flex:1; min-width:220px; padding-left:32px; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>"); background-repeat:no-repeat; background-position:10px center; }
+  /* 리스트 */
+  #mq-list-wrap { flex:1; overflow-y:auto; padding:12px 20px 20px; background:#fff; }
+  .mq-row { display:grid; grid-template-columns:60px 70px 90px 1.6fr 1.4fr 100px 100px 90px 90px 70px; gap:10px; padding:11px 12px; border-bottom:1px solid #f1f5f9; font-size:12px; align-items:center; transition:background 0.12s; }
+  .mq-row:hover { background:#f0fdfa; cursor:pointer; }
+  .mq-row-header { background:#f1f5f9; font-size:10.5px; font-weight:800; color:#64748b; letter-spacing:0.4px; text-transform:uppercase; position:sticky; top:0; z-index:2; cursor:default; }
+  .mq-row-header:hover { background:#f1f5f9; cursor:default; }
+  .mq-chip { display:inline-block; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; white-space:nowrap; }
+  .mq-type-needle { background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; }
+  .mq-type-annual { background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; }
+  .mq-type-invoice { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+  .mq-sub { font-size:9.5px; color:#94a3b8; font-weight:600; margin-left:4px; }
+  .mq-status-미결 { background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; }
+  .mq-status-진행 { background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; }
+  .mq-status-완료 { background:#f0fdf4; color:#16a34a; border:1px solid #bbf7d0; }
+  .mq-row-act { background:none; border:none; color:#cbd5e1; cursor:pointer; padding:3px 6px; border-radius:5px; }
+  .mq-row-act:hover { color:#ef4444; background:#fef2f2; }
+  /* 상세 · 폼 뷰 공통 컨테이너 */
+  #mq-detail-view, #mq-form-view { display:none; flex:1; overflow-y:auto; background:#f8fafc; padding:24px; }
+  .mq-doc { background:#fff; max-width:1080px; margin:0 auto; padding:28px 32px 32px; border-radius:10px; box-shadow:0 2px 12px rgba(15,23,42,0.06); border:1px solid #e2e8f0; }
+  .mq-doc-title { text-align:center; font-size:22px; font-weight:800; letter-spacing:8px; color:#0f172a; padding:14px 0 18px; border-bottom:3px double #0d9488; margin-bottom:18px; }
+  .mq-top-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+  .mq-top-block { border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; }
+  .mq-top-block h4 { margin:0; padding:8px 14px; background:#f8fafc; font-size:11.5px; font-weight:800; color:#0f766e; border-bottom:1px solid #e2e8f0; letter-spacing:0.6px; text-transform:uppercase; }
+  .mq-field { display:grid; grid-template-columns:100px 1fr; gap:0; align-items:stretch; border-top:1px solid #f1f5f9; }
+  .mq-field:first-of-type { border-top:none; }
+  .mq-field .lbl { padding:7px 12px; background:#fafbfc; font-size:11.5px; font-weight:700; color:#475569; border-right:1px solid #f1f5f9; display:flex; align-items:center; }
+  .mq-field .val { padding:6px 10px; font-size:12.5px; color:#0f172a; }
+  .mq-field .val input, .mq-field .val select { width:100%; box-sizing:border-box; border:none; outline:none; font-family:inherit; font-size:12.5px; padding:3px 4px; background:transparent; color:#0f172a; }
+  .mq-field .val input:focus, .mq-field .val select:focus { background:#fefce8; }
+  .mq-field .val input[readonly] { color:#64748b; background:#f8fafc; }
+  /* items table */
+  .mq-items { width:100%; border-collapse:collapse; margin-top:14px; font-size:12px; }
+  .mq-items thead th { background:#f0fdfa; color:#0f766e; font-weight:800; padding:8px 6px; border:1px solid #99f6e4; text-align:center; font-size:11px; letter-spacing:0.4px; }
+  .mq-items tbody td { border:1px solid #e2e8f0; padding:6px 6px; vertical-align:middle; }
+  .mq-items tbody td input { width:100%; box-sizing:border-box; border:none; outline:none; font-family:inherit; font-size:12px; padding:3px 4px; background:transparent; }
+  .mq-items tbody td input:focus { background:#fefce8; }
+  .mq-items .num { text-align:right; font-variant-numeric:tabular-nums; }
+  .mq-items .center { text-align:center; }
+  .mq-item-add-btn { margin-top:8px; padding:7px 14px; background:#f0fdfa; color:#0f766e; border:1px solid #99f6e4; border-radius:7px; cursor:pointer; font-size:12px; font-weight:700; font-family:inherit; display:inline-flex; align-items:center; gap:5px; }
+  .mq-item-add-btn:hover { background:#ccfbf1; }
+  .mq-item-del { background:none; border:none; color:#cbd5e1; cursor:pointer; font-size:14px; padding:0 6px; }
+  .mq-item-del:hover { color:#ef4444; }
+  /* 첨부 · 액션 */
+  .mq-attach-wrap { margin-top:22px; padding-top:16px; border-top:1px solid #e2e8f0; }
+  .mq-attach-item { display:flex; align-items:center; gap:8px; padding:7px 10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:7px; font-size:12px; margin-bottom:5px; }
+  .mq-attach-item .name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#0f172a; font-weight:600; }
+  .mq-attach-item .size { color:#94a3b8; font-size:10.5px; }
+  .mq-actions { display:flex; gap:10px; margin-top:22px; justify-content:flex-end; padding-top:16px; border-top:1px solid #e2e8f0; }
+  .mq-btn { padding:9px 20px; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; transition:filter 0.12s; }
+  .mq-btn.primary { background:linear-gradient(135deg,#0d9488,#0f766e); color:#fff; }
+  .mq-btn.primary:hover { filter:brightness(1.08); }
+  .mq-btn.ghost { background:#f1f5f9; color:#475569; }
+  .mq-btn.ghost:hover { background:#e2e8f0; }
+  .mq-btn.danger { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+  .mq-btn.danger:hover { background:#fee2e2; }
+  /* 상세 뷰 read-only 표시 */
+  .mq-doc.readonly .mq-field .val input, .mq-doc.readonly .mq-field .val select { background:transparent; pointer-events:none; }
+  .mq-doc.readonly .mq-items tbody td input { background:transparent; pointer-events:none; }
+</style>
+
+<!-- 오버레이 (플로팅 모달) -->
+<div id="mq-overlay">
+  <div id="mq-modal">
+    <!-- 헤더 -->
+    <div id="mq-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:36px;height:36px;background:rgba(255,255,255,0.16);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </div>
+        <div>
+          <div class="kicker" id="mq-header-kicker">MUSIC QUOTES</div>
+          <div class="title" id="mq-header-title">음원 견적 관리</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="mq-hbtn primary" id="mq-new-btn" onclick="window.__mq._openForm(null)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 새 견적서</button>
+        <button class="mq-hbtn" id="mq-back-btn" onclick="window.__mq._showList()" style="display:none"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> 목록</button>
+        <button class="mq-hbtn" onclick="window.__mq.closePanel()">닫기</button>
+      </div>
+    </div>
+    <!-- 필터 바 -->
+    <div id="mq-filter-bar">
+      <input id="mq-search-inp" class="mq-inp" type="text" placeholder="제목·수신처·견적번호 검색" oninput="window.__mq._setFilter('q', this.value)">
+      <select class="mq-sel" onchange="window.__mq._setFilter('docType', this.value)" id="mq-fil-doctype">
+        <option value="all">전체 종류</option>
+        <option value="needle">Needle 견적</option>
+        <option value="annual">Annual 견적</option>
+        <option value="invoice">거래명세서</option>
+      </select>
+      <select class="mq-sel" onchange="window.__mq._setFilter('subType', this.value)" id="mq-fil-subtype">
+        <option value="all">전체 유형</option>
+        <option value="ott">OTT</option>
+        <option value="ad">광고</option>
+        <option value="movie">영화</option>
+      </select>
+      <select class="mq-sel" onchange="window.__mq._setFilter('status', this.value)" id="mq-fil-status">
+        <option value="all">전체 상태</option>
+        <option value="미결">미결</option>
+        <option value="진행">진행</option>
+        <option value="완료">완료</option>
+      </select>
+      <button class="mq-hbtn" style="background:#e2e8f0;color:#475569;border-color:#cbd5e1" onclick="window.__mq._clearFilter()">필터 초기화</button>
+      <button class="mq-hbtn" style="background:#e2e8f0;color:#475569;border-color:#cbd5e1" onclick="window.__mq.refresh()">새로고침</button>
+    </div>
+    <!-- 리스트 -->
+    <div id="mq-list-wrap">
+      <div id="mq-list"></div>
+    </div>
+    <!-- 상세 -->
+    <div id="mq-detail-view"></div>
+    <!-- 폼 (작성/수정) -->
+    <div id="mq-form-view"></div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   Music Quote Management IIFE — window.__mq
+   · 시스템팀 legacy __quote 와 완전 분리 (테이블: music_quotes)
+   · developer 계정 테스트 전용 (사이드바/카탈로그 노출 제어는 별도)
+   ══════════════════════════════════════════════════════════════════ */
+window.__mq = (function(){
+  var _URL = 'https://qkvatxowpkespdkxuoom.supabase.co';
+  var _KEY = 'sb_publishable_2PIK53xa60wU0ds_L44pgQ_yfsoiot1';
+
+  function _tok(){ try { var s = JSON.parse(localStorage.getItem('mc_session')||'null'); return (s&&s.access_token)||_KEY; } catch(e){ return _KEY; } }
+  function _hdr(extra){ var h = { 'apikey':_KEY, 'Authorization':'Bearer '+_tok(), 'Content-Type':'application/json' }; if (extra) for (var k in extra) h[k]=extra[k]; return h; }
+  function _esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+  function _num(v){ if(v==null||v==='') return 0; var n=parseFloat(String(v).replace(/,/g,'')); return isNaN(n)?0:n; }
+  function _fmtN(n){ return (n||0).toLocaleString(); }
+  function _today(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function _uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+  function _toast(m){ try { if (typeof window.showToast==='function') { window.showToast(m); return; } } catch(e){} try{ alert(m); }catch(e){} }
+  function _me(){ try { var s=JSON.parse(localStorage.getItem('mc_session')||'null'); return s||{}; } catch(e){ return {}; } }
+
+  // ────────────────────────────────────────────────────────────
+  // 표 컬럼 스키마 (sub_type 별로 다름) — key/label/w/type/center|right
+  // ────────────────────────────────────────────────────────────
+  var _ANNUAL_COLS = [
+    {k:'no',label:'NO',w:40,t:'auto',c:1},
+    {k:'item',label:'품목',w:180,t:'text'},
+    {k:'code',label:'코드',w:100,t:'text'},
+    {k:'spec',label:'규격',w:100,t:'text'},
+    {k:'unit',label:'단위',w:60,t:'text',c:1},
+    {k:'qty',label:'QTY',w:60,t:'num',r:1},
+    {k:'unitPrice',label:'단가',w:100,t:'num',r:1},
+    {k:'supplyPrice',label:'공급가액',w:110,t:'num',r:1},
+    {k:'vat',label:'부가가치세',w:110,t:'num',r:1},
+    {k:'totalWithVat',label:'합계 금액 (V.A.T포함)',w:140,t:'num',r:1,calc:1}
+  ];
+  var ITEM_COLS = {
+    needle_ott: [
+      {k:'no',label:'NO',w:40,t:'auto',c:1},
+      {k:'cdTitle',label:'CD Title',w:180,t:'text'},
+      {k:'cdNo',label:'CD No',w:80,t:'text'},
+      {k:'cue',label:'CUE',w:55,t:'text',c:1},
+      {k:'trackNo',label:'Track No',w:70,t:'text',c:1},
+      {k:'publisher',label:'Publisher / Composer',w:200,t:'text'},
+      {k:'unit',label:'단위',w:55,t:'text',c:1},
+      {k:'qty',label:'수량',w:55,t:'num',r:1},
+      {k:'dw',label:'Domestic & Worldwide',w:150,t:'num',r:1}
+    ],
+    needle_ad: [
+      {k:'no',label:'NO',w:40,t:'auto',c:1},
+      {k:'cdTitle',label:'CD Title',w:180,t:'text'},
+      {k:'cdNo',label:'CD No',w:80,t:'text'},
+      {k:'cue',label:'CUE',w:55,t:'text',c:1},
+      {k:'trackNo',label:'Track No',w:70,t:'text',c:1},
+      {k:'publisher',label:'Publisher / Composer',w:200,t:'text'},
+      {k:'unit',label:'단위',w:55,t:'text',c:1},
+      {k:'qty',label:'수량',w:55,t:'num',r:1},
+      {k:'amount',label:'금액',w:110,t:'num',r:1}
+    ],
+    needle_movie: [
+      {k:'no',label:'NO',w:40,t:'auto',c:1},
+      {k:'cdTitle',label:'CD Title',w:170,t:'text'},
+      {k:'cdNo',label:'CD No',w:75,t:'text'},
+      {k:'cue',label:'CUE',w:55,t:'text',c:1},
+      {k:'trackNo',label:'Track No',w:65,t:'text',c:1},
+      {k:'publisher',label:'Publisher / Composer',w:180,t:'text'},
+      {k:'unit',label:'단위',w:55,t:'text',c:1},
+      {k:'qty',label:'수량',w:55,t:'num',r:1},
+      {k:'domestic',label:'Domestic',w:100,t:'num',r:1},
+      {k:'worldwide',label:'Worldwide',w:100,t:'num',r:1}
+    ],
+    annual: _ANNUAL_COLS,
+    invoice: _ANNUAL_COLS
+  };
+
+  function _schemaKey(docType, subType){
+    if (docType === 'needle') return 'needle_' + (subType || 'ott');
+    if (docType === 'annual') return 'annual';
+    if (docType === 'invoice') return 'invoice';
+    return 'needle_ott';
+  }
+  function _cols(row){ return ITEM_COLS[_schemaKey(row.doc_type, row.sub_type)] || ITEM_COLS.needle_ott; }
+  function _typeLabel(row){
+    if (row.doc_type === 'needle') return 'Needle · ' + ({ott:'OTT',ad:'광고',movie:'영화'}[row.sub_type]||'?');
+    if (row.doc_type === 'annual') return 'Annual';
+    if (row.doc_type === 'invoice') return '거래명세서';
+    return '?';
+  }
+  function _typeClass(row){ return 'mq-type-' + row.doc_type; }
+  function _defaultSender(){
+    return { sender_reg_no:'114-86-09186', sender_company:'(주)미디어큐브', sender_ceo:'김재경', sender_address:'서울 강남구 논현로136길16', sender_biz_type:'서비스', sender_biz_item:'음원제작·유통', sender_tel:'02-534-8408', sender_fax:'02-534-8486', sender_person:'이광순' };
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 상태
+  // ────────────────────────────────────────────────────────────
+  var _state = {
+    rows: [], loaded: false,
+    view: 'list',
+    editingId: null, viewingId: null,
+    // 폼용 임시 편집 데이터
+    form: null, // { doc_type, sub_type, ...fields, items:[], attachments:[], pendingFiles:[] }
+    // 필터
+    filter: { q:'', docType:'all', subType:'all', status:'all' }
+  };
+
+  // ────────────────────────────────────────────────────────────
+  // 접근 게이팅 · 진입/종료
+  // ────────────────────────────────────────────────────────────
+  function openPanel(){
+    // developer 계정만
+    var uname = (typeof _currentUsername !== 'undefined') ? _currentUsername : '';
+    if (uname !== 'developer') { _toast('접근 권한이 없습니다 (developer 계정 전용)'); return; }
+    var ov = document.getElementById('mq-overlay');
+    if (!ov) return;
+    ov.classList.add('open');
+    _showList();
+    refresh();
+  }
+  function closePanel(){
+    var ov = document.getElementById('mq-overlay');
+    if (ov) ov.classList.remove('open');
+  }
+  function refresh(){
+    return fetch(_URL + '/rest/v1/music_quotes?select=*&order=created_at.desc&limit=500', { headers: _hdr() })
+      .then(function(r){ if (!r.ok) return r.text().then(function(t){ throw new Error('HTTP '+r.status+' '+t); }); return r.json(); })
+      .then(function(rows){ _state.rows = Array.isArray(rows) ? rows : []; _state.loaded = true; if (_state.view==='list') _renderList(); })
+      .catch(function(e){ console.error('[__mq] fetch', e); _toast('불러오기 실패: music_quotes 테이블 미생성 or 권한'); });
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 뷰 전환
+  // ────────────────────────────────────────────────────────────
+  function _showList(){
+    _state.view = 'list'; _state.editingId=null; _state.viewingId=null; _state.form=null;
+    _visible('mq-list-wrap', true); _visible('mq-detail-view', false); _visible('mq-form-view', false);
+    _visible('mq-filter-bar', true, 'flex');
+    _showBtn('mq-new-btn', true); _showBtn('mq-back-btn', false);
+    _renderList();
+  }
+  function _showForm(id){
+    // id = null → 신규, id = uuid → 수정
+    _state.view = 'form'; _state.editingId = id || null; _state.viewingId = null;
+    if (id) {
+      var r = _state.rows.find(function(x){ return x.id === id; });
+      if (!r) { _toast('견적서를 찾을 수 없습니다'); return; }
+      _state.form = _cloneForForm(r);
+    } else {
+      _state.form = _newForm();
+    }
+    _visible('mq-list-wrap', false); _visible('mq-detail-view', false); _visible('mq-form-view', true);
+    _visible('mq-filter-bar', false);
+    _showBtn('mq-new-btn', false); _showBtn('mq-back-btn', true);
+    _renderForm();
+  }
+  function _showDetail(id){
+    var r = _state.rows.find(function(x){ return x.id === id; });
+    if (!r) { _toast('견적서를 찾을 수 없습니다'); return; }
+    _state.view = 'detail'; _state.viewingId = id; _state.editingId = null;
+    _visible('mq-list-wrap', false); _visible('mq-detail-view', true); _visible('mq-form-view', false);
+    _visible('mq-filter-bar', false);
+    _showBtn('mq-new-btn', false); _showBtn('mq-back-btn', true);
+    _renderDetail(r);
+  }
+  function _visible(id, on, mode){ var el=document.getElementById(id); if (el) el.style.display = on ? (mode||'block') : 'none'; }
+  function _showBtn(id, on){ var el=document.getElementById(id); if (el) el.style.display = on ? 'inline-flex' : 'none'; }
+
+  function _newForm(){
+    var f = {
+      id: null,
+      doc_type: 'needle', sub_type: 'ott',
+      quote_no: '', status: '미결',
+      tax_invoice_date: '',
+      doc_date: _today(),
+      receiver_company: '', receiver_person: '', receiver_tel: '', receiver_fax: '',
+      doc_title: '',
+      items: [ _newItem('needle_ott') ],
+      attachments: [], pendingFiles: []
+    };
+    Object.assign(f, _defaultSender());
+    return f;
+  }
+  function _cloneForForm(r){
+    return {
+      id: r.id,
+      doc_type: r.doc_type||'needle', sub_type: r.sub_type||'',
+      quote_no: r.quote_no||'', status: r.status||'미결',
+      tax_invoice_date: r.tax_invoice_date||'',
+      doc_date: r.doc_date||'',
+      receiver_company: r.receiver_company||'', receiver_person: r.receiver_person||'',
+      receiver_tel: r.receiver_tel||'', receiver_fax: r.receiver_fax||'',
+      doc_title: r.doc_title||'',
+      sender_reg_no: r.sender_reg_no||'', sender_company: r.sender_company||'',
+      sender_ceo: r.sender_ceo||'', sender_address: r.sender_address||'',
+      sender_biz_type: r.sender_biz_type||'', sender_biz_item: r.sender_biz_item||'',
+      sender_tel: r.sender_tel||'', sender_fax: r.sender_fax||'',
+      sender_person: r.sender_person||'',
+      items: (Array.isArray(r.items) ? r.items.map(function(it){ return Object.assign({}, it); }) : []),
+      attachments: (Array.isArray(r.attachments) ? r.attachments.slice() : []),
+      pendingFiles: []
+    };
+  }
+  function _newItem(schemaKey){
+    var it = {};
+    (ITEM_COLS[schemaKey] || ITEM_COLS.needle_ott).forEach(function(c){
+      if (c.t === 'auto') return;
+      it[c.k] = c.t === 'num' ? 0 : '';
+    });
+    return it;
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 필터
+  // ────────────────────────────────────────────────────────────
+  function _setFilter(k, v){ _state.filter[k] = v; _renderList(); }
+  function _clearFilter(){
+    _state.filter = { q:'', docType:'all', subType:'all', status:'all' };
+    ['mq-search-inp','mq-fil-doctype','mq-fil-subtype','mq-fil-status'].forEach(function(id){
+      var el=document.getElementById(id); if (!el) return;
+      if (el.tagName==='INPUT') el.value=''; else el.value='all';
+    });
+    _renderList();
+  }
+  function _applyFilter(rows){
+    var f = _state.filter, q = (f.q||'').toLowerCase().trim();
+    return rows.filter(function(r){
+      if (f.docType !== 'all' && r.doc_type !== f.docType) return false;
+      if (f.subType !== 'all' && r.sub_type !== f.subType) return false;
+      if (f.status !== 'all' && r.status !== f.status) return false;
+      if (q) {
+        var hay = [r.doc_title, r.receiver_company, r.receiver_person, r.quote_no].join(' ').toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 리스트 렌더
+  // ────────────────────────────────────────────────────────────
+  function _renderList(){
+    var wrap = document.getElementById('mq-list');
+    if (!wrap) return;
+    if (!_state.loaded) { wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px">불러오는 중...</div>'; return; }
+    var rows = _applyFilter(_state.rows);
+    var header = '<div class="mq-row mq-row-header">'
+      + '<div>NO</div><div>종류</div><div>번호</div><div>제목</div><div>수신처</div><div>DATE</div><div>발행일</div><div>상태</div><div>등록일</div><div style="text-align:center">액션</div>'
+      + '</div>';
+    if (!rows.length) {
+      wrap.innerHTML = header + '<div style="text-align:center;padding:60px 20px;color:#94a3b8;font-size:13px">'+(_state.rows.length===0?'등록된 견적서가 없습니다. 상단의 <b>+ 새 견적서</b>로 시작해주세요.':'검색 결과가 없습니다.')+'</div>';
+      return;
+    }
+    var html = header + rows.map(function(r, idx){
+      var subLbl = r.doc_type==='needle' ? ({ott:'OTT',ad:'광고',movie:'영화'}[r.sub_type]||'') : '';
+      return '<div class="mq-row" onclick="window.__mq._showDetail(\''+_esc(r.id)+'\')">'
+        + '<div>'+(idx+1)+'</div>'
+        + '<div><span class="mq-chip '+_typeClass(r)+'">'+(r.doc_type==='needle'?'Needle':r.doc_type==='annual'?'Annual':'거래명세서')+'</span>'+(subLbl?'<span class="mq-sub">'+_esc(subLbl)+'</span>':'')+'</div>'
+        + '<div style="font-family:monospace;color:#64748b">'+_esc(r.quote_no||'-')+'</div>'
+        + '<div style="font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(r.doc_title||'무제')+'</div>'
+        + '<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(r.receiver_company||'-')+(r.receiver_person?' <span style="color:#94a3b8">· '+_esc(r.receiver_person)+'</span>':'')+'</div>'
+        + '<div style="color:#64748b">'+_esc(r.doc_date||'-')+'</div>'
+        + '<div style="color:#64748b">'+_esc(r.tax_invoice_date||'-')+'</div>'
+        + '<div><span class="mq-chip mq-status-'+(r.status||'미결')+'">'+_esc(r.status||'미결')+'</span></div>'
+        + '<div style="color:#94a3b8;font-size:11px">'+_esc((r.created_at||'').slice(0,10))+'</div>'
+        + '<div style="text-align:center"><button class="mq-row-act" title="수정" onclick="event.stopPropagation();window.__mq._showForm(\''+_esc(r.id)+'\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button> <button class="mq-row-act" title="삭제" onclick="event.stopPropagation();window.__mq._deleteById(\''+_esc(r.id)+'\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>'
+      + '</div>';
+    }).join('');
+    wrap.innerHTML = html;
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 상세 뷰 (read-only)
+  // ────────────────────────────────────────────────────────────
+  function _renderDetail(r){
+    var host = document.getElementById('mq-detail-view');
+    if (!host) return;
+    host.innerHTML = _docHtml(r, true);
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 폼 (신규/수정 편집)
+  // ────────────────────────────────────────────────────────────
+  function _renderForm(){
+    var host = document.getElementById('mq-form-view');
+    if (!host) return;
+    host.innerHTML = _docHtml(_state.form, false);
+    // input change bind — delegation via oninput on inputs
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 견적서 문서 HTML 생성 (readonly=true → 상세뷰, false → 폼)
+  // ────────────────────────────────────────────────────────────
+  function _docHtml(r, readonly){
+    var docLabel = r.doc_type==='invoice' ? '거 래 명 세 서' : '견 적 서';
+    var cls = 'mq-doc' + (readonly ? ' readonly' : '');
+    var editHint = readonly ? '' : ' data-edit="1"';
+    // 상단 doc_type / sub_type / 상태 선택 바 (편집 시만)
+    var ctrlBar = readonly ? '' : (
+      '<div style="display:flex;gap:10px;margin-bottom:16px;padding:12px 14px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;align-items:center;flex-wrap:wrap">'
+      + '<span style="font-size:11.5px;font-weight:800;color:#0f766e;letter-spacing:0.4px">문서 유형</span>'
+      + '<select class="mq-sel" onchange="window.__mq._setFormField(\'doc_type\',this.value)">'
+        + _opt('needle','Needle 견적',r.doc_type)
+        + _opt('annual','Annual 견적',r.doc_type)
+        + _opt('invoice','거래명세서',r.doc_type)
+      + '</select>'
+      + (r.doc_type==='needle' ? '<select class="mq-sel" onchange="window.__mq._setFormField(\'sub_type\',this.value)">'
+          + _opt('ott','OTT',r.sub_type)
+          + _opt('ad','광고',r.sub_type)
+          + _opt('movie','영화',r.sub_type)
+        + '</select>' : '')
+      + '<span style="margin-left:auto;font-size:11.5px;font-weight:800;color:#0f766e;letter-spacing:0.4px">상태</span>'
+      + '<select class="mq-sel" onchange="window.__mq._setFormField(\'status\',this.value)">'
+        + _opt('미결','미결',r.status)
+        + _opt('진행','진행',r.status)
+        + _opt('완료','완료',r.status)
+      + '</select>'
+      + '</div>'
+    );
+    return ctrlBar
+      + '<div class="'+cls+'">'
+        + '<div class="mq-doc-title">' + docLabel + '</div>'
+        + _topGridHtml(r, readonly)
+        + _itemsTableHtml(r, readonly)
+        + (readonly ? _attachmentsHtml(r) : _attachmentsEditableHtml(r))
+        + _actionsBar(r, readonly)
+      + '</div>';
+  }
+
+  function _opt(v, l, cur){ return '<option value="'+v+'"'+(v===cur?' selected':'')+'>'+l+'</option>'; }
+
+  // 상단 좌/우 grid
+  function _topGridHtml(r, readonly){
+    var L = [
+      { k:'tax_invoice_date', label:'세금계산서 발행일', type:'date', internal:1 },
+      { k:'quote_no', label:'견적서 번호', type:'text', internal:1 },
+      { k:'doc_date', label:'DATE', type:'date' },
+      { k:'receiver_company', label:'수신', type:'text' },
+      { k:'receiver_person', label:'참조', type:'text' },
+      { k:'receiver_tel', label:'Tel', type:'text' },
+      { k:'receiver_fax', label:'Fax', type:'text' },
+      { k:'doc_title', label:'제목', type:'text' }
+    ];
+    var R = [
+      { k:'sender_reg_no', label:'등록번호', type:'text' },
+      { k:'sender_company', label:'상호명', type:'text' },
+      { k:'sender_ceo', label:'대표자', type:'text' },
+      { k:'sender_address', label:'소재지', type:'text' },
+      { k:'sender_biz_type', label:'업태', type:'text' },
+      { k:'sender_biz_item', label:'업종', type:'text' },
+      { k:'sender_tel', label:'Tel', type:'text' },
+      { k:'sender_fax', label:'Fax', type:'text' },
+      { k:'sender_person', label:'담당자', type:'text' }
+    ];
+    // readonly 상세 뷰에서는 internal 필드 (세금계산서일/견적번호) 숨김? 아니, 상세도 보이게. 실제 견적서 인쇄 시 감춘다 (Phase 2).
+    var mkBlock = function(title, arr){
+      var rows = arr.map(function(f){
+        var v = r[f.k] || '';
+        var inputHtml = readonly
+          ? '<span style="padding:3px 4px;display:inline-block">'+ _esc(v) +'</span>'
+          : '<input type="'+f.type+'" value="'+_esc(v)+'" oninput="window.__mq._setFormField(\''+f.k+'\',this.value)">';
+        return '<div class="mq-field">'
+          + '<div class="lbl">'+f.label+(f.internal?' <span style="font-size:9px;color:#f97316;margin-left:3px">·내부</span>':'')+'</div>'
+          + '<div class="val">'+inputHtml+'</div>'
+        + '</div>';
+      }).join('');
+      return '<div class="mq-top-block"><h4>'+title+'</h4>'+rows+'</div>';
+    };
+    return '<div class="mq-top-grid">'
+      + mkBlock('수신·기본정보', L)
+      + mkBlock('발신자 (미디어큐브)', R)
+    + '</div>';
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // items 표 렌더 (sub_type/doc_type 별로 동적)
+  // ────────────────────────────────────────────────────────────
+  function _itemsTableHtml(r, readonly){
+    var cols = _cols(r);
+    var items = Array.isArray(r.items) ? r.items : [];
+    var thead = '<thead><tr>' + cols.map(function(c){ return '<th style="width:'+c.w+'px">'+_esc(c.label)+'</th>'; }).join('') + (readonly?'':'<th style="width:32px"></th>') + '</tr></thead>';
+    var tbody = '<tbody>' + items.map(function(it, idx){
+      var cellsHtml = cols.map(function(c){
+        var cls = c.c ? 'center' : (c.r ? 'num' : '');
+        var val = c.t === 'auto' ? (idx+1) : (it[c.k] == null ? '' : it[c.k]);
+        if (readonly || c.t === 'auto') {
+          var disp = (c.t === 'num' && val !== '') ? _fmtN(val) : val;
+          return '<td class="'+cls+'">'+_esc(disp)+'</td>';
+        }
+        return '<td class="'+cls+'"><input type="'+(c.t==='num'?'text':'text')+'" value="'+_esc(val)+'" oninput="window.__mq._setItemField('+idx+',\''+c.k+'\',this.value)"'+(c.r?' style="text-align:right"':(c.c?' style="text-align:center"':''))+'></td>';
+      }).join('');
+      var delBtn = readonly ? '' : '<td class="center"><button class="mq-item-del" title="행 삭제" onclick="window.__mq._removeItem('+idx+')">×</button></td>';
+      return '<tr>'+cellsHtml+delBtn+'</tr>';
+    }).join('') + '</tbody>';
+    var addBtn = readonly ? '' : '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addItem()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 행 추가</button>';
+    return '<table class="mq-items">'+thead+tbody+'</table>' + addBtn;
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 첨부파일 (readonly 리스트 · editable 리스트+업로드)
+  // ────────────────────────────────────────────────────────────
+  function _attachmentsHtml(r){
+    var atts = Array.isArray(r.attachments) ? r.attachments : [];
+    if (!atts.length) return '<div class="mq-attach-wrap"><div style="font-size:11.5px;font-weight:800;color:#64748b;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px">첨부파일</div><div style="color:#94a3b8;font-size:12px;padding:6px 4px">— 첨부된 파일이 없습니다 —</div></div>';
+    var html = atts.map(function(a){
+      var sz = a.size ? (a.size>1024*1024?(a.size/1024/1024).toFixed(1)+'MB':Math.round(a.size/1024)+'KB') : '';
+      return '<a href="'+_esc(_dl(a.url,a.name))+'" target="_blank" download="'+_esc(a.name||'file')+'" style="text-decoration:none;color:inherit" class="mq-attach-item"><span style="color:#0f766e">📎</span><span class="name">'+_esc(a.name||'file')+'</span>'+(sz?'<span class="size">'+sz+'</span>':'')+'</a>';
+    }).join('');
+    return '<div class="mq-attach-wrap"><div style="font-size:11.5px;font-weight:800;color:#64748b;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px">첨부파일 · '+atts.length+'개</div>'+html+'</div>';
+  }
+  function _attachmentsEditableHtml(r){
+    var atts = Array.isArray(r.attachments) ? r.attachments : [];
+    var pending = Array.isArray(r.pendingFiles) ? r.pendingFiles : [];
+    var existingHtml = atts.map(function(a, idx){
+      var sz = a.size ? (a.size>1024*1024?(a.size/1024/1024).toFixed(1)+'MB':Math.round(a.size/1024)+'KB') : '';
+      return '<div class="mq-attach-item"><span style="color:#0f766e">📎</span><span class="name">'+_esc(a.name||'file')+'</span>'+(sz?'<span class="size">'+sz+'</span>':'')+'<button type="button" class="mq-item-del" onclick="window.__mq._removeExistingAttach('+idx+')" title="제거">×</button></div>';
+    }).join('');
+    var pendingHtml = pending.map(function(f, idx){
+      var sz = f.size>1024*1024?(f.size/1024/1024).toFixed(1)+'MB':Math.round(f.size/1024)+'KB';
+      return '<div class="mq-attach-item" style="background:#fefce8;border-color:#fde68a"><span style="color:#ca8a04">📎</span><span class="name">'+_esc(f.name)+'</span><span style="font-size:10px;font-weight:700;color:#ca8a04;background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:1px 6px">저장 시 업로드</span><span class="size">'+sz+'</span><button type="button" class="mq-item-del" onclick="window.__mq._removePendingFile('+idx+')" title="제거">×</button></div>';
+    }).join('');
+    return '<div class="mq-attach-wrap"><div style="font-size:11.5px;font-weight:800;color:#64748b;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:8px">첨부파일 (PDF · Excel 등)</div>'
+      + existingHtml + pendingHtml
+      + '<label style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:9px 14px;background:#f0fdfa;color:#0f766e;border:1px dashed #5eead4;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> 파일 추가<input type="file" multiple style="display:none" onchange="window.__mq._onFileSelect(this)"></label>'
+    + '</div>';
+  }
+  function _dl(url, name){ if (!url) return ''; var sep = url.indexOf('?')===-1?'?':'&'; return url + sep + 'download=' + encodeURIComponent(name||'file'); }
+
+  // ────────────────────────────────────────────────────────────
+  // 액션 바 (하단)
+  // ────────────────────────────────────────────────────────────
+  function _actionsBar(r, readonly){
+    if (readonly) {
+      return '<div class="mq-actions">'
+        + '<button class="mq-btn danger" onclick="window.__mq._deleteById(\''+_esc(r.id)+'\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> 삭제</button>'
+        + '<button class="mq-btn primary" onclick="window.__mq._showForm(\''+_esc(r.id)+'\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> 수정</button>'
+      + '</div>';
+    }
+    return '<div class="mq-actions">'
+      + '<button class="mq-btn ghost" onclick="window.__mq._showList()">취소</button>'
+      + '<button class="mq-btn primary" onclick="window.__mq._save()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> 저장</button>'
+    + '</div>';
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 폼 상태 mutation
+  // ────────────────────────────────────────────────────────────
+  function _setFormField(k, v){
+    if (!_state.form) return;
+    _state.form[k] = v;
+    // doc_type 변경 시: sub_type 정리 · items schema 재설정
+    if (k === 'doc_type') {
+      if (v !== 'needle') _state.form.sub_type = null;
+      else if (!_state.form.sub_type || !['ott','ad','movie'].includes(_state.form.sub_type)) _state.form.sub_type = 'ott';
+      _state.form.items = [ _newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type)) ];
+      _renderForm();
+      return;
+    }
+    if (k === 'sub_type') {
+      _state.form.items = [ _newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type)) ];
+      _renderForm();
+      return;
+    }
+    // status 는 상단 컨트롤 바만 즉시 갱신 필요 없음 (다음 렌더 시 반영). 나머지 필드는 재렌더 없이 input 값에 이미 반영됨.
+  }
+  function _setItemField(idx, k, v){
+    if (!_state.form || !_state.form.items[idx]) return;
+    _state.form.items[idx][k] = v;
+    // Annual/invoice 의 supplyPrice + vat 변경 시 totalWithVat 자동 계산
+    if ((_state.form.doc_type==='annual' || _state.form.doc_type==='invoice') && (k==='supplyPrice' || k==='vat')) {
+      var it = _state.form.items[idx];
+      it.totalWithVat = _num(it.supplyPrice) + _num(it.vat);
+      _renderForm();
+    }
+  }
+  function _addItem(){
+    if (!_state.form) return;
+    _state.form.items.push(_newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type)));
+    _renderForm();
+  }
+  function _removeItem(idx){
+    if (!_state.form) return;
+    _state.form.items.splice(idx, 1);
+    _renderForm();
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 첨부파일 ops
+  // ────────────────────────────────────────────────────────────
+  function _onFileSelect(inp){
+    if (!_state.form) return;
+    var files = inp.files ? Array.from(inp.files) : [];
+    for (var i=0;i<files.length;i++) {
+      if (files[i].size > 30*1024*1024) { _toast(files[i].name+' — 30MB 초과'); continue; }
+      _state.form.pendingFiles.push(files[i]);
+    }
+    inp.value = '';
+    _renderForm();
+  }
+  function _removePendingFile(idx){
+    if (!_state.form) return;
+    _state.form.pendingFiles.splice(idx,1);
+    _renderForm();
+  }
+  function _removeExistingAttach(idx){
+    if (!_state.form) return;
+    _state.form.attachments.splice(idx,1);
+    _renderForm();
+  }
+  function _uploadPending(){
+    if (!_state.form || !_state.form.pendingFiles.length) return Promise.resolve([]);
+    var uploads = _state.form.pendingFiles.map(function(f){
+      var extM = /\.([a-zA-Z0-9]+)$/.exec(f.name||''); var ext = extM ? '.'+extM[1].toLowerCase() : '';
+      var path = 'music-quotes/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+ext;
+      return fetch(_URL+'/storage/v1/object/msg-attachments/'+path, {
+        method:'POST', headers:{ 'Authorization':'Bearer '+_tok(), 'apikey':_KEY, 'Content-Type': f.type||'application/octet-stream', 'x-upsert':'true' },
+        body: f
+      }).then(function(r){ if (!r.ok) return r.text().then(function(t){ throw new Error(t); });
+        return { name: f.name, url: _URL+'/storage/v1/object/public/msg-attachments/'+path, size: f.size, type: f.type };
+      });
+    });
+    return Promise.all(uploads);
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 저장 · 삭제
+  // ────────────────────────────────────────────────────────────
+  function _save(){
+    var f = _state.form; if (!f) return;
+    if (!f.doc_title) { _toast('제목을 입력해주세요'); return; }
+    var me = _me(), meDisplay = (me._display && (me._display.fullName||me._display.name)) || (typeof _currentUsername!=='undefined'?_currentUsername:'');
+    _uploadPending().then(function(uploaded){
+      var body = {
+        doc_type: f.doc_type, sub_type: f.sub_type||null,
+        quote_no: f.quote_no||null, status: f.status||'미결',
+        tax_invoice_date: f.tax_invoice_date||null,
+        doc_date: f.doc_date||null,
+        receiver_company: f.receiver_company||null, receiver_person: f.receiver_person||null,
+        receiver_tel: f.receiver_tel||null, receiver_fax: f.receiver_fax||null,
+        doc_title: f.doc_title||null,
+        sender_reg_no: f.sender_reg_no||null, sender_company: f.sender_company||null,
+        sender_ceo: f.sender_ceo||null, sender_address: f.sender_address||null,
+        sender_biz_type: f.sender_biz_type||null, sender_biz_item: f.sender_biz_item||null,
+        sender_tel: f.sender_tel||null, sender_fax: f.sender_fax||null,
+        sender_person: f.sender_person||null,
+        items: f.items||[],
+        attachments: (f.attachments||[]).concat(uploaded),
+        author_id: me.user_id || me._username || (typeof _currentUsername!=='undefined'?_currentUsername:null),
+        author_name: meDisplay || null,
+        updated_at: new Date().toISOString()
+      };
+      var url, method;
+      if (_state.editingId) {
+        url = _URL+'/rest/v1/music_quotes?id=eq.'+encodeURIComponent(_state.editingId);
+        method = 'PATCH';
+      } else {
+        url = _URL+'/rest/v1/music_quotes';
+        method = 'POST';
+      }
+      return fetch(url, { method: method, headers: _hdr({ 'Prefer':'return=minimal' }), body: JSON.stringify(body) });
+    }).then(function(r){
+      if (!r.ok && r.status !== 201 && r.status !== 204) return r.text().then(function(t){ throw new Error('HTTP '+r.status+' '+t); });
+      _toast(_state.editingId ? '수정 완료' : '견적서가 저장되었습니다');
+      return refresh().then(function(){ _showList(); });
+    }).catch(function(e){ console.error('[__mq] save', e); _toast('저장 실패 — '+ (e.message||e)); });
+  }
+
+  function _deleteById(id){
+    if (!id) return;
+    if (!confirm('이 견적서를 삭제하시겠습니까? (되돌릴 수 없음)')) return;
+    fetch(_URL+'/rest/v1/music_quotes?id=eq.'+encodeURIComponent(id), {
+      method:'DELETE', headers: _hdr({ 'Prefer':'return=minimal' })
+    }).then(function(r){
+      if (!r.ok && r.status !== 204) return r.text().then(function(t){ throw new Error('HTTP '+r.status+' '+t); });
+      _toast('삭제되었습니다');
+      return refresh().then(function(){ _showList(); });
+    }).catch(function(e){ console.error('[__mq] delete', e); _toast('삭제 실패 — '+(e.message||e)); });
+  }
+
+  return {
+    openPanel: openPanel, closePanel: closePanel, refresh: refresh,
+    _showList: _showList, _showForm: _showForm, _showDetail: _showDetail,
+    _setFilter: _setFilter, _clearFilter: _clearFilter,
+    _setFormField: _setFormField, _setItemField: _setItemField,
+    _addItem: _addItem, _removeItem: _removeItem,
+    _onFileSelect: _onFileSelect, _removePendingFile: _removePendingFile, _removeExistingAttach: _removeExistingAttach,
+    _save: _save, _deleteById: _deleteById,
+    _state: _state
+  };
+})();
+
+// 전역 진입점
+function openMusicQuotePanel(){ window.__mq.openPanel(); }
+function closeMusicQuotePanel(){ window.__mq.closePanel(); }
+</script>
+
 <!-- ═══════════════════════════════════════════════════════════
      회의록 (Meeting Minutes) — 사내 회의 기록 · 사업부별 공개 범위
      · Supabase 테이블: meeting_minutes, meeting_types
@@ -19108,6 +19852,7 @@ window._DM_ITEMS = [
   { key:'calendar',  title:'업무 공유 캘린더',     desc:'부서별 캘린더 · 공유 일정',          grad:'#ec4899,#db2777', cat:'workflow',  icon:'calendar', action:function(){ if (typeof openSharedCalendarChooser==='function') openSharedCalendarChooser(); } },
   // 견적 관리 — 관리자 / 시스템 사업부 / 회계(info) 만 노출 (_dmIsCardAllowed 에서 필터)
   { key:'quote',     title:'견적 관리',            desc:'견적 등록 · 조회 · 관리',            grad:'#4338ca,#3730a3', cat:'collab',    icon:'quote',    action:function(){ if (typeof openQuotePanel==='function') openQuotePanel(); } },
+  { key:'mq',        title:'음원 견적 관리',       desc:'사운드팀 Needle·Annual·거래명세서',   grad:'#0d9488,#0f766e', cat:'collab',    icon:'note',     action:function(){ if (typeof openMusicQuotePanel==='function') openMusicQuotePanel(); } },
   // 사내 회의록 — 사업부별 노출 필터는 클라이언트에서 처리
   { key:'meeting',   title:'회의록',              desc:'사내 회의 기록 · 참석자 공유',       grad:'#2c8bdb,#2066ff', cat:'collab',    icon:'note',     action:function(){ if (typeof openMeetingPanel==='function') openMeetingPanel(); } },
   { key:'board',     title:'게시판',              desc:'공지 · 업무 공유 · 자유게시판',      grad:'#0ea5e9,#0369a1', cat:'collab',    icon:'grid',     action:function(){ if (typeof openBoardPanel==='function') openBoardPanel(); } },
@@ -19157,7 +19902,8 @@ window._dmIsCardAllowed = function(item){
   switch (item.key) {
     case 'sound':   return !isSystemDept;              // 음원팀 업무 현황
     case 'bmat':    return !isSystemDept;              // BMAT 모니터링 통계
-    case 'quote':   return isAdmin || isInfo || isSystemDept; // 견적 관리
+    case 'quote':   return isAdmin || isInfo || isSystemDept; // 견적 관리 (시스템팀 legacy)
+    case 'mq':      return uname === 'developer';      // 음원 견적 관리 (사운드팀 - 테스트 단계)
     case 'emp':
     case 'perm':    return isAdmin;                    // 관리자 전용
     case 'sitemap': return false;                      // 사이트맵 카드 — 전 계정 숨김 (사용자 요청)
