@@ -16385,7 +16385,7 @@ window.__mq = (function(){
     // 컬럼 너비
     colSpec.widths.forEach(function(w,i){ ws.getColumn(i+1).width = w; });
     // 행 높이 (참조 xlsx 스펙 반영 · 데이터 행 늘려 여유 확보)
-    ws.getRow(1).height = 45; ws.getRow(2).height = 33;
+    ws.getRow(1).height = 30; ws.getRow(2).height = 30;
     for (var i=3;i<=8;i++) ws.getRow(i).height = 28;
     ws.getRow(9).height = 32; ws.getRow(10).height = 42; ws.getRow(11).height = 32;
     for (var i=12;i<=18;i++) ws.getRow(i).height = 32;
