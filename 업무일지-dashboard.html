@@ -15201,7 +15201,7 @@ function openQuotePanel() {
   .mq-row-act:hover { color:#ef4444; background:#fef2f2; }
   /* 상세 · 폼 뷰 공통 컨테이너 */
   #mq-detail-view, #mq-form-view { display:none; flex:1; overflow-y:auto; background:#f8fafc; padding:24px; }
-  .mq-doc { background:#fff; max-width:1080px; margin:0 auto; padding:28px 32px 32px; border-radius:10px; box-shadow:0 2px 12px rgba(15,23,42,0.06); border:1px solid #e2e8f0; }
+  .mq-doc { background:#fff; max-width:1400px; margin:0 auto; padding:28px 36px 32px; border-radius:10px; box-shadow:0 2px 12px rgba(15,23,42,0.06); border:1px solid #e2e8f0; }
   .mq-doc-title { text-align:center; font-size:22px; font-weight:800; letter-spacing:8px; color:#0f172a; padding:14px 0 18px; border-bottom:3px double #0d9488; margin-bottom:18px; }
   .mq-top-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
   .mq-top-block { border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; }
@@ -15706,7 +15706,7 @@ window.__mq = (function(){
     //   · 문서 유형은 chooser 로 결정하므로 편집 모드에서도 표시만, 변경 가능 (표 컬럼 자동 리셋)
     //   · sub_type(OTT/광고/영화)은 모든 doc_type 에 노출 (관리·필터용 태그)
     var ctrlBar = readonly ? '' : (
-      '<div style="display:flex;gap:10px;margin-bottom:16px;padding:12px 14px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;align-items:center;flex-wrap:wrap">'
+      '<div style="display:flex;gap:10px;max-width:1400px;margin:0 auto 16px;padding:12px 14px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;align-items:center;flex-wrap:wrap">'
       + '<span style="font-size:11.5px;font-weight:800;color:#0f766e;letter-spacing:0.4px">문서 유형</span>'
       + '<select class="mq-sel" onchange="window.__mq._setFormField(\'doc_type\',this.value)">'
         + _opt('needle','Needle 견적',r.doc_type)
