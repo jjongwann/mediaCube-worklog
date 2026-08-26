@@ -16231,10 +16231,14 @@ window.__mq = (function(){
         });
         return out + '</tr>';
       }
+      // 부모 행 판단 (label 에 '-' 없음)
+      var isParentRow = String(nums[idx].label).indexOf('-') === -1;
       return '<tr>' + cols.map(function(c){
         var cls = c.c ? 'center' : (c.r ? 'num' : '');
         if (c.t === 'auto') return '<td class="'+cls+'">'+esc(nums[idx].label)+'</td>';
         var v = it[c.k]==null?'':it[c.k];
+        // Needle 의 단위 컬럼: 부모 행에만 'sync' default · 자식 행은 빈칸
+        if (isNeedle && c.k === 'unit' && !v && isParentRow) v = 'sync';
         var disp = (c.t === 'num' && v !== '') ? _fmtN(v) : v;
         return '<td class="'+cls+'">'+esc(disp)+'</td>';
       }).join('') + '</tr>';
@@ -16584,12 +16588,15 @@ window.__mq = (function(){
       } else {
         var it = row.raw;
         var vals;
+        // 부모 행 판단 (row.no 에 '-' 없음 = 부모, 있음 = 자식)
+        var isParent = String(row.no).indexOf('-') === -1;
+        var unitDefault = isParent ? 'sync' : '';
         if (mode === 'ott') {
-          vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||'sync', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.dw)||''];
+          vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||unitDefault, _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.dw)||''];
         } else if (mode === 'ad') {
           vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||'', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.amount)||''];
         } else {
-          vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||'sync', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.domestic)||'', _MQ_XL.num(it.worldwide)||''];
+          vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||unitDefault, _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.domestic)||'', _MQ_XL.num(it.worldwide)||''];
         }
         vals.forEach(function(v, c){
           // 모든 데이터 셀 중앙 정렬 · 숫자 컬럼은 #,##0 · 나머지는 '@' (문자열)
