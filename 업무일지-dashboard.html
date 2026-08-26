@@ -16498,13 +16498,16 @@ window.__mq = (function(){
       idx++;
     }
     // 빈 슬롯 6줄 이상 반드시 표시 (border + 빈 값 명시)
+    // 사용자가 나중에 값 입력할 때 자동으로 중앙 정렬 되도록 alignment 미리 세팅
     var lastFilledRow = dataStart + Math.max(idx-1, 0);
-    var totalDataRows = 12 - 11 + 6; // 최소 데이터+빈행 슬롯 = row 12~18 (7행)
     for (var rr2 = lastFilledRow+1; rr2 <= 18; rr2++) {
       for (var cc = 1; cc <= colSpec.widths.length; cc++) {
         var cell = ws.getRow(rr2).getCell(cc);
         cell.value = null;
         cell.border = _MQ_XL.BD;
+        cell.alignment = _MQ_XL.ALIGN.center; // 상하좌우 중앙
+        // 숫자 컬럼은 #,##0 포맷 미리 → 나중에 숫자 입력 시 자동 콤마
+        if (colSpec.sumCols.indexOf(cc) !== -1) cell.numFmt = '#,##0';
       }
     }
     // TOTAL (19행) — A19:D19 병합 'TOTAL (Excluding V.A.T)' · 단위 컬럼 'sync' · 합계 계산 + result
@@ -16533,7 +16536,7 @@ window.__mq = (function(){
       (r.items || []).forEach(function(it){ if (it._type !== 'group') sumVal += _MQ_XL.num(it[sumFieldMap[cn]]); });
       // 수량(qty) 컬럼은 그대로 #,##0 · 가격(dw/amount/domestic/worldwide) 은 ₩ 통화 기호 붙임
       var isQty = sumFieldMap[cn] === 'qty';
-      var fmt = isQty ? '#,##0' : '₩#,##0';
+      var fmt = isQty ? '#,##0' : '"₩ "#,##0';
       set(ws, addr, { formula: 'SUM('+colL+sumRange.start+':'+colL+sumRange.end+')', result: sumVal }, { font:F(10,true), fill:FILL.total, numFmt:fmt, align:A.center });
     });
     // 나머지 열 border · fill
@@ -16543,12 +16546,13 @@ window.__mq = (function(){
       cell.border = BD;
     }
     // 비고 (20~23 · 4행) — 라벨 세로 병합 · 본문 전체(4행 × N열) 한 칸으로 병합
+    // 배경색: TOTAL 과 동일 (연하늘색 · FILL.total)
     ws.mergeCells(colSpec.notesLbl); // A20:A23
-    set(ws, colSpec.notesLbl.split(':')[0], '비 고', { font:F(11,true), fill:FILL.label, align:A.center });
+    set(ws, colSpec.notesLbl.split(':')[0], '비 고', { font:F(11,true), fill:FILL.total, align:A.center });
     ws.mergeCells(colSpec.notesBody); // B20:{last}23
     set(ws, colSpec.notesBody.split(':')[0], r.notes || '', {
       align: { horizontal:'left', vertical:'top', wrapText:true, indent:1 },
-      font: F(10)
+      font: F(10), fill: FILL.total
     });
     // ── medium border 강조 ──
     //  1) 전체 외곽 프레임 (rows 3~23, cols 1~lastCol)
@@ -16685,7 +16689,7 @@ window.__mq = (function(){
       (r.items || []).forEach(function(it){ if (it._type !== 'group') sumVal += _MQ_XL.num(it[key]); });
       // 수량(F) 은 그대로 · 나머지 가격 (G~J) 은 ₩ 통화 기호
       var isQty = (key === 'qty');
-      var fmt = isQty ? '#,##0' : '₩#,##0';
+      var fmt = isQty ? '#,##0' : '"₩ "#,##0';
       set(ws, addr, { formula:'SUM('+col+dataStart+':'+col+(totalRow-1)+')', result: sumVal }, { font:F(10,true), fill:FILL.header, numFmt:fmt, align:A.center });
     });
     // 비고 (45~53행)
