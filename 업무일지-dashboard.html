@@ -379,7 +379,8 @@
   body.dev-embed #dev-feature-embed > #vendor-needle-overlay,
   body.dev-embed #dev-feature-embed > #bmat-modal-overlay,
   body.dev-embed #dev-feature-embed > #shared-cal-overlay,
-  body.dev-embed #dev-feature-embed > #board-overlay {
+  body.dev-embed #dev-feature-embed > #board-overlay,
+  body.dev-embed #dev-feature-embed > #mq-overlay {
     width: 100% !important;
   }
   body.dev-embed #dev-feature-embed > #board-overlay > div {
@@ -15146,10 +15147,29 @@ function openQuotePanel() {
        · 상태: 미결 / 진행 / 완료
      ═══════════════════════════════════════════════════════════════════ -->
 <style>
-  #mq-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9992; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; font-family:inherit; }
+  #mq-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9990; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; font-family:inherit; }
   #mq-overlay.open { display:flex !important; }
   #mq-modal { width:1240px; max-width:98vw; height:88vh; max-height:900px; background:#fff; border-radius:14px; overflow:hidden; box-shadow:0 24px 72px rgba(15,23,42,0.32); display:flex; flex-direction:column; position:relative; animation:mqFadeUp 0.2s ease-out; }
   @keyframes mqFadeUp { from{opacity:0;transform:translateY(8px) scale(0.99);} to{opacity:1;transform:translateY(0) scale(1);} }
+  /* embed 모드: dev-mode 사용자는 카탈로그 뷰 안으로 편입 (사이드바 유지) */
+  body.dev-embed #dev-feature-embed > #mq-overlay { position:static !important; inset:auto !important; background:transparent !important; padding:0 !important; z-index:auto !important; display:block !important; width:100% !important; }
+  body.dev-embed #dev-feature-embed > #mq-overlay > #mq-modal { width:100% !important; max-width:none !important; height:82vh !important; max-height:none !important; border-radius:14px; box-shadow:0 8px 32px rgba(15,23,42,0.08); animation:none; }
+  /* chooser 카드 모달 (mq-overlay 안 flex 로 중앙 표시) */
+  #mq-chooser-back { display:none; position:absolute; inset:0; background:rgba(15,23,42,0.55); z-index:10; align-items:center; justify-content:center; padding:20px; }
+  #mq-chooser-back.open { display:flex; }
+  #mq-chooser-card { background:#fff; border-radius:14px; padding:26px; box-shadow:0 20px 60px rgba(15,23,42,0.35); width:640px; max-width:96%; animation:mqFadeUp 0.16s ease-out; }
+  #mq-chooser-card h3 { margin:0 0 4px; font-size:18px; font-weight:800; color:#0f172a; letter-spacing:-0.3px; }
+  #mq-chooser-card .sub { font-size:12.5px; color:#64748b; margin-bottom:20px; }
+  .mq-choice-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .mq-choice { padding:22px 16px; border:2px solid #e2e8f0; border-radius:12px; cursor:pointer; text-align:center; transition:all 0.15s; background:#fff; }
+  .mq-choice:hover { border-color:#0d9488; background:#f0fdfa; transform:translateY(-2px); box-shadow:0 8px 20px rgba(13,148,136,0.15); }
+  .mq-choice .ico { width:44px; height:44px; margin:0 auto 10px; background:linear-gradient(135deg,#0d9488,#0f766e); color:#fff; border-radius:12px; display:flex; align-items:center; justify-content:center; }
+  .mq-choice .title { font-size:14px; font-weight:800; color:#0f172a; margin-bottom:4px; }
+  .mq-choice .desc { font-size:11.5px; color:#64748b; line-height:1.5; }
+  #mq-chooser-actions { margin-top:18px; display:flex; justify-content:space-between; align-items:center; padding-top:14px; border-top:1px solid #f1f5f9; }
+  #mq-chooser-actions .step { font-size:11.5px; color:#94a3b8; font-weight:600; }
+  #mq-chooser-actions button { padding:7px 14px; border-radius:7px; border:1px solid #e2e8f0; background:#f8fafc; color:#475569; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+  #mq-chooser-actions button:hover { background:#e2e8f0; }
   /* 헤더 (teal-emerald 그라디언트) */
   #mq-header { padding:16px 24px; display:flex; align-items:center; justify-content:space-between; background:linear-gradient(135deg,#0d9488,#0f766e); color:#fff; flex-shrink:0; }
   #mq-header .kicker { font-size:10px; font-weight:800; letter-spacing:1.6px; color:rgba(255,255,255,0.75); text-transform:uppercase; }
@@ -15238,7 +15258,7 @@ function openQuotePanel() {
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
-        <button class="mq-hbtn primary" id="mq-new-btn" onclick="window.__mq._openForm(null)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 새 견적서</button>
+        <button class="mq-hbtn primary" id="mq-new-btn" onclick="window.__mq._openChooser()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 새 견적서</button>
         <button class="mq-hbtn" id="mq-back-btn" onclick="window.__mq._showList()" style="display:none"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> 목록</button>
         <button class="mq-hbtn" onclick="window.__mq.closePanel()">닫기</button>
       </div>
@@ -15275,6 +15295,21 @@ function openQuotePanel() {
     <div id="mq-detail-view"></div>
     <!-- 폼 (작성/수정) -->
     <div id="mq-form-view"></div>
+    <!-- 신규 등록 chooser 백드롭 (mq-modal 내부에 오버레이) -->
+    <div id="mq-chooser-back" onclick="if(event.target===this)window.__mq._closeChooser()">
+      <div id="mq-chooser-card">
+        <h3 id="mq-chooser-title">문서 유형 선택</h3>
+        <div class="sub" id="mq-chooser-sub">등록할 견적서의 문서 유형을 선택하세요</div>
+        <div class="mq-choice-grid" id="mq-choice-grid"></div>
+        <div id="mq-chooser-actions">
+          <span class="step" id="mq-chooser-step">1 / 2 단계</span>
+          <div style="display:flex;gap:6px">
+            <button id="mq-chooser-back-btn" onclick="window.__mq._chooserBack()" style="display:none">← 이전</button>
+            <button onclick="window.__mq._closeChooser()">취소</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -15392,11 +15427,23 @@ window.__mq = (function(){
     if (uname !== 'developer') { _toast('접근 권한이 없습니다 (developer 계정 전용)'); return; }
     var ov = document.getElementById('mq-overlay');
     if (!ov) return;
+    // dev-mode 사용자는 카탈로그 embed 로 (사이드바 유지)
+    if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function') {
+      window._dmEnterFeatureEmbed('mq-overlay');
+    }
     ov.classList.add('open');
     _showList();
     refresh();
   }
   function closePanel(){
+    // embed 상태였다면 embed exit (사이드바 카탈로그로 복귀)
+    if (document.body.classList.contains('dev-embed')
+        && window._dmFeatureEmbedState
+        && window._dmFeatureEmbedState.overlayId === 'mq-overlay'
+        && typeof window._dmExitFeatureEmbed === 'function') {
+      window._dmExitFeatureEmbed();
+      return;
+    }
     var ov = document.getElementById('mq-overlay');
     if (ov) ov.classList.remove('open');
   }
@@ -15444,20 +15491,102 @@ window.__mq = (function(){
   function _visible(id, on, mode){ var el=document.getElementById(id); if (el) el.style.display = on ? (mode||'block') : 'none'; }
   function _showBtn(id, on){ var el=document.getElementById(id); if (el) el.style.display = on ? 'inline-flex' : 'none'; }
 
-  function _newForm(){
+  function _newForm(docType, subType){
+    docType = docType || 'needle';
+    subType = subType || 'ott';
     var f = {
       id: null,
-      doc_type: 'needle', sub_type: 'ott',
+      doc_type: docType, sub_type: subType,
       quote_no: '', status: '미결',
       tax_invoice_date: '',
       doc_date: _today(),
       receiver_company: '', receiver_person: '', receiver_tel: '', receiver_fax: '',
       doc_title: '',
-      items: [ _newItem('needle_ott') ],
+      items: [ _newItem(_schemaKey(docType, subType)) ],
       attachments: [], pendingFiles: []
     };
     Object.assign(f, _defaultSender());
     return f;
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 신규 등록 2단계 chooser
+  //   Step 1: 문서 유형 (Needle / Annual / 거래명세서)
+  //   Step 2: 카테고리 (OTT / 광고 / 영화)
+  //   → _showForm(null) with docType/subType pre-set
+  // ────────────────────────────────────────────────────────────
+  var _chooserState = { step:1, docType:null };
+  function _openChooser(){
+    _chooserState = { step:1, docType:null };
+    _renderChooser();
+    document.getElementById('mq-chooser-back').classList.add('open');
+  }
+  function _closeChooser(){
+    document.getElementById('mq-chooser-back').classList.remove('open');
+    _chooserState = { step:1, docType:null };
+  }
+  function _chooserBack(){
+    if (_chooserState.step === 2) { _chooserState.step = 1; _chooserState.docType = null; _renderChooser(); }
+  }
+  function _renderChooser(){
+    var grid = document.getElementById('mq-choice-grid');
+    var title = document.getElementById('mq-chooser-title');
+    var sub = document.getElementById('mq-chooser-sub');
+    var step = document.getElementById('mq-chooser-step');
+    var backBtn = document.getElementById('mq-chooser-back-btn');
+    if (!grid) return;
+    if (_chooserState.step === 1) {
+      title.textContent = '문서 유형 선택';
+      sub.textContent = '등록할 견적 문서의 유형을 선택하세요';
+      step.textContent = '1 / 2 단계';
+      backBtn.style.display = 'none';
+      var cards = [
+        { key:'needle',  title:'Needle 견적서', desc:'음원 사용 곡별 견적서\n(OTT / 광고 / 영화)', ico:'<line x1="12" y1="5" x2="12" y2="19"/><polyline points="5 12 12 19 19 12"/>' },
+        { key:'annual',  title:'Annual 견적서', desc:'연간 블랭킷\n라이선스 견적서', ico:'<circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 16 14"/>' },
+        { key:'invoice', title:'거래명세서',    desc:'세금계산서형\n거래명세서', ico:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' }
+      ];
+      grid.innerHTML = cards.map(function(c){
+        return '<div class="mq-choice" onclick="window.__mq._pickDocType(\''+c.key+'\')">'
+          + '<div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+c.ico+'</svg></div>'
+          + '<div class="title">'+c.title+'</div>'
+          + '<div class="desc">'+c.desc.replace(/\n/g,'<br>')+'</div>'
+        + '</div>';
+      }).join('');
+    } else {
+      var docLbl = _chooserState.docType === 'needle' ? 'Needle 견적서' : (_chooserState.docType === 'annual' ? 'Annual 견적서' : '거래명세서');
+      title.textContent = '카테고리 선택';
+      sub.textContent = docLbl + ' — 사용 카테고리를 선택하세요 (관리·필터용)';
+      step.textContent = '2 / 2 단계';
+      backBtn.style.display = 'inline-block';
+      var subCards = [
+        { key:'ott',   title:'OTT',   desc:'OTT · 방송', ico:'<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>' },
+        { key:'ad',    title:'광고',  desc:'광고 TV CF', ico:'<path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>' },
+        { key:'movie', title:'영화',  desc:'영화 · 예고편', ico:'<rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/>' }
+      ];
+      grid.innerHTML = subCards.map(function(c){
+        return '<div class="mq-choice" onclick="window.__mq._pickSubType(\''+c.key+'\')">'
+          + '<div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+c.ico+'</svg></div>'
+          + '<div class="title">'+c.title+'</div>'
+          + '<div class="desc">'+c.desc+'</div>'
+        + '</div>';
+      }).join('');
+    }
+  }
+  function _pickDocType(docType){
+    _chooserState.docType = docType;
+    _chooserState.step = 2;
+    _renderChooser();
+  }
+  function _pickSubType(subType){
+    var dt = _chooserState.docType;
+    _closeChooser();
+    // form 진입
+    _state.view = 'form'; _state.editingId = null; _state.viewingId = null;
+    _state.form = _newForm(dt, subType);
+    _visible('mq-list-wrap', false); _visible('mq-detail-view', false); _visible('mq-form-view', true);
+    _visible('mq-filter-bar', false);
+    _showBtn('mq-new-btn', false); _showBtn('mq-back-btn', true);
+    _renderForm();
   }
   function _cloneForForm(r){
     return {
@@ -15574,6 +15703,8 @@ window.__mq = (function(){
     var cls = 'mq-doc' + (readonly ? ' readonly' : '');
     var editHint = readonly ? '' : ' data-edit="1"';
     // 상단 doc_type / sub_type / 상태 선택 바 (편집 시만)
+    //   · 문서 유형은 chooser 로 결정하므로 편집 모드에서도 표시만, 변경 가능 (표 컬럼 자동 리셋)
+    //   · sub_type(OTT/광고/영화)은 모든 doc_type 에 노출 (관리·필터용 태그)
     var ctrlBar = readonly ? '' : (
       '<div style="display:flex;gap:10px;margin-bottom:16px;padding:12px 14px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;align-items:center;flex-wrap:wrap">'
       + '<span style="font-size:11.5px;font-weight:800;color:#0f766e;letter-spacing:0.4px">문서 유형</span>'
@@ -15582,11 +15713,12 @@ window.__mq = (function(){
         + _opt('annual','Annual 견적',r.doc_type)
         + _opt('invoice','거래명세서',r.doc_type)
       + '</select>'
-      + (r.doc_type==='needle' ? '<select class="mq-sel" onchange="window.__mq._setFormField(\'sub_type\',this.value)">'
-          + _opt('ott','OTT',r.sub_type)
-          + _opt('ad','광고',r.sub_type)
-          + _opt('movie','영화',r.sub_type)
-        + '</select>' : '')
+      + '<span style="font-size:11.5px;font-weight:800;color:#0f766e;letter-spacing:0.4px">카테고리</span>'
+      + '<select class="mq-sel" onchange="window.__mq._setFormField(\'sub_type\',this.value)">'
+        + _opt('ott','OTT',r.sub_type||'ott')
+        + _opt('ad','광고',r.sub_type||'ott')
+        + _opt('movie','영화',r.sub_type||'ott')
+      + '</select>'
       + '<span style="margin-left:auto;font-size:11.5px;font-weight:800;color:#0f766e;letter-spacing:0.4px">상태</span>'
       + '<select class="mq-sel" onchange="window.__mq._setFormField(\'status\',this.value)">'
         + _opt('미결','미결',r.status)
@@ -15607,9 +15739,17 @@ window.__mq = (function(){
 
   function _opt(v, l, cur){ return '<option value="'+v+'"'+(v===cur?' selected':'')+'>'+l+'</option>'; }
 
-  // 상단 좌/우 grid
+  // 상단 좌/우 grid — 거래명세서는 참조/Tel/Fax 없이 · 업종→종목
   function _topGridHtml(r, readonly){
-    var L = [
+    var isInvoice = (r.doc_type === 'invoice');
+    var L = isInvoice ? [
+      // 거래명세서 - 참조/Tel/Fax 없음
+      { k:'tax_invoice_date', label:'세금계산서 발행일', type:'date', internal:1 },
+      { k:'quote_no', label:'견적서 번호', type:'text', internal:1 },
+      { k:'doc_date', label:'DATE', type:'date' },
+      { k:'receiver_company', label:'수신', type:'text' },
+      { k:'doc_title', label:'제목', type:'text' }
+    ] : [
       { k:'tax_invoice_date', label:'세금계산서 발행일', type:'date', internal:1 },
       { k:'quote_no', label:'견적서 번호', type:'text', internal:1 },
       { k:'doc_date', label:'DATE', type:'date' },
@@ -15619,13 +15759,14 @@ window.__mq = (function(){
       { k:'receiver_fax', label:'Fax', type:'text' },
       { k:'doc_title', label:'제목', type:'text' }
     ];
+    var bizItemLabel = isInvoice ? '종목' : '업종';
     var R = [
       { k:'sender_reg_no', label:'등록번호', type:'text' },
       { k:'sender_company', label:'상호명', type:'text' },
       { k:'sender_ceo', label:'대표자', type:'text' },
       { k:'sender_address', label:'소재지', type:'text' },
       { k:'sender_biz_type', label:'업태', type:'text' },
-      { k:'sender_biz_item', label:'업종', type:'text' },
+      { k:'sender_biz_item', label:bizItemLabel, type:'text' },
       { k:'sender_tel', label:'Tel', type:'text' },
       { k:'sender_fax', label:'Fax', type:'text' },
       { k:'sender_person', label:'담당자', type:'text' }
@@ -15726,16 +15867,18 @@ window.__mq = (function(){
   function _setFormField(k, v){
     if (!_state.form) return;
     _state.form[k] = v;
-    // doc_type 변경 시: sub_type 정리 · items schema 재설정
+    // doc_type 변경 시: sub_type 은 관리 태그로 유지 · items schema 만 재설정
     if (k === 'doc_type') {
-      if (v !== 'needle') _state.form.sub_type = null;
-      else if (!_state.form.sub_type || !['ott','ad','movie'].includes(_state.form.sub_type)) _state.form.sub_type = 'ott';
+      if (!_state.form.sub_type) _state.form.sub_type = 'ott';
       _state.form.items = [ _newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type)) ];
       _renderForm();
       return;
     }
+    // sub_type 변경 시: Needle 만 items schema 리셋 (Annual/invoice 는 표 구조 동일)
     if (k === 'sub_type') {
-      _state.form.items = [ _newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type)) ];
+      if (_state.form.doc_type === 'needle') {
+        _state.form.items = [ _newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type)) ];
+      }
       _renderForm();
       return;
     }
@@ -15863,6 +16006,8 @@ window.__mq = (function(){
     _addItem: _addItem, _removeItem: _removeItem,
     _onFileSelect: _onFileSelect, _removePendingFile: _removePendingFile, _removeExistingAttach: _removeExistingAttach,
     _save: _save, _deleteById: _deleteById,
+    _openChooser: _openChooser, _closeChooser: _closeChooser, _chooserBack: _chooserBack,
+    _pickDocType: _pickDocType, _pickSubType: _pickSubType,
     _state: _state
   };
 })();
@@ -19753,7 +19898,8 @@ window._dmCrumbLabels = {
   'bmat-modal-overlay':       'BMAT 모니터링 통계',
   'shared-cal-overlay':       '업무 공유 캘린더',
   'meeting-overlay':          '회의록',
-  'board-overlay':            '게시판'
+  'board-overlay':            '게시판',
+  'mq-overlay':               '음원 견적 관리'
 };
 // dm-crumb 텍스트 갱신 (인자 없으면 '기능 카탈로그' 로 복귀)
 window._dmSetCrumb = function(label) {
