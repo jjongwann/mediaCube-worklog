@@ -16460,7 +16460,7 @@ window.__mq = (function(){
     var set = _MQ_XL.set, F = _MQ_XL.FONT, A = _MQ_XL.ALIGN, FILL = _MQ_XL.FILL, BD = _MQ_XL.BD, box = _MQ_XL.box;
     // 페이지 나누기 미리보기 기본 뷰 (파란 인쇄 경계선 표시)
     var ws = wb.addWorksheet('견적서');
-    ws.views = [{ view:'pageBreakPreview', zoomScale:100, showGridLines:false }];
+    ws.views = [{ view:'pageBreakPreview', zoomScale:80, zoomScaleSheetLayoutView:80, showGridLines:false }];
     // 컬럼 스펙 (모드별) · 참조 xlsx 열너비 그대로 · sumCols 는 SUM 대상 열번호
     //   totalRange: A19:D19 (NO+CD Title+CD No+CUE 4열 병합으로 TOTAL 라벨 표시)
     //   unitCol: 단위 컬럼 번호 (G=7) - Needle 은 'sync' 기본값 배치
@@ -16689,7 +16689,8 @@ window.__mq = (function(){
     }
     // 인쇄 영역 명시 → 페이지 나누기 미리보기에서 파란 경계선 정확히 표시 (동적 끝 행)
     var printArea = 'A1:'+colSpec.lastColLetter+notesEndRow;
-    ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:1, printArea:printArea, margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
+    // fitToWidth:1, fitToHeight:0 → 가로는 1페이지, 세로는 필요한 만큼 자연 분할 (330행 수용)
+    ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:0, printArea:printArea, margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
     return ws;
   }
 
@@ -16698,7 +16699,7 @@ window.__mq = (function(){
     var set = _MQ_XL.set, F = _MQ_XL.FONT, A = _MQ_XL.ALIGN, FILL = _MQ_XL.FILL, BD = _MQ_XL.BD, box = _MQ_XL.box;
     var docLabel = isInvoice ? '거래명세서' : '견적서';
     var ws = wb.addWorksheet(docLabel);
-    ws.views = [{ view:'pageBreakPreview', zoomScale:100, showGridLines:false }];
+    ws.views = [{ view:'pageBreakPreview', zoomScale:80, zoomScaleSheetLayoutView:80, showGridLines:false }];
     // 컬럼: A~J
     [5.13, 35, 15.13, 6, 6.5, 10.25, 13, 13, 15, 10].forEach(function(w,i){ ws.getColumn(i+1).width = w; });
     // 행 높이
