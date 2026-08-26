@@ -15818,12 +15818,27 @@ window.__mq = (function(){
   // ────────────────────────────────────────────────────────────
   function _isNeedle(r){ return r && r.doc_type === 'needle'; }
   function _computeNumbering(items){
-    // 반환: [{ label: '1' | '1-1' | ... }, ...]  (items 와 같은 길이)
+    // 반환: [{ label: '1' | '1-1' | ... }, ...]
+    //  · 그룹 헤더(_type='group') 는 projIdx 증가 → 'N'
+    //  · 첫 곡은 부모 없으면 implicit project 로 'N' (projIdx=1)
+    //  · 이후 곡은 현재 project 의 자식 'N-M' 으로 자동 부여
     var out = [];
-    var groupIdx = 0, songIdx = 0, seenGroup = false;
+    var projIdx = 0, childIdx = 0;
     (items||[]).forEach(function(it){
-      if (it && it._type === 'group') { groupIdx++; songIdx = 0; seenGroup = true; out.push({label: String(groupIdx)}); }
-      else { songIdx++; out.push({label: seenGroup ? (groupIdx + '-' + songIdx) : String(songIdx)}); }
+      if (it && it._type === 'group') {
+        projIdx++; childIdx = 0;
+        out.push({label: String(projIdx)});
+      } else {
+        if (projIdx === 0) {
+          // 아직 project 없음 → 이 곡이 project 1 이 됨
+          projIdx = 1; childIdx = 0;
+          out.push({label: String(projIdx)});
+        } else {
+          // 현재 project 의 자식
+          childIdx++;
+          out.push({label: projIdx + '-' + childIdx});
+        }
+      }
     });
     return out;
   }
@@ -16387,10 +16402,21 @@ window.__mq = (function(){
     function fmtDate(d){ if (!d) return ''; var s = String(d); if (s.length>=10) return s.slice(0,4)+'-'+s.slice(5,7)+'-'+s.slice(8,10); return s; }
     // items 를 group + song 배열로 분해 (with numbering)
     function itemsToRows(items){
-      var out = [], gi = 0, si = 0, seenG = false;
+      // 넘버링: 그룹은 'N' · 첫 곡 (project 없으면) 'N' (implicit) · 이후 곡 'N-M'
+      var out = [], projIdx = 0, childIdx = 0;
       (items||[]).forEach(function(it){
-        if (it && it._type === 'group') { gi++; si=0; seenG=true; out.push({type:'group', no:String(gi), label: it.label||'', raw:it}); }
-        else { si++; out.push({type:'song', no: seenG ? (gi+'-'+si) : String(si), raw:it}); }
+        if (it && it._type === 'group') {
+          projIdx++; childIdx = 0;
+          out.push({type:'group', no:String(projIdx), label: it.label||'', raw:it});
+        } else {
+          if (projIdx === 0) {
+            projIdx = 1; childIdx = 0;
+            out.push({type:'song', no:String(projIdx), raw:it});
+          } else {
+            childIdx++;
+            out.push({type:'song', no: projIdx + '-' + childIdx, raw:it});
+          }
+        }
       });
       return out;
     }
