@@ -15216,9 +15216,10 @@ function openQuotePanel() {
   /* items table */
   .mq-items { width:100%; border-collapse:collapse; margin-top:14px; font-size:12px; }
   .mq-items thead th { background:#f0fdfa; color:#0f766e; font-weight:800; padding:8px 6px; border:1px solid #99f6e4; text-align:center; font-size:11px; letter-spacing:0.4px; }
-  .mq-items tbody td { border:1px solid #e2e8f0; padding:6px 6px; vertical-align:middle; }
-  .mq-items tbody td input { width:100%; box-sizing:border-box; border:none; outline:none; font-family:inherit; font-size:12px; padding:3px 4px; background:transparent; }
-  .mq-items tbody td input:focus { background:#fefce8; }
+  .mq-items tbody td, .mq-items tfoot td, .mq-items tfoot th { border:1px solid #e2e8f0; padding:8px 8px; vertical-align:middle; }
+  .mq-items tbody td input, .mq-items tfoot td input { width:100%; box-sizing:border-box; border:none; outline:none; font-family:inherit; font-size:12px; padding:3px 4px; background:transparent; }
+  .mq-items tbody td input:focus, .mq-items tfoot td input:focus { background:#fefce8; }
+  .mq-items tfoot .totalrow td, .mq-items tfoot td[class*="totalrow"] { padding:10px 10px; }
   .mq-items .num { text-align:right; font-variant-numeric:tabular-nums; }
   .mq-items .center { text-align:center; }
   .mq-item-add-btn { margin-top:8px; padding:7px 14px; background:#f0fdfa; color:#0f766e; border:1px solid #99f6e4; border-radius:7px; cursor:pointer; font-size:12px; font-weight:700; font-family:inherit; display:inline-flex; align-items:center; gap:5px; }
