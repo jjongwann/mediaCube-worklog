@@ -15424,6 +15424,8 @@ window.__mq = (function(){
     {k:'vat',label:'부가가치세',w:120,t:'num',r:1,sum:1},
     {k:'totalWithVat',label:'합계 금액 (V.A.T포함)',w:150,t:'num',r:1,calc:1,sum:1}
   ];
+  // 거래명세서(invoice) 는 '합계 금액 (V.A.T포함)' 컬럼 없음 (마지막 총계는 TOTAL 행에서 표시)
+  var _INVOICE_COLS = _ANNUAL_COLS.slice(0, -1);
   var ITEM_COLS = {
     needle_ott: [
       {k:'no',label:'NO',w:50,t:'auto',c:1},
@@ -15460,7 +15462,7 @@ window.__mq = (function(){
       {k:'worldwide',label:'Worldwide',w:110,t:'num',r:1,sum:1}
     ],
     annual: _ANNUAL_COLS,
-    invoice: _ANNUAL_COLS
+    invoice: _INVOICE_COLS
   };
 
   function _schemaKey(docType, subType){
@@ -15819,6 +15821,20 @@ window.__mq = (function(){
         if (biz[0]) form.sender_biz_type = biz[0];
         if (biz[1]) form.sender_biz_item = biz[1];
       }
+      // Invoice — 수신 아래 sub-line 에 담긴 이메일 추출 (receiver_person 사용)
+      if (docType === 'invoice' && !form.receiver_person) {
+        ws.eachRow({includeEmpty:false}, function(row, rn){
+          if (form.receiver_person) return;
+          if (rn < 3 || rn > 12) return;
+          for (var c = 2; c <= 6; c++) {
+            var v = _cleanVal(_cellText(row.getCell(c)));
+            if (v && v.indexOf('@') >= 0 && /[\w.\-]+@[\w.\-]+\.\w+/.test(v)) {
+              form.receiver_person = v;
+              return;
+            }
+          }
+        });
+      }
       // 항목 파싱 (헤더 행 자동 감지)
       var itemInfo = _findXlsxItemsHeader(ws);
       if (itemInfo) form.items = _parseXlsxItemsGeneric(ws, itemInfo, docType, subType);
@@ -16024,6 +16040,9 @@ window.__mq = (function(){
         if (cols.supplyPrice) it.supplyPrice = _cleanVal(_cellText(row.getCell(cols.supplyPrice)));
         if (cols.vat) it.vat = _cleanVal(_cellText(row.getCell(cols.vat)));
         if (cols.totalWithVat) it.totalWithVat = _cleanVal(_cellText(row.getCell(cols.totalWithVat)));
+        // Invoice: 원본 NO 셀이 비어있고 다른 데이터가 있는 행 = 요약(summary) 행
+        //   → 번호 없이 렌더 (참조 양식과 일치)
+        if (docType === 'invoice' && !noClean && titleClean) it._summary = true;
       }
       items.push(it);
     }
@@ -16353,11 +16372,12 @@ window.__mq = (function(){
   function _topGridHtml(r, readonly){
     var isInvoice = (r.doc_type === 'invoice');
     var L = isInvoice ? [
-      // 거래명세서 - 참조/Tel/Fax 없음
+      // 거래명세서 - 참조/Tel/Fax 없음, 대신 이메일(receiver_person) 필드
       { k:'tax_invoice_date', label:'세금계산서 발행일', type:'date', internal:1 },
       { k:'quote_no', label:'견적서 번호', type:'text', internal:1 },
       { k:'doc_date', label:'DATE', type:'date' },
       { k:'receiver_company', label:'수신', type:'text' },
+      { k:'receiver_person', label:'이메일', type:'text' },
       { k:'doc_title', label:'제목', type:'text' }
     ] : [
       { k:'tax_invoice_date', label:'세금계산서 발행일', type:'date', internal:1 },
@@ -16410,12 +16430,20 @@ window.__mq = (function(){
   //   · 하단 비고 행: notes textarea
   // ────────────────────────────────────────────────────────────
   function _isNeedle(r){ return r && r.doc_type === 'needle'; }
-  function _computeNumbering(items){
-    // 반환: [{ label: '1' | '1-1' | ... }, ...]
-    //  · 그룹 헤더(_type='group') 는 projIdx 증가 → 'N'
-    //  · 첫 곡은 부모 없으면 implicit project 로 'N' (projIdx=1)
-    //  · 이후 곡은 현재 project 의 자식 'N-M' 으로 자동 부여
+  function _computeNumbering(items, docType){
+    // 반환: [{ label: '1' | '1-1' | '' | ... }, ...]
+    //  · 거래명세서: 순차 번호 (1, 2, 3, ...) · _summary/group 은 빈 라벨
+    //  · Needle/Annual: 그룹은 projIdx, 첫 곡은 implicit parent(N), 자식은 N-M
     var out = [];
+    if (docType === 'invoice') {
+      var seq = 0;
+      (items||[]).forEach(function(it){
+        if (it && (it._summary || it._type === 'group')) { out.push({label:''}); return; }
+        seq++;
+        out.push({label: String(seq)});
+      });
+      return out;
+    }
     var projIdx = 0, childIdx = 0;
     (items||[]).forEach(function(it){
       if (it && it._type === 'group') {
@@ -16443,7 +16471,7 @@ window.__mq = (function(){
     // 헤더 (편집 모드: 맨 앞에 다중 선택 체크박스 컬럼 추가)
     var checkTh = readonly ? '' : '<th class="mq-check-cell" style="width:28px" title="드래그 또는 클릭으로 다중 선택"><input type="checkbox" onclick="window.__mq._toggleAllSelect(this.checked)"></th>';
     var thead = '<thead><tr>' + checkTh + cols.map(function(c){ return '<th style="width:'+c.w+'px">'+_esc(c.label)+'</th>'; }).join('') + (readonly?'':'<th style="width:36px"></th>') + '</tr></thead>';
-    var nums = _computeNumbering(items);
+    var nums = _computeNumbering(items, r && r.doc_type);
     // 병합 대상 컬럼 인덱스 (g:1 표시된 컬럼들의 인덱스 범위)
     var gStart = -1, gEnd = -1;
     cols.forEach(function(c, i){ if (c.g) { if (gStart===-1) gStart = i; gEnd = i; } });
@@ -16477,7 +16505,9 @@ window.__mq = (function(){
         return '<tr'+trCls+' data-idx="'+idx+'">'+groupCheckTd+cellsHtml+delBtn+'</tr>';
       }
       // 일반 곡/품목 행 · 부모 행 (NO='1','2','3'...) 은 g:1 컬럼을 하나의 label 셀로 병합
-      var isParentRow = gStart >= 0 && String(nums[idx].label).indexOf('-') === -1;
+      //   Invoice(거래명세서) 는 부모/자식 개념 없음 · 순차 번호 → 병합 skip
+      var isInvoiceDoc = r && r.doc_type === 'invoice';
+      var isParentRow = !isInvoiceDoc && gStart >= 0 && String(nums[idx].label).indexOf('-') === -1;
       var labelKey = isParentRow ? cols[gStart].k : null; // 예: 'cdTitle' / 'item'
       var cellsHtmlArr = [];
       cols.forEach(function(c, ci){
@@ -16524,9 +16554,11 @@ window.__mq = (function(){
       var totals = {};
       cols.forEach(function(c){ if (c.sum) totals[c.k] = 0; });
       items.forEach(function(it){ if (it._type === 'group') return; cols.forEach(function(c){ if (c.sum) totals[c.k] += _num(it[c.k]); }); });
+      // TOTAL 라벨: Needle 은 V.A.T 별도, Invoice/Annual 은 그냥 TOTAL
+      var totalLabel = (r.doc_type === 'invoice' || r.doc_type === 'annual') ? 'TOTAL' : 'TOTAL (Excluding V.A.T)';
       totalRow = '<tr style="background:#f0fdfa;font-weight:800">'
         + leadCheckTd
-        + '<td colspan="'+sumStartIdx+'" class="center" style="color:#0f766e;font-size:11.5px;letter-spacing:0.4px">TOTAL (Excluding V.A.T)</td>'
+        + '<td colspan="'+sumStartIdx+'" class="center" style="color:#0f766e;font-size:11.5px;letter-spacing:0.4px">'+totalLabel+'</td>'
         + cols.slice(sumStartIdx).map(function(c){
             if (!c.sum) return '<td>&nbsp;</td>';
             return '<td class="num" style="color:#0f766e">'+_fmtN(totals[c.k])+'</td>';
@@ -16922,7 +16954,7 @@ window.__mq = (function(){
     var esc = _esc;
     var cols = _cols(r);
     var items = Array.isArray(r.items) ? r.items : [];
-    var nums = _computeNumbering(items);
+    var nums = _computeNumbering(items, r && r.doc_type);
     var isNeedle = _isNeedle(r);
     var gStart = -1, gEnd = -1;
     cols.forEach(function(c, i){ if (c.g) { if (gStart===-1) gStart = i; gEnd = i; } });
@@ -16933,6 +16965,7 @@ window.__mq = (function(){
     var LRows = isInvoice ? [
       [['DATE', _MQ_XL.fmtDate(r.doc_date)]],
       [['수신', r.receiver_company||'']],
+      [['', r.receiver_person||'']], // 라벨 없는 이메일 sub-line
       [['제목', r.doc_title||'']]
     ] : [
       [['DATE', _MQ_XL.fmtDate(r.doc_date)]],
@@ -16980,8 +17013,8 @@ window.__mq = (function(){
         });
         return out + '</tr>';
       }
-      // 부모 행 판단 (label 에 '-' 없음)
-      var isParentRow = String(nums[idx].label).indexOf('-') === -1;
+      // 부모 행 판단 (label 에 '-' 없음) · Invoice 는 병합 안 함
+      var isParentRow = !isInvoice && String(nums[idx].label).indexOf('-') === -1;
       // 부모 행: g:1 컬럼들을 하나의 label 셀로 병합 (그룹 헤더와 시각적으로 동일)
       var pLabelKey = (isParentRow && gStart >= 0) ? cols[gStart].k : null;
       var cellArr = [];
@@ -17182,9 +17215,24 @@ window.__mq = (function(){
     }
     function fmtDate(d){ if (!d) return ''; var s = String(d); if (s.length>=10) return s.slice(0,4)+'-'+s.slice(5,7)+'-'+s.slice(8,10); return s; }
     // items 를 group + song 배열로 분해 (with numbering)
-    function itemsToRows(items){
-      // 넘버링: 그룹은 'N' · 첫 곡 (project 없으면) 'N' (implicit) · 이후 곡 'N-M'
-      var out = [], projIdx = 0, childIdx = 0;
+    function itemsToRows(items, docType){
+      // 넘버링:
+      //   invoice: 순차(1,2,3,...) · _summary/group 은 빈 라벨
+      //   그 외:  그룹은 'N', 첫 곡 (project 없으면) 'N' (implicit), 이후 곡 'N-M'
+      var out = [];
+      if (docType === 'invoice') {
+        var seq = 0;
+        (items||[]).forEach(function(it){
+          if (it && (it._summary || it._type === 'group')) {
+            out.push({type:'summary', no:'', raw:it});
+          } else {
+            seq++;
+            out.push({type:'song', no:String(seq), raw:it});
+          }
+        });
+        return out;
+      }
+      var projIdx = 0, childIdx = 0;
       (items||[]).forEach(function(it){
         if (it && it._type === 'group') {
           projIdx++; childIdx = 0;
@@ -17550,7 +17598,9 @@ window.__mq = (function(){
     var L = isInvoice ? [
       ['A3','DATE','B3:D3',_MQ_XL.fmtDate(r.doc_date)],
       ['A4','수신','B4:D4', r.receiver_company||''],
-      ['A5','제목','B5:D5', r.doc_title||''],
+      // 5행: A 라벨 없이 B 에 이메일 (참조 양식과 동일한 sub-line)
+      ['A5','',    'B5:D5', r.receiver_person||''],
+      ['A6','제목','B6:D6', r.doc_title||''],
     ] : [
       ['A3','DATE','B3:D3',_MQ_XL.fmtDate(r.doc_date)],
       ['A4','수신','B4:D4', r.receiver_company||''],
@@ -17589,12 +17639,14 @@ window.__mq = (function(){
     ws.mergeCells('F10:J10');
     set(ws, 'F10', total, { font:F(13,true), align:A.right, numFmt:'₩#,##0', fill:FILL.total });
     // 표 헤더 (11행)
-    var headers = ['NO','품목','코드','규격','단위','QTY','단가','공급가액','부가가치세','합계 금액 (V.A.T포함)'];
+    var headers = isInvoice
+      ? ['NO','품목','코드','규격','단위','QTY','단가','공급가액','부가가치세']
+      : ['NO','품목','코드','규격','단위','QTY','단가','공급가액','부가가치세','합계 금액 (V.A.T포함)'];
     headers.forEach(function(h,i){
       set(ws, ws.getRow(11).getCell(i+1).address, h, { font:F(10,true), fill:FILL.header });
     });
     // 데이터 (12행부터 · 동적 행 개수 · group 지원)
-    var rows = _MQ_XL.itemsToRows(r.items);
+    var rows = _MQ_XL.itemsToRows(r.items, r.doc_type);
     var MIN_DATA_ROWS = 32;
     var dataStart = 12;
     var actualDataRows = Math.max(rows.length, MIN_DATA_ROWS);
@@ -17606,16 +17658,21 @@ window.__mq = (function(){
         set(ws, ws.getRow(rr).getCell(1).address, row.no, { font:F(10,true), fill:FILL.group, align:A.center });
         ws.mergeCells('B'+rr+':D'+rr);
         set(ws, 'B'+rr, row.label||'', { font:F(11,true), align:A.left, fill:FILL.group });
-        // 나머지 셀 (E~J) 배경 채우기 + 테두리
-        for (var cc=5; cc<=10; cc++) {
+        // 나머지 셀 (E~마지막) 배경 채우기 + 테두리
+        var lastCn = isInvoice ? 9 : 10;
+        for (var cc=5; cc<=lastCn; cc++) {
           var addr = ws.getRow(rr).getCell(cc).address;
           set(ws, addr, '', { fill:FILL.group });
         }
         return;
       }
       var it = row.raw;
-      var vals = [row.no, it.item||'', it.code||'', it.spec||'', it.unit||'', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.unitPrice)||'', _MQ_XL.num(it.supplyPrice)||'', _MQ_XL.num(it.vat)||'', _MQ_XL.num(it.totalWithVat)||''];
-      var isParent = String(row.no).indexOf('-') === -1;
+      // Invoice 는 합계 금액 컬럼 없음 (9칸) · Annual 은 10칸
+      var vals = isInvoice
+        ? [row.no, it.item||'', it.code||'', it.spec||'', it.unit||'', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.unitPrice)||'', _MQ_XL.num(it.supplyPrice)||'', _MQ_XL.num(it.vat)||'']
+        : [row.no, it.item||'', it.code||'', it.spec||'', it.unit||'', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.unitPrice)||'', _MQ_XL.num(it.supplyPrice)||'', _MQ_XL.num(it.vat)||'', _MQ_XL.num(it.totalWithVat)||''];
+      // Invoice 는 부모/자식 개념 없음 · Annual 만 parent 병합 적용
+      var isParent = !isInvoice && String(row.no).indexOf('-') === -1 && row.no !== '';
       // 동적 행 높이: 품목 · 규격 · 코드 텍스트 길이 기반
       // Annual 컬럼 폭 A=5.13, B(품목)=35, C(코드)=15.13, D(규격)=6
       var _lines;
@@ -17655,17 +17712,20 @@ window.__mq = (function(){
     // 최소 슬롯 미달 시 빈 행 padding
     var lastFilledRow = dataStart + rows.length - 1;
     var lastDataRow = dataStart + actualDataRows - 1;
+    var _lastCn = isInvoice ? 9 : 10;
     for (var rr2 = lastFilledRow+1; rr2 <= lastDataRow; rr2++) {
       ws.getRow(rr2).height = 50;
-      box(ws, rr2, 1, 10);
+      box(ws, rr2, 1, _lastCn);
     }
     // TOTAL (동적 위치) — JS 에서 합계 계산 + formula + result 저장
     var totalRow = dataStart + actualDataRows;
     ws.mergeCells('A'+totalRow+':E'+totalRow);
     set(ws, 'A'+totalRow, 'TOTAL', { font:F(12,true), fill:FILL.header, align:A.center });
     // Annual/Invoice item 키: qty / unitPrice / supplyPrice / vat / totalWithVat 순 (F~J)
+    //   Invoice 는 J(합계금액) 컬럼 없음
     var annualKeys = { F:'qty', G:'unitPrice', H:'supplyPrice', I:'vat', J:'totalWithVat' };
-    ['F','G','H','I','J'].forEach(function(col){
+    var totalCols = isInvoice ? ['F','G','H','I'] : ['F','G','H','I','J'];
+    totalCols.forEach(function(col){
       var addr = col + totalRow;
       var key = annualKeys[col];
       var sumVal = 0;
@@ -17675,14 +17735,17 @@ window.__mq = (function(){
       var fmt = isQty ? '#,##0' : '"₩ "#,##0';
       set(ws, addr, { formula:'SUM('+col+dataStart+':'+col+lastDataRow+')', result: sumVal }, { font:F(10,true), fill:FILL.header, numFmt:fmt, align:A.center });
     });
+    // 마지막 컬럼 (A~J for Annual, A~I for Invoice)
+    var lastColLetter = isInvoice ? 'I' : 'J';
+    var lastColNum = isInvoice ? 9 : 10;
     // 비고 (TOTAL 다음 9행 · 동적 위치)
     var notesStart = totalRow + 1;
     var notesEnd = notesStart + 8;
     ws.mergeCells('A'+notesStart+':A'+notesEnd);
     set(ws, 'A'+notesStart, '비 고', { font:F(11,true), fill:FILL.label });
-    ws.mergeCells('B'+notesStart+':J'+notesEnd);
+    ws.mergeCells('B'+notesStart+':'+lastColLetter+notesEnd);
     set(ws, 'B'+notesStart, r.notes||'', { align:{horizontal:'left',vertical:'top',wrapText:true,indent:1}, font:F(10) });
-    for (var rr=notesStart; rr<=notesEnd; rr++) box(ws, rr, 1, 10);
+    for (var rr=notesStart; rr<=notesEnd; rr++) box(ws, rr, 1, lastColNum);
     // 이미지 — 로고 축소 · 세로 중앙 (A1:B2 내부 padding)
     if (logoBuf) {
       var lid = wb.addImage({ buffer:logoBuf, extension:'png' });
@@ -17693,9 +17756,9 @@ window.__mq = (function(){
       ws.addImage(sid, { tl:{col:5.3,row:3.7}, ext:{width:65,height:65}, editAs:'oneCell' });
     }
     // 제목/로고 영역 (1~2행) thick outer 프레임
-    _MQ_XL.thickOuter(ws, 1, 1, 2, 10);
+    _MQ_XL.thickOuter(ws, 1, 1, 2, lastColNum);
     // fitToHeight:0 → 세로 다중 페이지 허용 (동적 행 수용)
-    ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:0, printArea:'A1:J'+(notesEnd), margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
+    ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:0, printArea:'A1:'+lastColLetter+notesEnd, margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
     return ws;
   }
 
@@ -17745,7 +17808,7 @@ window.__mq = (function(){
       var docLabel = r.doc_type==='invoice' ? '거래명세서' : '견적서';
       var cols = _cols(r);
       var items = Array.isArray(r.items) ? r.items : [];
-      var nums = _computeNumbering(items);
+      var nums = _computeNumbering(items, r && r.doc_type);
       var isNeedle = _isNeedle(r);
       var gStart = -1, gEnd = -1;
       cols.forEach(function(c, i){ if (c.g) { if (gStart===-1) gStart = i; gEnd = i; } });
