@@ -2043,10 +2043,18 @@
     // ── Edit mode: load saved journal data ──
     (function () {
       var raw = sessionStorage.getItem(EDIT_KEY);
-      // 새로고침으로 sessionStorage가 사라진 경우 localStorage 백업 복원
+      // localStorage 백업은 오직 '새로고침(reload)' 시점에만 복원 (원본 데이터 소실 복구용)
+      // 그 외 정상 진입(대시보드에서 링크 클릭 등) 은 잔존 백업을 정리 → 편집 모드 오인 방지
       if (!raw) {
-        var backup = localStorage.getItem('editJournalBackup');
-        if (backup) raw = backup;
+        var _navEntries = (typeof performance !== 'undefined' && performance.getEntriesByType)
+          ? performance.getEntriesByType('navigation') : [];
+        var _navType = (_navEntries[0] && _navEntries[0].type) || '';
+        if (_navType === 'reload') {
+          var backup = localStorage.getItem('editJournalBackup');
+          if (backup) raw = backup;
+        } else {
+          try { localStorage.removeItem('editJournalBackup'); } catch(e){}
+        }
       }
       if (!raw) {
         // 로컬(KST) 기준 오늘 날짜. valueAsDate/toISOString은 UTC 기준이라
