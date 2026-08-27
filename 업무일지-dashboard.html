@@ -16940,6 +16940,8 @@ window.__mq = (function(){
     });
     // ── medium border 강조 (동적 범위) ──
     var lastColNum = colSpec.widths.length;
+    // 제목/로고 영역 (1~2행) 도 별도 thick 프레임 (참조 양식과 동일)
+    _MQ_XL.thickOuter(ws, 1, 1, 2, lastColNum);
     _MQ_XL.thickOuter(ws, 3, 1, notesEndRow, lastColNum);
     _MQ_XL.thickHLine(ws, 9,  1, lastColNum, 'bottom');
     _MQ_XL.thickHLine(ws, totalRowNum, 1, lastColNum, 'top');
@@ -17134,6 +17136,8 @@ window.__mq = (function(){
       var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
       ws.addImage(sid, { tl:{col:5.3,row:3.7}, ext:{width:65,height:65}, editAs:'oneCell' });
     }
+    // 제목/로고 영역 (1~2행) thick outer 프레임
+    _MQ_XL.thickOuter(ws, 1, 1, 2, 10);
     // fitToHeight:0 → 세로 다중 페이지 허용 (동적 행 수용)
     ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:0, printArea:'A1:J'+(notesEnd), margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
     return ws;
