@@ -15773,7 +15773,11 @@ window.__mq = (function(){
     });
   }
 
-  // ── Excel 파서 (자체 export 양식 기반 · 셀 위치로 필드 추출) ──
+  // ── Excel 파서 (label-scan 기반 · 참조 양식/자체 export 양식 모두 대응) ──
+  //   * 첫 non-empty sheet 자동 선택
+  //   * 라벨(수신/제목/등록번호/…) 을 스캔해 인접 셀 값 추출
+  //   * ":" prefix / "김   재   경" 공백 자동 정리
+  //   * items 표는 헤더 행(No·CD Title·품목) 찾아 그 아래를 파싱, TOTAL/비고 만나면 종료
   function _parseExcelToForm(file, docType, subType){
     return _loadExcelJs().then(function(XLS){
       return file.arrayBuffer().then(function(buf){
@@ -15781,149 +15785,221 @@ window.__mq = (function(){
         return wb.xlsx.load(buf).then(function(){ return wb; });
       });
     }).then(function(wb){
-      var ws = wb.worksheets[0];
-      if (!ws) throw new Error('시트 없음');
-      var form = _newForm(docType, subType);
-      // 값 추출 헬퍼 (병합 셀은 실제 값이 좌상단 셀에 저장됨)
-      var getCell = function(addr){
-        try {
-          var c = ws.getCell(addr);
-          var v = c.value;
-          if (v && typeof v === 'object') {
-            if (v.result != null) return String(v.result);
-            if (v.text != null) return String(v.text);
-            if (Array.isArray(v.richText)) return v.richText.map(function(r){ return r.text||''; }).join('');
-          }
-          return v == null ? '' : String(v).trim();
-        } catch(e) { return ''; }
-      };
-      var isNeedle = docType === 'needle';
-      // 상단 폼: Needle 은 3~9행, Annual/Invoice 는 별도 배치
-      if (isNeedle) {
-        form.doc_date = _normDate(getCell('B3'));
-        form.receiver_company = getCell('B4');
-        form.receiver_person = getCell('B5');
-        form.receiver_tel = getCell('B6');
-        form.receiver_fax = getCell('D6');
-        form.doc_title = getCell('B7');
-        form.sender_reg_no = getCell('G3') || form.sender_reg_no;
-        form.sender_company = getCell('G4') || form.sender_company;
-        // 대표자: '(인)' 문구 제거
-        form.sender_ceo = (getCell('G5')||'').replace(/\s*\(인\)\s*$/,'').trim() || form.sender_ceo;
-        form.sender_address = getCell('G6') || form.sender_address;
-        // G7 은 '업태 / 업종' 조합 문자열
-        var biz = getCell('G7');
-        if (biz && biz.indexOf('/') >= 0) {
-          var parts = biz.split('/').map(function(s){ return s.trim(); });
-          form.sender_biz_type = parts[0] || form.sender_biz_type;
-          form.sender_biz_item = parts[1] || form.sender_biz_item;
-        }
-        // G8 은 'TEL / FAX' 조합 (구 양식 'TEL   Fax  FAX' 도 호환)
-        var telLine = getCell('G8');
-        if (telLine) {
-          if (telLine.indexOf('/') >= 0) {
-            var tp = telLine.split('/').map(function(s){ return s.trim(); });
-            form.sender_tel = tp[0] || form.sender_tel;
-            form.sender_fax = tp[1] || form.sender_fax;
-          } else {
-            var m = telLine.match(/^(\S+)(?:\s+Fax\s+(\S+))?/i);
-            if (m) { form.sender_tel = m[1] || form.sender_tel; form.sender_fax = m[2] || form.sender_fax; }
-          }
-        }
-        form.sender_person = getCell('G9') || form.sender_person;
-        // 데이터: 11행부터 · 마지막 슬롯(sync 라벨) 이전까지
-        form.items = _parseXlsxItemsNeedle(ws, subType||'ott');
-      } else {
-        // Annual/Invoice
-        form.doc_date = _normDate(getCell('B3'));
-        form.receiver_company = getCell('B4');
-        var isInvoice = docType === 'invoice';
-        if (isInvoice) {
-          form.doc_title = getCell('B5');
-        } else {
-          form.receiver_person = getCell('B5');
-          form.receiver_tel = getCell('B6');
-          form.receiver_fax = getCell('B7');
-          form.doc_title = getCell('B8');
-        }
-        form.sender_reg_no = getCell('F3') || form.sender_reg_no;
-        form.sender_company = getCell('F4') || form.sender_company;
-        form.sender_ceo = (getCell('F5')||'').replace(/\s*\(인\)\s*$/,'').trim() || form.sender_ceo;
-        form.sender_address = getCell('F6') || form.sender_address;
-        form.sender_biz_type = getCell('F7') || form.sender_biz_type;
-        form.sender_biz_item = getCell('F8') || form.sender_biz_item;
-        form.sender_tel = getCell('F9') || form.sender_tel;
-        // 데이터: 12행부터
-        form.items = _parseXlsxItemsAnnual(ws);
+      // 실제 데이터가 있는 시트 (Sheet1 이 빈 경우 다음 sheet 사용)
+      var ws = null;
+      for (var i = 0; i < wb.worksheets.length; i++) {
+        if ((wb.worksheets[i].actualRowCount || 0) > 3) { ws = wb.worksheets[i]; break; }
       }
-      // 비고 추출: 시트 하단 '비 고' 라벨 셀 오른쪽 값 찾기
+      if (!ws) ws = wb.worksheets[0];
+      if (!ws) throw new Error('데이터 시트를 찾을 수 없습니다');
+      var form = _newForm(docType, subType);
+      var labels = _scanXlsxLabels(ws);
+      // 값 매핑 (라벨 → form 필드)
+      if (labels.DATE) form.doc_date = _normDate(labels.DATE);
+      if (labels.수신) form.receiver_company = _cleanVal(labels.수신);
+      if (labels.참조) form.receiver_person = _cleanVal(labels.참조);
+      if (labels.제목) form.doc_title = _cleanVal(labels.제목);
+      if (labels.등록번호) form.sender_reg_no = _cleanVal(labels.등록번호);
+      if (labels.상호명) form.sender_company = _cleanNameVal(labels.상호명);
+      if (labels.대표자) form.sender_ceo = _cleanCeo(labels.대표자);
+      if (labels.소재지) form.sender_address = _cleanVal(labels.소재지);
+      if (labels.담당자) form.sender_person = _cleanVal(labels.담당자);
+      // 수신자 Tel/Fax — 좌측 라벨 (row 6 대체로 " : 010… Fax :" 형태)
+      var lTel = labels._leftTelFax;
+      if (lTel) { form.receiver_tel = lTel.tel || form.receiver_tel; form.receiver_fax = lTel.fax || form.receiver_fax; }
+      // 발신자 Tel/Fax — 우측 라벨 (별도 Tel 행 또는 조합)
+      var rTel = labels._rightTelFax;
+      if (rTel) { form.sender_tel = rTel.tel || form.sender_tel; form.sender_fax = rTel.fax || form.sender_fax; }
+      // 업태/업종 — 조합 문자열 "서비스 / 업종 : 사운드" 또는 "서비스 / 사운드"
+      if (labels.업태) {
+        var biz = _splitBiz(labels.업태);
+        if (biz[0]) form.sender_biz_type = biz[0];
+        if (biz[1]) form.sender_biz_item = biz[1];
+      }
+      // 항목 파싱 (헤더 행 자동 감지)
+      var itemInfo = _findXlsxItemsHeader(ws);
+      if (itemInfo) form.items = _parseXlsxItemsGeneric(ws, itemInfo, docType, subType);
+      // 비고
       form.notes = _findXlsxNotes(ws) || '';
-      // 자동 견적번호는 파싱값 우선, 없으면 자동 채번
+      // 견적번호 없으면 자동 채번
       if (!form.quote_no) form.quote_no = _nextQuoteNo();
       return form;
     });
   }
 
-  // Needle 데이터 파싱 (11행~마지막 데이터행)
-  function _parseXlsxItemsNeedle(ws, sub){
-    var items = [];
-    var maxRow = ws.rowCount || 200;
-    for (var r = 11; r <= maxRow; r++) {
-      var row = ws.getRow(r);
-      var noCell = (row.getCell(1).value || '').toString().trim();
-      var titleCell = _cellText(row.getCell(2));
-      // TOTAL 행 감지 → 데이터 종료
-      if (/^TOTAL/i.test(noCell) || /^TOTAL/i.test(titleCell)) break;
-      // 비고 라벨 → 데이터 종료
-      if (/^비\s*고$/.test(noCell) || /^비\s*고$/.test(titleCell)) break;
-      // 완전 빈 행이 3개 연속이면 종료
-      if (!noCell && !titleCell) {
-        var pubEmpty = !_cellText(row.getCell(6));
-        var qtyEmpty = !_cellText(row.getCell(8));
-        if (pubEmpty && qtyEmpty) continue;
+  // 라벨-값 스캔 — 모든 셀을 훑어 라벨 텍스트 감지, 같은 행 인접 셀의 값 저장
+  function _scanXlsxLabels(ws){
+    var out = {};
+    var LABEL_KEYS = ['DATE','수신','참조','제목','등록번호','상호명','대표자','소재지','업태','업종','종목','담당자'];
+    var labelPositions = {}; // { 'Tel': [{row,col}, ...] }
+    ws.eachRow({includeEmpty:false}, function(row, rn){
+      row.eachCell({includeEmpty:false}, function(cell, cn){
+        var raw = _cellText(cell);
+        if (!raw) return;
+        // 라벨 정규화: 공백 · 콜론 제거
+        var norm = raw.replace(/\s+/g,'').replace(/[:：]/g,'');
+        if (LABEL_KEYS.indexOf(norm) >= 0) {
+          if (!out[norm]) out[norm] = _readRightValue(row, cn);
+        } else if (norm === 'Tel' || norm === 'TEL' || /^Tel\/FAX$/i.test(norm)) {
+          if (!labelPositions.Tel) labelPositions.Tel = [];
+          labelPositions.Tel.push({ row:rn, col:cn, raw:_readRightValue(row, cn) });
+        } else if (norm === 'Fax' || norm === 'FAX') {
+          if (!labelPositions.Fax) labelPositions.Fax = [];
+          labelPositions.Fax.push({ row:rn, col:cn, raw:_readRightValue(row, cn) });
+        }
+      });
+    });
+    // Tel 라벨은 통상 좌측(수신자)와 우측(발신자) 각각 존재 → 컬럼 위치로 구분
+    if (labelPositions.Tel && labelPositions.Tel.length) {
+      // 컬럼이 작은 쪽 = 좌측 (수신자), 큰 쪽 = 우측 (발신자)
+      var telSorted = labelPositions.Tel.slice().sort(function(a,b){ return a.col - b.col; });
+      out._leftTelFax = _extractTelFax(telSorted[0].raw);
+      if (telSorted.length >= 2) out._rightTelFax = _extractTelFax(telSorted[telSorted.length-1].raw);
+      else {
+        // 하나뿐이면 컬럼 위치로 판단 (E 이상 = 발신자)
+        if (telSorted[0].col >= 5) out._rightTelFax = _extractTelFax(telSorted[0].raw);
+        else out._leftTelFax = _extractTelFax(telSorted[0].raw);
       }
-      if (!noCell) continue;
-      var it = {};
-      it.cdTitle = titleCell;
-      it.cdNo = _cellText(row.getCell(3));
-      it.cue = _cellText(row.getCell(4));
-      it.trackNo = _cellText(row.getCell(5));
-      it.publisher = _cellText(row.getCell(6));
-      it.unit = _cellText(row.getCell(7));
-      it.qty = _cellText(row.getCell(8));
-      if (sub === 'movie') {
-        it.domestic = _cellText(row.getCell(9));
-        it.worldwide = _cellText(row.getCell(10));
-      } else if (sub === 'ad') {
-        it.amount = _cellText(row.getCell(9));
-      } else {
-        it.dw = _cellText(row.getCell(9));
-      }
-      items.push(it);
     }
-    return items;
+    return out;
   }
-  function _parseXlsxItemsAnnual(ws){
+  // 같은 행에서 라벨 오른쪽 첫 non-empty 값 (연속 8칸까지)
+  function _readRightValue(row, startCol){
+    for (var c = startCol + 1; c <= startCol + 8; c++) {
+      var v = _cellText(row.getCell(c));
+      if (v) return v;
+    }
+    return '';
+  }
+  // 값 앞의 ": " prefix 제거 + 앞뒤 공백 정리
+  function _stripColonPrefix(v){ return String(v || '').replace(/^\s*[:：]\s*/, '').trim(); }
+  // 일반 값 정리 (연속 공백 → 단일)
+  function _cleanVal(v){ return _stripColonPrefix(v).replace(/[ \t]+/g, ' ').trim(); }
+  // 회사명/CEO 등 — CJK 사이 스페이스 제거 ("(주) 미 디 어 큐 브" → "(주)미디어큐브")
+  function _cleanNameVal(v){
+    var s = _stripColonPrefix(v);
+    // CJK 문자 사이의 공백 하나 이상을 제거 (라틴 문자 사이는 유지)
+    s = s.replace(/([가-힣ㄱ-ㅎㅏ-ㅣ()（）])\s+(?=[가-힣ㄱ-ㅎㅏ-ㅣ()（）])/g, '$1');
+    return s.replace(/[ \t]+/g, ' ').trim();
+  }
+  function _cleanCeo(v){
+    return _cleanNameVal(v).replace(/\s*\(\s*인\s*\)\s*$/,'').trim();
+  }
+  // "서비스 / 업 종 : 사운드"  또는  "서비스 / 사운드" → ['서비스','사운드']
+  function _splitBiz(v){
+    var s = _stripColonPrefix(v);
+    // "업종 :" · "종목 :" 라벨은 제거
+    s = s.replace(/업\s*종\s*[:：]?/g, '').replace(/종\s*목\s*[:：]?/g, '');
+    var parts = s.split('/').map(function(x){ return x.replace(/[ \t]+/g,' ').trim(); }).filter(Boolean);
+    return parts;
+  }
+  // Tel/Fax 조합 문자열에서 두 번호 분리
+  function _extractTelFax(raw){
+    var s = _stripColonPrefix(raw);
+    if (!s) return { tel:'', fax:'' };
+    // 슬래시 조합 "TEL / FAX"
+    if (s.indexOf('/') >= 0) {
+      var p = s.split('/').map(function(x){ return x.replace(/[ \t]+/g,' ').replace(/Fax\s*[:：]?/gi,'').trim(); });
+      return { tel: p[0]||'', fax: p[1]||'' };
+    }
+    // "TEL Fax : FAX" 또는 "TEL   Fax   FAX"
+    var m = s.match(/^([\d\-\+\(\)\s]+?)\s*Fax\s*[:：]?\s*([\d\-\+\(\)\s]*)$/i);
+    if (m) return { tel: m[1].trim(), fax: (m[2]||'').trim() };
+    return { tel: s.trim(), fax: '' };
+  }
+
+  // items 헤더 행 찾기 · 컬럼 매핑 리턴
+  //   Needle: No | CD Title | CD No | CUE | Track No | Publisher/Composer | 단위/용도/권리 | 수량 | (Domestic&Worldwide / 금액 / Domestic|Worldwide)
+  //   Annual/거래명세서: No | 품목 | (코드) | 규격 | 단위 | QTY | 단가 | 공급가액 | 부가가치세 | (합계V.A.T포함)
+  function _findXlsxItemsHeader(ws){
+    var HEADER_RE = /^(No|CD\s*Title|품\s*목|품목)$/i;
+    var found = null;
+    ws.eachRow({includeEmpty:false}, function(row, rn){
+      if (found) return;
+      var noVal = _cellText(row.getCell(1)).replace(/\s+/g,'');
+      var b = _cellText(row.getCell(2)).replace(/\s+/g,'');
+      if (/^No$/i.test(noVal) && (/^CDTitle$/i.test(b) || /^품목$/.test(b))) {
+        // 컬럼 매핑 구성 — 헤더 텍스트로 각 컬럼 의미 판단
+        var mapping = {};
+        row.eachCell({includeEmpty:false}, function(cell, cn){
+          var h = _cellText(cell).replace(/\s+/g,'').toLowerCase();
+          if (h === 'no') mapping.no = cn;
+          else if (h === 'cdtitle' || h === '품목') mapping.title = cn;
+          else if (h === 'cdno' || h === '코드') mapping.code = cn;
+          else if (h === 'cue' || h === '규격') mapping.spec = cn;
+          else if (h === 'trackno') mapping.trackNo = cn;
+          else if (h.indexOf('publisher') >= 0 || h.indexOf('composer') >= 0) mapping.publisher = cn;
+          else if (h === '단위' || h === '용도' || h === '권리') mapping.unit = cn;
+          else if (h === '수량' || h === 'qty') mapping.qty = cn;
+          else if (h.indexOf('domestic&worldwide') >= 0) mapping.dw = cn;
+          else if (h === 'domestic') mapping.domestic = cn;
+          else if (h === 'worldwide') mapping.worldwide = cn;
+          else if (h === '금액') mapping.amount = cn;
+          else if (h === '단가') mapping.unitPrice = cn;
+          else if (h === '공급가액') mapping.supplyPrice = cn;
+          else if (h === '부가가치세') mapping.vat = cn;
+          else if (h.indexOf('합계') >= 0) mapping.totalWithVat = cn;
+        });
+        found = { headerRow: rn, cols: mapping };
+      }
+    });
+    return found;
+  }
+  function _parseXlsxItemsGeneric(ws, info, docType, subType){
     var items = [];
-    var maxRow = ws.rowCount || 200;
-    for (var r = 12; r <= maxRow; r++) {
+    var cols = info.cols || {};
+    var maxRow = Math.max(ws.actualRowCount || 0, ws.rowCount || 0, info.headerRow + 400);
+    for (var r = info.headerRow + 1; r <= maxRow; r++) {
       var row = ws.getRow(r);
-      var noCell = (row.getCell(1).value || '').toString().trim();
-      var itemCell = _cellText(row.getCell(2));
-      if (/^TOTAL/i.test(noCell) || /^TOTAL/i.test(itemCell)) break;
-      if (/^비\s*고$/.test(noCell) || /^비\s*고$/.test(itemCell)) break;
-      if (!noCell && !itemCell) continue;
-      var it = {
-        item: itemCell,
-        code: _cellText(row.getCell(3)),
-        spec: _cellText(row.getCell(4)),
-        unit: _cellText(row.getCell(5)),
-        qty: _cellText(row.getCell(6)),
-        unitPrice: _cellText(row.getCell(7)),
-        supplyPrice: _cellText(row.getCell(8)),
-        vat: _cellText(row.getCell(9)),
-        totalWithVat: _cellText(row.getCell(10))
-      };
+      var noRaw = _cellText(row.getCell(cols.no||1));
+      var titleRaw = _cellText(row.getCell(cols.title||2));
+      var noClean = noRaw.replace(/\s+/g,'');
+      var titleClean = titleRaw.replace(/\s+/g,'');
+      // TOTAL 감지 → 종료
+      if (/^TOTAL/i.test(noClean) || /^TOTAL/i.test(titleClean)) break;
+      // 비고 감지 → 종료
+      if (/^비고$/.test(noClean) || /^비고$/.test(titleClean)) break;
+      // 완전 빈 행은 skip (연속 빈 행이 많아도 이후에 데이터 있을 수 있으므로 skip 만)
+      if (!noRaw && !titleRaw) {
+        // 연속 20 빈 행 후 종료
+        var emptyStreak = 0;
+        for (var rr = r; rr <= Math.min(r+20, maxRow); rr++) {
+          var r2 = ws.getRow(rr);
+          if (!_cellText(r2.getCell(cols.no||1)) && !_cellText(r2.getCell(cols.title||2))) emptyStreak++;
+          else break;
+        }
+        if (emptyStreak >= 20) break;
+        continue;
+      }
+      var it = {};
+      if (docType === 'needle') {
+        it.cdTitle = _cleanVal(titleRaw);
+        if (cols.code) it.cdNo = _cleanVal(_cellText(row.getCell(cols.code)));
+        if (cols.spec) it.cue = _cleanVal(_cellText(row.getCell(cols.spec)));
+        if (cols.trackNo) it.trackNo = _cleanVal(_cellText(row.getCell(cols.trackNo)));
+        if (cols.publisher) it.publisher = _cleanVal(_cellText(row.getCell(cols.publisher)));
+        if (cols.unit) it.unit = _cleanVal(_cellText(row.getCell(cols.unit)));
+        if (cols.qty) it.qty = _cleanVal(_cellText(row.getCell(cols.qty)));
+        if ((subType||'ott') === 'movie') {
+          if (cols.domestic) it.domestic = _cleanVal(_cellText(row.getCell(cols.domestic)));
+          if (cols.worldwide) it.worldwide = _cleanVal(_cellText(row.getCell(cols.worldwide)));
+        } else if ((subType||'ott') === 'ad') {
+          if (cols.amount) it.amount = _cleanVal(_cellText(row.getCell(cols.amount)));
+        } else {
+          if (cols.dw) it.dw = _cleanVal(_cellText(row.getCell(cols.dw)));
+          else if (cols.amount) it.dw = _cleanVal(_cellText(row.getCell(cols.amount))); // fallback
+        }
+      } else {
+        it.item = _cleanVal(titleRaw);
+        if (cols.code) it.code = _cleanVal(_cellText(row.getCell(cols.code)));
+        if (cols.spec) it.spec = _cleanVal(_cellText(row.getCell(cols.spec)));
+        if (cols.unit) it.unit = _cleanVal(_cellText(row.getCell(cols.unit)));
+        if (cols.qty) it.qty = _cleanVal(_cellText(row.getCell(cols.qty)));
+        if (cols.unitPrice) it.unitPrice = _cleanVal(_cellText(row.getCell(cols.unitPrice)));
+        if (cols.supplyPrice) it.supplyPrice = _cleanVal(_cellText(row.getCell(cols.supplyPrice)));
+        if (cols.vat) it.vat = _cleanVal(_cellText(row.getCell(cols.vat)));
+        if (cols.totalWithVat) it.totalWithVat = _cleanVal(_cellText(row.getCell(cols.totalWithVat)));
+      }
       items.push(it);
     }
     return items;
@@ -15937,23 +16013,23 @@ window.__mq = (function(){
       if (v.text != null) return String(v.text);
       if (Array.isArray(v.richText)) return v.richText.map(function(r){return r.text||'';}).join('');
       if (v instanceof Date) return v.toISOString().slice(0,10);
+      if (v.formula) return ''; // formula 결과 없는 경우 빈값
     }
     return String(v).trim();
   }
   function _findXlsxNotes(ws){
-    var maxRow = ws.rowCount || 200;
+    var maxRow = Math.max(ws.actualRowCount || 0, ws.rowCount || 0, 500);
     for (var r = 1; r <= maxRow; r++) {
       var row = ws.getRow(r);
-      var v = _cellText(row.getCell(1));
-      if (/^비\s*고$/.test(v)) {
-        // 오른쪽 셀 값 (B~마지막) 중 첫 non-empty
-        for (var c = 2; c <= 10; c++) {
-          var t = _cellText(row.getCell(c));
+      var v = _cellText(row.getCell(1)).replace(/\s+/g,'');
+      if (v === '비고') {
+        // 같은 행 오른쪽 · 아래 행 B 등에서 첫 non-empty
+        for (var c = 2; c <= 12; c++) {
+          var t = _cleanVal(_cellText(row.getCell(c)));
           if (t) return t;
         }
-        // 아래 행에서 계속 찾기 (병합된 큰 셀)
         for (var rr = r; rr <= Math.min(r+8, maxRow); rr++) {
-          var t2 = _cellText(ws.getRow(rr).getCell(2));
+          var t2 = _cleanVal(_cellText(ws.getRow(rr).getCell(2)));
           if (t2) return t2;
         }
         return '';
