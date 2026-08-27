@@ -22027,6 +22027,10 @@ window._dmExitFeatureEmbed = function() {
   }
   var overlay = document.getElementById(st.overlayId);
   if (overlay && st.origParent) {
+    // .open 클래스 제거 (원위치 후 모달로 재출현 방지)
+    //   #mq-overlay.open { display:flex !important } 처럼 !important 로 강제되면
+    //   inline display:none 이 무시되므로 반드시 클래스도 함께 제거
+    overlay.classList.remove('open');
     if (st.origNext && st.origNext.parentNode === st.origParent) {
       st.origParent.insertBefore(overlay, st.origNext);
     } else {
