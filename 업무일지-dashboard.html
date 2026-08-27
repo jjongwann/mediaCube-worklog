@@ -17644,7 +17644,7 @@ window.__mq = (function(){
     // 컬럼: A~J
     // 컬럼 폭 (Annual: A~J 10칸, Invoice: A~I 9칸 · 참조 양식 매칭)
     var colWidths = isInvoice
-      ? [9.5, 32, 13, 8, 8, 10.25, 13, 14, 15]         // Invoice 9열 (A 확대 — 합계금액 한 줄)
+      ? [9.5, 32, 13, 8, 8, 10.25, 18, 14, 15]         // Invoice 9열 (A · G 단가 확대)
       : [5.13, 35, 15.13, 6, 6.5, 10.25, 13, 13, 15, 10]; // Annual 10열
     colWidths.forEach(function(w,i){ ws.getColumn(i+1).width = w; });
     // 행 높이 (헤더/제목/상단폼 영역만 사전 지정 · 데이터 행 높이는 렌더 중 동적 결정)
@@ -17894,7 +17894,7 @@ window.__mq = (function(){
       var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
       // Invoice: 대표자(R5) 의 (인) 위 정확 오버레이 · Annual: 상호명/대표자 사이
       var stampPos = isInvoice
-        ? { col:6.55, row:4, w:55, h:55 }   // Invoice: (인) 위 오버레이 (55x55)
+        ? { col:6.8, row:4, w:55, h:55 }   // Invoice: G열(단가) 끝 부근 · R5
         : { col:5.3, row:3.7, w:65, h:65 };
       ws.addImage(sid, { tl:{col:stampPos.col, row:stampPos.row}, ext:{width:stampPos.w, height:stampPos.h}, editAs:'oneCell' });
     }
