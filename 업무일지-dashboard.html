@@ -25139,8 +25139,14 @@ window.__vendor = (function() {
         return true;
       }).forEach(function(r){
         var m = parseInt((r.month_key||'').split('-')[1]);
-        if (!songMonthRows[m]) songMonthRows[m] = { id: r.id, amount: r.amount || 0, dupIds: [] };
-        else { songMonthRows[m].amount += (r.amount || 0); songMonthRows[m].dupIds.push(r.id); }
+        var rParent = (r.extra && r.extra.parent_cat) || null;
+        if (!songMonthRows[m]) {
+          songMonthRows[m] = { id: r.id, amount: r.amount || 0, dupIds: [], parent_cat: rParent };
+        } else if (songMonthRows[m].parent_cat === rParent) {
+          // 동일 parent_cat 만 dup 로 합침 · 다른 parent_cat 은 무시 (다른 부모 소속 데이터 보호)
+          songMonthRows[m].amount += (r.amount || 0);
+          songMonthRows[m].dupIds.push(r.id);
+        }
       });
     }
     _editCtx.songMonthRows = songMonthRows;
@@ -25656,7 +25662,9 @@ window.__vendor = (function() {
             var _origSubRow = _state.rows.find(function(rr){ return rr.id === sExisting.id; });
             var _origSubExtra = (_origSubRow && _origSubRow.extra) || {};
             var _isLegacy = !_origSubExtra.parent_cat;
-            if (sAmt !== sExisting.amount || newName !== ctx.vendorName || _isLegacy) {
+            var _hasDupsMerged = (sExisting.dupIds || []).length > 0;
+            // dup 이 존재하면 반드시 PATCH — 그렇지 않으면 dup DELETE 후 첫 행 amount 만 남아 합계가 축소됨
+            if (sAmt !== sExisting.amount || newName !== ctx.vendorName || _isLegacy || _hasDupsMerged) {
               var sPatchBody = { amount: sAmt, vendor_name: newName, updated_at: new Date().toISOString() };
               // legacy row 는 이번 편집 시점에 부모 카테고리를 확정
               if (_isLegacy) {
@@ -25761,12 +25769,23 @@ window.__vendor = (function() {
       return Promise.resolve({ ok: true });
     });
 
-    Promise.all(promises).then(function(results){
-      var allOk = results.every(function(r){ return r.ok || r.status === 201 || r.status === 204; });
-      if (!allOk) {
-        console.error('saveEdit partial failure', results);
-        _toast('일부 저장 실패 - 콘솔 확인');
-      } else if (catChanged) {
+    Promise.allSettled(promises).then(function(results){
+      // 실패 케이스: reject(fetch 자체 에러) 또는 HTTP 4xx/5xx
+      var failedOps = [];
+      results.forEach(function(r, i){
+        if (r.status === 'rejected') { failedOps.push({ op: ops[i], reason: (r.reason && r.reason.message) || 'network' }); return; }
+        var res = r.value;
+        if (!res || (!res.ok && res.status !== 201 && res.status !== 204)) {
+          failedOps.push({ op: ops[i], reason: 'HTTP '+(res ? res.status : '?') });
+        }
+      });
+      if (failedOps.length) {
+        console.error('saveEdit partial failure', failedOps);
+        _toast('저장 실패 ' + failedOps.length + '건 — 다시 시도해주세요 (' + failedOps[0].reason + ')');
+        // 모달 유지 · 뷰 재렌더 스킵 → 사용자가 놓치지 않도록
+        return;
+      }
+      if (catChanged) {
         _toast('카테고리 이동 완료 — ' + (_CAT_META[_newSelCat] ? _CAT_META[_newSelCat].name : _newSelCat) + ' 로 이동됨');
       } else {
         _toast('수정 완료');
