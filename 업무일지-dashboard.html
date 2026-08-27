@@ -15866,11 +15866,16 @@ window.__mq = (function(){
     }
     return out;
   }
-  // 같은 행에서 라벨 오른쪽 첫 non-empty 값 (연속 8칸까지)
+  // 같은 행에서 라벨 오른쪽 첫 non-empty 값 (연속 10칸까지)
+  //   ' Fax :' / 'Tel :' 처럼 라벨 문구만 있는 셀은 skip (실제 값 아님)
   function _readRightValue(row, startCol){
-    for (var c = startCol + 1; c <= startCol + 8; c++) {
+    for (var c = startCol + 1; c <= startCol + 10; c++) {
       var v = _cellText(row.getCell(c));
-      if (v) return v;
+      if (!v) continue;
+      // 콜론 · 공백 제외한 실제 텍스트가 오로지 라벨 단어(Fax/Tel/FAX/TEL/등록번호 등)면 skip
+      var stripped = String(v).replace(/[:：\s]/g,'');
+      if (/^(Fax|FAX|Tel|TEL|등록번호|상호명|대표자|소재지|업태|업종|종목|담당자|수신|참조|제목|DATE)$/i.test(stripped)) continue;
+      return v;
     }
     return '';
   }
@@ -15897,9 +15902,11 @@ window.__mq = (function(){
     return parts;
   }
   // Tel/Fax 조합 문자열에서 두 번호 분리
+  //   숫자가 전혀 없는 값(라벨만 남은 케이스: 'Fax :', 'Tel :') 은 빈값 반환
   function _extractTelFax(raw){
     var s = _stripColonPrefix(raw);
     if (!s) return { tel:'', fax:'' };
+    if (!/\d/.test(s)) return { tel:'', fax:'' }; // 숫자 없으면 유효 값 아님
     // 슬래시 조합 "TEL / FAX"
     if (s.indexOf('/') >= 0) {
       var p = s.split('/').map(function(x){ return x.replace(/[ \t]+/g,' ').replace(/Fax\s*[:：]?/gi,'').trim(); });
@@ -15907,7 +15914,13 @@ window.__mq = (function(){
     }
     // "TEL Fax : FAX" 또는 "TEL   Fax   FAX"
     var m = s.match(/^([\d\-\+\(\)\s]+?)\s*Fax\s*[:：]?\s*([\d\-\+\(\)\s]*)$/i);
-    if (m) return { tel: m[1].trim(), fax: (m[2]||'').trim() };
+    if (m) {
+      var t = m[1].trim(), f = (m[2]||'').trim();
+      // 각 부분에서 다시 숫자 유무 체크
+      if (!/\d/.test(t)) t = '';
+      if (!/\d/.test(f)) f = '';
+      return { tel: t, fax: f };
+    }
     return { tel: s.trim(), fax: '' };
   }
 
