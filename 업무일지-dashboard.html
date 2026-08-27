@@ -17680,10 +17680,14 @@ window.__mq = (function(){
       ws.mergeCells(row[2]);
       set(ws, row[2].split(':')[0], row[3], leftVal);
     });
-    // 아래와 같이... 위치: Invoice=R8, Annual=R9
-    var asLikeRow = isInvoice ? 8 : 9;
-    ws.mergeCells('A'+asLikeRow+':D'+asLikeRow);
-    set(ws, 'A'+asLikeRow, isInvoice ? '아래와 같이 계산합니다.' : '아래와 같이 견적합니다.', { font:F(11,true), align:A.center });
+    // 아래와 같이... 위치: Invoice=A7:D8 (2행 병합, 좌측 빈행 방지), Annual=R9
+    if (isInvoice) {
+      ws.mergeCells('A7:D8');
+      set(ws, 'A7', '아래와 같이 계산합니다.', { font:F(11,true), align:{horizontal:'center', vertical:'middle'} });
+    } else {
+      ws.mergeCells('A9:D9');
+      set(ws, 'A9', '아래와 같이 견적합니다.', { font:F(11,true), align:A.center });
+    }
     // Invoice 우측 (컴팩트 · 담당자 없음, 6행: 등록번호/상호명/대표자/소재지/업태/Tel):
     if (isInvoice) {
       var _mkR = function(row, label, val){
@@ -17750,7 +17754,8 @@ window.__mq = (function(){
     });
     // 데이터 — Invoice: R11+, Annual: R12+
     var rows = _MQ_XL.itemsToRows(r.items, r.doc_type);
-    var MIN_DATA_ROWS = 32;
+    // Invoice: 빈 슬롯 padding 없이 실제 items 만큼만 · Annual: 최소 32행 padding
+    var MIN_DATA_ROWS = isInvoice ? Math.max(rows.length, 1) : 32;
     var dataStart = isInvoice ? 11 : 12;
     var actualDataRows = Math.max(rows.length, MIN_DATA_ROWS);
     rows.forEach(function(row, ri){
