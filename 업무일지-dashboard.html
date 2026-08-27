@@ -15818,11 +15818,17 @@ window.__mq = (function(){
           form.sender_biz_type = parts[0] || form.sender_biz_type;
           form.sender_biz_item = parts[1] || form.sender_biz_item;
         }
-        // G8 은 'TEL   Fax  FAX' 조합
+        // G8 은 'TEL / FAX' 조합 (구 양식 'TEL   Fax  FAX' 도 호환)
         var telLine = getCell('G8');
         if (telLine) {
-          var m = telLine.match(/^(\S+)(?:\s+Fax\s+(\S+))?/i);
-          if (m) { form.sender_tel = m[1] || form.sender_tel; form.sender_fax = m[2] || form.sender_fax; }
+          if (telLine.indexOf('/') >= 0) {
+            var tp = telLine.split('/').map(function(s){ return s.trim(); });
+            form.sender_tel = tp[0] || form.sender_tel;
+            form.sender_fax = tp[1] || form.sender_fax;
+          } else {
+            var m = telLine.match(/^(\S+)(?:\s+Fax\s+(\S+))?/i);
+            if (m) { form.sender_tel = m[1] || form.sender_tel; form.sender_fax = m[2] || form.sender_fax; }
+          }
         }
         form.sender_person = getCell('G9') || form.sender_person;
         // 데이터: 11행부터 · 마지막 슬롯(sync 라벨) 이전까지
@@ -16826,14 +16832,14 @@ window.__mq = (function(){
     var senderCeoText = (r.sender_ceo || '') + '   (인)';
     var bizItemLabel = isInvoice ? '업태 / 종목' : '업태 / 업종';
     var bizItemCombined = (r.sender_biz_type||'') + '   /   ' + (r.sender_biz_item||'');
-    var senderTelCombined = (r.sender_tel||'') + '     Fax   ' + (r.sender_fax||'');
+    var senderTelCombined = (r.sender_tel||'') + '   /   ' + (r.sender_fax||'');
     var RRows = [
       [['등록번호', r.sender_reg_no||'']],
       [['상호명', r.sender_company||'']],
       [['대표자', senderCeoText]],
       [['소재지', r.sender_address||'']],
       [[bizItemLabel, bizItemCombined]],
-      [['Tel', senderTelCombined]],
+      [['Tel / FAX', senderTelCombined]],
       [['담당자', r.sender_person||'']]
     ];
     var rowHtml = function(row){
@@ -17201,16 +17207,16 @@ window.__mq = (function(){
     //   ott/ad(9열 F~I): F=업태, G=업태값, H=종목, I=종목값
     // 우측 좁은 컬럼(G=6.5) 문제로 우측은 조합 텍스트 방식 사용 (참조 양식과 동일)
     //   업태 / 업종 : 서비스 / 음원제작·유통
-    //   Tel : 02)534-8408   Fax : 02)534-8486
+    //   Tel / FAX : 02-534-8408 / 02-534-8486
     var bizCombined = (r.sender_biz_type||'') + '   /   ' + (r.sender_biz_item||'');
-    var telCombined = (r.sender_tel||'') + '     Fax  ' + (r.sender_fax||'');
+    var telCombined = (r.sender_tel||'') + '   /   ' + (r.sender_fax||'');
     if (mode === 'movie') {
       // 7행: 업태 / 업종 (라벨) + 조합값
       set(ws, 'F7', '업태 / 업종', leftLbl);
       ws.mergeCells('G7:J7');
       set(ws, 'G7', bizCombined, leftVal);
-      // 8행: Tel (라벨) + 조합값
-      set(ws, 'F8', 'Tel', leftLbl);
+      // 8행: Tel / FAX (라벨) + 조합값
+      set(ws, 'F8', 'Tel / FAX', leftLbl);
       ws.mergeCells('G8:J8');
       set(ws, 'G8', telCombined, leftVal);
       // 9행: 담당자
@@ -17219,7 +17225,7 @@ window.__mq = (function(){
       set(ws, 'F7', '업태 / 업종', leftLbl);
       ws.mergeCells('G7:I7');
       set(ws, 'G7', bizCombined, leftVal);
-      set(ws, 'F8', 'Tel', leftLbl);
+      set(ws, 'F8', 'Tel / FAX', leftLbl);
       ws.mergeCells('G8:I8');
       set(ws, 'G8', telCombined, leftVal);
       mkRSimple(9, '담당자', r.sender_person||'');
