@@ -16451,8 +16451,7 @@ window.__mq = (function(){
         }
         if (isParentRow && gStart >= 0 && ci > gStart && ci <= gEnd) return;
         var v = it[c.k]==null?'':it[c.k];
-        // Needle 의 단위 컬럼: 부모 행에만 'sync' default · 자식 행은 빈칸
-        if (isNeedle && c.k === 'unit' && !v && isParentRow) v = 'sync';
+        // 단위 default 제거 — 사용자가 명시적으로 입력한 값만 표시
         // 숫자 필드에서 0 값은 빈값 표시
         if (c.t === 'num' && (v === 0 || v === '0' || (v !== '' && Number(v) === 0))) v = '';
         var disp = (c.t === 'num' && v !== '') ? _fmtN(v) : v;
@@ -16849,13 +16848,13 @@ window.__mq = (function(){
         var it = row.raw;
         var vals;
         var isParent = String(row.no).indexOf('-') === -1;
-        var unitDefault = isParent ? 'sync' : '';
+        // 단위 default 제거 — 사용자가 명시적으로 입력한 값만 표시
         if (mode === 'ott') {
-          vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||unitDefault, _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.dw)||''];
+          vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||'', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.dw)||''];
         } else if (mode === 'ad') {
           vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||'', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.amount)||''];
         } else {
-          vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||unitDefault, _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.domestic)||'', _MQ_XL.num(it.worldwide)||''];
+          vals = [row.no, it.cdTitle||'', it.cdNo||'', it.cue||'', it.trackNo||'', it.publisher||'', it.unit||'', _MQ_XL.num(it.qty)||'', _MQ_XL.num(it.domestic)||'', _MQ_XL.num(it.worldwide)||''];
         }
         // 부모 행 (NO='1','2','3'...) 은 CD Title:CUE (B:D) 병합해 프로젝트 label 로 표시
         if (isParent) {
