@@ -16999,7 +16999,9 @@ window.__mq = (function(){
         // 숫자 필드에서 0 값은 빈값 표시
         if (c.t === 'num' && (v === 0 || v === '0' || (v !== '' && Number(v) === 0))) v = '';
         var disp = (c.t === 'num' && v !== '') ? _fmtN(v) : v;
-        cellArr.push('<td class="'+cls+'">'+esc(disp)+'</td>');
+        // CUE 컬럼 (Needle) 은 굵게 표시
+        var cellCls = cls + (c.k === 'cue' ? ' bold' : '');
+        cellArr.push('<td class="'+cellCls.trim()+'">'+esc(disp)+'</td>');
       });
       return '<tr>' + cellArr.join('') + '</tr>';
     }).join('');
@@ -17422,10 +17424,13 @@ window.__mq = (function(){
         } else {
           vals.forEach(function(v, c){
             var isNumCol = colSpec.sumCols.indexOf(c+1) !== -1;
-            set(ws, ws.getRow(rr).getCell(c+1).address, v, {
+            var isCueCol = c === 3; // Needle 자식 행 CUE 컬럼 (인덱스 3 = D열) 은 굵게
+            var opt = {
               align: A.center,
               numFmt: isNumCol ? '#,##0' : '@'
-            });
+            };
+            if (isCueCol) opt.font = F(10, true);
+            set(ws, ws.getRow(rr).getCell(c+1).address, v, opt);
           });
         }
       }
