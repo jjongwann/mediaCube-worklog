@@ -15170,6 +15170,30 @@ function openQuotePanel() {
   #mq-chooser-actions .step { font-size:11.5px; color:#94a3b8; font-weight:600; }
   #mq-chooser-actions button { padding:7px 14px; border-radius:7px; border:1px solid #e2e8f0; background:#f8fafc; color:#475569; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
   #mq-chooser-actions button:hover { background:#e2e8f0; }
+  /* 파일 업로드 오버레이 (chooser 와 동일 스타일) */
+  #mq-upload-back { display:none; position:absolute; inset:0; background:rgba(15,23,42,0.55); z-index:11; align-items:center; justify-content:center; padding:20px; }
+  #mq-upload-back.open { display:flex; }
+  #mq-upload-card { background:#fff; border-radius:14px; padding:26px; box-shadow:0 20px 60px rgba(15,23,42,0.35); width:560px; max-width:96%; animation:mqFadeUp 0.16s ease-out; }
+  #mq-upload-card h3 { margin:0 0 4px; font-size:18px; font-weight:800; color:#0f172a; letter-spacing:-0.3px; }
+  #mq-upload-card .sub { font-size:12.5px; color:#64748b; margin-bottom:18px; }
+  #mq-upload-dropzone { border:2px dashed #cbd5e1; border-radius:12px; padding:36px 20px; text-align:center; background:#f8fafc; cursor:pointer; transition:all 0.15s; }
+  #mq-upload-dropzone:hover, #mq-upload-dropzone.hover { border-color:#0d9488; background:#f0fdfa; }
+  #mq-upload-dropzone .icon { display:block; margin:0 auto 10px; color:#0d9488; }
+  #mq-upload-dropzone .msg { font-size:13px; color:#475569; font-weight:700; margin-bottom:4px; }
+  #mq-upload-dropzone .hint { font-size:11.5px; color:#94a3b8; }
+  #mq-upload-selected { margin-top:14px; padding:12px 14px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; display:none; align-items:center; gap:10px; }
+  #mq-upload-selected.on { display:flex; }
+  #mq-upload-selected .name { font-size:12.5px; color:#1e40af; font-weight:700; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #mq-upload-selected .size { font-size:11px; color:#3b82f6; }
+  #mq-upload-selected .remove { border:none; background:transparent; color:#dc2626; cursor:pointer; font-size:14px; padding:2px 6px; }
+  #mq-upload-actions { margin-top:18px; display:flex; justify-content:space-between; align-items:center; padding-top:14px; border-top:1px solid #f1f5f9; }
+  #mq-upload-actions .step { font-size:11.5px; color:#94a3b8; font-weight:600; }
+  #mq-upload-actions .btns { display:flex; gap:8px; }
+  #mq-upload-actions button { padding:7px 14px; border-radius:7px; border:1px solid #e2e8f0; background:#f8fafc; color:#475569; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+  #mq-upload-actions button:hover:not(:disabled) { background:#e2e8f0; }
+  #mq-upload-actions button.primary { background:#0d9488; color:#fff; border-color:#0d9488; }
+  #mq-upload-actions button.primary:hover:not(:disabled) { background:#0f766e; }
+  #mq-upload-actions button:disabled { opacity:0.5; cursor:not-allowed; }
   /* 헤더 (teal-emerald 그라디언트) */
   #mq-header { padding:16px 24px; display:flex; align-items:center; justify-content:space-between; background:linear-gradient(135deg,#0d9488,#0f766e); color:#fff; flex-shrink:0; }
   #mq-header .kicker { font-size:10px; font-weight:800; letter-spacing:1.6px; color:rgba(255,255,255,0.75); text-transform:uppercase; }
@@ -15274,6 +15298,8 @@ function openQuotePanel() {
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
+        <button class="mq-hbtn" id="mq-import-pdf-btn" onclick="window.__mq._openImportChooser('pdf')" title="기존 PDF 견적서를 불러와서 폼에 자동 입력"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF 업로드</button>
+        <button class="mq-hbtn" id="mq-import-xlsx-btn" onclick="window.__mq._openImportChooser('excel')" title="기존 Excel 견적서를 불러와서 폼에 자동 입력"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg> 엑셀 업로드</button>
         <button class="mq-hbtn primary" id="mq-new-btn" onclick="window.__mq._openChooser()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 새 견적서</button>
         <button class="mq-hbtn" id="mq-back-btn" onclick="window.__mq._showList()" style="display:none"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg> 목록</button>
         <button class="mq-hbtn" onclick="window.__mq.closePanel()">닫기</button>
@@ -15324,6 +15350,35 @@ function openQuotePanel() {
           <div style="display:flex;gap:6px">
             <button id="mq-chooser-back-btn" onclick="window.__mq._chooserBack()" style="display:none">← 이전</button>
             <button onclick="window.__mq._closeChooser()">취소</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 파일 업로드 오버레이 (PDF/Excel 불러오기) -->
+    <div id="mq-upload-back" onclick="if(event.target===this)window.__mq._closeUpload()">
+      <div id="mq-upload-card">
+        <h3 id="mq-upload-title">파일 업로드</h3>
+        <div class="sub" id="mq-upload-sub">파일을 드래그하거나 클릭하여 선택하세요</div>
+        <div id="mq-upload-dropzone" onclick="document.getElementById('mq-upload-file').click()"
+             ondragover="window.__mq._onImportDragOver(event)" ondragleave="window.__mq._onImportDragLeave(event)" ondrop="window.__mq._onImportDrop(event)">
+          <svg class="icon" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <div class="msg" id="mq-upload-msg">여기에 파일을 드롭하거나 클릭</div>
+          <div class="hint" id="mq-upload-hint">Excel (.xlsx) 또는 PDF (.pdf)</div>
+        </div>
+        <input id="mq-upload-file" type="file" style="display:none" onchange="window.__mq._onImportFileChange(this)">
+        <div id="mq-upload-selected">
+          <span style="color:#3b82f6">📎</span>
+          <span class="name" id="mq-upload-fname">파일명</span>
+          <span class="size" id="mq-upload-fsize"></span>
+          <button class="remove" onclick="window.__mq._clearImportFile()" title="선택 취소">×</button>
+        </div>
+        <div id="mq-upload-actions">
+          <span class="step" id="mq-upload-step">3 / 3 단계</span>
+          <div class="btns">
+            <button onclick="window.__mq._closeUpload()">취소</button>
+            <button class="primary" id="mq-upload-submit" onclick="window.__mq._startImport()" disabled>업로드</button>
           </div>
         </div>
       </div>
@@ -15488,6 +15543,7 @@ window.__mq = (function(){
     _visible('mq-list-wrap', true); _visible('mq-detail-view', false); _visible('mq-form-view', false);
     _visible('mq-filter-bar', true, 'flex');
     _showBtn('mq-new-btn', true); _showBtn('mq-back-btn', false);
+    _showBtn('mq-import-pdf-btn', true); _showBtn('mq-import-xlsx-btn', true);
     _renderList();
   }
   function _showForm(id){
@@ -15504,6 +15560,7 @@ window.__mq = (function(){
     _visible('mq-list-wrap', false); _visible('mq-detail-view', false); _visible('mq-form-view', true);
     _visible('mq-filter-bar', false);
     _showBtn('mq-new-btn', false); _showBtn('mq-back-btn', true);
+    _showBtn('mq-import-pdf-btn', false); _showBtn('mq-import-xlsx-btn', false);
     _renderForm();
   }
   function _showDetail(id){
@@ -15513,6 +15570,7 @@ window.__mq = (function(){
     _visible('mq-list-wrap', false); _visible('mq-detail-view', true); _visible('mq-form-view', false);
     _visible('mq-filter-bar', false);
     _showBtn('mq-new-btn', false); _showBtn('mq-back-btn', true);
+    _showBtn('mq-import-pdf-btn', false); _showBtn('mq-import-xlsx-btn', false);
     _renderDetail(r);
   }
   function _visible(id, on, mode){ var el=document.getElementById(id); if (el) el.style.display = on ? (mode||'block') : 'none'; }
@@ -15557,15 +15615,23 @@ window.__mq = (function(){
   //   Step 2: 카테고리 (OTT / 광고 / 영화)
   //   → _showForm(null) with docType/subType pre-set
   // ────────────────────────────────────────────────────────────
-  var _chooserState = { step:1, docType:null };
+  // chooser mode: 'new' (기존 새 견적서) | 'import_excel' | 'import_pdf'
+  var _chooserState = { step:1, docType:null, mode:'new' };
   function _openChooser(){
-    _chooserState = { step:1, docType:null };
+    _chooserState = { step:1, docType:null, mode:'new' };
+    _renderChooser();
+    document.getElementById('mq-chooser-back').classList.add('open');
+  }
+  // 파일 업로드 진입점 — 문서 유형 선택부터 시작, sub 선택 후 업로드 창으로
+  function _openImportChooser(mode){
+    _chooserState = { step:1, docType:null, mode: mode === 'pdf' ? 'import_pdf' : 'import_excel' };
+    _importState = { docType:null, subType:null, file:null, mode:_chooserState.mode };
     _renderChooser();
     document.getElementById('mq-chooser-back').classList.add('open');
   }
   function _closeChooser(){
     document.getElementById('mq-chooser-back').classList.remove('open');
-    _chooserState = { step:1, docType:null };
+    _chooserState = { step:1, docType:null, mode:'new' };
   }
   function _chooserBack(){
     if (_chooserState.step === 2) { _chooserState.step = 1; _chooserState.docType = null; _renderChooser(); }
@@ -15619,8 +15685,366 @@ window.__mq = (function(){
     _chooserState.step = 2;
     _renderChooser();
   }
+
+  // ────────────────────────────────────────────────────────────
+  // 파일 업로드 (PDF/Excel) → 견적서 폼 자동 입력
+  // ────────────────────────────────────────────────────────────
+  var _importState = { docType:null, subType:null, file:null, mode:'import_excel' };
+  function _openUploadPanel(){
+    var back = document.getElementById('mq-upload-back');
+    var title = document.getElementById('mq-upload-title');
+    var sub = document.getElementById('mq-upload-sub');
+    var msg = document.getElementById('mq-upload-msg');
+    var hint = document.getElementById('mq-upload-hint');
+    var input = document.getElementById('mq-upload-file');
+    var isPdf = _importState.mode === 'import_pdf';
+    if (title) title.textContent = isPdf ? 'PDF 견적서 업로드' : 'Excel 견적서 업로드';
+    var dtLbl = _importState.docType === 'needle' ? 'Needle' : (_importState.docType === 'annual' ? 'Annual' : '거래명세서');
+    var subLbl = ({ott:'OTT', ad:'광고', movie:'영화'}[_importState.subType]||'');
+    if (sub) sub.textContent = dtLbl + (subLbl?(' · '+subLbl):'') + ' — 파일을 드래그하거나 클릭해 선택하세요';
+    if (msg) msg.textContent = '여기에 파일을 드롭하거나 클릭';
+    if (hint) hint.textContent = isPdf ? 'PDF 파일 (.pdf)' : 'Excel 파일 (.xlsx)';
+    if (input) input.accept = isPdf ? '.pdf,application/pdf' : '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    _clearImportFile();
+    back.classList.add('open');
+  }
+  function _closeUpload(){
+    document.getElementById('mq-upload-back').classList.remove('open');
+    _importState = { docType:null, subType:null, file:null, mode:'import_excel' };
+  }
+  function _onImportDragOver(e){ e.preventDefault(); e.stopPropagation(); document.getElementById('mq-upload-dropzone').classList.add('hover'); }
+  function _onImportDragLeave(e){ e.preventDefault(); e.stopPropagation(); document.getElementById('mq-upload-dropzone').classList.remove('hover'); }
+  function _onImportDrop(e){
+    e.preventDefault(); e.stopPropagation();
+    document.getElementById('mq-upload-dropzone').classList.remove('hover');
+    var files = e.dataTransfer && e.dataTransfer.files;
+    if (!files || !files.length) return;
+    _setImportFile(files[0]);
+  }
+  function _onImportFileChange(inp){
+    if (!inp.files || !inp.files.length) return;
+    _setImportFile(inp.files[0]);
+    inp.value = '';
+  }
+  function _setImportFile(f){
+    if (!f) return;
+    var isPdf = _importState.mode === 'import_pdf';
+    var ext = (f.name||'').toLowerCase();
+    var okExt = isPdf ? ext.endsWith('.pdf') : ext.endsWith('.xlsx');
+    if (!okExt) { _toast(isPdf ? 'PDF 파일만 업로드 가능합니다' : 'Excel(.xlsx) 파일만 업로드 가능합니다'); return; }
+    if (f.size > 30*1024*1024) { _toast('30MB 초과 파일은 업로드할 수 없습니다'); return; }
+    _importState.file = f;
+    var box = document.getElementById('mq-upload-selected');
+    document.getElementById('mq-upload-fname').textContent = f.name;
+    var sz = f.size > 1024*1024 ? (f.size/1024/1024).toFixed(1)+' MB' : Math.round(f.size/1024)+' KB';
+    document.getElementById('mq-upload-fsize').textContent = sz;
+    box.classList.add('on');
+    document.getElementById('mq-upload-submit').disabled = false;
+  }
+  function _clearImportFile(){
+    _importState.file = null;
+    var box = document.getElementById('mq-upload-selected');
+    if (box) box.classList.remove('on');
+    var btn = document.getElementById('mq-upload-submit');
+    if (btn) btn.disabled = true;
+  }
+  function _startImport(){
+    if (!_importState.file) { _toast('파일을 선택해주세요'); return; }
+    var f = _importState.file, dt = _importState.docType, st = _importState.subType, mode = _importState.mode;
+    var btn = document.getElementById('mq-upload-submit');
+    btn.disabled = true; btn.textContent = '분석 중...';
+    _toast('견적서 분석 중...');
+    var parse = mode === 'import_pdf' ? _parsePdfToForm(f, dt, st) : _parseExcelToForm(f, dt, st);
+    parse.then(function(form){
+      _closeUpload();
+      // 파싱 결과를 새 폼으로 진입
+      _state.view = 'form'; _state.editingId = null; _state.viewingId = null;
+      _state.form = form;
+      _visible('mq-list-wrap', false); _visible('mq-detail-view', false); _visible('mq-form-view', true);
+      _visible('mq-filter-bar', false);
+      _showBtn('mq-new-btn', false); _showBtn('mq-back-btn', true);
+    _showBtn('mq-import-pdf-btn', false); _showBtn('mq-import-xlsx-btn', false);
+      _renderForm();
+      _toast('불러오기 완료 — 내용을 확인·수정 후 저장하세요');
+    }).catch(function(e){
+      console.error('[__mq] import', e);
+      _toast('파싱 실패 — '+(e && e.message || '파일 형식을 확인하세요'));
+      btn.disabled = false; btn.textContent = '업로드';
+    });
+  }
+
+  // ── Excel 파서 (자체 export 양식 기반 · 셀 위치로 필드 추출) ──
+  function _parseExcelToForm(file, docType, subType){
+    return _loadExcelJs().then(function(XLS){
+      return file.arrayBuffer().then(function(buf){
+        var wb = new XLS.Workbook();
+        return wb.xlsx.load(buf).then(function(){ return wb; });
+      });
+    }).then(function(wb){
+      var ws = wb.worksheets[0];
+      if (!ws) throw new Error('시트 없음');
+      var form = _newForm(docType, subType);
+      // 값 추출 헬퍼 (병합 셀은 실제 값이 좌상단 셀에 저장됨)
+      var getCell = function(addr){
+        try {
+          var c = ws.getCell(addr);
+          var v = c.value;
+          if (v && typeof v === 'object') {
+            if (v.result != null) return String(v.result);
+            if (v.text != null) return String(v.text);
+            if (Array.isArray(v.richText)) return v.richText.map(function(r){ return r.text||''; }).join('');
+          }
+          return v == null ? '' : String(v).trim();
+        } catch(e) { return ''; }
+      };
+      var isNeedle = docType === 'needle';
+      // 상단 폼: Needle 은 3~9행, Annual/Invoice 는 별도 배치
+      if (isNeedle) {
+        form.doc_date = _normDate(getCell('B3'));
+        form.receiver_company = getCell('B4');
+        form.receiver_person = getCell('B5');
+        form.receiver_tel = getCell('B6');
+        form.receiver_fax = getCell('D6');
+        form.doc_title = getCell('B7');
+        form.sender_reg_no = getCell('G3') || form.sender_reg_no;
+        form.sender_company = getCell('G4') || form.sender_company;
+        // 대표자: '(인)' 문구 제거
+        form.sender_ceo = (getCell('G5')||'').replace(/\s*\(인\)\s*$/,'').trim() || form.sender_ceo;
+        form.sender_address = getCell('G6') || form.sender_address;
+        // G7 은 '업태 / 업종' 조합 문자열
+        var biz = getCell('G7');
+        if (biz && biz.indexOf('/') >= 0) {
+          var parts = biz.split('/').map(function(s){ return s.trim(); });
+          form.sender_biz_type = parts[0] || form.sender_biz_type;
+          form.sender_biz_item = parts[1] || form.sender_biz_item;
+        }
+        // G8 은 'TEL   Fax  FAX' 조합
+        var telLine = getCell('G8');
+        if (telLine) {
+          var m = telLine.match(/^(\S+)(?:\s+Fax\s+(\S+))?/i);
+          if (m) { form.sender_tel = m[1] || form.sender_tel; form.sender_fax = m[2] || form.sender_fax; }
+        }
+        form.sender_person = getCell('G9') || form.sender_person;
+        // 데이터: 11행부터 · 마지막 슬롯(sync 라벨) 이전까지
+        form.items = _parseXlsxItemsNeedle(ws, subType||'ott');
+      } else {
+        // Annual/Invoice
+        form.doc_date = _normDate(getCell('B3'));
+        form.receiver_company = getCell('B4');
+        var isInvoice = docType === 'invoice';
+        if (isInvoice) {
+          form.doc_title = getCell('B5');
+        } else {
+          form.receiver_person = getCell('B5');
+          form.receiver_tel = getCell('B6');
+          form.receiver_fax = getCell('B7');
+          form.doc_title = getCell('B8');
+        }
+        form.sender_reg_no = getCell('F3') || form.sender_reg_no;
+        form.sender_company = getCell('F4') || form.sender_company;
+        form.sender_ceo = (getCell('F5')||'').replace(/\s*\(인\)\s*$/,'').trim() || form.sender_ceo;
+        form.sender_address = getCell('F6') || form.sender_address;
+        form.sender_biz_type = getCell('F7') || form.sender_biz_type;
+        form.sender_biz_item = getCell('F8') || form.sender_biz_item;
+        form.sender_tel = getCell('F9') || form.sender_tel;
+        // 데이터: 12행부터
+        form.items = _parseXlsxItemsAnnual(ws);
+      }
+      // 비고 추출: 시트 하단 '비 고' 라벨 셀 오른쪽 값 찾기
+      form.notes = _findXlsxNotes(ws) || '';
+      // 자동 견적번호는 파싱값 우선, 없으면 자동 채번
+      if (!form.quote_no) form.quote_no = _nextQuoteNo();
+      return form;
+    });
+  }
+
+  // Needle 데이터 파싱 (11행~마지막 데이터행)
+  function _parseXlsxItemsNeedle(ws, sub){
+    var items = [];
+    var maxRow = ws.rowCount || 200;
+    for (var r = 11; r <= maxRow; r++) {
+      var row = ws.getRow(r);
+      var noCell = (row.getCell(1).value || '').toString().trim();
+      var titleCell = _cellText(row.getCell(2));
+      // TOTAL 행 감지 → 데이터 종료
+      if (/^TOTAL/i.test(noCell) || /^TOTAL/i.test(titleCell)) break;
+      // 비고 라벨 → 데이터 종료
+      if (/^비\s*고$/.test(noCell) || /^비\s*고$/.test(titleCell)) break;
+      // 완전 빈 행이 3개 연속이면 종료
+      if (!noCell && !titleCell) {
+        var pubEmpty = !_cellText(row.getCell(6));
+        var qtyEmpty = !_cellText(row.getCell(8));
+        if (pubEmpty && qtyEmpty) continue;
+      }
+      if (!noCell) continue;
+      var it = {};
+      it.cdTitle = titleCell;
+      it.cdNo = _cellText(row.getCell(3));
+      it.cue = _cellText(row.getCell(4));
+      it.trackNo = _cellText(row.getCell(5));
+      it.publisher = _cellText(row.getCell(6));
+      it.unit = _cellText(row.getCell(7));
+      it.qty = _cellText(row.getCell(8));
+      if (sub === 'movie') {
+        it.domestic = _cellText(row.getCell(9));
+        it.worldwide = _cellText(row.getCell(10));
+      } else if (sub === 'ad') {
+        it.amount = _cellText(row.getCell(9));
+      } else {
+        it.dw = _cellText(row.getCell(9));
+      }
+      items.push(it);
+    }
+    return items;
+  }
+  function _parseXlsxItemsAnnual(ws){
+    var items = [];
+    var maxRow = ws.rowCount || 200;
+    for (var r = 12; r <= maxRow; r++) {
+      var row = ws.getRow(r);
+      var noCell = (row.getCell(1).value || '').toString().trim();
+      var itemCell = _cellText(row.getCell(2));
+      if (/^TOTAL/i.test(noCell) || /^TOTAL/i.test(itemCell)) break;
+      if (/^비\s*고$/.test(noCell) || /^비\s*고$/.test(itemCell)) break;
+      if (!noCell && !itemCell) continue;
+      var it = {
+        item: itemCell,
+        code: _cellText(row.getCell(3)),
+        spec: _cellText(row.getCell(4)),
+        unit: _cellText(row.getCell(5)),
+        qty: _cellText(row.getCell(6)),
+        unitPrice: _cellText(row.getCell(7)),
+        supplyPrice: _cellText(row.getCell(8)),
+        vat: _cellText(row.getCell(9)),
+        totalWithVat: _cellText(row.getCell(10))
+      };
+      items.push(it);
+    }
+    return items;
+  }
+  function _cellText(cell){
+    if (!cell) return '';
+    var v = cell.value;
+    if (v == null) return '';
+    if (typeof v === 'object') {
+      if (v.result != null) return String(v.result);
+      if (v.text != null) return String(v.text);
+      if (Array.isArray(v.richText)) return v.richText.map(function(r){return r.text||'';}).join('');
+      if (v instanceof Date) return v.toISOString().slice(0,10);
+    }
+    return String(v).trim();
+  }
+  function _findXlsxNotes(ws){
+    var maxRow = ws.rowCount || 200;
+    for (var r = 1; r <= maxRow; r++) {
+      var row = ws.getRow(r);
+      var v = _cellText(row.getCell(1));
+      if (/^비\s*고$/.test(v)) {
+        // 오른쪽 셀 값 (B~마지막) 중 첫 non-empty
+        for (var c = 2; c <= 10; c++) {
+          var t = _cellText(row.getCell(c));
+          if (t) return t;
+        }
+        // 아래 행에서 계속 찾기 (병합된 큰 셀)
+        for (var rr = r; rr <= Math.min(r+8, maxRow); rr++) {
+          var t2 = _cellText(ws.getRow(rr).getCell(2));
+          if (t2) return t2;
+        }
+        return '';
+      }
+    }
+    return '';
+  }
+  function _normDate(v){
+    if (!v) return '';
+    v = String(v).trim();
+    // ISO 형식 그대로 반환
+    if (/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0,10);
+    // "YYYY년 MM월 DD일"
+    var m = v.match(/(\d{4})\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+    if (m) return m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0');
+    // "YYYY.MM.DD" or "YYYY/MM/DD"
+    m = v.match(/(\d{4})[.\/](\d{1,2})[.\/](\d{1,2})/);
+    if (m) return m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0');
+    return v;
+  }
+
+  // ── pdf.js lazy load ──
+  function _loadPdfJs(){
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    return new Promise(function(res, rej){
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+      s.onload = function(){
+        if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        }
+        res(window.pdfjsLib);
+      };
+      s.onerror = function(){ rej(new Error('pdf.js 로드 실패')); };
+      document.head.appendChild(s);
+    });
+  }
+  // PDF 파서 — 텍스트 추출 + heuristic 매칭 (완전 자동은 어렵고 best-effort)
+  function _parsePdfToForm(file, docType, subType){
+    return _loadPdfJs().then(function(pdfjsLib){
+      return file.arrayBuffer().then(function(buf){
+        return pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+      });
+    }).then(function(pdf){
+      var pages = [];
+      var jobs = [];
+      for (var i = 1; i <= pdf.numPages; i++) {
+        (function(pn){
+          jobs.push(pdf.getPage(pn).then(function(page){ return page.getTextContent(); }).then(function(tc){
+            pages.push({ pn:pn, items:tc.items });
+          }));
+        })(i);
+      }
+      return Promise.all(jobs).then(function(){ return pages; });
+    }).then(function(pages){
+      pages.sort(function(a,b){ return a.pn - b.pn; });
+      var allText = pages.map(function(p){ return p.items.map(function(it){ return it.str; }).join(' '); }).join('\n');
+      var form = _newForm(docType, subType);
+      // heuristic 매칭 — 라벨 : 값 패턴
+      var pick = function(rx){ var m = allText.match(rx); return m ? m[1].trim() : ''; };
+      form.doc_date = _normDate(pick(/DATE\s*[:：]?\s*([0-9\-.\/년월일\s]+?)(?:\s{2,}|수신|등록번호|$)/i)) || form.doc_date;
+      form.receiver_company = pick(/수\s*신\s*[:：]?\s*([^\n]+?)(?:\s{2,}|참조|Tel|제목|상호명|$)/) || form.receiver_company;
+      form.receiver_person = pick(/참\s*조\s*[:：]?\s*([^\n]+?)(?:\s{2,}|Tel|Fax|제목|$)/) || form.receiver_person;
+      form.receiver_tel = pick(/^\s*Tel\s*[:：]?\s*([0-9\-\+\(\) ]+)/m) || form.receiver_tel;
+      form.receiver_fax = pick(/^\s*Fax\s*[:：]?\s*([0-9\-\+\(\) ]+)/m) || form.receiver_fax;
+      form.doc_title = pick(/제\s*목\s*[:：]?\s*([^\n]+?)(?:\s{2,}|아래와|담당자|$)/) || form.doc_title;
+      form.sender_reg_no = pick(/등록번호\s*[:：]?\s*([0-9\- ]+)/) || form.sender_reg_no;
+      form.sender_company = pick(/상호명\s*[:：]?\s*([^\n]+?)(?:\s{2,}|대표자|$)/) || form.sender_company;
+      form.sender_ceo = (pick(/대표자\s*[:：]?\s*([^\n]+?)(?:\s{2,}|소재지|\(인\)|$)/)||'').replace(/\s*\(인\)\s*$/,'') || form.sender_ceo;
+      form.sender_address = pick(/소재지\s*[:：]?\s*([^\n]+?)(?:\s{2,}|업태|$)/) || form.sender_address;
+      var telLine = pick(/(?:^|\s)Tel\s*[:：]?\s*([0-9\-\+\(\)]+\s*(?:Fax\s*[:：]?\s*[0-9\-\+\(\)]+)?)/);
+      if (telLine) {
+        var tm = telLine.match(/([0-9\-\+\(\)]+)\s*Fax\s*[:：]?\s*([0-9\-\+\(\)]+)/i);
+        if (tm) { form.sender_tel = tm[1]; form.sender_fax = tm[2]; }
+        else form.sender_tel = telLine.trim();
+      }
+      form.sender_person = pick(/담당자\s*[:：]?\s*([^\n]+?)(?:\s{2,}|아래와|$)/) || form.sender_person;
+      // Items: PDF 자동 파싱은 매우 어려움 → 빈 첫 행 하나로 초기화 · 사용자가 이어서 입력
+      // (특정 양식 매칭 시 향후 확장 가능)
+      form.notes = pick(/비\s*고\s*[:：]?\s*([^\n]{2,200})/) || '';
+      if (!form.quote_no) form.quote_no = _nextQuoteNo();
+      _toast('PDF 는 텍스트만 자동 추출 · 항목 표는 수동 입력 필요');
+      return form;
+    });
+  }
   function _pickSubType(subType){
     var dt = _chooserState.docType;
+    var mode = _chooserState.mode || 'new';
+    if (mode === 'import_excel' || mode === 'import_pdf') {
+      // 파일 업로드 화면으로 전환 (chooser 는 닫고 upload overlay 오픈)
+      document.getElementById('mq-chooser-back').classList.remove('open');
+      _importState.docType = dt;
+      _importState.subType = subType;
+      _importState.mode = mode;
+      _openUploadPanel();
+      return;
+    }
     _closeChooser();
     // form 진입
     _state.view = 'form'; _state.editingId = null; _state.viewingId = null;
@@ -15628,6 +16052,7 @@ window.__mq = (function(){
     _visible('mq-list-wrap', false); _visible('mq-detail-view', false); _visible('mq-form-view', true);
     _visible('mq-filter-bar', false);
     _showBtn('mq-new-btn', false); _showBtn('mq-back-btn', true);
+    _showBtn('mq-import-pdf-btn', false); _showBtn('mq-import-xlsx-btn', false);
     _renderForm();
   }
   function _cloneForForm(r){
@@ -17310,6 +17735,9 @@ window.__mq = (function(){
     _save: _save, _deleteById: _deleteById,
     _openChooser: _openChooser, _closeChooser: _closeChooser, _chooserBack: _chooserBack,
     _pickDocType: _pickDocType, _pickSubType: _pickSubType,
+    _openImportChooser: _openImportChooser, _closeUpload: _closeUpload,
+    _onImportDragOver: _onImportDragOver, _onImportDragLeave: _onImportDragLeave, _onImportDrop: _onImportDrop,
+    _onImportFileChange: _onImportFileChange, _clearImportFile: _clearImportFile, _startImport: _startImport,
     _exportPdf: _exportPdf, _exportExcel: _exportExcel,
     _state: _state
   };
