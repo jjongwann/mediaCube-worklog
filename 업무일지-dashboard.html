@@ -17660,13 +17660,13 @@ window.__mq = (function(){
     var lastCol = isInvoice ? 'I' : 'J';
     var leftLbl = { font:F(10,true), fill:FILL.label };
     var leftVal = { align:A.left };
-    // Invoice 좌측 (참조 거래명세서.xlsx 배치):
-    //   R3=DATE, R4=(empty), R5=수신, R6=(이메일 sub-line), R7=제목, R8=(empty), R9=아래와 같이 계산합니다.
+    // 좌측 폼 (Invoice 는 컴팩트 · 참조 양식):
+    //   R3=DATE, R4=수신, R5=메일, R6=제목, R7=(empty), R8=아래와 같이 계산합니다.
     var L = isInvoice ? [
       ['A3','DATE','B3:D3',_MQ_XL.fmtDate(r.doc_date)],
-      ['A5','수신','B5:D5', r.receiver_company||''],
-      ['A6','',    'B6:D6', r.receiver_person||''],   // 이메일 sub-line (라벨 없음)
-      ['A7','제목','B7:D7', r.doc_title||'']
+      ['A4','수신','B4:D4', r.receiver_company||''],
+      ['A5','메일','B5:D5', r.receiver_person||''],
+      ['A6','제목','B6:D6', r.doc_title||'']
     ] : [
       ['A3','DATE','B3:D3',_MQ_XL.fmtDate(r.doc_date)],
       ['A4','수신','B4:D4', r.receiver_company||''],
@@ -17680,25 +17680,23 @@ window.__mq = (function(){
       ws.mergeCells(row[2]);
       set(ws, row[2].split(':')[0], row[3], leftVal);
     });
-    ws.mergeCells('A9:D9');
-    set(ws, 'A9', isInvoice ? '아래와 같이 계산합니다.' : '아래와 같이 견적합니다.', { font:F(11,true), align:A.center });
-    // Invoice 우측 (참조 거래명세서.xlsx): 등록번호/상호명/대표자/소재지/업태(combined)/Tel(combined)
-    //   담당자 없음. 업태/Tel 은 한 셀에 조합 문자열
+    // 아래와 같이... 위치: Invoice=R8, Annual=R9
+    var asLikeRow = isInvoice ? 8 : 9;
+    ws.mergeCells('A'+asLikeRow+':D'+asLikeRow);
+    set(ws, 'A'+asLikeRow, isInvoice ? '아래와 같이 계산합니다.' : '아래와 같이 견적합니다.', { font:F(11,true), align:A.center });
+    // Invoice 우측 (컴팩트 · 담당자 없음, 6행: 등록번호/상호명/대표자/소재지/업태/Tel):
     if (isInvoice) {
-      var Rrng = { valLast: 'I' }; // G:I merged for values
       var _mkR = function(row, label, val){
         set(ws, 'F'+row, label, leftLbl);
-        ws.mergeCells('G'+row+':'+Rrng.valLast+row);
+        ws.mergeCells('G'+row+':I'+row);
         set(ws, 'G'+row, val, leftVal);
       };
       _mkR(3, '등록번호', r.sender_reg_no||'');
       _mkR(4, '상호명',   r.sender_company||'');
       _mkR(5, '대표자',   (r.sender_ceo||'') ? (r.sender_ceo + '   (인)') : '(인)');
       _mkR(6, '소재지',   r.sender_address||'');
-      // 업태 (조합): "서비스 / 종 목 : 사운드"
       var invBiz = (r.sender_biz_type||'') + '   /   종 목 : ' + (r.sender_biz_item||'');
       _mkR(7, '업태', invBiz);
-      // Tel (조합): "02) 534-8408   Fax : 02) 534-8486"
       var invTel = (r.sender_tel||'') + '   Fax : ' + (r.sender_fax||'');
       _mkR(8, 'Tel', invTel);
     } else {
@@ -17718,7 +17716,7 @@ window.__mq = (function(){
         set(ws, row[2].split(':')[0], row[3], leftVal);
       });
     }
-    // 합계금액 (10행) — Invoice 는 summary 행 supplyPrice+vat, Annual 은 items totalWithVat 합
+    // 합계금액 — Invoice 는 R9, Annual 은 R10
     var total = 0;
     var summaryTop = isInvoice ? ((r.items||[]).find(function(it){return it && it._summary;}) || {}) : {};
     if (isInvoice) {
@@ -17727,32 +17725,33 @@ window.__mq = (function(){
     } else {
       (r.items||[]).forEach(function(it){ if (it._type !== 'group') total += _MQ_XL.num(it.totalWithVat); });
     }
-    set(ws, 'A10', '합계 금액', { font:F(11,true), fill:FILL.total, align:A.center });
-    // Invoice: B10:D10 병합 = 한글금액 + (V.A.T포함), E10:I10 = 통화값
-    //   Annual:  B10:E10 병합 = 일금 + 한글금액 + 원정, F10:J10 = 통화값
+    var sumRow = isInvoice ? 9 : 10;
+    set(ws, 'A'+sumRow, '합계 금액', { font:F(11,true), fill:FILL.total, align:A.center });
     if (isInvoice) {
-      ws.mergeCells('B10:D10');
+      ws.getRow(9).height = 30;
+      ws.mergeCells('B9:E9');
       var koText = _MQ_XL.numToKorean(total);
-      set(ws, 'B10', (total ? koText + '원정(V.A.T포함)' : ''), { font:F(11,true), align:A.center, fill:FILL.total });
-      ws.mergeCells('E10:I10');
-      set(ws, 'E10', total, { font:F(13,true), align:A.right, numFmt:'"₩ "#,##0', fill:FILL.total });
+      set(ws, 'B9', (total ? koText + '원정(V.A.T포함)' : ''), { font:F(11,true), align:A.center, fill:FILL.total });
+      ws.mergeCells('F9:I9');
+      set(ws, 'F9', total, { font:F(13,true), align:A.right, numFmt:'"₩ "#,##0', fill:FILL.total });
     } else {
       ws.mergeCells('B10:E10');
       set(ws, 'B10', '일금 ' + total.toLocaleString() + ' 원정 (₩'+ total.toLocaleString() +')', { font:F(11,true), align:A.center, fill:FILL.total });
       ws.mergeCells('F10:J10');
       set(ws, 'F10', total, { font:F(13,true), align:A.right, numFmt:'₩#,##0', fill:FILL.total });
     }
-    // 표 헤더 (11행)
+    // 표 헤더 — Invoice 는 R10, Annual 은 R11
+    var headerRow = isInvoice ? 10 : 11;
     var headers = isInvoice
       ? ['NO','품목','코드','규격','단위','QTY','단가','공급가액','부가가치세']
       : ['NO','품목','코드','규격','단위','QTY','단가','공급가액','부가가치세','합계 금액 (V.A.T포함)'];
     headers.forEach(function(h,i){
-      set(ws, ws.getRow(11).getCell(i+1).address, h, { font:F(10,true), fill:FILL.header });
+      set(ws, ws.getRow(headerRow).getCell(i+1).address, h, { font:F(10,true), fill:FILL.header });
     });
-    // 데이터 (12행부터 · 동적 행 개수 · group 지원)
+    // 데이터 — Invoice: R11+, Annual: R12+
     var rows = _MQ_XL.itemsToRows(r.items, r.doc_type);
     var MIN_DATA_ROWS = 32;
-    var dataStart = 12;
+    var dataStart = isInvoice ? 11 : 12;
     var actualDataRows = Math.max(rows.length, MIN_DATA_ROWS);
     rows.forEach(function(row, ri){
       var rr = dataStart + ri;
@@ -17876,7 +17875,11 @@ window.__mq = (function(){
     }
     if (stampBuf) {
       var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
-      ws.addImage(sid, { tl:{col:5.3,row:3.7}, ext:{width:65,height:65}, editAs:'oneCell' });
+      // Invoice: 대표자(R5)의 (인) 위치에 오버레이 · Annual: 상호명/대표자 사이
+      var stampPos = isInvoice
+        ? { col:7.2, row:4.15, w:60, h:60 }   // Invoice: H열 상단, 대표자 행 (R5=index 4)
+        : { col:5.3, row:3.7, w:65, h:65 };
+      ws.addImage(sid, { tl:{col:stampPos.col, row:stampPos.row}, ext:{width:stampPos.w, height:stampPos.h}, editAs:'oneCell' });
     }
     // 제목/로고 영역 (1~2행) thick outer 프레임
     _MQ_XL.thickOuter(ws, 1, 1, 2, lastColNum);
