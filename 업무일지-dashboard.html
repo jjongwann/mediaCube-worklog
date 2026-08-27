@@ -17888,7 +17888,7 @@ window.__mq = (function(){
     if (logoBuf) {
       var lid = wb.addImage({ buffer:logoBuf, extension:'png' });
       var logoPos = isInvoice
-        ? { col:0.15, row:0.15, w:180, h:48 }   // Invoice: 상단 정렬 · 살짝 올림
+        ? { col:0.15, row:0.3, w:180, h:48 }   // Invoice: 살짝 아래로
         : { col:0.15, row:0.3, w:210, h:60 };
       ws.addImage(lid, { tl:{col:logoPos.col, row:logoPos.row}, ext:{width:logoPos.w, height:logoPos.h}, editAs:'oneCell' });
     }
@@ -17896,7 +17896,7 @@ window.__mq = (function(){
       var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
       // Invoice: 대표자(R5) 의 (인) 위 정확 오버레이 · Annual: 상호명/대표자 사이
       var stampPos = isInvoice
-        ? { col:6.95, row:4.1, w:55, h:55 }  // Invoice: G/H 경계 (인) 중앙 위
+        ? { col:7.15, row:4.1, w:55, h:55 }  // Invoice: H열 초반 (인) 중앙 위
         : { col:5.3, row:3.7, w:65, h:65 };
       ws.addImage(sid, { tl:{col:stampPos.col, row:stampPos.row}, ext:{width:stampPos.w, height:stampPos.h}, editAs:'oneCell' });
     }
