@@ -17896,7 +17896,7 @@ window.__mq = (function(){
       var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
       // Invoice: 대표자(R5) 의 (인) 위 정확 오버레이 · Annual: 상호명/대표자 사이
       var stampPos = isInvoice
-        ? { col:7.3, row:4, w:55, h:55 }   // Invoice: (인) 위 오버레이 (살짝 왼쪽으로 조정)
+        ? { col:7, row:4, w:55, h:55 }   // Invoice: G/H 경계, R5 상단
         : { col:5.3, row:3.7, w:65, h:65 };
       ws.addImage(sid, { tl:{col:stampPos.col, row:stampPos.row}, ext:{width:stampPos.w, height:stampPos.h}, editAs:'oneCell' });
     }
