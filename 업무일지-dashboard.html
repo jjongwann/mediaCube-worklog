@@ -16529,12 +16529,15 @@ window.__mq = (function(){
       // 도장 - 상단 폼 우측 (대표자 위치, 약 top 190px, right 90px)
       + '.doc-wrap .stamp{position:absolute;top:158px;right:85px;width:80px;height:80px;opacity:0.9;z-index:5;pointer-events:none}'
       + '.top{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}'
-      + '.top table{width:100%;border-collapse:collapse;border:1.5px solid #0f172a}'
-      + '.top th,.top td{border:1px solid #94a3b8;padding:6px 10px;font-size:11px;text-align:left;vertical-align:middle}'
-      + '.top th{background:#f2f2f2;color:#0f172a;font-weight:700;width:70px;white-space:nowrap;text-align:center}'
-      + 'table.items{width:100%;border-collapse:collapse;border:1.5px solid #0f172a}'
-      + 'table.items th,table.items td{border:1px solid #94a3b8;padding:6px 4px;font-size:10.5px;text-align:center;vertical-align:middle}'
-      + 'table.items thead th{background:#ddebf7;color:#0f172a;font-weight:800;font-size:10px}'
+      // 테두리: 파랑 계열 slate 제거 → 중성 웜 그레이로 세련되게
+      //   외곽 1.5px #374151 (gray-700 · 거의 검정에 가까운 웜톤)
+      //   내부 1px #d1d5db (gray-300 · 옅고 부드러움)
+      + '.top table{width:100%;border-collapse:collapse;border:1.5px solid #374151}'
+      + '.top th,.top td{border:1px solid #d1d5db;padding:6px 10px;font-size:11px;text-align:left;vertical-align:middle}'
+      + '.top th{background:#f3f4f6;color:#111827;font-weight:700;width:70px;white-space:nowrap;text-align:center}'
+      + 'table.items{width:100%;border-collapse:collapse;border:1.5px solid #374151}'
+      + 'table.items th,table.items td{border:1px solid #d1d5db;padding:6px 4px;font-size:10.5px;text-align:center;vertical-align:middle}'
+      + 'table.items thead th{background:#ddebf7;color:#111827;font-weight:800;font-size:10px}'
       + 'table.items .center{text-align:center}'
       + 'table.items .num{text-align:right;font-variant-numeric:tabular-nums}'
       + 'table.items .bold{font-weight:700}'
