@@ -15655,7 +15655,8 @@ window.__mq = (function(){
     var it = {};
     (ITEM_COLS[schemaKey] || ITEM_COLS.needle_ott).forEach(function(c){
       if (c.t === 'auto') return;
-      it[c.k] = c.t === 'num' ? 0 : '';
+      // 숫자 필드도 빈값(''); 미입력 셀에 '0' 이 노출되지 않도록
+      it[c.k] = '';
     });
     return it;
   }
@@ -15953,12 +15954,15 @@ window.__mq = (function(){
         }
         if (isParentRow && ci > gStart && ci <= gEnd) return; // 병합 skip
         var val = it[c.k] == null ? '' : it[c.k];
+        // 숫자 필드에서 0 값은 빈값으로 표시 (미입력 셀에 '0' 이 노출되지 않도록)
+        var isZeroNum = c.t === 'num' && (val === 0 || val === '0' || (val !== '' && Number(val) === 0));
+        var dispVal = isZeroNum ? '' : val;
         if (readonly) {
-          var disp = (c.t === 'num' && val !== '') ? _fmtN(val) : val;
+          var disp = (c.t === 'num' && dispVal !== '') ? _fmtN(dispVal) : dispVal;
           cellsHtmlArr.push('<td class="'+cls+'">'+_esc(disp)+'</td>');
           return;
         }
-        cellsHtmlArr.push('<td class="'+cls+'"><input type="text" value="'+_esc(val)+'" oninput="window.__mq._setItemField('+idx+',\''+c.k+'\',this.value)"'+(c.r?' style="text-align:right"':(c.c?' style="text-align:center"':''))+'></td>');
+        cellsHtmlArr.push('<td class="'+cls+'"><input type="text" value="'+_esc(dispVal)+'" oninput="window.__mq._setItemField('+idx+',\''+c.k+'\',this.value)"'+(c.r?' style="text-align:right"':(c.c?' style="text-align:center"':''))+'></td>');
       });
       var cellsHtml = cellsHtmlArr.join('');
       var delBtn = readonly ? '' : '<td class="center"><button class="mq-item-del" title="행 삭제" onclick="window.__mq._removeItem('+idx+')">×</button></td>';
@@ -16449,6 +16453,8 @@ window.__mq = (function(){
         var v = it[c.k]==null?'':it[c.k];
         // Needle 의 단위 컬럼: 부모 행에만 'sync' default · 자식 행은 빈칸
         if (isNeedle && c.k === 'unit' && !v && isParentRow) v = 'sync';
+        // 숫자 필드에서 0 값은 빈값 표시
+        if (c.t === 'num' && (v === 0 || v === '0' || (v !== '' && Number(v) === 0))) v = '';
         var disp = (c.t === 'num' && v !== '') ? _fmtN(v) : v;
         cellArr.push('<td class="'+cls+'">'+esc(disp)+'</td>');
       });
