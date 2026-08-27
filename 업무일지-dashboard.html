@@ -16526,8 +16526,9 @@ window.__mq = (function(){
       + '.doc-hd{position:relative;padding:6px 0 12px;margin-bottom:12px;min-height:60px}'
       + '.doc-hd .logo{position:absolute;left:0;top:4px;width:200px;height:auto}'
       + '.doc-hd h1{text-align:center;font-size:28px;font-weight:800;letter-spacing:14px;margin:8px 0 4px}'
-      // 도장 - 상단 폼 우측 (대표자 위치, 약 top 190px, right 90px)
-      + '.doc-wrap .stamp{position:absolute;top:158px;right:85px;width:80px;height:80px;opacity:0.9;z-index:5;pointer-events:none}'
+      // 도장 - 대표자 행의 (인) 위에 오버레이 · 작은 사이즈 · 우측 발신자 폼 영역
+      //   현재 대표자 row 세로 중심 ~156px, (인) 텍스트 우측 발신자 폼 값 셀 중앙 근방
+      + '.doc-wrap .stamp{position:absolute;top:128px;right:178px;width:55px;height:55px;opacity:0.9;z-index:5;pointer-events:none}'
       + '.top{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}'
       // 테두리: 파랑 계열 slate 제거 → 중성 웜 그레이로 세련되게
       //   외곽 1.5px #374151 (gray-700 · 거의 검정에 가까운 웜톤)
