@@ -17837,6 +17837,7 @@ window.__mq = (function(){
       //   → summary(_summary=true) 행 값 그대로 표시 (참조 양식 규칙) · 회색 배경
       var summary = (r.items || []).find(function(it){ return it && it._summary; }) || {};
       var totalFill = {type:'pattern',pattern:'solid',fgColor:{argb:'FFD9D9D9'}};
+      ws.getRow(totalRow).height = 38; // TOTAL 행 높이 확대
       ws.mergeCells('A'+totalRow+':C'+totalRow);
       set(ws, 'A'+totalRow, 'TOTAL', { font:F(12,true), fill:totalFill, align:A.center });
       var invoiceMap = { D:'spec', E:'unit', F:'qty', G:'unitPrice', H:'supplyPrice', I:'vat' };
@@ -17874,25 +17875,28 @@ window.__mq = (function(){
     // 비고 (TOTAL 다음 9행 · 동적 위치)
     var notesStart = totalRow + 1;
     var notesEnd = notesStart + 8;
-    ws.mergeCells('A'+notesStart+':A'+notesEnd);
+    // 비고 라벨 폭 확대: Invoice 는 A:B 병합 (더 넓은 라벨), Annual/Needle 은 A 만
+    var notesLblCol = isInvoice ? 'B' : 'A'; // 병합 종료 컬럼
+    var notesBodyStartCol = isInvoice ? 'C' : 'B';
+    ws.mergeCells('A'+notesStart+':'+notesLblCol+notesEnd);
     var notesLabelFill = isInvoice ? {type:'pattern',pattern:'solid',fgColor:{argb:'FFD9D9D9'}} : FILL.label;
     set(ws, 'A'+notesStart, '비 고', { font:F(11,true), fill:notesLabelFill, align:A.center });
-    ws.mergeCells('B'+notesStart+':'+lastColLetter+notesEnd);
-    set(ws, 'B'+notesStart, r.notes||'', { align:{horizontal:'left',vertical:'top',wrapText:true,indent:1}, font:F(10) });
+    ws.mergeCells(notesBodyStartCol+notesStart+':'+lastColLetter+notesEnd);
+    set(ws, notesBodyStartCol+notesStart, r.notes||'', { align:{horizontal:'left',vertical:'top',wrapText:true,indent:1}, font:F(10) });
     for (var rr=notesStart; rr<=notesEnd; rr++) box(ws, rr, 1, lastColNum);
     // 이미지 — 로고 (Invoice: A1:B2 내부 컴팩트 사이즈, 세로 중앙)
     if (logoBuf) {
       var lid = wb.addImage({ buffer:logoBuf, extension:'png' });
       var logoPos = isInvoice
-        ? { col:0.15, row:0.15, w:180, h:48 }   // Invoice: 살짝 작게, 행 넘침 방지
+        ? { col:0.15, row:0.45, w:180, h:48 }   // Invoice: 살짝 아래로 (세로 중앙 정렬)
         : { col:0.15, row:0.3, w:210, h:60 };
       ws.addImage(lid, { tl:{col:logoPos.col, row:logoPos.row}, ext:{width:logoPos.w, height:logoPos.h}, editAs:'oneCell' });
     }
     if (stampBuf) {
       var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
-      // Invoice: 대표자(R5) 의 김재경 (인) 위 오버레이 · Annual: 상호명/대표자 사이
+      // Invoice: 대표자(R5) 의 (인) 위 정확 오버레이 · Annual: 상호명/대표자 사이
       var stampPos = isInvoice
-        ? { col:7.05, row:4.15, w:55, h:55 }  // Invoice: H열 시작 부근, 대표자 행
+        ? { col:6.5, row:4.1, w:55, h:55 }   // Invoice: G열 후반 (인) 위치
         : { col:5.3, row:3.7, w:65, h:65 };
       ws.addImage(sid, { tl:{col:stampPos.col, row:stampPos.row}, ext:{width:stampPos.w, height:stampPos.h}, editAs:'oneCell' });
     }
