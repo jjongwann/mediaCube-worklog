@@ -17651,10 +17651,11 @@ window.__mq = (function(){
     ws.getRow(1).height = 42; ws.getRow(2).height = 20;
     for (var i=3;i<=8;i++) ws.getRow(i).height = 24;
     ws.getRow(9).height = 30; ws.getRow(10).height = 42;
-    // 제목 (문자 사이 8칸 간격 · 견 적 서 / 거 래 명 세 서)
+    // 제목 (Invoice: 문자 사이 2칸 · Annual: 8칸)
     var titleRange = isInvoice ? 'A1:I2' : 'A1:J2';
     ws.mergeCells(titleRange);
-    var titleSpaced = docLabel.split('').join('        ');
+    var titleGap = isInvoice ? '  ' : '        ';
+    var titleSpaced = docLabel.split('').join(titleGap);
     set(ws, 'A1', titleSpaced, { font:F(26,true), border:false });
     // 상단 폼
     var lastCol = isInvoice ? 'I' : 'J';
@@ -17730,27 +17731,30 @@ window.__mq = (function(){
       (r.items||[]).forEach(function(it){ if (it._type !== 'group') total += _MQ_XL.num(it.totalWithVat); });
     }
     var sumRow = isInvoice ? 9 : 10;
-    set(ws, 'A'+sumRow, '합계 금액', { font:F(11,true), fill:FILL.total, align:A.center });
     if (isInvoice) {
+      // Invoice: 합계 금액 배경 제거 (흰색)
+      set(ws, 'A9', '합계 금액', { font:F(11,true), align:A.center });
       ws.getRow(9).height = 30;
       ws.mergeCells('B9:E9');
       var koText = _MQ_XL.numToKorean(total);
-      set(ws, 'B9', (total ? koText + '원정(V.A.T포함)' : ''), { font:F(11,true), align:A.center, fill:FILL.total });
+      set(ws, 'B9', (total ? koText + '원정(V.A.T포함)' : ''), { font:F(11,true), align:A.center });
       ws.mergeCells('F9:I9');
-      set(ws, 'F9', total, { font:F(13,true), align:A.right, numFmt:'"₩ "#,##0', fill:FILL.total });
+      set(ws, 'F9', total, { font:F(13,true), align:A.right, numFmt:'"₩ "#,##0' });
     } else {
+      set(ws, 'A10', '합계 금액', { font:F(11,true), fill:FILL.total, align:A.center });
       ws.mergeCells('B10:E10');
       set(ws, 'B10', '일금 ' + total.toLocaleString() + ' 원정 (₩'+ total.toLocaleString() +')', { font:F(11,true), align:A.center, fill:FILL.total });
       ws.mergeCells('F10:J10');
       set(ws, 'F10', total, { font:F(13,true), align:A.right, numFmt:'₩#,##0', fill:FILL.total });
     }
-    // 표 헤더 — Invoice 는 R10, Annual 은 R11
+    // 표 헤더 — Invoice 는 R10 (회색 배경), Annual 은 R11 (하늘색 배경)
     var headerRow = isInvoice ? 10 : 11;
     var headers = isInvoice
       ? ['NO','품목','코드','규격','단위','QTY','단가','공급가액','부가가치세']
       : ['NO','품목','코드','규격','단위','QTY','단가','공급가액','부가가치세','합계 금액 (V.A.T포함)'];
+    var headerFill = isInvoice ? {type:'pattern',pattern:'solid',fgColor:{argb:'FFD9D9D9'}} : FILL.header;
     headers.forEach(function(h,i){
-      set(ws, ws.getRow(headerRow).getCell(i+1).address, h, { font:F(10,true), fill:FILL.header });
+      set(ws, ws.getRow(headerRow).getCell(i+1).address, h, { font:F(10,true), fill:headerFill });
     });
     // 데이터 — Invoice: R11+, Annual: R12+
     var rows = _MQ_XL.itemsToRows(r.items, r.doc_type);
@@ -17808,13 +17812,14 @@ window.__mq = (function(){
         }
         return;
       }
+      var isSummaryRow = row.type === 'summary';
       vals.forEach(function(v, c){
         // 모든 데이터 셀 중앙 정렬 · 숫자 컬럼(QTY 이상, 인덱스 5~9) #,##0 포맷
         var isNumCol = c >= 5;
-        set(ws, ws.getRow(rr).getCell(c+1).address, v, {
-          align: A.center,
-          numFmt: isNumCol ? '#,##0' : undefined
-        });
+        var opt = { align: A.center, numFmt: isNumCol ? '#,##0' : undefined };
+        // Invoice: summary(_summary=true) 행 전체 굵게 · 코드 컬럼(index 2) 는 항상 굵게
+        if (isInvoice && (isSummaryRow || c === 2)) opt.font = F(10, true);
+        set(ws, ws.getRow(rr).getCell(c+1).address, v, opt);
       });
     });
     // 최소 슬롯 미달 시 빈 행 padding
@@ -17829,23 +17834,24 @@ window.__mq = (function(){
     var totalRow = dataStart + actualDataRows;
     if (isInvoice) {
       // Invoice TOTAL: A:C 병합 라벨 + D(규격)/E(단위)/F(QTY)/G(단가)/H(공급가액)/I(부가가치세)
-      //   → summary(_summary=true) 행 값 그대로 표시 (참조 양식 규칙)
+      //   → summary(_summary=true) 행 값 그대로 표시 (참조 양식 규칙) · 회색 배경
       var summary = (r.items || []).find(function(it){ return it && it._summary; }) || {};
+      var totalFill = {type:'pattern',pattern:'solid',fgColor:{argb:'FFD9D9D9'}};
       ws.mergeCells('A'+totalRow+':C'+totalRow);
-      set(ws, 'A'+totalRow, 'TOTAL', { font:F(12,true), fill:FILL.header, align:A.center });
+      set(ws, 'A'+totalRow, 'TOTAL', { font:F(12,true), fill:totalFill, align:A.center });
       var invoiceMap = { D:'spec', E:'unit', F:'qty', G:'unitPrice', H:'supplyPrice', I:'vat' };
       ['D','E','F','G','H','I'].forEach(function(col){
         var key = invoiceMap[col];
         var v = summary[key];
         if (v == null || v === '') {
-          set(ws, col+totalRow, '', { font:F(10,true), fill:FILL.header, align:A.center });
+          set(ws, col+totalRow, '', { font:F(10,true), fill:totalFill, align:A.center });
           return;
         }
         var isNumC = (col === 'F' || col === 'G' || col === 'H' || col === 'I');
         var isPrice = (col === 'G' || col === 'H' || col === 'I');
         var fmt = isPrice ? '"₩ "#,##0' : (col === 'F' ? '#,##0' : undefined);
         var val = isNumC ? _MQ_XL.num(v) : v;
-        set(ws, col+totalRow, val, { font:F(10,true), fill:FILL.header, align:A.center, numFmt:fmt });
+        set(ws, col+totalRow, val, { font:F(10,true), fill:totalFill, align:A.center, numFmt:fmt });
       });
     } else {
       // Annual TOTAL: A:E 병합 라벨 + F~J SUM formula
@@ -17869,20 +17875,24 @@ window.__mq = (function(){
     var notesStart = totalRow + 1;
     var notesEnd = notesStart + 8;
     ws.mergeCells('A'+notesStart+':A'+notesEnd);
-    set(ws, 'A'+notesStart, '비 고', { font:F(11,true), fill:FILL.label });
+    var notesLabelFill = isInvoice ? {type:'pattern',pattern:'solid',fgColor:{argb:'FFD9D9D9'}} : FILL.label;
+    set(ws, 'A'+notesStart, '비 고', { font:F(11,true), fill:notesLabelFill, align:A.center });
     ws.mergeCells('B'+notesStart+':'+lastColLetter+notesEnd);
     set(ws, 'B'+notesStart, r.notes||'', { align:{horizontal:'left',vertical:'top',wrapText:true,indent:1}, font:F(10) });
     for (var rr=notesStart; rr<=notesEnd; rr++) box(ws, rr, 1, lastColNum);
-    // 이미지 — 로고 축소 · 세로 중앙 (A1:B2 내부 padding)
+    // 이미지 — 로고 (Invoice: A1:B2 내부 컴팩트 사이즈, 세로 중앙)
     if (logoBuf) {
       var lid = wb.addImage({ buffer:logoBuf, extension:'png' });
-      ws.addImage(lid, { tl:{col:0.15, row:0.3}, ext:{width:210, height:60}, editAs:'oneCell' });
+      var logoPos = isInvoice
+        ? { col:0.15, row:0.15, w:180, h:48 }   // Invoice: 살짝 작게, 행 넘침 방지
+        : { col:0.15, row:0.3, w:210, h:60 };
+      ws.addImage(lid, { tl:{col:logoPos.col, row:logoPos.row}, ext:{width:logoPos.w, height:logoPos.h}, editAs:'oneCell' });
     }
     if (stampBuf) {
       var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
-      // Invoice: 대표자(R5)의 (인) 위치에 오버레이 · Annual: 상호명/대표자 사이
+      // Invoice: 대표자(R5) 의 김재경 (인) 위 오버레이 · Annual: 상호명/대표자 사이
       var stampPos = isInvoice
-        ? { col:7.2, row:4.15, w:60, h:60 }   // Invoice: H열 상단, 대표자 행 (R5=index 4)
+        ? { col:7.05, row:4.15, w:55, h:55 }  // Invoice: H열 시작 부근, 대표자 행
         : { col:5.3, row:3.7, w:65, h:65 };
       ws.addImage(sid, { tl:{col:stampPos.col, row:stampPos.row}, ext:{width:stampPos.w, height:stampPos.h}, editAs:'oneCell' });
     }
