@@ -17644,7 +17644,7 @@ window.__mq = (function(){
     // 컬럼: A~J
     // 컬럼 폭 (Annual: A~J 10칸, Invoice: A~I 9칸 · 참조 양식 매칭)
     var colWidths = isInvoice
-      ? [9.5, 32, 13, 8, 8, 10.25, 15, 14, 15]         // Invoice 9열 (A · G 단가 확대)
+      ? [6, 32, 13, 8, 8, 10.25, 15, 14, 15]           // Invoice 9열 (A 축소 → 합계 금액 2행 wrap)
       : [5.13, 35, 15.13, 6, 6.5, 10.25, 13, 13, 15, 10]; // Annual 10열
     colWidths.forEach(function(w,i){ ws.getColumn(i+1).width = w; });
     // 행 높이 (헤더/제목/상단폼 영역만 사전 지정 · 데이터 행 높이는 렌더 중 동적 결정)
@@ -17657,10 +17657,11 @@ window.__mq = (function(){
     var titleGap = isInvoice ? '  ' : '        ';
     var titleSpaced = docLabel.split('').join(titleGap);
     set(ws, 'A1', titleSpaced, { font:F(26,true), border:false });
-    // 상단 폼
+    // 상단 폼 · Invoice 는 11pt, Annual 은 기존 10pt 유지
     var lastCol = isInvoice ? 'I' : 'J';
-    var leftLbl = { font:F(10,true), fill:FILL.label };
-    var leftVal = { align:A.left };
+    var _lblSize = isInvoice ? 11 : 10;
+    var leftLbl = { font:F(_lblSize,true), fill:FILL.label };
+    var leftVal = { align:A.left, font:F(_lblSize) };
     // 좌측 폼 (Invoice 는 컴팩트 · 참조 양식):
     //   R3=DATE, R4=수신, R5=메일, R6=제목, R7=(empty), R8=아래와 같이 계산합니다.
     var L = isInvoice ? [
@@ -17684,7 +17685,7 @@ window.__mq = (function(){
     // 아래와 같이... 위치: Invoice=A7:D8 (2행 병합, 좌측 빈행 방지), Annual=R9
     if (isInvoice) {
       ws.mergeCells('A7:D8');
-      set(ws, 'A7', '아래와 같이 계산합니다.', { font:F(11,true), align:{horizontal:'center', vertical:'middle'} });
+      set(ws, 'A7', '아래와 같이 계산합니다.', { font:F(12,true), align:{horizontal:'center', vertical:'middle'} });
     } else {
       ws.mergeCells('A9:D9');
       set(ws, 'A9', '아래와 같이 견적합니다.', { font:F(11,true), align:A.center });
@@ -17733,15 +17734,15 @@ window.__mq = (function(){
     var sumRow = isInvoice ? 9 : 10;
     if (isInvoice) {
       // Invoice: 합계 금액 배경 제거 (흰색)
-      set(ws, 'A9', '합계 금액', { font:F(11,true), align:A.center });
-      ws.getRow(9).height = 30;
+      set(ws, 'A9', '합계 금액', { font:F(13,true), align:{horizontal:'center', vertical:'middle', wrapText:true} });
+      ws.getRow(9).height = 50;
       // 한글 금액 + 통화 금액을 하나의 병합 셀(B9:I9)에 표시 · 왼쪽 한글, 우측 통화
       ws.mergeCells('B9:I9');
       var koText = _MQ_XL.numToKorean(total);
       var combinedText = total
         ? koText + '원정(V.A.T포함)' + ' '.repeat(30) + '₩ ' + total.toLocaleString()
         : '';
-      set(ws, 'B9', combinedText, { font:F(11,true), align:{horizontal:'left', vertical:'middle', indent:2} });
+      set(ws, 'B9', combinedText, { font:F(13,true), align:{horizontal:'left', vertical:'middle', indent:2} });
     } else {
       set(ws, 'A10', '합계 금액', { font:F(11,true), fill:FILL.total, align:A.center });
       ws.mergeCells('B10:E10');
@@ -17755,8 +17756,9 @@ window.__mq = (function(){
       ? ['NO','품목','코드','규격','단위','QTY','단가','공급가액','부가가치세']
       : ['NO','품목','코드','규격','단위','QTY','단가','공급가액','부가가치세','합계 금액 (V.A.T포함)'];
     var headerFill = isInvoice ? {type:'pattern',pattern:'solid',fgColor:{argb:'FFD9D9D9'}} : FILL.header;
+    var headerFontSize = isInvoice ? 13 : 10;
     headers.forEach(function(h,i){
-      set(ws, ws.getRow(headerRow).getCell(i+1).address, h, { font:F(10,true), fill:headerFill });
+      set(ws, ws.getRow(headerRow).getCell(i+1).address, h, { font:F(headerFontSize,true), fill:headerFill });
     });
     // 데이터 — Invoice: R11+, Annual: R12+
     var rows = _MQ_XL.itemsToRows(r.items, r.doc_type);
@@ -17819,8 +17821,13 @@ window.__mq = (function(){
         // 모든 데이터 셀 중앙 정렬 · 숫자 컬럼(QTY 이상, 인덱스 5~9) #,##0 포맷
         var isNumCol = c >= 5;
         var opt = { align: A.center, numFmt: isNumCol ? '#,##0' : undefined };
-        // Invoice: summary(_summary=true) 행 전체 굵게 · 코드 컬럼(index 2) 는 항상 굵게
-        if (isInvoice && (isSummaryRow || c === 2)) opt.font = F(10, true);
+        if (isInvoice) {
+          if (isSummaryRow) opt.font = F(13, true);       // Summary 행 = 13pt 굵게
+          else if (c === 2) opt.font = F(11, true);       // 코드 컬럼 = 11pt 굵게
+          else opt.font = F(11);                           // 일반 데이터 = 11pt
+        } else if (isSummaryRow || c === 2) {
+          opt.font = F(10, true);                          // Annual 은 기존 유지
+        }
         set(ws, ws.getRow(rr).getCell(c+1).address, v, opt);
       });
     });
