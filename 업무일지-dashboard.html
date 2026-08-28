@@ -16238,51 +16238,306 @@ window.__mq = (function(){
       document.head.appendChild(s);
     });
   }
-  // PDF 파서 — 텍스트 추출 + heuristic 매칭 (완전 자동은 어렵고 best-effort)
+  // PDF 파서 — 위치(X/Y) 기반 · 상단 폼 + 항목 테이블 자동 추출
+  //   1) 모든 텍스트 아이템의 (x, y, str) 을 수집
+  //   2) y 좌표로 라인 그룹핑 (동일 y ±3px = 같은 line)
+  //   3) 라인 내 x 순 정렬
+  //   4) 라벨 (수신/참조/제목/등록번호/…) 을 라인 안에서 찾고 그 오른쪽 텍스트 = 값
+  //   5) 항목 표: 헤더 라인(No/CD Title/…) 감지 → 헤더 x 위치를 컬럼 앵커로, 아래 라인들을 컬럼별 매핑
   function _parsePdfToForm(file, docType, subType){
     return _loadPdfJs().then(function(pdfjsLib){
       return file.arrayBuffer().then(function(buf){
         return pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
       });
     }).then(function(pdf){
-      var pages = [];
       var jobs = [];
       for (var i = 1; i <= pdf.numPages; i++) {
         (function(pn){
-          jobs.push(pdf.getPage(pn).then(function(page){ return page.getTextContent(); }).then(function(tc){
-            pages.push({ pn:pn, items:tc.items });
+          jobs.push(pdf.getPage(pn).then(function(page){
+            return page.getTextContent().then(function(tc){
+              return tc.items.map(function(it){
+                return { str: it.str||'', x: it.transform[4], y: it.transform[5], w: it.width||0, page: pn };
+              });
+            });
           }));
         })(i);
       }
-      return Promise.all(jobs).then(function(){ return pages; });
-    }).then(function(pages){
-      pages.sort(function(a,b){ return a.pn - b.pn; });
-      var allText = pages.map(function(p){ return p.items.map(function(it){ return it.str; }).join(' '); }).join('\n');
+      return Promise.all(jobs).then(function(pages){
+        var all = [];
+        pages.forEach(function(p){ all = all.concat(p); });
+        return all;
+      });
+    }).then(function(items){
       var form = _newForm(docType, subType);
-      // heuristic 매칭 — 라벨 : 값 패턴
-      var pick = function(rx){ var m = allText.match(rx); return m ? m[1].trim() : ''; };
-      form.doc_date = _normDate(pick(/DATE\s*[:：]?\s*([0-9\-.\/년월일\s]+?)(?:\s{2,}|수신|등록번호|$)/i)) || form.doc_date;
-      form.receiver_company = pick(/수\s*신\s*[:：]?\s*([^\n]+?)(?:\s{2,}|참조|Tel|제목|상호명|$)/) || form.receiver_company;
-      form.receiver_person = pick(/참\s*조\s*[:：]?\s*([^\n]+?)(?:\s{2,}|Tel|Fax|제목|$)/) || form.receiver_person;
-      form.receiver_tel = pick(/^\s*Tel\s*[:：]?\s*([0-9\-\+\(\) ]+)/m) || form.receiver_tel;
-      form.receiver_fax = pick(/^\s*Fax\s*[:：]?\s*([0-9\-\+\(\) ]+)/m) || form.receiver_fax;
-      form.doc_title = pick(/제\s*목\s*[:：]?\s*([^\n]+?)(?:\s{2,}|아래와|담당자|$)/) || form.doc_title;
-      form.sender_reg_no = pick(/등록번호\s*[:：]?\s*([0-9\- ]+)/) || form.sender_reg_no;
-      form.sender_company = pick(/상호명\s*[:：]?\s*([^\n]+?)(?:\s{2,}|대표자|$)/) || form.sender_company;
-      form.sender_ceo = (pick(/대표자\s*[:：]?\s*([^\n]+?)(?:\s{2,}|소재지|\(인\)|$)/)||'').replace(/\s*\(인\)\s*$/,'') || form.sender_ceo;
-      form.sender_address = pick(/소재지\s*[:：]?\s*([^\n]+?)(?:\s{2,}|업태|$)/) || form.sender_address;
-      var telLine = pick(/(?:^|\s)Tel\s*[:：]?\s*([0-9\-\+\(\)]+\s*(?:Fax\s*[:：]?\s*[0-9\-\+\(\)]+)?)/);
-      if (telLine) {
-        var tm = telLine.match(/([0-9\-\+\(\)]+)\s*Fax\s*[:：]?\s*([0-9\-\+\(\)]+)/i);
-        if (tm) { form.sender_tel = tm[1]; form.sender_fax = tm[2]; }
-        else form.sender_tel = telLine.trim();
+      // 라인 그룹핑 — y ±3 이면 같은 라인 (pdf.js y 는 아래→위 증가 · 페이지 상단이 큰 y)
+      items.sort(function(a,b){ return b.y - a.y || a.x - b.x; });
+      var lines = [];
+      items.forEach(function(it){
+        if (!it.str.trim()) return;
+        var line = lines[lines.length-1];
+        if (line && Math.abs(line.y - it.y) < 3) {
+          line.items.push(it);
+          line.y = (line.y * (line.items.length-1) + it.y) / line.items.length;
+        } else {
+          lines.push({ y: it.y, items: [it] });
+        }
+      });
+      // 각 라인 x 순 정렬
+      lines.forEach(function(l){ l.items.sort(function(a,b){ return a.x - b.x; }); });
+      // 텍스트 join 형태 · 원본 라인
+      function lineText(l){ return l.items.map(function(it){ return it.str; }).join(' ').replace(/\s+/g,' ').trim(); }
+      // 라벨의 오른쪽 항목들 텍스트 (같은 라인) · optional 다음 라벨 정지
+      function readRight(l, labelIdx, stopRegex){
+        var vals = [];
+        for (var i = labelIdx + 1; i < l.items.length; i++){
+          var s = l.items[i].str.trim();
+          if (!s) continue;
+          if (stopRegex && stopRegex.test(s)) break;
+          vals.push(s);
+        }
+        return vals.join(' ').replace(/^[:：\s]+/, '').replace(/\s+/g,' ').trim();
       }
-      form.sender_person = pick(/담당자\s*[:：]?\s*([^\n]+?)(?:\s{2,}|아래와|$)/) || form.sender_person;
-      // Items: PDF 자동 파싱은 매우 어려움 → 빈 첫 행 하나로 초기화 · 사용자가 이어서 입력
-      // (특정 양식 매칭 시 향후 확장 가능)
-      form.notes = pick(/비\s*고\s*[:：]?\s*([^\n]{2,200})/) || '';
+      function findLabel(l, rx){
+        for (var i=0;i<l.items.length;i++){
+          var s = l.items[i].str.replace(/\s+/g,'').replace(/[:：]/g,'');
+          if (rx.test(s)) return i;
+        }
+        return -1;
+      }
+      // 좌측 폼 필드 매핑 (라벨 스캔 → 오른쪽 값)
+      var LABELS = {
+        DATE:    /^DATE$/i,
+        수신:    /^수신$/,
+        참조:    /^참조$/,
+        제목:    /^제목$/,
+        Tel_r:   /^Tel$/i,     // 수신자 Tel (같은 라인 내 라벨 왼쪽)
+        Fax_r:   /^Fax$/i,
+        등록번호:/^등록번호$/,
+        상호명:  /^상호명$/,
+        대표자:  /^대표자$/,
+        소재지:  /^소재지$/,
+        업태:    /^업태$/,
+        업종:    /^업종$/,
+        종목:    /^종목$/,
+        담당자:  /^담당자$/,
+        Tel_s:   /^Tel$/i
+      };
+      var stopSet = /^(DATE|수신|참조|제목|Tel|Fax|등록번호|상호명|대표자|소재지|업태|업종|종목|담당자)$/i;
+      lines.forEach(function(l){
+        var idx;
+        // DATE
+        if ((idx = findLabel(l, LABELS.DATE)) >= 0 && !form.doc_date) {
+          var v = readRight(l, idx, /^(등록번호|상호명|대표자|소재지)$/);
+          form.doc_date = _normDate(v);
+        }
+        // 수신
+        if ((idx = findLabel(l, LABELS.수신)) >= 0 && !form.receiver_company) {
+          form.receiver_company = readRight(l, idx, /^(상호명|대표자|소재지)$/);
+        }
+        // 참조
+        if ((idx = findLabel(l, LABELS.참조)) >= 0 && !form.receiver_person) {
+          form.receiver_person = readRight(l, idx, /^(상호명|대표자|소재지)$/);
+        }
+        // 제목
+        if ((idx = findLabel(l, LABELS.제목)) >= 0 && !form.doc_title) {
+          form.doc_title = readRight(l, idx, /^(업태|업종|종목|Tel|담당자)$/);
+        }
+        // 등록번호
+        if ((idx = findLabel(l, LABELS.등록번호)) >= 0 && !form.sender_reg_no) {
+          form.sender_reg_no = readRight(l, idx, /^$/);
+        }
+        // 상호명
+        if ((idx = findLabel(l, LABELS.상호명)) >= 0 && !form.sender_company) {
+          form.sender_company = readRight(l, idx, /^$/);
+        }
+        // 대표자
+        if ((idx = findLabel(l, LABELS.대표자)) >= 0 && !form.sender_ceo) {
+          var ceoRaw = readRight(l, idx, /^$/);
+          form.sender_ceo = ceoRaw.replace(/\s*\(\s*인\s*\)\s*$/, '').trim();
+        }
+        // 소재지
+        if ((idx = findLabel(l, LABELS.소재지)) >= 0 && !form.sender_address) {
+          form.sender_address = readRight(l, idx, /^$/);
+        }
+        // 담당자
+        if ((idx = findLabel(l, LABELS.담당자)) >= 0 && !form.sender_person) {
+          form.sender_person = readRight(l, idx, /^$/);
+        }
+        // 업태 / 업종 / 종목 — 한 라인 안에 조합 존재 가능 ('업태 서비스 / 업종 사운드')
+        var idxUp = findLabel(l, /^(업태|업종|종목)$/);
+        if (idxUp >= 0 && (!form.sender_biz_type || !form.sender_biz_item)) {
+          var s = lineText(l);
+          // "업태 서비스 / 업종 사운드" 또는 "업 태 : 서비스 / 업 종 : 사운드"
+          var mBiz = s.match(/업\s*태\s*[:：]?\s*([^\/\n]+?)\s*(?:\/|\s{2,})\s*(?:업\s*종|종\s*목)\s*[:：]?\s*([^\n]+)/);
+          if (mBiz) {
+            if (!form.sender_biz_type) form.sender_biz_type = mBiz[1].trim();
+            if (!form.sender_biz_item) form.sender_biz_item = mBiz[2].trim();
+          }
+        }
+        // Tel/Fax 라인 — 수신자(왼쪽) vs 발신자(오른쪽)
+        var idxTel = findLabel(l, /^Tel$/i);
+        if (idxTel >= 0) {
+          var telVals = readRight(l, idxTel, /^(Fax|담당자|아래와)$/i);
+          var idxFax = findLabel(l, /^Fax$/i);
+          var faxVals = '';
+          if (idxFax >= 0 && idxFax > idxTel) {
+            faxVals = readRight(l, idxFax, /^$/);
+          }
+          // 라인 오른쪽 절반이면 발신자, 왼쪽이면 수신자
+          var pageMidX = 300; // A4 기준 대략 · 절반 판정
+          var telX = l.items[idxTel].x;
+          if (telX > pageMidX) {
+            if (!form.sender_tel && /\d/.test(telVals)) form.sender_tel = telVals.trim();
+            if (!form.sender_fax && /\d/.test(faxVals)) form.sender_fax = faxVals.trim();
+          } else {
+            if (!form.receiver_tel && /\d/.test(telVals)) form.receiver_tel = telVals.trim();
+            if (!form.receiver_fax && /\d/.test(faxVals)) form.receiver_fax = faxVals.trim();
+          }
+        }
+      });
+      // ─────────────────────────────────────────
+      // 항목 표 파싱 — 헤더 라인(No + CD Title + …) 감지
+      // ─────────────────────────────────────────
+      var headerIdx = -1, colXs = null;
+      for (var li = 0; li < lines.length; li++) {
+        var s = lineText(lines[li]);
+        // Needle 헤더 후보 · 'No' + 'CD Title' 두 단어 존재
+        if (/\bNo\b/.test(s) && /CD\s*Title/i.test(s)) {
+          headerIdx = li;
+          colXs = lines[li].items.map(function(it){ return { label: it.str.trim(), x: it.x }; });
+          break;
+        }
+      }
+      var items = [];
+      if (headerIdx >= 0 && colXs) {
+        // 컬럼 앵커: NO / CD Title / CD No / CUE / Track No / Publisher / 단위(용도) / 수량 / 금액(dw/domestic/worldwide)
+        function findColX(labels){
+          for (var i=0;i<colXs.length;i++){
+            var lbl = colXs[i].label.replace(/\s+/g,'').toLowerCase();
+            for (var j=0;j<labels.length;j++){
+              if (lbl === labels[j].toLowerCase()) return colXs[i].x;
+            }
+          }
+          return null;
+        }
+        var xNo = findColX(['no']);
+        var xTitle = findColX(['cdtitle','cd title','cdno/title','품목']);
+        var xCdNo = findColX(['cdno','cd no','코드']);
+        var xCue = findColX(['cue','규격']);
+        var xTrack = findColX(['trackno','track no']);
+        var xPub = findColX(['publisher/composer','publisher / composer']);
+        var xUnit = findColX(['단위','용도','권리']);
+        var xQty = findColX(['수량','qty']);
+        var xAmount = findColX(['금액','domestic&worldwide','domestic']);
+        var xWorldwide = findColX(['worldwide']);
+        // 헤더 아래(y 더 작은 값 · pdf 는 아래로 갈수록 y 감소) 라인들
+        var headerY = lines[headerIdx].y;
+        var bodyLines = lines.slice(headerIdx + 1).filter(function(l){
+          return l.y < headerY;
+        });
+        // TOTAL / 비고 라인 만나면 중단
+        var itemBuckets = {}; // NO 문자열 → 아이템 (같은 NO 여러 라인 병합)
+        var currentNo = null;
+        for (var bi = 0; bi < bodyLines.length; bi++){
+          var bl = bodyLines[bi];
+          var blStr = lineText(bl);
+          if (/^TOTAL/i.test(blStr) || /^비\s*고/.test(blStr)) break;
+          // NO 컬럼 x 근처에 숫자 or N-M 패턴 있으면 새 아이템 시작
+          var noItem = bl.items.find(function(it){
+            return xNo != null && Math.abs(it.x - xNo) < 20 && /^\d+(?:-\d+)?$/.test(it.str.trim());
+          });
+          if (noItem) {
+            currentNo = noItem.str.trim();
+            if (!itemBuckets[currentNo]) itemBuckets[currentNo] = { no: currentNo, lines: [] };
+            itemBuckets[currentNo].lines.push(bl);
+          } else if (currentNo) {
+            // NO 없는 후속 라인은 직전 NO 아이템에 병합 (긴 텍스트 wrap)
+            itemBuckets[currentNo].lines.push(bl);
+          }
+        }
+        // 각 NO 아이템의 라인들 → 컬럼별 값 조립
+        function collect(itLines, colX, nextColX){
+          // colX 이상 x < nextColX 인 item 들 텍스트 join
+          var out = [];
+          itLines.forEach(function(l){
+            l.items.forEach(function(it){
+              if (colX == null) return;
+              var lo = colX - 5;
+              var hi = nextColX != null ? nextColX - 5 : Infinity;
+              if (it.x >= lo && it.x < hi) out.push(it.str);
+            });
+          });
+          return out.join(' ').replace(/\s+/g,' ').trim();
+        }
+        var colOrder = [
+          { key: 'no', x: xNo },
+          { key: 'title', x: xTitle },
+          { key: 'cdNo', x: xCdNo },
+          { key: 'cue', x: xCue },
+          { key: 'trackNo', x: xTrack },
+          { key: 'publisher', x: xPub },
+          { key: 'unit', x: xUnit },
+          { key: 'qty', x: xQty },
+          { key: 'amount', x: xAmount },
+          { key: 'worldwide', x: xWorldwide }
+        ].filter(function(c){ return c.x != null; })
+         .sort(function(a,b){ return a.x - b.x; });
+        Object.keys(itemBuckets).forEach(function(no){
+          var buc = itemBuckets[no];
+          var it = {};
+          colOrder.forEach(function(c, i){
+            var nx = colOrder[i+1] ? colOrder[i+1].x : null;
+            var val = collect(buc.lines, c.x, nx);
+            if (c.key === 'no') return;
+            it[c.key] = val;
+          });
+          // Needle 필드 매핑
+          if (docType === 'needle') {
+            var out = {};
+            out.cdTitle = it.title || '';
+            out.cdNo = it.cdNo || '';
+            out.cue = it.cue || '';
+            out.trackNo = it.trackNo || '';
+            out.publisher = it.publisher || '';
+            out.unit = it.unit || '';
+            out.qty = (it.qty||'').replace(/[^\d.-]/g,'');
+            if (subType === 'movie') {
+              out.domestic = (it.amount||'').replace(/[^\d.-]/g,'');
+              out.worldwide = (it.worldwide||'').replace(/[^\d.-]/g,'');
+            } else if (subType === 'ad') {
+              out.amount = (it.amount||'').replace(/[^\d.-]/g,'');
+            } else {
+              out.dw = (it.amount||'').replace(/[^\d.-]/g,'');
+            }
+            items.push(out);
+          } else {
+            items.push({
+              item: it.title || '',
+              code: it.cdNo || '',
+              spec: it.cue || '',
+              unit: it.unit || '',
+              qty: (it.qty||'').replace(/[^\d.-]/g,''),
+              unitPrice: '',
+              supplyPrice: (it.amount||'').replace(/[^\d.-]/g,''),
+              vat: ''
+            });
+          }
+        });
+      }
+      if (items.length) form.items = items;
+      // 비고 · 견적번호
+      var notesLine = lines.find(function(l){
+        var s = lineText(l).replace(/\s+/g,'');
+        return /^비고/.test(s);
+      });
+      if (notesLine) {
+        var s = lineText(notesLine);
+        var m = s.match(/비\s*고\s*[:：]?\s*(.+)/);
+        if (m) form.notes = m[1].trim();
+      }
       if (!form.quote_no) form.quote_no = _nextQuoteNo();
-      _toast('PDF 는 텍스트만 자동 추출 · 항목 표는 수동 입력 필요');
+      var itemCount = items.length;
+      _toast(itemCount ? ('PDF 파싱 완료 · 항목 ' + itemCount + '개 로드') : 'PDF 상단 정보 로드 · 항목은 수동 입력 필요');
       return form;
     });
   }
