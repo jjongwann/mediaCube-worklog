@@ -16426,37 +16426,62 @@ window.__mq = (function(){
       // ─────────────────────────────────────────
       // 항목 표 파싱 — 헤더 라인(No + CD Title + …) 감지
       // ─────────────────────────────────────────
-      var headerIdx = -1, colXs = null;
+      var headerIdx = -1, colXs = null, xCombinedCdNoTitle = null;
       for (var li = 0; li < lines.length; li++) {
         var s = lineText(lines[li]);
-        // Needle 헤더 후보 · 'No' + 'CD Title' 두 단어 존재
-        if (/\bNo\b/.test(s) && /CD\s*Title/i.test(s)) {
+        var sNorm = s.replace(/\s+/g,'').toLowerCase();
+        // Needle 헤더 후보 — 다음 세 케이스 지원:
+        //   (A) 자체 export: 'No CD Title CD No CUE Track No Publisher…'
+        //   (B) 참조 PDF:   'No CD No / Title CUE(S) Publisher / Composer 단위 수량 금 액'
+        //   (C) 품목형:      'No 품목 코드 규격 단위 …'
+        if (/\bNo\b/.test(s) && (
+              /CD\s*Title/i.test(s)
+              || /CD\s*No\s*[\/／]\s*Title/i.test(s)
+              || /품\s*목/.test(s)
+            )) {
           headerIdx = li;
+          // pdf.js 텍스트 아이템을 컬럼 앵커로 · 인접 아이템 병합 없이 각각 저장
           colXs = lines[li].items.map(function(it){ return { label: it.str.trim(), x: it.x }; });
           break;
         }
       }
       var items = [];
       if (headerIdx >= 0 && colXs) {
-        // 컬럼 앵커: NO / CD Title / CD No / CUE / Track No / Publisher / 단위(용도) / 수량 / 금액(dw/domestic/worldwide)
+        // 헤더 항목별 x 매핑 · 정규화된 라벨로 룩업
         function findColX(labels){
           for (var i=0;i<colXs.length;i++){
             var lbl = colXs[i].label.replace(/\s+/g,'').toLowerCase();
             for (var j=0;j<labels.length;j++){
-              if (lbl === labels[j].toLowerCase()) return colXs[i].x;
+              if (lbl === labels[j].toLowerCase() || lbl.indexOf(labels[j].toLowerCase()) === 0) return colXs[i].x;
             }
           }
           return null;
         }
         var xNo = findColX(['no']);
-        var xTitle = findColX(['cdtitle','cd title','cdno/title','품목']);
+        // 통합 컬럼 감지 (참조 양식 CD No / Title) — 다중 아이템 병합 매치
+        var xCdTitle = findColX(['cdtitle','cd title']);
         var xCdNo = findColX(['cdno','cd no','코드']);
-        var xCue = findColX(['cue','규격']);
+        // 'CD No / Title' 통합인지 확인: cdno 라벨 뒤에 slash + title 아이템이 이어지는지
+        for (var ci = 0; ci < colXs.length; ci++) {
+          var cLbl = colXs[ci].label.replace(/\s+/g,'').toLowerCase();
+          if (cLbl === 'cdno' || cLbl === 'cdno/title') {
+            var next = colXs[ci+1] ? colXs[ci+1].label.replace(/\s+/g,'').toLowerCase() : '';
+            var next2 = colXs[ci+2] ? colXs[ci+2].label.replace(/\s+/g,'').toLowerCase() : '';
+            if (cLbl === 'cdno/title' || (next === '/' && next2 === 'title') || (next === '/title')) {
+              xCombinedCdNoTitle = colXs[ci].x;
+              // 통합 컬럼이면 별도 cdTitle/cdNo x 는 무시 (같은 컬럼에서 split)
+              xCdTitle = null; xCdNo = null;
+              break;
+            }
+          }
+        }
+        var xTitle = xCdTitle || findColX(['품목']);
+        var xCue = findColX(['cue','cue(s)','규격']);
         var xTrack = findColX(['trackno','track no']);
-        var xPub = findColX(['publisher/composer','publisher / composer']);
+        var xPub = findColX(['publisher/composer','publisher / composer','publisher','composer']);
         var xUnit = findColX(['단위','용도','권리']);
         var xQty = findColX(['수량','qty']);
-        var xAmount = findColX(['금액','domestic&worldwide','domestic']);
+        var xAmount = findColX(['금액','금액','domestic&worldwide','domestic','금']);
         var xWorldwide = findColX(['worldwide']);
         // 헤더 아래(y 더 작은 값 · pdf 는 아래로 갈수록 y 감소) 라인들
         var headerY = lines[headerIdx].y;
@@ -16499,6 +16524,8 @@ window.__mq = (function(){
         }
         var colOrder = [
           { key: 'no', x: xNo },
+          // 통합 컬럼: 'CD No / Title' 단일 x 앵커
+          xCombinedCdNoTitle != null ? { key: 'cdNoTitle', x: xCombinedCdNoTitle } : null,
           { key: 'title', x: xTitle },
           { key: 'cdNo', x: xCdNo },
           { key: 'cue', x: xCue },
@@ -16508,7 +16535,7 @@ window.__mq = (function(){
           { key: 'qty', x: xQty },
           { key: 'amount', x: xAmount },
           { key: 'worldwide', x: xWorldwide }
-        ].filter(function(c){ return c.x != null; })
+        ].filter(function(c){ return c && c.x != null; })
          .sort(function(a,b){ return a.x - b.x; });
         Object.keys(itemBuckets).forEach(function(no){
           var buc = itemBuckets[no];
@@ -16519,6 +16546,12 @@ window.__mq = (function(){
             if (c.key === 'no') return;
             it[c.key] = val;
           });
+          // 통합 컬럼 'CD No / Title' 이면 값을 slash 기준 split → cdNo · cdTitle
+          if (it.cdNoTitle) {
+            var parts = it.cdNoTitle.split(/\s*\/\s*/);
+            it.cdNo = it.cdNo || (parts[0]||'').trim();
+            it.title = it.title || (parts.slice(1).join(' / ') || '').trim();
+          }
           // Needle 필드 매핑
           if (docType === 'needle') {
             var out = {};
