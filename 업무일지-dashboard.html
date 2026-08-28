@@ -17838,8 +17838,10 @@ window.__mq = (function(){
       var summary = (r.items || []).find(function(it){ return it && it._summary; }) || {};
       var totalFill = {type:'pattern',pattern:'solid',fgColor:{argb:'FFD9D9D9'}};
       ws.getRow(totalRow).height = 38; // TOTAL 행 높이 확대
-      ws.mergeCells('A'+totalRow+':C'+totalRow);
+      ws.mergeCells('A'+totalRow+':B'+totalRow);
       set(ws, 'A'+totalRow, 'TOTAL', { font:F(12,true), fill:totalFill, align:A.center });
+      // C 열은 병합 밖 · 배경만 회색으로 채워 시각적 연속성 유지
+      set(ws, 'C'+totalRow, '', { font:F(10,true), fill:totalFill, align:A.center });
       var invoiceMap = { D:'spec', E:'unit', F:'qty', G:'unitPrice', H:'supplyPrice', I:'vat' };
       ['D','E','F','G','H','I'].forEach(function(col){
         var key = invoiceMap[col];
