@@ -2085,7 +2085,7 @@
       <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></span>
       견적 관리
     </div>
-    <div class="sidebar-item" id="mq-sidebar-btn" style="display:none" onclick="openMusicQuotePanel()" title="음원 견적 관리 (사운드팀)">
+    <div class="sidebar-item" id="mq-sidebar-btn" style="display:none" onclick="window.__mq.openEntry()" title="음원 견적 관리 (사운드팀)">
       <span class="sidebar-item-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
       음원 견적 관리
     </div>
@@ -15504,16 +15504,71 @@ window.__mq = (function(){
   // ────────────────────────────────────────────────────────────
   // 접근 게이팅 · 진입/종료
   // ────────────────────────────────────────────────────────────
-  function openPanel(){
+  // scope: 'quote' (Needle/Annual 견적서) 또는 'invoice' (거래명세서) — 페이지 UX 분리용
+  var _scope = 'quote';
+
+  // 사이드바 진입 시 카드 chooser: 견적서 vs 거래명세서 선택
+  //   같은 developer 게이팅 → chooser 카드 클릭 시 openPanel(scope) 로 진입
+  function openEntry(){
+    var uname = (typeof _currentUsername !== 'undefined') ? _currentUsername : '';
+    if (uname !== 'developer') { _toast('접근 권한이 없습니다 (developer 계정 전용)'); return; }
+    var ov = document.getElementById('mq-entry-back');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'mq-entry-back';
+      ov.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:9995;align-items:center;justify-content:center;padding:20px;font-family:inherit';
+      ov.onclick = function(e){ if (e.target === this) closeEntry(); };
+      ov.innerHTML = ''
+        + '<div style="background:#fff;border-radius:14px;padding:26px;box-shadow:0 20px 60px rgba(15,23,42,0.35);width:520px;max-width:96%;animation:mqFadeUp 0.16s ease-out">'
+        +   '<h3 style="margin:0 0 4px;font-size:18px;font-weight:800;color:#0f172a;letter-spacing:-0.3px">음원 견적 관리</h3>'
+        +   '<div style="font-size:12.5px;color:#64748b;margin-bottom:20px">진입할 페이지를 선택하세요</div>'
+        +   '<div class="mq-choice-grid">'
+        +     '<div class="mq-choice" onclick="window.__mq._pickEntry(\'quote\')">'
+        +       '<div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></div>'
+        +       '<div class="title">견적서</div>'
+        +       '<div class="desc">Needle / Annual<br>음원 사용 견적서</div>'
+        +     '</div>'
+        +     '<div class="mq-choice" onclick="window.__mq._pickEntry(\'invoice\')">'
+        +       '<div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div>'
+        +       '<div class="title">거래명세서</div>'
+        +       '<div class="desc">세금계산서형<br>거래명세서 관리</div>'
+        +     '</div>'
+        +   '</div>'
+        +   '<div style="margin-top:18px;display:flex;justify-content:flex-end;padding-top:14px;border-top:1px solid #f1f5f9">'
+        +     '<button onclick="window.__mq.closeEntry()" style="padding:7px 14px;border-radius:7px;border:1px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">취소</button>'
+        +   '</div>'
+        + '</div>';
+      document.body.appendChild(ov);
+    }
+    ov.style.display = 'flex';
+  }
+  function closeEntry(){
+    var ov = document.getElementById('mq-entry-back');
+    if (ov) ov.style.display = 'none';
+  }
+  function _pickEntry(scope){
+    closeEntry();
+    openPanel(scope);
+  }
+
+  function openPanel(scope){
     // developer 계정만
     var uname = (typeof _currentUsername !== 'undefined') ? _currentUsername : '';
     if (uname !== 'developer') { _toast('접근 권한이 없습니다 (developer 계정 전용)'); return; }
+    _scope = (scope === 'invoice') ? 'invoice' : 'quote';
     var ov = document.getElementById('mq-overlay');
     if (!ov) return;
+    // 헤더 라벨 스위칭 (scope 별)
+    var hK = document.getElementById('mq-header-kicker');
+    var hT = document.getElementById('mq-header-title');
+    if (hK) hK.textContent = (_scope === 'invoice') ? 'MUSIC INVOICES' : 'MUSIC QUOTES';
+    if (hT) hT.textContent = (_scope === 'invoice') ? '음원 거래명세서 관리' : '음원 견적 관리';
     // dev-mode 사용자는 카탈로그 embed 로 (사이드바 유지)
     if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function') {
-      window._dmEnterFeatureEmbed('mq-overlay');
+      window._dmEnterFeatureEmbed('mq-overlay', { arg: _scope });
     }
+    // breadcrumb 라벨 scope 반영
+    if (window._dmSetCrumb) window._dmSetCrumb((_scope === 'invoice') ? '음원 거래명세서 관리' : '음원 견적 관리');
     ov.classList.add('open');
     _showList();
     refresh();
@@ -15523,6 +15578,11 @@ window.__mq = (function(){
     // (남아있으면 #mq-overlay.open { display:flex !important } 가 embed exit 후에도 모달로 재출현시킴)
     var ov = document.getElementById('mq-overlay');
     if (ov) ov.classList.remove('open');
+    // chooser/upload 오버레이 잔존 방지
+    var cb = document.getElementById('mq-chooser-back'); if (cb) cb.classList.remove('open');
+    var ub = document.getElementById('mq-upload-back');  if (ub) ub.classList.remove('open');
+    // filter 초기화
+    _state.filter = { q:'', docType:'all', subType:'all', status:'all', receiver:'all' };
     // embed 상태였다면 embed exit (사이드바 카탈로그로 복귀)
     if (document.body.classList.contains('dev-embed')
         && window._dmFeatureEmbedState
@@ -15650,14 +15710,22 @@ window.__mq = (function(){
     if (!grid) return;
     if (_chooserState.step === 1) {
       title.textContent = '문서 유형 선택';
-      sub.textContent = '등록할 견적 문서의 유형을 선택하세요';
-      step.textContent = '1 / 2 단계';
+      sub.textContent = (_scope === 'invoice')
+        ? '등록할 거래명세서를 선택하세요'
+        : '등록할 견적 문서의 유형을 선택하세요';
+      // Invoice scope 은 카드 1개 · 서브타입 없음 → 실질 1단계
+      step.textContent = (_scope === 'invoice') ? '1 / 1 단계' : '1 / 2 단계';
       backBtn.style.display = 'none';
-      var cards = [
+      // scope 별 카드 게이팅: quote 페이지에는 invoice 카드 제거, invoice 페이지에는 invoice 카드만
+      var allCards = [
         { key:'needle',  title:'Needle 견적서', desc:'음원 사용 곡별 견적서\n(OTT / 광고 / 영화)', ico:'<line x1="12" y1="5" x2="12" y2="19"/><polyline points="5 12 12 19 19 12"/>' },
         { key:'annual',  title:'Annual 견적서', desc:'연간 블랭킷\n라이선스 견적서', ico:'<circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 16 14"/>' },
         { key:'invoice', title:'거래명세서',    desc:'세금계산서형\n거래명세서', ico:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' }
       ];
+      var cards = allCards.filter(function(c){
+        if (_scope === 'invoice') return c.key === 'invoice';
+        return c.key !== 'invoice'; // quote scope: needle · annual 만
+      });
       grid.innerHTML = cards.map(function(c){
         return '<div class="mq-choice" onclick="window.__mq._pickDocType(\''+c.key+'\')">'
           + '<div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+c.ico+'</svg></div>'
@@ -15687,6 +15755,28 @@ window.__mq = (function(){
   }
   function _pickDocType(docType){
     _chooserState.docType = docType;
+    // 거래명세서(invoice) 는 sub_type 없음 → Step 2 skip 하고 바로 폼 진입
+    // (Import 흐름에서는 파일 업로드 창으로 바로 이동)
+    if (docType === 'invoice') {
+      var mode = _chooserState.mode || 'new';
+      if (mode === 'import_excel' || mode === 'import_pdf') {
+        document.getElementById('mq-chooser-back').classList.remove('open');
+        _importState.docType = 'invoice';
+        _importState.subType = null;
+        _importState.mode = mode;
+        _openUploadPanel();
+        return;
+      }
+      _closeChooser();
+      _state.view = 'form'; _state.editingId = null; _state.viewingId = null;
+      _state.form = _newForm('invoice', null);
+      _visible('mq-list-wrap', false); _visible('mq-detail-view', false); _visible('mq-form-view', true);
+      _visible('mq-filter-bar', false);
+      _showBtn('mq-new-btn', false); _showBtn('mq-back-btn', true);
+      _showBtn('mq-import-pdf-btn', false); _showBtn('mq-import-xlsx-btn', false);
+      _renderForm();
+      return;
+    }
     _chooserState.step = 2;
     _renderChooser();
   }
@@ -16227,6 +16317,9 @@ window.__mq = (function(){
   function _applyFilter(rows){
     var f = _state.filter, q = (f.q||'').toLowerCase().trim();
     return rows.filter(function(r){
+      // scope 게이팅: invoice 페이지 ↔ quote(견적서) 페이지 격리
+      if (_scope === 'invoice' && r.doc_type !== 'invoice') return false;
+      if (_scope === 'quote'   && r.doc_type === 'invoice') return false;
       if (f.docType !== 'all' && r.doc_type !== f.docType) return false;
       if (f.subType !== 'all' && r.sub_type !== f.subType) return false;
       if (f.status !== 'all' && r.status !== f.status) return false;
@@ -16904,7 +16997,8 @@ window.__mq = (function(){
     var me = _me(), meDisplay = (me._display && (me._display.fullName||me._display.name)) || (typeof _currentUsername!=='undefined'?_currentUsername:'');
     _uploadPending().then(function(uploaded){
       var body = {
-        doc_type: f.doc_type, sub_type: f.sub_type||null,
+        // Needle 만 sub_type 사용 (OTT/광고/영화) · Annual/Invoice 는 null 로 정규화
+        doc_type: f.doc_type, sub_type: (f.doc_type === 'needle') ? (f.sub_type||null) : null,
         quote_no: f.quote_no||null, status: f.status||'미결',
         tax_invoice_date: f.tax_invoice_date||null,
         doc_date: f.doc_date||null,
@@ -18083,6 +18177,7 @@ window.__mq = (function(){
 
   return {
     openPanel: openPanel, closePanel: closePanel, refresh: refresh,
+    openEntry: openEntry, closeEntry: closeEntry, _pickEntry: _pickEntry,
     _showList: _showList, _showForm: _showForm, _showDetail: _showDetail,
     _setFilter: _setFilter, _clearFilter: _clearFilter,
     _setFormField: _setFormField, _setItemField: _setItemField,
@@ -18101,7 +18196,7 @@ window.__mq = (function(){
 })();
 
 // 전역 진입점
-function openMusicQuotePanel(){ window.__mq.openPanel(); }
+function openMusicQuotePanel(){ window.__mq.openEntry(); }
 function closeMusicQuotePanel(){ window.__mq.closePanel(); }
 </script>
 
