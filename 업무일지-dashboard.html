@@ -16333,55 +16333,64 @@ window.__mq = (function(){
         Tel_s:   /^Tel$/i
       };
       var stopSet = /^(DATE|수신|참조|제목|Tel|Fax|등록번호|상호명|대표자|소재지|업태|업종|종목|담당자)$/i;
+      // PDF 에서 실제로 파싱된 필드 추적 · _newForm 기본값(이광순 등) 을 무시하고 override
+      var _parsed = {};
       lines.forEach(function(l){
         var idx;
         // DATE
-        if ((idx = findLabel(l, LABELS.DATE)) >= 0 && !form.doc_date) {
+        if ((idx = findLabel(l, LABELS.DATE)) >= 0 && !_parsed.doc_date) {
           var v = readRight(l, idx, ALL_LABELS);
-          form.doc_date = _normDate(v);
+          if (v) { form.doc_date = _normDate(v); _parsed.doc_date = true; }
         }
         // 수신
-        if ((idx = findLabel(l, LABELS.수신)) >= 0 && !form.receiver_company) {
-          form.receiver_company = collapseCJK(readRight(l, idx, ALL_LABELS));
+        if ((idx = findLabel(l, LABELS.수신)) >= 0 && !_parsed.receiver_company) {
+          var vv = readRight(l, idx, ALL_LABELS);
+          if (vv) { form.receiver_company = collapseCJK(vv); _parsed.receiver_company = true; }
         }
         // 참조
-        if ((idx = findLabel(l, LABELS.참조)) >= 0 && !form.receiver_person) {
-          form.receiver_person = readRight(l, idx, ALL_LABELS);
+        if ((idx = findLabel(l, LABELS.참조)) >= 0 && !_parsed.receiver_person) {
+          var vv2 = readRight(l, idx, ALL_LABELS);
+          if (vv2) { form.receiver_person = vv2; _parsed.receiver_person = true; }
         }
         // 제목
-        if ((idx = findLabel(l, LABELS.제목)) >= 0 && !form.doc_title) {
-          form.doc_title = readRight(l, idx, ALL_LABELS);
+        if ((idx = findLabel(l, LABELS.제목)) >= 0 && !_parsed.doc_title) {
+          var vv3 = readRight(l, idx, ALL_LABELS);
+          if (vv3) { form.doc_title = vv3; _parsed.doc_title = true; }
         }
         // 등록번호
-        if ((idx = findLabel(l, LABELS.등록번호)) >= 0 && !form.sender_reg_no) {
-          form.sender_reg_no = readRight(l, idx, ALL_LABELS);
+        if ((idx = findLabel(l, LABELS.등록번호)) >= 0 && !_parsed.sender_reg_no) {
+          var vv4 = readRight(l, idx, ALL_LABELS);
+          if (vv4) { form.sender_reg_no = vv4; _parsed.sender_reg_no = true; }
         }
         // 상호명
-        if ((idx = findLabel(l, LABELS.상호명)) >= 0 && !form.sender_company) {
-          form.sender_company = collapseCJK(readRight(l, idx, ALL_LABELS));
+        if ((idx = findLabel(l, LABELS.상호명)) >= 0 && !_parsed.sender_company) {
+          var vv5 = readRight(l, idx, ALL_LABELS);
+          if (vv5) { form.sender_company = collapseCJK(vv5); _parsed.sender_company = true; }
         }
         // 대표자
-        if ((idx = findLabel(l, LABELS.대표자)) >= 0 && !form.sender_ceo) {
+        if ((idx = findLabel(l, LABELS.대표자)) >= 0 && !_parsed.sender_ceo) {
           var ceoRaw = readRight(l, idx, ALL_LABELS);
-          form.sender_ceo = collapseCJK(ceoRaw.replace(/\s*\(\s*인\s*\)\s*$/, '').trim());
+          if (ceoRaw) { form.sender_ceo = collapseCJK(ceoRaw.replace(/\s*\(\s*인\s*\)\s*$/, '').trim()); _parsed.sender_ceo = true; }
         }
         // 소재지
-        if ((idx = findLabel(l, LABELS.소재지)) >= 0 && !form.sender_address) {
-          form.sender_address = readRight(l, idx, ALL_LABELS);
+        if ((idx = findLabel(l, LABELS.소재지)) >= 0 && !_parsed.sender_address) {
+          var vv6 = readRight(l, idx, ALL_LABELS);
+          if (vv6) { form.sender_address = vv6; _parsed.sender_address = true; }
         }
-        // 담당자
-        if ((idx = findLabel(l, LABELS.담당자)) >= 0 && !form.sender_person) {
-          form.sender_person = readRight(l, idx, ALL_LABELS);
+        // 담당자 · PDF 값이 있으면 항상 override (_newForm 기본값 '이광순' 대체)
+        if ((idx = findLabel(l, LABELS.담당자)) >= 0 && !_parsed.sender_person) {
+          var vv7 = readRight(l, idx, ALL_LABELS);
+          if (vv7) { form.sender_person = vv7; _parsed.sender_person = true; }
         }
         // 업태 / 업종 / 종목 — 한 라인 안에 조합 존재 가능 ('업태 서비스 / 업종 사운드')
         var idxUp = findLabel(l, /^(업태|업종|종목)$/);
-        if (idxUp >= 0 && (!form.sender_biz_type || !form.sender_biz_item)) {
+        if (idxUp >= 0 && (!_parsed.sender_biz_type || !_parsed.sender_biz_item)) {
           var s = lineText(l);
           // "업태 서비스 / 업종 사운드" 또는 "업 태 : 서비스 / 업 종 : 사운드"
           var mBiz = s.match(/업\s*태\s*[:：]?\s*([^\/\n]+?)\s*(?:\/|\s{2,})\s*(?:업\s*종|종\s*목)\s*[:：]?\s*([^\n]+)/);
           if (mBiz) {
-            if (!form.sender_biz_type) form.sender_biz_type = mBiz[1].trim();
-            if (!form.sender_biz_item) form.sender_biz_item = mBiz[2].trim();
+            form.sender_biz_type = mBiz[1].trim(); _parsed.sender_biz_type = true;
+            form.sender_biz_item = mBiz[2].trim(); _parsed.sender_biz_item = true;
           }
         }
         // Tel/Fax 라인 — 같은 라인에 Tel · Fax 두 라벨이 있을 수 있음 (한 라인 조합)
@@ -16398,20 +16407,19 @@ window.__mq = (function(){
           var pageMidX = 300; // A4 기준 대략
           var telX = l.items[idxTel].x;
           if (telX > pageMidX) {
-            if (!form.sender_tel && /\d/.test(telVals)) form.sender_tel = telVals.replace(/^[:：\s]+/,'').trim();
-            if (!form.sender_fax && /\d/.test(faxVals)) form.sender_fax = faxVals.replace(/^[:：\s]+/,'').trim();
+            if (!_parsed.sender_tel && /\d/.test(telVals)) { form.sender_tel = telVals.replace(/^[:：\s]+/,'').trim(); _parsed.sender_tel = true; }
+            if (!_parsed.sender_fax && /\d/.test(faxVals)) { form.sender_fax = faxVals.replace(/^[:：\s]+/,'').trim(); _parsed.sender_fax = true; }
           } else {
-            if (!form.receiver_tel && /\d/.test(telVals)) form.receiver_tel = telVals.replace(/^[:：\s]+/,'').trim();
-            if (!form.receiver_fax && /\d/.test(faxVals)) form.receiver_fax = faxVals.replace(/^[:：\s]+/,'').trim();
+            if (!_parsed.receiver_tel && /\d/.test(telVals)) { form.receiver_tel = telVals.replace(/^[:：\s]+/,'').trim(); _parsed.receiver_tel = true; }
+            if (!_parsed.receiver_fax && /\d/.test(faxVals)) { form.receiver_fax = faxVals.replace(/^[:：\s]+/,'').trim(); _parsed.receiver_fax = true; }
           }
         } else if (idxFax >= 0) {
-          // Fax 단독 (Tel 없음) — 대개 수신자 empty Tel + Fax
           var faxOnly = readRight(l, idxFax, ALL_LABELS);
           var faxX = l.items[idxFax].x;
           if (faxX > 300) {
-            if (!form.sender_fax && /\d/.test(faxOnly)) form.sender_fax = faxOnly.replace(/^[:：\s]+/,'').trim();
+            if (!_parsed.sender_fax && /\d/.test(faxOnly)) { form.sender_fax = faxOnly.replace(/^[:：\s]+/,'').trim(); _parsed.sender_fax = true; }
           } else {
-            if (!form.receiver_fax && /\d/.test(faxOnly)) form.receiver_fax = faxOnly.replace(/^[:：\s]+/,'').trim();
+            if (!_parsed.receiver_fax && /\d/.test(faxOnly)) { form.receiver_fax = faxOnly.replace(/^[:：\s]+/,'').trim(); _parsed.receiver_fax = true; }
           }
         }
       });
