@@ -15563,6 +15563,8 @@ window.__mq = (function(){
     var hT = document.getElementById('mq-header-title');
     if (hK) hK.textContent = (_scope === 'invoice') ? 'MUSIC INVOICES' : 'MUSIC QUOTES';
     if (hT) hT.textContent = (_scope === 'invoice') ? '음원 거래명세서 관리' : '음원 견적 관리';
+    // doc_type / sub_type 필터 select 옵션 scope 별 재구성
+    _syncFilterOptionsForScope();
     // dev-mode 사용자는 카탈로그 embed 로 (사이드바 유지)
     if (document.body.classList.contains('dev-mode') && typeof window._dmEnterFeatureEmbed === 'function') {
       window._dmEnterFeatureEmbed('mq-overlay', { arg: _scope });
@@ -16332,6 +16334,30 @@ window.__mq = (function(){
     });
   }
   // 수신처 select 를 현재 로드된 rows 로 동기화
+  // scope 별 doc_type · sub_type 필터 옵션 재구성
+  //   quote 페이지: needle · annual 만 (invoice 제거)
+  //   invoice 페이지: 선택 자체가 무의미 → doc_type/sub_type select 숨김
+  function _syncFilterOptionsForScope(){
+    var dtSel = document.getElementById('mq-fil-doctype');
+    var stSel = document.getElementById('mq-fil-subtype');
+    if (!dtSel) return;
+    if (_scope === 'invoice') {
+      dtSel.style.display = 'none';
+      if (stSel) stSel.style.display = 'none';
+      _state.filter.docType = 'invoice';
+      _state.filter.subType = 'all';
+      return;
+    }
+    // quote scope: needle · annual 만 노출 · invoice 옵션 제거
+    dtSel.style.display = '';
+    if (stSel) stSel.style.display = '';
+    var html = '<option value="all">전체 종류</option>'
+             + '<option value="needle">Needle 견적</option>'
+             + '<option value="annual">Annual 견적</option>';
+    if (dtSel.innerHTML !== html) dtSel.innerHTML = html;
+    if (_state.filter.docType === 'invoice') _state.filter.docType = 'all';
+    dtSel.value = _state.filter.docType || 'all';
+  }
   function _syncReceiverOptions(){
     var sel = document.getElementById('mq-fil-receiver');
     if (!sel) return;
