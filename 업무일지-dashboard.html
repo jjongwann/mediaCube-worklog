@@ -17801,7 +17801,12 @@ window.__mq = (function(){
           _MQ_XL.estimateLines(it.spec, 6)
         );
       }
-      ws.getRow(rr).height = Math.max(50, 20 + _lines * 15);
+      // Invoice: summary 행(NO 없음) 만 50 유지, NO 있는 자식 행(1,2,3...) 은 32 컴팩트
+      if (isInvoice && row.type !== 'summary') {
+        ws.getRow(rr).height = 32;
+      } else {
+        ws.getRow(rr).height = Math.max(50, 20 + _lines * 15);
+      }
       // 부모 행 (NO='1','2','3'...): 품목:규격 (B:D) 병합 label
       if (isParent) {
         ws.mergeCells('B'+rr+':D'+rr);
