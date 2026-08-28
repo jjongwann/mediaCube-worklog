@@ -17389,8 +17389,9 @@ window.__mq = (function(){
     ws.mergeCells(colSpec.titleRange);
     set(ws, colSpec.titleRange.split(':')[0], '견        적        서', { font:F(26,true), border:false });
     // 상단 폼 좌 (5열: A~E) — Tel/Fax 한 줄 (A=Tel라벨, B:C=tel값, D=Fax라벨, E=fax값)
-    var leftLbl = { font:F(10,true), fill:FILL.label };
-    var leftVal = { align:A.left };
+    // 상단 폼 영역 폰트 11pt
+    var leftLbl = { font:F(11,true), fill:FILL.label };
+    var leftVal = { align:A.left, font:F(11) };
     // 단일 라벨+값 행 (전체 병합)
     var mkSimple = function(rowNum, label, val){
       set(ws, 'A'+rowNum, label, leftLbl);
@@ -17407,7 +17408,10 @@ window.__mq = (function(){
     set(ws, 'C6', 'Fax', leftLbl);
     ws.mergeCells('D6:E6');
     set(ws, 'D6', r.receiver_fax||'', leftVal);
-    mkSimple(7, '제목', r.doc_title||'');
+    // 제목: 라벨은 leftLbl, 값은 굵게 (강조)
+    set(ws, 'A7', '제목', leftLbl);
+    ws.mergeCells('B7:E7');
+    set(ws, 'B7', r.doc_title||'', { align:A.left, font:F(11,true) });
     ws.mergeCells('A8:E8');
     set(ws, 'A8', '', { border:false });
     ws.mergeCells('A9:E9');
@@ -17454,9 +17458,9 @@ window.__mq = (function(){
       set(ws, 'G8', telCombined, leftVal);
       mkRSimple(9, '담당자', r.sender_person||'');
     }
-    // 표 헤더 (10행)
+    // 표 헤더 (10행) — 12pt
     colSpec.headers.forEach(function(h, i){
-      set(ws, ws.getRow(10).getCell(i+1).address, h, { font:F(10,true), fill:FILL.header });
+      set(ws, ws.getRow(10).getCell(i+1).address, h, { font:F(12,true), fill:FILL.header });
     });
     // items → group/song 배열 · 동적 행 개수 지원
     var rows = _MQ_XL.itemsToRows(r.items);
@@ -17500,9 +17504,9 @@ window.__mq = (function(){
         ws.getRow(rr).height = Math.max(50, 20 + lines * 15);
       }
       if (row.type === 'group') {
-        set(ws, ws.getRow(rr).getCell(1).address, row.no, { font:F(10,true), fill:FILL.group });
+        set(ws, ws.getRow(rr).getCell(1).address, row.no, { font:F(12,true), fill:FILL.group });
         ws.mergeCells('B'+rr+':'+lastColLetter+rr);
-        set(ws, 'B'+rr, row.label, { font:F(11,true), align:A.left, fill:FILL.group });
+        set(ws, 'B'+rr, row.label, { font:F(12,true), align:A.left, fill:FILL.group });
       } else {
         var it = row.raw;
         var vals;
@@ -17519,15 +17523,16 @@ window.__mq = (function(){
         if (isParent) {
           ws.mergeCells('B'+rr+':D'+rr);
           // A(NO)
-          set(ws, ws.getRow(rr).getCell(1).address, vals[0], { align:A.center, numFmt:'@' });
-          // B:D 병합 label = cdTitle (wrapText 로 여러 줄 대응)
-          set(ws, 'B'+rr, vals[1], { align:{horizontal:'left', vertical:'middle', indent:1, wrapText:true}, font:F(10,true), numFmt:'@' });
-          // E~ (Track No 이후 컬럼들)
+          set(ws, ws.getRow(rr).getCell(1).address, vals[0], { align:A.center, numFmt:'@', font:F(12) });
+          // B:D 병합 label = cdTitle (wrapText 로 여러 줄 대응) · 12pt 굵게
+          set(ws, 'B'+rr, vals[1], { align:{horizontal:'left', vertical:'middle', indent:1, wrapText:true}, font:F(12,true), numFmt:'@' });
+          // E~ (Track No 이후 컬럼들) · 12pt
           for (var c = 4; c < vals.length; c++) {
             var isNumCol_p = colSpec.sumCols.indexOf(c+1) !== -1;
             set(ws, ws.getRow(rr).getCell(c+1).address, vals[c], {
               align: A.center,
-              numFmt: isNumCol_p ? '#,##0' : '@'
+              numFmt: isNumCol_p ? '#,##0' : '@',
+              font: F(12)
             });
           }
         } else {
@@ -17538,9 +17543,9 @@ window.__mq = (function(){
             var boldCol = c === 3 || c === 4 || c >= 8;
             var opt = {
               align: A.center,
-              numFmt: isNumCol ? '#,##0' : '@'
+              numFmt: isNumCol ? '#,##0' : '@',
+              font: boldCol ? F(12, true) : F(12)
             };
-            if (boldCol) opt.font = F(10, true);
             set(ws, ws.getRow(rr).getCell(c+1).address, v, opt);
           });
         }
@@ -17565,13 +17570,13 @@ window.__mq = (function(){
     var totalRangeStart = 'A'+totalRowNum;
     var totalRangeEnd = 'D'+totalRowNum;
     ws.mergeCells(totalRangeStart+':'+totalRangeEnd);
-    set(ws, totalRangeStart, 'TOTAL (Excluding V.A.T)', { font:F(11,true), fill:FILL.total, align:A.center });
+    set(ws, totalRangeStart, 'TOTAL (Excluding V.A.T)', { font:F(12,true), fill:FILL.total, align:A.center });
     for (var mc = 5; mc < colSpec.unitCol; mc++) {
       var addr = ws.getRow(totalRowNum).getCell(mc).address;
       set(ws, addr, '', { fill:FILL.total });
     }
     var unitAddr = ws.getRow(totalRowNum).getCell(colSpec.unitCol).address;
-    set(ws, unitAddr, 'sync', { font:F(10,true), fill:FILL.total, align:A.center });
+    set(ws, unitAddr, 'sync', { font:F(12,true), fill:FILL.total, align:A.center });
     // SUM 합계 (row 11 ~ lastDataRow 전체)
     var sumFieldMap;
     if (mode === 'movie') sumFieldMap = { 8:'qty', 9:'domestic', 10:'worldwide' };
@@ -17584,7 +17589,7 @@ window.__mq = (function(){
       (r.items || []).forEach(function(it){ if (it._type !== 'group') sumVal += _MQ_XL.num(it[sumFieldMap[cn]]); });
       var isQty = sumFieldMap[cn] === 'qty';
       var fmt = isQty ? '#,##0' : '"₩ "#,##0';
-      set(ws, addr, { formula: 'SUM('+colL+dataStart+':'+colL+lastDataRow+')', result: sumVal }, { font:F(10,true), fill:FILL.total, numFmt:fmt, align:A.center });
+      set(ws, addr, { formula: 'SUM('+colL+dataStart+':'+colL+lastDataRow+')', result: sumVal }, { font:F(12,true), fill:FILL.total, numFmt:fmt, align:A.center });
     });
     for (var c=1; c<=colSpec.widths.length; c++) {
       var cell = ws.getRow(totalRowNum).getCell(c);
@@ -17596,11 +17601,11 @@ window.__mq = (function(){
     var notesLblRange = 'A'+notesStartRow+':A'+notesEndRow;
     var notesBodyRange = 'B'+notesStartRow+':'+lastColLetter+notesEndRow;
     ws.mergeCells(notesLblRange);
-    set(ws, 'A'+notesStartRow, '비 고', { font:F(11,true), fill:FILL.total, align:A.center });
+    set(ws, 'A'+notesStartRow, '비 고', { font:F(12,true), fill:FILL.total, align:A.center });
     ws.mergeCells(notesBodyRange);
     set(ws, 'B'+notesStartRow, r.notes || '', {
       align: { horizontal:'left', vertical:'top', wrapText:true, indent:1 },
-      font: F(10)
+      font: F(12)
     });
     // ── medium border 강조 (동적 범위) ──
     var lastColNum = colSpec.widths.length;
