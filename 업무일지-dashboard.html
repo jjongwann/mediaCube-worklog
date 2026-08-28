@@ -17644,7 +17644,7 @@ window.__mq = (function(){
     // 컬럼: A~J
     // 컬럼 폭 (Annual: A~J 10칸, Invoice: A~I 9칸 · 참조 양식 매칭)
     var colWidths = isInvoice
-      ? [6, 32, 13, 8, 8, 10.25, 15, 14, 15]           // Invoice 9열 (A 축소 → 합계 금액 2행 wrap)
+      ? [9, 32, 13, 8, 8, 10.25, 15, 14, 15]           // Invoice 9열 (A 확대 · 합계 금액은 명시적 개행)
       : [5.13, 35, 15.13, 6, 6.5, 10.25, 13, 13, 15, 10]; // Annual 10열
     colWidths.forEach(function(w,i){ ws.getColumn(i+1).width = w; });
     // 행 높이 (헤더/제목/상단폼 영역만 사전 지정 · 데이터 행 높이는 렌더 중 동적 결정)
@@ -17734,7 +17734,7 @@ window.__mq = (function(){
     var sumRow = isInvoice ? 9 : 10;
     if (isInvoice) {
       // Invoice: 합계 금액 배경 제거 (흰색)
-      set(ws, 'A9', '합계 금액', { font:F(13,true), align:{horizontal:'center', vertical:'middle', wrapText:true} });
+      set(ws, 'A9', '합계\n금액', { font:F(13,true), align:{horizontal:'center', vertical:'middle', wrapText:true} });
       ws.getRow(9).height = 50;
       // 한글 금액 + 통화 금액을 하나의 병합 셀(B9:I9)에 표시 · 왼쪽 한글, 우측 통화
       ws.mergeCells('B9:I9');
@@ -17850,20 +17850,20 @@ window.__mq = (function(){
       ws.mergeCells('A'+totalRow+':B'+totalRow);
       set(ws, 'A'+totalRow, 'TOTAL', { font:F(12,true), fill:totalFill, align:A.center });
       // C 열은 병합 밖 · 배경만 회색으로 채워 시각적 연속성 유지
-      set(ws, 'C'+totalRow, '', { font:F(10,true), fill:totalFill, align:A.center });
+      set(ws, 'C'+totalRow, '', { font:F(12,true), fill:totalFill, align:A.center });
       var invoiceMap = { D:'spec', E:'unit', F:'qty', G:'unitPrice', H:'supplyPrice', I:'vat' };
       ['D','E','F','G','H','I'].forEach(function(col){
         var key = invoiceMap[col];
         var v = summary[key];
         if (v == null || v === '') {
-          set(ws, col+totalRow, '', { font:F(10,true), fill:totalFill, align:A.center });
+          set(ws, col+totalRow, '', { font:F(12,true), fill:totalFill, align:A.center });
           return;
         }
         var isNumC = (col === 'F' || col === 'G' || col === 'H' || col === 'I');
         var isPrice = (col === 'G' || col === 'H' || col === 'I');
         var fmt = isPrice ? '"₩ "#,##0' : (col === 'F' ? '#,##0' : undefined);
         var val = isNumC ? _MQ_XL.num(v) : v;
-        set(ws, col+totalRow, val, { font:F(10,true), fill:totalFill, align:A.center, numFmt:fmt });
+        set(ws, col+totalRow, val, { font:F(12,true), fill:totalFill, align:A.center, numFmt:fmt });
       });
     } else {
       // Annual TOTAL: A:E 병합 라벨 + F~J SUM formula
@@ -17889,7 +17889,8 @@ window.__mq = (function(){
     // 비고 라벨은 A 컬럼만 (Invoice/Annual/Needle 공통)
     ws.mergeCells('A'+notesStart+':A'+notesEnd);
     var notesLabelFill = isInvoice ? {type:'pattern',pattern:'solid',fgColor:{argb:'FFD9D9D9'}} : FILL.label;
-    set(ws, 'A'+notesStart, '비 고', { font:F(11,true), fill:notesLabelFill, align:A.center });
+    var notesLabelFont = isInvoice ? F(12,true) : F(11,true);
+    set(ws, 'A'+notesStart, '비 고', { font:notesLabelFont, fill:notesLabelFill, align:A.center });
     ws.mergeCells('B'+notesStart+':'+lastColLetter+notesEnd);
     set(ws, 'B'+notesStart, r.notes||'', { align:{horizontal:'left',vertical:'top',wrapText:true,indent:1}, font:F(10) });
     for (var rr=notesStart; rr<=notesEnd; rr++) box(ws, rr, 1, lastColNum);
