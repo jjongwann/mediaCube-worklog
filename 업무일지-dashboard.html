@@ -17685,7 +17685,7 @@ window.__mq = (function(){
     // 아래와 같이... 위치: Invoice=A7:D8 (2행 병합, 좌측 빈행 방지), Annual=R9
     if (isInvoice) {
       ws.mergeCells('A7:D8');
-      set(ws, 'A7', '아래와 같이 계산합니다.', { font:F(12,true), align:{horizontal:'center', vertical:'middle'} });
+      set(ws, 'A7', '아래와 같이 계산합니다.', { font:F(13,true), align:{horizontal:'center', vertical:'middle'} });
     } else {
       ws.mergeCells('A9:D9');
       set(ws, 'A9', '아래와 같이 견적합니다.', { font:F(11,true), align:A.center });
@@ -17734,7 +17734,7 @@ window.__mq = (function(){
     var sumRow = isInvoice ? 9 : 10;
     if (isInvoice) {
       // Invoice: 합계 금액 배경 제거 (흰색)
-      set(ws, 'A9', '합계\n금액', { font:F(13,true), align:{horizontal:'center', vertical:'middle', wrapText:true} });
+      set(ws, 'A9', '합계\n금액', { font:F(14,true), align:{horizontal:'center', vertical:'middle', wrapText:true} });
       ws.getRow(9).height = 50;
       // 한글 금액 + 통화 금액을 하나의 병합 셀(B9:I9)에 표시 · 왼쪽 한글, 우측 통화
       ws.mergeCells('B9:I9');
@@ -17742,7 +17742,7 @@ window.__mq = (function(){
       var combinedText = total
         ? koText + '원정(V.A.T포함)' + ' '.repeat(30) + '₩ ' + total.toLocaleString()
         : '';
-      set(ws, 'B9', combinedText, { font:F(13,true), align:{horizontal:'left', vertical:'middle', indent:2} });
+      set(ws, 'B9', combinedText, { font:F(14,true), align:{horizontal:'left', vertical:'middle', indent:2} });
     } else {
       set(ws, 'A10', '합계 금액', { font:F(11,true), fill:FILL.total, align:A.center });
       ws.mergeCells('B10:E10');
