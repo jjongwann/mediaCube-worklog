@@ -16508,15 +16508,16 @@ window.__mq = (function(){
             itemBuckets[currentNo].lines.push(bl);
           }
         }
-        // 각 NO 아이템의 라인들 → 컬럼별 값 조립
-        function collect(itLines, colX, nextColX){
-          // colX 이상 x < nextColX 인 item 들 텍스트 join
+        // 컬럼 범위: 인접 컬럼 x 의 midpoint 를 경계로 사용
+        //   헤더는 center-align, 데이터는 left-align 인 경우가 많아 컬럼 x 그대로 쓰면 어긋남
+        //   midpoint 기준으로 하면 데이터가 헤더보다 왼쪽에서 시작해도 올바른 컬럼에 속함
+        function collect(itLines, colX, prevColX, nextColX){
+          if (colX == null) return '';
+          var lo = (prevColX != null) ? (prevColX + colX) / 2 : -Infinity;
+          var hi = (nextColX != null) ? (colX + nextColX) / 2 : Infinity;
           var out = [];
           itLines.forEach(function(l){
             l.items.forEach(function(it){
-              if (colX == null) return;
-              var lo = colX - 5;
-              var hi = nextColX != null ? nextColX - 5 : Infinity;
               if (it.x >= lo && it.x < hi) out.push(it.str);
             });
           });
@@ -16541,8 +16542,9 @@ window.__mq = (function(){
           var buc = itemBuckets[no];
           var it = {};
           colOrder.forEach(function(c, i){
-            var nx = colOrder[i+1] ? colOrder[i+1].x : null;
-            var val = collect(buc.lines, c.x, nx);
+            var prevX = colOrder[i-1] ? colOrder[i-1].x : null;
+            var nextX = colOrder[i+1] ? colOrder[i+1].x : null;
+            var val = collect(buc.lines, c.x, prevX, nextX);
             if (c.key === 'no') return;
             it[c.key] = val;
           });
