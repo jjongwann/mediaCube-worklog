@@ -16286,16 +16286,24 @@ window.__mq = (function(){
       lines.forEach(function(l){ l.items.sort(function(a,b){ return a.x - b.x; }); });
       // 텍스트 join 형태 · 원본 라인
       function lineText(l){ return l.items.map(function(it){ return it.str; }).join(' ').replace(/\s+/g,' ').trim(); }
+      // CJK 문자 사이 공백 제거 ('김 재 경' → '김재경', '(주) 미 디 어 큐 브' → '(주)미디어큐브')
+      function collapseCJK(s){
+        if (!s) return s;
+        return s.replace(/([가-힣ㄱ-ㅎㅏ-ㅣ()（）])\s+(?=[가-힣ㄱ-ㅎㅏ-ㅣ()（）])/g, '$1');
+      }
       // 라벨의 오른쪽 항목들 텍스트 (같은 라인) · optional 다음 라벨 정지
+      //   normalize (공백/콜론 제거) 후 stopRegex 매칭 → '상 호 명' 도 '상호명' 로 인식
       function readRight(l, labelIdx, stopRegex){
         var vals = [];
         for (var i = labelIdx + 1; i < l.items.length; i++){
           var s = l.items[i].str.trim();
           if (!s) continue;
-          if (stopRegex && stopRegex.test(s)) break;
+          var norm = s.replace(/\s+/g,'').replace(/[:：]/g,'');
+          if (stopRegex && stopRegex.test(norm)) break;
           vals.push(s);
         }
-        return vals.join(' ').replace(/^[:：\s]+/, '').replace(/\s+/g,' ').trim();
+        var out = vals.join(' ').replace(/^[:：\s]+/, '').replace(/\s+/g,' ').trim();
+        return out;
       }
       function findLabel(l, rx){
         for (var i=0;i<l.items.length;i++){
@@ -16304,6 +16312,8 @@ window.__mq = (function(){
         }
         return -1;
       }
+      // 어떤 라벨이든 만나면 정지 (옆 폼 라벨 크로스오버 방지)
+      var ALL_LABELS = /^(DATE|수신|참조|제목|Tel|TEL|Fax|FAX|등록번호|상호명|대표자|소재지|업태|업종|종목|담당자|아래와)$/i;
       // 좌측 폼 필드 매핑 (라벨 스캔 → 오른쪽 값)
       var LABELS = {
         DATE:    /^DATE$/i,
@@ -16327,41 +16337,41 @@ window.__mq = (function(){
         var idx;
         // DATE
         if ((idx = findLabel(l, LABELS.DATE)) >= 0 && !form.doc_date) {
-          var v = readRight(l, idx, /^(등록번호|상호명|대표자|소재지)$/);
+          var v = readRight(l, idx, ALL_LABELS);
           form.doc_date = _normDate(v);
         }
         // 수신
         if ((idx = findLabel(l, LABELS.수신)) >= 0 && !form.receiver_company) {
-          form.receiver_company = readRight(l, idx, /^(상호명|대표자|소재지)$/);
+          form.receiver_company = collapseCJK(readRight(l, idx, ALL_LABELS));
         }
         // 참조
         if ((idx = findLabel(l, LABELS.참조)) >= 0 && !form.receiver_person) {
-          form.receiver_person = readRight(l, idx, /^(상호명|대표자|소재지)$/);
+          form.receiver_person = readRight(l, idx, ALL_LABELS);
         }
         // 제목
         if ((idx = findLabel(l, LABELS.제목)) >= 0 && !form.doc_title) {
-          form.doc_title = readRight(l, idx, /^(업태|업종|종목|Tel|담당자)$/);
+          form.doc_title = readRight(l, idx, ALL_LABELS);
         }
         // 등록번호
         if ((idx = findLabel(l, LABELS.등록번호)) >= 0 && !form.sender_reg_no) {
-          form.sender_reg_no = readRight(l, idx, /^$/);
+          form.sender_reg_no = readRight(l, idx, ALL_LABELS);
         }
         // 상호명
         if ((idx = findLabel(l, LABELS.상호명)) >= 0 && !form.sender_company) {
-          form.sender_company = readRight(l, idx, /^$/);
+          form.sender_company = collapseCJK(readRight(l, idx, ALL_LABELS));
         }
         // 대표자
         if ((idx = findLabel(l, LABELS.대표자)) >= 0 && !form.sender_ceo) {
-          var ceoRaw = readRight(l, idx, /^$/);
-          form.sender_ceo = ceoRaw.replace(/\s*\(\s*인\s*\)\s*$/, '').trim();
+          var ceoRaw = readRight(l, idx, ALL_LABELS);
+          form.sender_ceo = collapseCJK(ceoRaw.replace(/\s*\(\s*인\s*\)\s*$/, '').trim());
         }
         // 소재지
         if ((idx = findLabel(l, LABELS.소재지)) >= 0 && !form.sender_address) {
-          form.sender_address = readRight(l, idx, /^$/);
+          form.sender_address = readRight(l, idx, ALL_LABELS);
         }
         // 담당자
         if ((idx = findLabel(l, LABELS.담당자)) >= 0 && !form.sender_person) {
-          form.sender_person = readRight(l, idx, /^$/);
+          form.sender_person = readRight(l, idx, ALL_LABELS);
         }
         // 업태 / 업종 / 종목 — 한 라인 안에 조합 존재 가능 ('업태 서비스 / 업종 사운드')
         var idxUp = findLabel(l, /^(업태|업종|종목)$/);
@@ -16374,24 +16384,34 @@ window.__mq = (function(){
             if (!form.sender_biz_item) form.sender_biz_item = mBiz[2].trim();
           }
         }
-        // Tel/Fax 라인 — 수신자(왼쪽) vs 발신자(오른쪽)
+        // Tel/Fax 라인 — 같은 라인에 Tel · Fax 두 라벨이 있을 수 있음 (한 라인 조합)
+        //   각 라벨 이후 값은 다음 라벨/추가라벨 만나면 중단
         var idxTel = findLabel(l, /^Tel$/i);
+        var idxFax = findLabel(l, /^Fax$/i);
         if (idxTel >= 0) {
-          var telVals = readRight(l, idxTel, /^(Fax|담당자|아래와)$/i);
-          var idxFax = findLabel(l, /^Fax$/i);
+          var telVals = readRight(l, idxTel, ALL_LABELS);
           var faxVals = '';
           if (idxFax >= 0 && idxFax > idxTel) {
-            faxVals = readRight(l, idxFax, /^$/);
+            faxVals = readRight(l, idxFax, ALL_LABELS);
           }
           // 라인 오른쪽 절반이면 발신자, 왼쪽이면 수신자
-          var pageMidX = 300; // A4 기준 대략 · 절반 판정
+          var pageMidX = 300; // A4 기준 대략
           var telX = l.items[idxTel].x;
           if (telX > pageMidX) {
-            if (!form.sender_tel && /\d/.test(telVals)) form.sender_tel = telVals.trim();
-            if (!form.sender_fax && /\d/.test(faxVals)) form.sender_fax = faxVals.trim();
+            if (!form.sender_tel && /\d/.test(telVals)) form.sender_tel = telVals.replace(/^[:：\s]+/,'').trim();
+            if (!form.sender_fax && /\d/.test(faxVals)) form.sender_fax = faxVals.replace(/^[:：\s]+/,'').trim();
           } else {
-            if (!form.receiver_tel && /\d/.test(telVals)) form.receiver_tel = telVals.trim();
-            if (!form.receiver_fax && /\d/.test(faxVals)) form.receiver_fax = faxVals.trim();
+            if (!form.receiver_tel && /\d/.test(telVals)) form.receiver_tel = telVals.replace(/^[:：\s]+/,'').trim();
+            if (!form.receiver_fax && /\d/.test(faxVals)) form.receiver_fax = faxVals.replace(/^[:：\s]+/,'').trim();
+          }
+        } else if (idxFax >= 0) {
+          // Fax 단독 (Tel 없음) — 대개 수신자 empty Tel + Fax
+          var faxOnly = readRight(l, idxFax, ALL_LABELS);
+          var faxX = l.items[idxFax].x;
+          if (faxX > 300) {
+            if (!form.sender_fax && /\d/.test(faxOnly)) form.sender_fax = faxOnly.replace(/^[:：\s]+/,'').trim();
+          } else {
+            if (!form.receiver_fax && /\d/.test(faxOnly)) form.receiver_fax = faxOnly.replace(/^[:：\s]+/,'').trim();
           }
         }
       });
