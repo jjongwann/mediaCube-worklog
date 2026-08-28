@@ -17912,6 +17912,8 @@ window.__mq = (function(){
     }
     // 제목/로고 영역 (1~2행) thick outer 프레임
     _MQ_XL.thickOuter(ws, 1, 1, 2, lastColNum);
+    // 문서 전체 외곽 (1행 ~ 비고 끝) 두꺼운 프레임
+    _MQ_XL.thickOuter(ws, 1, 1, notesEnd, lastColNum);
     // fitToHeight:0 → 세로 다중 페이지 허용 (동적 행 수용)
     ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:0, printArea:'A1:'+lastColLetter+notesEnd, margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2} };
     return ws;
