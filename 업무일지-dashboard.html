@@ -17735,11 +17735,13 @@ window.__mq = (function(){
       // Invoice: 합계 금액 배경 제거 (흰색)
       set(ws, 'A9', '합계 금액', { font:F(11,true), align:A.center });
       ws.getRow(9).height = 30;
-      ws.mergeCells('B9:E9');
+      // 한글 금액 + 통화 금액을 하나의 병합 셀(B9:I9)에 표시 · 왼쪽 한글, 우측 통화
+      ws.mergeCells('B9:I9');
       var koText = _MQ_XL.numToKorean(total);
-      set(ws, 'B9', (total ? koText + '원정(V.A.T포함)' : ''), { font:F(11,true), align:A.center });
-      ws.mergeCells('F9:I9');
-      set(ws, 'F9', total, { font:F(13,true), align:A.right, numFmt:'"₩ "#,##0' });
+      var combinedText = total
+        ? koText + '원정(V.A.T포함)' + ' '.repeat(30) + '₩ ' + total.toLocaleString()
+        : '';
+      set(ws, 'B9', combinedText, { font:F(11,true), align:{horizontal:'left', vertical:'middle', indent:2} });
     } else {
       set(ws, 'A10', '합계 금액', { font:F(11,true), fill:FILL.total, align:A.center });
       ws.mergeCells('B10:E10');
