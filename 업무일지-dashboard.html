@@ -16817,14 +16817,21 @@ window.__mq = (function(){
       + '</select>'
       + '</div>'
     );
-    // 상세(readonly) 뷰에서만 상단 우측에 문서 유형 뱃지 표시 (Excel/PDF 에는 미포함)
+    // 상세(readonly) 뷰에서만 상단 우측에 문서 유형 뱃지 + 상태 chip 표시 (Excel/PDF 에는 미포함)
     var typeBadge = '';
     if (readonly) {
       var docTypeUpper = r.doc_type === 'needle' ? 'NEEDLE'
                         : r.doc_type === 'annual' ? 'ANNUAL'
                         : 'INVOICE';
       var subLbl = r.doc_type === 'needle' ? ({ott:'OTT', ad:'AD', movie:'MOVIE'}[r.sub_type]||'') : '';
-      typeBadge = '<div class="mq-doc-type-badge">' + docTypeUpper
+      var st = r.status || '미결';
+      var stColor = st === '완료' ? '#0d9488' : (st === '진행' ? '#2066ff' : '#dc2626');
+      var stBg    = st === '완료' ? '#f0fdfa' : (st === '진행' ? '#eff6ff' : '#fef2f2');
+      var stBorder= st === '완료' ? '#99f6e4' : (st === '진행' ? '#bfdbfe' : '#fecaca');
+      var statusChip = '<span class="mq-doc-status-chip" style="display:inline-flex;align-items:center;padding:3px 10px;margin-right:10px;border-radius:12px;font-size:11.5px;font-weight:800;letter-spacing:0.4px;color:'+stColor+';background:'+stBg+';border:1px solid '+stBorder+'">'+_esc(st)+'</span>';
+      typeBadge = '<div class="mq-doc-type-badge">'
+                + statusChip
+                + docTypeUpper
                 + (subLbl ? '<span class="sub">· ' + subLbl + '</span>' : '')
                 + '</div>';
     }
