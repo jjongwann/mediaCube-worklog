@@ -23440,13 +23440,29 @@ window.__vendor = (function() {
   }
 
   // ── Supabase 데이터 ──
+  // PostgREST 기본 상한(1000행) 을 넘어가면 조용히 truncate → 특정 월 매출이 사라지는 것처럼 보이는
+  // 데이터 손실이 발생. Range 헤더 + Content-Range 로 페이지네이션하여 전체 row 를 확보.
   function fetchAll() {
     var sb = _getSb();
-    return fetch(sb.url + '/rest/v1/vendor_sales?select=*', { headers: sb.hdr })
-      .then(function(r){
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      })
+    var PAGE = 1000;
+    var acc = [];
+    function _page(from){
+      var to = from + PAGE - 1;
+      var hdr = Object.assign({}, sb.hdr, { 'Range-Unit':'items', 'Range': from + '-' + to, 'Prefer':'count=exact' });
+      return fetch(sb.url + '/rest/v1/vendor_sales?select=*', { headers: hdr })
+        .then(function(r){
+          if (!r.ok && r.status !== 206) throw new Error('HTTP ' + r.status);
+          var cr = r.headers.get('Content-Range') || ''; // "from-to/total"
+          var total = parseInt((cr.split('/')[1] || '0'), 10);
+          return r.json().then(function(rows){
+            if (Array.isArray(rows)) acc = acc.concat(rows);
+            var next = from + PAGE;
+            if (total && next < total) return _page(next);
+            return acc;
+          });
+        });
+    }
+    return _page(0)
       .then(function(rows){
         _state.rows = Array.isArray(rows) ? rows : [];
       })
@@ -26112,7 +26128,9 @@ window.__vendor = (function() {
 
     for (var m = 1; !isSysEditCat && m <= 12; m++) {
       var el = document.getElementById('vedit-m-' + m);
-      var raw = el ? (el.value||'').replace(/,/g,'').trim() : '';
+      // DOM 입력이 사라진 상태(렌더 오류/타이밍) 에서는 기존 데이터 보존 — DELETE 로 오해되지 않도록 skip
+      if (!el) { continue; }
+      var raw = (el.value||'').replace(/,/g,'').trim();
       var newAmt = parseInt(raw, 10);
       if (isNaN(newAmt)) newAmt = 0;
       if (newAmt < 0) newAmt = 0;
@@ -26163,7 +26181,9 @@ window.__vendor = (function() {
       var songRows = ctx.songMonthRows || {};
       for (var sm = 1; sm <= 12; sm++) {
         var sEl = document.getElementById('vedit-s-' + sm);
-        var sRaw = sEl ? (sEl.value||'').replace(/,/g,'').trim() : '';
+        // DOM 입력이 사라진 상태(렌더 오류/타이밍) 에서는 기존 데이터 보존 — DELETE 로 오해되지 않도록 skip
+        if (!sEl) { continue; }
+        var sRaw = (sEl.value||'').replace(/,/g,'').trim();
         var sAmt = parseInt(sRaw, 10);
         if (isNaN(sAmt) || sAmt < 0) sAmt = 0;
         var sExisting = songRows[sm];
