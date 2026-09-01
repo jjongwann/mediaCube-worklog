@@ -16796,20 +16796,20 @@ window.__mq = (function(){
     //   · 문서 유형은 chooser 로 결정하므로 편집 모드에서도 표시만, 변경 가능 (표 컬럼 자동 리셋)
     //   · sub_type(OTT/광고/영화)은 모든 doc_type 에 노출 (관리·필터용 태그)
     var ctrlBar = readonly ? '' : (
-      '<div style="display:flex;gap:10px;max-width:1400px;margin:0 auto 16px;padding:12px 14px;background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;align-items:center;flex-wrap:wrap">'
-      + '<span style="font-size:11.5px;font-weight:800;color:#0f766e;letter-spacing:0.4px">문서 유형</span>'
+      '<div style="display:flex;gap:10px;max-width:1400px;margin:0 auto 16px;padding:12px 14px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;align-items:center;flex-wrap:wrap">'
+      + '<span style="font-size:11.5px;font-weight:800;color:#1d4ed8;letter-spacing:0.4px">문서 유형</span>'
       + '<select class="mq-sel" onchange="window.__mq._setFormField(\'doc_type\',this.value)">'
         + _opt('needle','Needle 견적',r.doc_type)
         + _opt('annual','Annual 견적',r.doc_type)
         + _opt('invoice','거래명세서',r.doc_type)
       + '</select>'
-      + '<span style="font-size:11.5px;font-weight:800;color:#0f766e;letter-spacing:0.4px">카테고리</span>'
+      + '<span style="font-size:11.5px;font-weight:800;color:#1d4ed8;letter-spacing:0.4px">카테고리</span>'
       + '<select class="mq-sel" onchange="window.__mq._setFormField(\'sub_type\',this.value)">'
         + _opt('ott','OTT',r.sub_type||'ott')
         + _opt('ad','광고',r.sub_type||'ott')
         + _opt('movie','영화',r.sub_type||'ott')
       + '</select>'
-      + '<span style="margin-left:auto;font-size:11.5px;font-weight:800;color:#0f766e;letter-spacing:0.4px">상태</span>'
+      + '<span style="margin-left:auto;font-size:11.5px;font-weight:800;color:#1d4ed8;letter-spacing:0.4px">상태</span>'
       + '<select class="mq-sel" onchange="window.__mq._setFormField(\'status\',this.value)">'
         + _opt('미결','미결',r.status)
         + _opt('진행','진행',r.status)
@@ -17039,25 +17039,25 @@ window.__mq = (function(){
         // Invoice TOTAL: NO+품목+코드 (3열) 병합 라벨 + 규격/단위/QTY/단가/공급가액/부가가치세 는
         // summary(_summary=true) 행 값을 그대로 표시 (참조 양식 규칙)
         var summary = (items || []).find(function(it){ return it && it._summary; }) || {};
-        totalRow = '<tr style="background:#f0fdfa;font-weight:800">'
+        totalRow = '<tr style="background:#eff6ff;font-weight:800">'
           + leadCheckTd
-          + '<td colspan="3" class="center" style="color:#0f766e;font-size:11.5px;letter-spacing:0.4px">'+totalLabel+'</td>'
+          + '<td colspan="3" class="center" style="color:#1d4ed8;font-size:11.5px;letter-spacing:0.4px">'+totalLabel+'</td>'
           + cols.slice(3).map(function(c){
               var v = summary[c.k];
               if (v == null || v === '') return '<td>&nbsp;</td>';
               var isNumC = c.t === 'num';
               var disp = isNumC ? _fmtN(_num(v)) : _esc(String(v));
-              return '<td class="'+(isNumC?'num':'center')+'" style="color:#0f766e">'+disp+'</td>';
+              return '<td class="'+(isNumC?'num':'center')+'" style="color:#1d4ed8">'+disp+'</td>';
             }).join('')
           + (readonly?'':'<td></td>')
         + '</tr>';
       } else {
-        totalRow = '<tr style="background:#f0fdfa;font-weight:800">'
+        totalRow = '<tr style="background:#eff6ff;font-weight:800">'
           + leadCheckTd
-          + '<td colspan="'+sumStartIdx+'" class="center" style="color:#0f766e;font-size:11.5px;letter-spacing:0.4px">'+totalLabel+'</td>'
+          + '<td colspan="'+sumStartIdx+'" class="center" style="color:#1d4ed8;font-size:11.5px;letter-spacing:0.4px">'+totalLabel+'</td>'
           + cols.slice(sumStartIdx).map(function(c){
               if (!c.sum) return '<td>&nbsp;</td>';
-              return '<td class="num" style="color:#0f766e">'+_fmtN(totals[c.k])+'</td>';
+              return '<td class="num" style="color:#1d4ed8">'+_fmtN(totals[c.k])+'</td>';
             }).join('')
           + (readonly?'':'<td></td>')
         + '</tr>';
