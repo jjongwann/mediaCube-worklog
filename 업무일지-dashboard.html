@@ -15544,8 +15544,8 @@ window.__mq = (function(){
       var arrowSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
       ov.innerHTML = ''
         + '<div style="background:#fff;border-radius:20px;box-shadow:0 32px 80px rgba(15,23,42,0.4),0 8px 24px rgba(15,23,42,0.15);width:640px;max-width:96%;overflow:hidden;animation:mqEntryFade .22s cubic-bezier(.4,0,.2,1)">'
-        // 헤더 (teal 그라디언트)
-        +   '<div style="padding:22px 28px;background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;position:relative">'
+        // 헤더 (blue 그라디언트)
+        +   '<div style="padding:22px 28px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;position:relative">'
         +     '<div style="font-size:10.5px;font-weight:800;letter-spacing:1.8px;color:rgba(255,255,255,0.75);text-transform:uppercase">MUSIC QUOTES</div>'
         +     '<div style="font-size:19px;font-weight:800;margin-top:3px;letter-spacing:-0.4px">음원 견적 관리</div>'
         +     '<div style="font-size:12.5px;color:rgba(255,255,255,0.82);margin-top:4px">진입할 페이지를 선택하세요</div>'
@@ -15598,6 +15598,12 @@ window.__mq = (function(){
     var hT = document.getElementById('mq-header-title');
     if (hK) hK.textContent = (_scope === 'invoice') ? 'MUSIC INVOICES' : 'MUSIC QUOTES';
     if (hT) hT.textContent = (_scope === 'invoice') ? '음원 거래명세서 관리' : '음원 견적 관리';
+    // 새 견적서 / 새 거래명세서 버튼 라벨 (아이콘 유지)
+    var newBtn = document.getElementById('mq-new-btn');
+    if (newBtn) {
+      var lbl = (_scope === 'invoice') ? '새 거래명세서' : '새 견적서';
+      newBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> ' + lbl;
+    }
     // doc_type / sub_type 필터 select 옵션 scope 별 재구성
     _syncFilterOptionsForScope();
     // dev-mode 사용자는 카탈로그 embed 로 (사이드바 유지)
@@ -15753,16 +15759,18 @@ window.__mq = (function(){
       // Invoice scope 은 카드 1개 · 서브타입 없음 → 실질 1단계
       step.textContent = (_scope === 'invoice') ? '1 / 1 단계' : '1 / 2 단계';
       backBtn.style.display = 'none';
-      // scope 별 카드 게이팅: quote 페이지에는 invoice 카드 제거, invoice 페이지에는 invoice 카드만
-      var allCards = [
-        { key:'needle',  title:'Needle 견적서', desc:'음원 사용 곡별 견적서\n(OTT / 광고 / 영화)', ico:'<line x1="12" y1="5" x2="12" y2="19"/><polyline points="5 12 12 19 19 12"/>' },
-        { key:'annual',  title:'Annual 견적서', desc:'연간 블랭킷\n라이선스 견적서', ico:'<circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 16 14"/>' },
-        { key:'invoice', title:'거래명세서',    desc:'세금계산서형\n거래명세서', ico:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' }
-      ];
-      var cards = allCards.filter(function(c){
-        if (_scope === 'invoice') return c.key === 'invoice';
-        return c.key !== 'invoice'; // quote scope: needle · annual 만
-      });
+      // scope 별 카드 게이팅: quote 페이지 → Needle/Annual 견적서 (2장) · invoice 페이지 → Needle/Annual 거래명세서 (2장)
+      var cards = (_scope === 'invoice')
+        ? [
+            { key:'invoice', title:'Needle 거래명세서', desc:'음원 사용 곡별\n거래명세서', ico:'<line x1="12" y1="5" x2="12" y2="19"/><polyline points="5 12 12 19 19 12"/>' },
+            { key:'invoice', title:'Annual 거래명세서', desc:'연간 블랭킷\n라이선스 거래명세서', ico:'<circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 16 14"/>' }
+          ]
+        : [
+            { key:'needle',  title:'Needle 견적서', desc:'음원 사용 곡별 견적서\n(OTT / 광고 / 영화)', ico:'<line x1="12" y1="5" x2="12" y2="19"/><polyline points="5 12 12 19 19 12"/>' },
+            { key:'annual',  title:'Annual 견적서', desc:'연간 블랭킷\n라이선스 견적서', ico:'<circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 16 14"/>' }
+          ];
+      // 카드 수에 맞게 그리드 컬럼 (여백 없이 꽉 차게)
+      grid.style.gridTemplateColumns = 'repeat(' + cards.length + ',1fr)';
       grid.innerHTML = cards.map(function(c){
         return '<div class="mq-choice" onclick="window.__mq._pickDocType(\''+c.key+'\')">'
           + '<div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+c.ico+'</svg></div>'
@@ -15781,6 +15789,8 @@ window.__mq = (function(){
         { key:'ad',    title:'광고',  desc:'광고 TV CF', ico:'<path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>' },
         { key:'movie', title:'영화',  desc:'영화 · 예고편', ico:'<rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/>' }
       ];
+      // Step 2 도 카드 수에 맞게 그리드 컬럼
+      grid.style.gridTemplateColumns = 'repeat(' + subCards.length + ',1fr)';
       grid.innerHTML = subCards.map(function(c){
         return '<div class="mq-choice" onclick="window.__mq._pickSubType(\''+c.key+'\')">'
           + '<div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+c.ico+'</svg></div>'
