@@ -3807,10 +3807,11 @@
     if (saleshubBtn) {
       saleshubBtn.style.display = _isAdmin ? '' : 'none';
     }
-    // 음원 견적 관리 (사운드팀): 우선 developer(임종완 주임) 테스트 전용
+    // 음원 견적 관리 (사운드팀): developer(임종완 주임) · sunlee(이광순 이사)
     var mqBtn = document.getElementById('mq-sidebar-btn');
     if (mqBtn) {
-      var canSeeMq = (typeof _currentUsername !== 'undefined' && _currentUsername === 'developer');
+      var _mqAllow = ['developer','sunlee'];
+      var canSeeMq = (typeof _currentUsername !== 'undefined' && _mqAllow.indexOf(_currentUsername) !== -1);
       mqBtn.style.display = canSeeMq ? '' : 'none';
     }
     // 직원별 필터 셀렉트: 관리자 또는 전체 일지 열람 화이트리스트 계정에 노출
@@ -15511,7 +15512,7 @@ window.__mq = (function(){
   //   같은 developer 게이팅 → chooser 카드 클릭 시 openPanel(scope) 로 진입
   function openEntry(){
     var uname = (typeof _currentUsername !== 'undefined') ? _currentUsername : '';
-    if (uname !== 'developer') { _toast('접근 권한이 없습니다 (developer 계정 전용)'); return; }
+    if (uname !== 'developer' && uname !== 'sunlee') { _toast('접근 권한이 없습니다 '); return; }
     var ov = document.getElementById('mq-entry-back');
     if (!ov) {
       // 인라인 CSS 주입 (호버 트랜지션 · 애니메이션)
@@ -15589,7 +15590,7 @@ window.__mq = (function(){
   function openPanel(scope){
     // developer 계정만
     var uname = (typeof _currentUsername !== 'undefined') ? _currentUsername : '';
-    if (uname !== 'developer') { _toast('접근 권한이 없습니다 (developer 계정 전용)'); return; }
+    if (uname !== 'developer' && uname !== 'sunlee') { _toast('접근 권한이 없습니다 '); return; }
     _scope = (scope === 'invoice') ? 'invoice' : 'quote';
     var ov = document.getElementById('mq-overlay');
     if (!ov) return;
@@ -22632,7 +22633,7 @@ window._dmIsCardAllowed = function(item){
     case 'sound':   return !isSystemDept;              // 음원팀 업무 현황
     case 'bmat':    return !isSystemDept;              // BMAT 모니터링 통계
     case 'quote':   return isAdmin || isInfo || isSystemDept; // 견적 관리 (시스템팀 legacy)
-    case 'mq':      return uname === 'developer';      // 음원 견적 관리 (사운드팀 - 테스트 단계)
+    case 'mq':      return uname === 'developer' || uname === 'sunlee'; // 음원 견적 관리 (사운드팀)
     case 'emp':
     case 'perm':    return isAdmin;                    // 관리자 전용
     case 'sitemap': return false;                      // 사이트맵 카드 — 전 계정 숨김 (사용자 요청)
