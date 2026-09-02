@@ -17016,9 +17016,19 @@ window.__mq = (function(){
     var mkBlock = function(title, arr){
       var rows = arr.map(function(f){
         var v = r[f.k] || '';
-        var inputHtml = readonly
-          ? '<span style="padding:3px 4px;display:inline-block">'+ _esc(v) +'</span>'
-          : '<input type="'+f.type+'" value="'+_esc(v)+'"'+(f.k==='receiver_company'?' data-recv-ac="1" autocomplete="off"':'')+' oninput="window.__mq._setFormField(\''+f.k+'\',this.value)">';
+        var inputHtml;
+        if (readonly) {
+          inputHtml = '<span style="padding:3px 4px;display:inline-block">'+ _esc(v) +'</span>';
+        } else if (f.k === 'doc_title' && !isInvoice) {
+          // 제목 + '복사' 버튼 (견적서/Annual 전용): 제목 값을 항목 1행 병합 칸(CD Title/품목)에 복사
+          //   invoice 는 행 병합 렌더가 없고 _summary 행 보호가 필요하므로 버튼 미노출
+          inputHtml = '<div style="display:flex;align-items:center;gap:6px">'
+            + '<input type="'+f.type+'" value="'+_esc(v)+'" style="flex:1 1 auto;min-width:0" oninput="window.__mq._setFormField(\''+f.k+'\',this.value)">'
+            + '<button type="button" onclick="window.__mq._copyTitleToFirstItem()" title="제목을 항목 1행에 복사" style="flex-shrink:0;white-space:nowrap;padding:4px 10px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">복사</button>'
+            + '</div>';
+        } else {
+          inputHtml = '<input type="'+f.type+'" value="'+_esc(v)+'"'+(f.k==='receiver_company'?' data-recv-ac="1" autocomplete="off"':'')+' oninput="window.__mq._setFormField(\''+f.k+'\',this.value)">';
+        }
         return '<div class="mq-field">'
           + '<div class="lbl">'+f.label+(f.internal?' <span style="font-size:9px;color:#f97316;margin-left:3px">·내부</span>':'')+'</div>'
           + '<div class="val">'+inputHtml+'</div>'
@@ -17352,6 +17362,37 @@ window.__mq = (function(){
     if (!_state.form || !_state.form.items[idx]) return;
     _state.form.items[idx].label = v;
     // label 변경만: 재렌더 X (input 이 이미 값 유지)
+  }
+  // 제목(doc_title) → 항목 1행 병합 칸 복사 ('복사' 버튼)
+  //   Needle: cdTitle · Annual: item — cols 의 첫 g:1 컬럼 키를 동적 탐색 (하드코딩 금지)
+  //   items[0] 이 그룹 행이면 .label 에 복사 (_setGroupLabel 과 동일 필드)
+  //   DB 쓰기 없음 — 로컬 _state.form 만 변경, 저장은 기존 _save 경로
+  function _copyTitleToFirstItem(){
+    var f = _state.form;
+    if (!f) return;
+    var title = String(f.doc_title||'').replace(/[\r\n]+/g,' ').trim();
+    if (!title) { _toast('제목을 먼저 입력해주세요'); return; }
+    // items 는 빈 배열일 수 있음 (전체 삭제 · Excel import 빈 표 · 수정 모드) → 1행 재시드
+    if (!Array.isArray(f.items) || !f.items.length) {
+      f.items = [ _newItem(_schemaKey(f.doc_type, f.sub_type)) ];
+    }
+    var it = f.items[0];
+    if (!it) return;
+    var cur, apply;
+    if (it._type === 'group') {
+      cur = String(it.label||'');
+      apply = function(){ it.label = title; };
+    } else {
+      var cols = _cols(f), gk = null;
+      for (var i = 0; i < cols.length; i++) { if (cols[i].g) { gk = cols[i].k; break; } }
+      if (!gk) { _toast('이 문서 유형에는 복사할 칸이 없습니다'); return; }
+      cur = it[gk] == null ? '' : String(it[gk]);
+      apply = function(){ it[gk] = title; };
+    }
+    if (cur.trim() && cur.trim() !== title && !confirm('항목 1행에 이미 값이 있습니다.\n"'+cur+'"\n→ 제목으로 덮어쓸까요?')) return;
+    apply();
+    _renderForm();
+    _toast('제목이 항목 1행에 복사되었습니다');
   }
   function _removeItem(idx){
     if (!_state.form) return;
@@ -18710,7 +18751,7 @@ window.__mq = (function(){
     _showList: _showList, _showForm: _showForm, _showDetail: _showDetail,
     _setFilter: _setFilter, _clearFilter: _clearFilter,
     _setFormField: _setFormField, _setItemField: _setItemField,
-    _addItem: _addItem, _addGroup: _addGroup, _addManySongs: _addManySongs, _setGroupLabel: _setGroupLabel, _removeItem: _removeItem,
+    _addItem: _addItem, _addGroup: _addGroup, _addManySongs: _addManySongs, _setGroupLabel: _setGroupLabel, _removeItem: _removeItem, _copyTitleToFirstItem: _copyTitleToFirstItem,
     _toggleRowSelect: _toggleRowSelect, _toggleAllSelect: _toggleAllSelect, _clearSelection: _clearSelection, _deleteSelected: _deleteSelected,
     _onFileSelect: _onFileSelect, _removePendingFile: _removePendingFile, _removeExistingAttach: _removeExistingAttach,
     _save: _save, _deleteById: _deleteById,
