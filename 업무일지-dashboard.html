@@ -17445,6 +17445,18 @@ window.__mq = (function(){
       })
       .catch(function(){ return ''; });
   }
+  // 내보내기 파일명: "수신처_제목_YYYYMMDD" (예: "(주) 이노션_해피즈 티저 영상 TV광고 음원사용료_20260417")
+  // - Windows 금지 문자·개행 제거 (Excel richText 셀 개행이 doc_title 에 유입될 수 있음)
+  // - 빈 필드 fallback: 수신처 없으면 생략 · 제목 없으면 문서유형 · 날짜 없으면 오늘
+  // - PDF <title> 과 Excel a.download 양쪽 공용 (파일명은 다운로드 시점에만 파생 · DB 미저장)
+  function _exportFileName(r){
+    var clean = function(s){ return String(s||'').replace(/[\\/:*?"<>|\r\n\t]+/g,' ').replace(/\s+/g,' ').trim(); };
+    var docLabel = r.doc_type === 'invoice' ? '거래명세서' : '견적서';
+    var recv  = clean(r.receiver_company);
+    var title = clean(r.doc_title) || docLabel;
+    var d = String(r.doc_date || _today()).replace(/-/g,'');
+    return [recv, title, d].filter(Boolean).join('_').slice(0,120);
+  }
   function _exportPdf(id){
     var r = _state.rows.find(function(x){ return x.id === id; });
     if (!r) { _toast('견적서를 찾을 수 없습니다'); return; }
@@ -17615,7 +17627,7 @@ window.__mq = (function(){
       + '<td colspan="'+(totalCols-1)+'" class="notes-body">'+esc(r.notes||'')+'</td>'
     + '</tr>';
 
-    var html = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>'+esc(r.doc_title||docLabel)+'</title>'
+    var html = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>'+esc(_exportFileName(r))+'</title>'
       + '<style>'
       + '@page{size:A4;margin:12mm 10mm;'
       +   '@top-left{content:""}@top-center{content:""}@top-right{content:""}'
@@ -18447,8 +18459,7 @@ window.__mq = (function(){
       var blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
-      var docLabel = r.doc_type === 'invoice' ? '거래명세서' : '견적서';
-      a.href = url; a.download = (r.quote_no || r.id.slice(0,8)) + '_' + docLabel + '.xlsx';
+      a.href = url; a.download = _exportFileName(r) + '.xlsx';
       document.body.appendChild(a); a.click();
       setTimeout(function(){ URL.revokeObjectURL(url); document.body.removeChild(a); }, 300);
       _toast('Excel 파일이 다운로드되었습니다');
