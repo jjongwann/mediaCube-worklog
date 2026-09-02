@@ -17886,7 +17886,8 @@ window.__mq = (function(){
       + '.topR th{width:96px}'
       + '.top td.bold{font-weight:700}'
       // 좌측 8~9행: Excel border:false — 셀 박스선 없음 (하단 medium 은 .top border-bottom 이 담당)
-      + '.top tr.bare td{border:none;background:#fff}'
+      // bare 행도 좌측 1px 유지 — 다른 행(외곽2px+셀1px)과 왼쪽 모서리 굵기 통일
+      + '.top tr.bare td{border:none;border-left:1px solid #000;background:#fff}'
       + '.top td.note-line{font-weight:700;text-align:left}'
       // 대표자 (인) 도장 오버레이 — 텍스트 흐름 기준이라 이름 길이·행 높이 무관 정확
       + '.inmark{position:relative}'
