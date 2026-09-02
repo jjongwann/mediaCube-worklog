@@ -15263,6 +15263,14 @@ function openQuotePanel() {
   .mq-items tbody td, .mq-items tfoot td, .mq-items tfoot th { border:1px solid #e2e8f0; padding:8px 8px; vertical-align:middle; }
   .mq-items tbody td input, .mq-items tfoot td input { width:100%; box-sizing:border-box; border:none; outline:none; font-family:inherit; font-size:12px; padding:3px 4px; background:transparent; }
   .mq-items tbody td input:focus, .mq-items tfoot td input:focus { background:#fefce8; }
+  /* 텍스트 셀 textarea (자동 높이) — 긴 값 줄바꿈 표시 */
+  .mq-items tbody td textarea.mq-cell-ta { width:100%; box-sizing:border-box; border:none; outline:none; font-family:inherit; font-size:12px; padding:3px 4px; background:transparent; resize:none; overflow:hidden; display:block; min-height:22px; line-height:1.45; field-sizing:content; }
+  .mq-items tbody td textarea.mq-cell-ta:focus { background:#fefce8; }
+  .mq-items tr.mq-row-selected td textarea { background:transparent !important; }
+  /* 긴 토큰(공백 없는 영문/URL) 강제 줄바꿈 — 표가 컨테이너를 밀지 않도록 */
+  .mq-items tbody td { word-break:break-word; }
+  /* 상세뷰: 개행 보존 + 줄바꿈 */
+  .mq-doc.readonly .mq-items tbody td { white-space:pre-wrap; }
   .mq-items tfoot .totalrow td, .mq-items tfoot td[class*="totalrow"] { padding:10px 10px; }
   .mq-items .num { text-align:right; font-variant-numeric:tabular-nums; }
   .mq-items .center { text-align:center; }
@@ -16815,6 +16823,8 @@ window.__mq = (function(){
     var host = document.getElementById('mq-form-view');
     if (!host) return;
     host.innerHTML = _docHtml(_state.form, false);
+    // textarea 초기 높이 조정 (field-sizing:content 미지원 브라우저 폴백)
+    host.querySelectorAll('textarea.mq-cell-ta').forEach(function(t){ t.style.height='auto'; t.style.height=t.scrollHeight+'px'; });
     // 드래그 다중 선택 바인딩 (mq-form-view 는 재생성되지 않으므로 최초 1회만 등록)
     _bindDragSelect();
     // 수신처 자동완성 델리게이션 바인딩 (최초 1회)
@@ -17114,7 +17124,7 @@ window.__mq = (function(){
             if (readonly) {
               cellsHtml += '<td colspan="'+groupSpan+'" style="font-weight:700;background:#f8fafc;color:#0f172a">'+_esc(labelVal)+'</td>';
             } else {
-              cellsHtml += '<td colspan="'+groupSpan+'" style="background:#f8fafc"><input type="text" value="'+_esc(labelVal)+'" oninput="window.__mq._setGroupLabel('+idx+',this.value)" placeholder="프로젝트 · 카테고리 이름 입력" style="width:100%;box-sizing:border-box;border:none;outline:none;font-weight:700;color:#0f172a;background:transparent;padding:3px 4px"></td>';
+              cellsHtml += '<td colspan="'+groupSpan+'" style="background:#f8fafc"><textarea rows="1" class="mq-cell-ta" placeholder="프로젝트 · 카테고리 이름 입력" style="font-weight:700;color:#0f172a" onkeydown="if(event.key===\'Enter\')event.preventDefault()" oninput="window.__mq._setGroupLabel('+idx+',this.value);this.style.height=\'auto\';this.style.height=this.scrollHeight+\'px\'">'+_esc(labelVal)+'</textarea></td>';
             }
           } else if (ci > gStart && ci <= gEnd) {
             // 병합 대상 (skip 렌더)
@@ -17146,7 +17156,7 @@ window.__mq = (function(){
           if (readonly) {
             cellsHtmlArr.push('<td colspan="'+groupSpan+'" style="font-weight:700">'+_esc(lVal)+'</td>');
           } else {
-            cellsHtmlArr.push('<td colspan="'+groupSpan+'"><input type="text" value="'+_esc(lVal)+'" oninput="window.__mq._setItemField('+idx+',\''+labelKey+'\',this.value)" style="font-weight:700"></td>');
+            cellsHtmlArr.push('<td colspan="'+groupSpan+'"><textarea rows="1" class="mq-cell-ta" style="font-weight:700" onkeydown="if(event.key===\'Enter\')event.preventDefault()" oninput="window.__mq._setItemField('+idx+',\''+labelKey+'\',this.value);this.style.height=\'auto\';this.style.height=this.scrollHeight+\'px\'">'+_esc(lVal)+'</textarea></td>');
           }
           return;
         }
@@ -17167,7 +17177,8 @@ window.__mq = (function(){
           cellsHtmlArr.push('<td class="'+cls+'"><input type="text" value="'+_esc(numDisp)+'" oninput="this.value=this.value.replace(/[^0-9]/g,\'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g,\',\');window.__mq._setItemField('+idx+',\''+c.k+'\',this.value.replace(/,/g,\'\'))"'+(c.r?' style="text-align:right"':(c.c?' style="text-align:center"':''))+'></td>');
           return;
         }
-        cellsHtmlArr.push('<td class="'+cls+'"><input type="text" value="'+_esc(dispVal)+'" oninput="window.__mq._setItemField('+idx+',\''+c.k+'\',this.value)"'+(c.r?' style="text-align:right"':(c.c?' style="text-align:center"':''))+'></td>');
+        // 텍스트 컬럼: textarea (자동 높이 · Enter 개행 차단) — 긴 값도 줄바꿈되어 전부 보임
+        cellsHtmlArr.push('<td class="'+cls+'"><textarea rows="1" class="mq-cell-ta"'+(c.c?' style="text-align:center"':'')+' onkeydown="if(event.key===\'Enter\')event.preventDefault()" oninput="window.__mq._setItemField('+idx+',\''+c.k+'\',this.value);this.style.height=\'auto\';this.style.height=this.scrollHeight+\'px\'">'+_esc(dispVal)+'</textarea></td>');
       });
       var cellsHtml = cellsHtmlArr.join('');
       var delBtn = readonly ? '' : '<td class="center"><button class="mq-item-del" title="행 삭제" onclick="window.__mq._removeItem('+idx+')">×</button></td>';
@@ -17865,11 +17876,13 @@ window.__mq = (function(){
       // 상단 폼 — Excel 3~9행: 좌 59% : 우 41% 맞붙음 · 내부 thin(1px 검정) · 외곽/하단 medium(2px)
       + '.top{display:grid;grid-template-columns:57fr 43fr;border-bottom:2px solid #000}'
       + '.top table{width:100%;border-collapse:collapse}'
-      + '.top th,.top td{border:1px solid #000;padding:3px 8px;font-size:11px;text-align:left;vertical-align:middle;height:36px}'
+      + '.top th,.top td{border:1px solid #000;padding:3px 8px;font-size:11px;text-align:left;vertical-align:middle;height:36px;word-wrap:break-word;overflow-wrap:break-word}'
       + '.top th{background:#f2f2f2;font-weight:700;width:44px;white-space:nowrap;text-align:center}'
       + '.top th.faxlbl{width:56px}'
       // 좌측 표는 fixed 레이아웃 + colgroup — 셀 내용 길이와 무관하게 Tel/Fax 반반 고정
       + '.topL{table-layout:fixed}'
+      // 우측 폼도 fixed — 공백 없는 긴 소재지/상호명이 컬럼 min-content 를 키워 표가 페이지 밖으로 넘치는 것 방지
+      + '.topR{table-layout:fixed}'
       + '.topR th{width:96px}'
       + '.top td.bold{font-weight:700}'
       // 좌측 8~9행: Excel border:false — 셀 박스선 없음 (하단 medium 은 .top border-bottom 이 담당)
@@ -17880,7 +17893,9 @@ window.__mq = (function(){
       + '.inmark .stamp{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:65px;height:65px;opacity:0.9;pointer-events:none}'
       // 항목 표 — 내부 thin(1px 검정) · 외곽 medium(2px) · 데이터 셀 전부 중앙정렬 (Excel A.center)
       + 'table.items{width:100%;border-collapse:collapse;table-layout:fixed}'
-      + 'table.items th,table.items td{border:1px solid #000;padding:3px 4px;font-size:12px;text-align:center;vertical-align:middle;word-wrap:break-word}'
+      + 'table.items th,table.items td{border:1px solid #000;padding:3px 4px;font-size:12px;text-align:center;vertical-align:middle;word-wrap:break-word;overflow-wrap:break-word}'
+      // 페이지 경계에서 행 중간이 잘리지 않도록 행 단위로 통째 넘김
+      + 'table.items tr{break-inside:avoid}'
       + 'table.items thead th{background:'+FC.header+';font-weight:700;height:42px;font-size:12px}'
       + 'table.items tbody tr.drow td{height:50px}'
       + 'table.items .bold{font-weight:700}'
@@ -17901,7 +17916,7 @@ window.__mq = (function(){
           + (logoDataUrl ? '<img class="logo" src="'+logoDataUrl+'" alt="mediacube">' : '')
           + '<h1>'+titleText+'</h1>'
         + '</div>'
-        + '<div class="top"><table class="topL"><colgroup><col style="width:44px"><col style="width:calc(50% - 44px)"><col style="width:56px"><col style="width:calc(50% - 56px)"></colgroup>'+topL+'</table><table class="topR">'+topR+'</table></div>'
+        + '<div class="top"><table class="topL"><colgroup><col style="width:44px"><col style="width:calc(50% - 44px)"><col style="width:56px"><col style="width:calc(50% - 56px)"></colgroup>'+topL+'</table><table class="topR"><colgroup><col style="width:96px"><col></colgroup>'+topR+'</table></div>'
         + '<table class="items"><thead>'+thHtml+'</thead><tbody>'+tbHtml+'</tbody><tfoot>'+totalRow+notesRow+'</tfoot></table>'
       + '</div>'
       + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});window.addEventListener("afterprint",function(){window.close();});<\/script>'
@@ -18051,10 +18066,12 @@ window.__mq = (function(){
       var effective = 0;
       for (var i=0; i<t.length; i++) {
         var code = t.charCodeAt(i);
-        effective += (code < 128) ? 1 : 1.8;
+        // 맑은 고딕 한글 실측 폭 ≈ ASCII 2.0배
+        effective += (code < 128) ? 1 : 2.0;
       }
       var explicitLines = (t.match(/\n/g) || []).length + 1;
-      var charsPerLine = Math.max(6, Math.floor(colWidth * 0.9));
+      // 0.72: 12pt 셀(컬럼폭 단위는 기본폰트 11pt 기준) + 단어 단위 줄바꿈 패킹 손실 감안한 보수 계수
+      var charsPerLine = Math.max(4, Math.floor(colWidth * 0.72));
       return Math.max(1, Math.ceil(effective / charsPerLine), explicitLines);
     }
     return { BD:BD, FONT:FONT, ALIGN:ALIGN, FILL:FILL, set:set, box:box, thickOuter:thickOuter, thickHLine:thickHLine, fmtDate:fmtDate, itemsToRows:itemsToRows, num:num, estimateLines:estimateLines, numToKorean:numToKorean };
@@ -18209,7 +18226,9 @@ window.__mq = (function(){
     rows.forEach(function(row, ri){
       var rr = dataStart + ri;
       if (row.type === 'group') {
-        ws.getRow(rr).height = 32;
+        // 그룹 라벨은 B:마지막열 병합 — 병합 폭 합 기준으로 줄 수 계산해 잘림 방지
+        var wGroupMerged = colSpec.widths.slice(1).reduce(function(a,b){ return a+b; }, 0);
+        ws.getRow(rr).height = Math.max(32, 14 + _estimateLines(row.label, wGroupMerged) * 20);
       } else {
         // 컬럼별 text 길이로 필요한 최대 줄 수 계산
         var it = row.raw;
@@ -18234,8 +18253,8 @@ window.__mq = (function(){
             _estimateLines(it.publisher, wPub)
           );
         }
-        // 최소 50px · 줄 하나 늘 때마다 15px 추가 (1줄 = 50, 2줄 = 50, 3줄 = 60, 4줄 = 75, 6줄 = 105)
-        ws.getRow(rr).height = Math.max(50, 20 + lines * 15);
+        // 최소 50 · 줄당 20pt (맑은 고딕 12pt 실측 한 줄 ≈ 19~20pt) — 1~2줄 = 50, 3줄 = 74, 4줄 = 94
+        ws.getRow(rr).height = Math.max(50, 14 + lines * 20);
       }
       if (row.type === 'group') {
         set(ws, ws.getRow(rr).getCell(1).address, row.no, { font:F(12,true), fill:FILL.group });
@@ -18508,7 +18527,8 @@ window.__mq = (function(){
     rows.forEach(function(row, ri){
       var rr = dataStart + ri;
       if (row.type === 'group') {
-        ws.getRow(rr).height = 32;
+        // 그룹 라벨 병합 폭(B:D) 기준 줄 수 계산 — 긴 라벨 잘림 방지
+        ws.getRow(rr).height = Math.max(32, 14 + _MQ_XL.estimateLines(row.label, 35+15.13+6) * 17);
         // 그룹 헤더: NO + 병합된 label (B:D = 품목/코드/규격)
         set(ws, ws.getRow(rr).getCell(1).address, row.no, { font:F(10,true), fill:FILL.group, align:A.center });
         ws.mergeCells('B'+rr+':D'+rr);
@@ -18540,11 +18560,12 @@ window.__mq = (function(){
           _MQ_XL.estimateLines(it.spec, 6)
         );
       }
-      // Invoice: summary 행(NO 없음) 만 50 유지, NO 있는 자식 행(1,2,3...) 은 32 컴팩트
+      // Invoice: NO 있는 자식 행은 32 컴팩트이되 긴 품목이 wrap 되면 줄 수만큼 확장 (잘림 방지)
       if (isInvoice && row.type !== 'summary') {
-        ws.getRow(rr).height = 32;
+        ws.getRow(rr).height = Math.max(32, 14 + _lines * 18);
       } else {
-        ws.getRow(rr).height = Math.max(50, 20 + _lines * 15);
+        // 줄당 17pt (10~11pt 폰트 실측 한 줄 ≈ 16.5~17pt)
+        ws.getRow(rr).height = Math.max(50, 14 + _lines * 17);
       }
       // 부모 행 (NO='1','2','3'...): 품목:규격 (B:D) 병합 label
       if (isParent) {
