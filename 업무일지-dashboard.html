@@ -17874,7 +17874,8 @@ window.__mq = (function(){
       + '.doc-hd .logo{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:210px;height:60px;object-fit:contain}'
       + '.doc-hd h1{font-size:26px;font-weight:700;margin:0;white-space:pre}'
       // 상단 폼 — Excel 3~9행: 좌 59% : 우 41% 맞붙음 · 내부 thin(1px 검정) · 외곽/하단 medium(2px)
-      + '.top{display:grid;grid-template-columns:57fr 43fr;border-bottom:1px solid #000}'
+      // 상단 폼 ↔ 표 사이 전폭 구분선은 2px (Excel 9행 하단 medium 대응)
+      + '.top{display:grid;grid-template-columns:57fr 43fr;border-bottom:2px solid #000}'
       // 외곽 2px(doc-wrap)와 셀 1px 가 겹치지 않도록 — 가장자리 셀의 바깥쪽 테두리 제거
       + '.top tr:first-child th,.top tr:first-child td{border-top:none}'
       + '.top tr:last-child th,.top tr:last-child td{border-bottom:none}'
