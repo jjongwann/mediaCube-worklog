@@ -17199,7 +17199,7 @@ window.__mq = (function(){
           + '<td colspan="'+sumStartIdx+'" class="center" style="color:#1d4ed8;font-size:11.5px;letter-spacing:0.4px">'+totalLabel+'</td>'
           + cols.slice(sumStartIdx).map(function(c){
               if (!c.sum) return '<td>&nbsp;</td>';
-              return '<td class="num" style="color:#1d4ed8">'+_fmtN(totals[c.k])+'</td>';
+              return '<td class="num" style="color:#1d4ed8" data-mq-total="'+c.k+'">'+_fmtN(totals[c.k])+'</td>';
             }).join('')
           + (readonly?'':'<td></td>')
         + '</tr>';
@@ -17331,14 +17331,43 @@ window.__mq = (function(){
     }
     // status 는 상단 컨트롤 바만 즉시 갱신 필요 없음 (다음 렌더 시 반영). 나머지 필드는 재렌더 없이 input 값에 이미 반영됨.
   }
+  // TOTAL 행 실시간 갱신 — 재렌더 없이 tfoot 의 [data-mq-total] 셀만 패치 (입력 포커스 유지)
+  //   렌더의 합산 파이프라인과 동일: group 행만 제외 · _num 합산 · _fmtN 표시
+  //   invoice 는 TOTAL 이 _summary 행 표시 규칙이라 마커 자체가 없음 → 자연 no-op
+  //   쿼리는 #mq-form-view 스코프 — 숨김 상태로 잔존하는 상세뷰의 stale 마커 오패치 방지
+  function _updateTotalsDom(){
+    var f = _state.form;
+    if (!f) return;
+    var host = document.getElementById('mq-form-view');
+    if (!host) return;
+    var cells = host.querySelectorAll('[data-mq-total]');
+    if (!cells.length) return;
+    var cols = _cols(f);
+    var totals = {};
+    cols.forEach(function(c){ if (c.sum) totals[c.k] = 0; });
+    (f.items||[]).forEach(function(it){
+      if (!it || it._type === 'group') return;
+      cols.forEach(function(c){ if (c.sum) totals[c.k] += _num(it[c.k]); });
+    });
+    cells.forEach(function(td){
+      var k = td.getAttribute('data-mq-total');
+      if (k in totals) td.textContent = _fmtN(totals[k]);
+    });
+  }
   function _setItemField(idx, k, v){
     if (!_state.form || !_state.form.items[idx]) return;
     _state.form.items[idx][k] = v;
-    // Annual/invoice 의 supplyPrice + vat 변경 시 totalWithVat 자동 계산
+    // Annual/invoice 의 supplyPrice + vat 변경 시 totalWithVat 자동 계산 (전체 재렌더 → TOTAL 포함 갱신)
     if ((_state.form.doc_type==='annual' || _state.form.doc_type==='invoice') && (k==='supplyPrice' || k==='vat')) {
       var it = _state.form.items[idx];
       it.totalWithVat = _num(it.supplyPrice) + _num(it.vat);
       _renderForm();
+      return;
+    }
+    // sum 컬럼 입력 시 TOTAL 행 실시간 갱신 (재렌더 없음 · 포커스 유지)
+    var cols = _cols(_state.form);
+    for (var i = 0; i < cols.length; i++) {
+      if (cols[i].k === k && cols[i].sum) { _updateTotalsDom(); break; }
     }
   }
   function _addItem(){
