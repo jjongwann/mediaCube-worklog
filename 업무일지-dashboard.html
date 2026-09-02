@@ -17868,8 +17868,8 @@ window.__mq = (function(){
       + '.top th,.top td{border:1px solid #000;padding:3px 8px;font-size:11px;text-align:left;vertical-align:middle;height:36px}'
       + '.top th{background:#f2f2f2;font-weight:700;width:44px;white-space:nowrap;text-align:center}'
       + '.top th.faxlbl{width:56px}'
-      // Tel 영역(라벨+값)과 Fax 영역(라벨+값) 반반 분할 — 중앙 기준
-      + '.top td.telval{width:calc(50% - 44px)}'
+      // 좌측 표는 fixed 레이아웃 + colgroup — 셀 내용 길이와 무관하게 Tel/Fax 반반 고정
+      + '.topL{table-layout:fixed}'
       + '.topR th{width:96px}'
       + '.top td.bold{font-weight:700}'
       // 좌측 8~9행: Excel border:false — 셀 박스선 없음 (하단 medium 은 .top border-bottom 이 담당)
@@ -17901,7 +17901,7 @@ window.__mq = (function(){
           + (logoDataUrl ? '<img class="logo" src="'+logoDataUrl+'" alt="mediacube">' : '')
           + '<h1>'+titleText+'</h1>'
         + '</div>'
-        + '<div class="top"><table class="topL">'+topL+'</table><table class="topR">'+topR+'</table></div>'
+        + '<div class="top"><table class="topL"><colgroup><col style="width:44px"><col style="width:calc(50% - 44px)"><col style="width:56px"><col style="width:calc(50% - 56px)"></colgroup>'+topL+'</table><table class="topR">'+topR+'</table></div>'
         + '<table class="items"><thead>'+thHtml+'</thead><tbody>'+tbHtml+'</tbody><tfoot>'+totalRow+notesRow+'</tfoot></table>'
       + '</div>'
       + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});window.addEventListener("afterprint",function(){window.close();});<\/script>'
