@@ -17730,7 +17730,7 @@ window.__mq = (function(){
       if (row[0] === 'BLANK') return '<tr class="bare"><td colspan="4">&nbsp;</td></tr>';
       if (row[0] === 'NOTE')  return '<tr class="bare"><td colspan="4" class="note-line">'+esc(noteText)+'</td></tr>';
       if (row.length === 2) {
-        return '<tr><th>'+esc(row[0][0])+'</th><td>'+esc(row[0][1])+'</td><th class="faxlbl">'+esc(row[1][0])+'</th><td>'+esc(row[1][1])+'</td></tr>';
+        return '<tr><th>'+esc(row[0][0])+'</th><td class="telval">'+esc(row[0][1])+'</td><th class="faxlbl">'+esc(row[1][0])+'</th><td>'+esc(row[1][1])+'</td></tr>';
       }
       var boldCls = row[0][2] ? ' class="bold"' : '';
       return '<tr><th>'+esc(row[0][0])+'</th><td colspan="3"'+boldCls+'>'+esc(row[0][1])+'</td></tr>';
@@ -17868,6 +17868,8 @@ window.__mq = (function(){
       + '.top th,.top td{border:1px solid #000;padding:3px 8px;font-size:11px;text-align:left;vertical-align:middle;height:36px}'
       + '.top th{background:#f2f2f2;font-weight:700;width:44px;white-space:nowrap;text-align:center}'
       + '.top th.faxlbl{width:56px}'
+      // Tel 값 폭 고정 → Fax 영역이 왼쪽으로 확장
+      + '.top td.telval{width:120px}'
       + '.topR th{width:96px}'
       + '.top td.bold{font-weight:700}'
       // 좌측 8~9행: Excel border:false — 셀 박스선 없음 (하단 medium 은 .top border-bottom 이 담당)
