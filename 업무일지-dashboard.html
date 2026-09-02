@@ -17784,7 +17784,7 @@ window.__mq = (function(){
     }).join('');
     // 빈 슬롯 padding — Excel 과 동일: 그룹 포함 총 행수 기준 최소 7행 (Needle 만)
     if (isNeedle) {
-      var padCount = Math.max(0, 7 - items.length);
+      var padCount = Math.max(0, 8 - items.length);
       var emptyRow = '<tr class="drow">' + cols.map(function(){ return '<td>&nbsp;</td>'; }).join('') + '</tr>';
       for (var pi=0; pi<padCount; pi++) tbHtml += emptyRow;
     }
@@ -18197,7 +18197,7 @@ window.__mq = (function(){
     // items → group/song 배열 · 동적 행 개수 지원
     var rows = _MQ_XL.itemsToRows(r.items);
     var dataStart = 11;
-    var MIN_DATA_ROWS = 7; // 최소 슬롯 (없으면 채워 빈 표 형태 유지)
+    var MIN_DATA_ROWS = 8; // 최소 슬롯 (없으면 채워 빈 표 형태 유지)
     var actualDataRows = Math.max(rows.length, MIN_DATA_ROWS);
     var totalRowNum = dataStart + actualDataRows;              // TOTAL 위치
     var notesStartRow = totalRowNum + 1;
