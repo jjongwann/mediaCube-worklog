@@ -17153,8 +17153,15 @@ window.__mq = (function(){
         var isZeroNum = c.t === 'num' && (val === 0 || val === '0' || (val !== '' && Number(val) === 0));
         var dispVal = isZeroNum ? '' : val;
         if (readonly) {
-          var disp = (c.t === 'num' && dispVal !== '') ? _fmtN(dispVal) : dispVal;
+          // _fmtN 은 숫자 인자 필요 — 문자열이면 toLocaleString 이 무변환 통과하므로 _num 파싱 선행
+          var disp = (c.t === 'num' && dispVal !== '') ? _fmtN(_num(dispVal)) : dispVal;
           cellsHtmlArr.push('<td class="'+cls+'">'+_esc(disp)+'</td>');
+          return;
+        }
+        if (c.t === 'num') {
+          // 숫자 입력: 화면엔 3자리 쉼표 표시 · 상태(_setItemField)엔 쉼표 제거값 저장 (DB/합산/export 는 쉼표 무관)
+          var numDisp = dispVal === '' ? '' : _fmtN(_num(dispVal));
+          cellsHtmlArr.push('<td class="'+cls+'"><input type="text" value="'+_esc(numDisp)+'" oninput="this.value=this.value.replace(/[^0-9]/g,\'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g,\',\');window.__mq._setItemField('+idx+',\''+c.k+'\',this.value.replace(/,/g,\'\'))"'+(c.r?' style="text-align:right"':(c.c?' style="text-align:center"':''))+'></td>');
           return;
         }
         cellsHtmlArr.push('<td class="'+cls+'"><input type="text" value="'+_esc(dispVal)+'" oninput="window.__mq._setItemField('+idx+',\''+c.k+'\',this.value)"'+(c.r?' style="text-align:right"':(c.c?' style="text-align:center"':''))+'></td>');
