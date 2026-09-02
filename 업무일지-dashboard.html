@@ -17672,100 +17672,119 @@ window.__mq = (function(){
   function _renderPrintWindow(r, logoDataUrl, stampDataUrl){
     var w = window.open('', '_blank', 'width=1000,height=1000');
     if (!w) { _toast('팝업이 차단되어 있습니다. 팝업 차단을 해제해주세요.'); return; }
-    var docLabel = r.doc_type==='invoice' ? '거 래 명 세 서' : '견 적 서';
     var esc = _esc;
     var cols = _cols(r);
     var items = Array.isArray(r.items) ? r.items : [];
     var nums = _computeNumbering(items, r && r.doc_type);
     var isNeedle = _isNeedle(r);
+    var isInvoice = r.doc_type === 'invoice';
     var gStart = -1, gEnd = -1;
     cols.forEach(function(c, i){ if (c.g) { if (gStart===-1) gStart = i; gEnd = i; } });
     var groupSpan = (gStart>=0 && gEnd>gStart) ? (gEnd - gStart + 1) : 1;
-    // 상단 좌우 폼 — Excel 양식과 동일 (Tel/Fax 한 줄 · 업태/업종 한 줄 · 대표자 (인))
-    var isInvoice = r.doc_type === 'invoice';
-    // 좌측(수신자) 행 배열 — 각 행은 1개 또는 2개의 [라벨, 값] pair
+    // 제목: Excel 과 동일 자간 (견적서 = 글자 사이 8칸 공백 · 거래명세서 = 2칸)
+    var titleText = isInvoice ? '거래명세서'.split('').join('  ') : '견적서'.split('').join('        ');
+    // doc_type 별 fill — 각 Excel 빌더의 FILL 상수와 1:1 일치
+    //   needle: header #DDEBF7 · total #D9E1F2 · 비고라벨 #D9E1F2
+    //   annual: header/total #DDEBF7 · 비고라벨 #F2F2F2
+    //   invoice: header/total/비고라벨 #D9D9D9
+    var FC = isInvoice
+      ? { header:'#d9d9d9', total:'#d9d9d9', notes:'#d9d9d9' }
+      : (r.doc_type === 'annual'
+        ? { header:'#ddebf7', total:'#ddebf7', notes:'#f2f2f2' }
+        : { header:'#ddebf7', total:'#d9e1f2', notes:'#d9e1f2' });
+    // 상단 좌측(수신자) 폼 — Excel: 내용 행 + 빈 행(무테) + '- 아래와 같이 ...' 행(무테) = 우측과 같은 7행
+    var noteText = isInvoice ? '- 아래와 같이 계산합니다.' : '- 아래와 같이 견적합니다.';
     var LRows = isInvoice ? [
       [['DATE', _MQ_XL.fmtDate(r.doc_date)]],
       [['수신', r.receiver_company||'']],
-      [['', r.receiver_person||'']], // 라벨 없는 이메일 sub-line
-      [['제목', r.doc_title||'']]
+      [['메일', r.receiver_person||'']],
+      [['제목', r.doc_title||'', 1]],
+      ['BLANK'], ['BLANK'],
+      ['NOTE']
     ] : [
       [['DATE', _MQ_XL.fmtDate(r.doc_date)]],
       [['수신', r.receiver_company||'']],
       [['참조', r.receiver_person||'']],
       [['Tel', r.receiver_tel||''], ['Fax', r.receiver_fax||'']],
-      [['제목', r.doc_title||'']]
+      [['제목', r.doc_title||'', 1]],
+      ['BLANK'],
+      ['NOTE']
     ];
-    // 우측(발신자) 행 — 대표자에 (인), 업태/업종 · Tel/Fax 조합
-    var senderCeoText = (r.sender_ceo || '') + '   (인)';
+    // 우측(발신자) 행 — 대표자 (인) 위에 도장을 텍스트 흐름 기준 오버레이 (행 높이 변화에도 정확)
     var bizItemLabel = isInvoice ? '업태 / 종목' : '업태 / 업종';
     var bizItemCombined = (r.sender_biz_type||'') + '   /   ' + (r.sender_biz_item||'');
     var senderTelCombined = (r.sender_tel||'') + '   /   ' + (r.sender_fax||'');
+    var ceoVal = esc(r.sender_ceo||'') + '&nbsp;&nbsp;&nbsp;<span class="inmark">(인)'
+      + (stampDataUrl ? '<img class="stamp" src="'+stampDataUrl+'" alt="">' : '')
+      + '</span>';
     var RRows = [
-      [['등록번호', r.sender_reg_no||'']],
-      [['상호명', r.sender_company||'']],
-      [['대표자', senderCeoText]],
-      [['소재지', r.sender_address||'']],
-      [[bizItemLabel, bizItemCombined]],
-      [['Tel / FAX', senderTelCombined]],
-      [['담당자', r.sender_person||'']]
+      ['등록번호', esc(r.sender_reg_no||'')],
+      ['상호명', esc(r.sender_company||'')],
+      ['대표자', ceoVal],
+      ['소재지', esc(r.sender_address||'')],
+      [bizItemLabel, esc(bizItemCombined)],
+      ['Tel / FAX', esc(senderTelCombined)],
+      ['담당자', esc(r.sender_person||'')]
     ];
-    var rowHtml = function(row){
-      if (row.length === 1) {
-        return '<tr><th>'+esc(row[0][0])+'</th><td colspan="3">'+esc(row[0][1])+'</td></tr>';
+    var topL = LRows.map(function(row){
+      if (row[0] === 'BLANK') return '<tr class="bare"><td colspan="4">&nbsp;</td></tr>';
+      if (row[0] === 'NOTE')  return '<tr class="bare"><td colspan="4" class="note-line">'+esc(noteText)+'</td></tr>';
+      if (row.length === 2) {
+        return '<tr><th>'+esc(row[0][0])+'</th><td>'+esc(row[0][1])+'</td><th class="faxlbl">'+esc(row[1][0])+'</th><td>'+esc(row[1][1])+'</td></tr>';
       }
-      return '<tr>'
-        + '<th>'+esc(row[0][0])+'</th><td>'+esc(row[0][1])+'</td>'
-        + '<th>'+esc(row[1][0])+'</th><td>'+esc(row[1][1])+'</td>'
-      + '</tr>';
+      var boldCls = row[0][2] ? ' class="bold"' : '';
+      return '<tr><th>'+esc(row[0][0])+'</th><td colspan="3"'+boldCls+'>'+esc(row[0][1])+'</td></tr>';
+    }).join('');
+    // topR 값은 사전 escape 됨 (대표자 셀은 도장 마크업 포함)
+    var topR = RRows.map(function(row){
+      return '<tr><th>'+esc(row[0])+'</th><td>'+row[1]+'</td></tr>';
+    }).join('');
+    // 표 헤더 — needle 은 Excel widths 비율(%), 첫 컬럼 라벨은 Excel 과 동일 'No'
+    var NEEDLE_PCT = {
+      ott:   [4.98,18.22,7.56,20.44,7.82,17.42,4.62,7.11,11.82],
+      ad:    [4.98,18.22,7.56,20.44,7.82,17.42,4.62,7.11,11.82],
+      movie: [4.94,16.49,6.44,17.28,7.76,15.70,4.59,7.05,9.96,9.79]
     };
-    var topL = LRows.map(rowHtml).join('');
-    var topR = RRows.map(rowHtml).join('');
-    // 표 헤더
-    var thHtml = '<tr>' + cols.map(function(c){ return '<th style="width:'+c.w+'px">'+esc(c.label)+'</th>'; }).join('') + '</tr>';
-    // 표 rows
+    var pct = isNeedle ? (NEEDLE_PCT[r.sub_type] || NEEDLE_PCT.ott) : null;
+    var thHtml = '<tr>' + cols.map(function(c, i){
+      var lbl = (i === 0) ? 'No' : c.label;
+      var wAttr = (pct && pct[i] != null) ? 'width:'+pct[i]+'%' : 'width:'+c.w+'px';
+      return '<th style="'+wAttr+'">'+esc(lbl)+'</th>';
+    }).join('') + '</tr>';
+    // 표 rows — Excel 정렬 규칙: 데이터 셀 전부 중앙 · 병합 라벨만 좌측/굵게
     var tbHtml = items.map(function(it, idx){
       if (it._type === 'group') {
-        var out = '<tr class="grow">';
-        cols.forEach(function(c, ci){
-          if (ci === 0) out += '<td class="center bold">'+esc(nums[idx].label)+'</td>';
-          else if (ci === gStart) out += '<td colspan="'+groupSpan+'" class="bold">'+esc(it.label||'')+'</td>';
-          else if (ci > gStart && ci <= gEnd) return;
-          else out += '<td>&nbsp;</td>';
-        });
-        return out + '</tr>';
+        // 그룹 행: Excel 은 번호 셀 + 나머지 전열 병합 (#F5F5F5)
+        return '<tr class="grow"><td class="gno">'+esc(nums[idx].label)+'</td>'
+          + '<td colspan="'+(cols.length-1)+'" class="glabel">'+esc(it.label||'')+'</td></tr>';
       }
       // 부모 행 판단 (label 에 '-' 없음) · Invoice 는 병합 안 함
       var isParentRow = !isInvoice && String(nums[idx].label).indexOf('-') === -1;
-      // 부모 행: g:1 컬럼들을 하나의 label 셀로 병합 (그룹 헤더와 시각적으로 동일)
       var pLabelKey = (isParentRow && gStart >= 0) ? cols[gStart].k : null;
       var cellArr = [];
       cols.forEach(function(c, ci){
-        var cls = c.c ? 'center' : (c.r ? 'num' : '');
-        if (c.t === 'auto') { cellArr.push('<td class="'+cls+'">'+esc(nums[idx].label)+'</td>'); return; }
+        if (c.t === 'auto') { cellArr.push('<td>'+esc(nums[idx].label)+'</td>'); return; }
         if (isParentRow && gStart >= 0 && ci === gStart) {
           var lv = it[pLabelKey] == null ? '' : it[pLabelKey];
-          cellArr.push('<td colspan="'+groupSpan+'" class="bold">'+esc(lv)+'</td>');
+          cellArr.push('<td colspan="'+groupSpan+'" class="plabel">'+esc(lv)+'</td>');
           return;
         }
         if (isParentRow && gStart >= 0 && ci > gStart && ci <= gEnd) return;
         var v = it[c.k]==null?'':it[c.k];
-        // 단위 default 제거 — 사용자가 명시적으로 입력한 값만 표시
         // 숫자 필드에서 0 값은 빈값 표시
         if (c.t === 'num' && (v === 0 || v === '0' || (v !== '' && Number(v) === 0))) v = '';
-        var disp = (c.t === 'num' && v !== '') ? _fmtN(v) : v;
-        // 굵게: CUE / Track No / 가격 컬럼(dw/amount/domestic/worldwide)
-        var isBoldCol = c.k === 'cue' || c.k === 'trackNo' || c.k === 'dw' || c.k === 'amount' || c.k === 'domestic' || c.k === 'worldwide';
-        var cellCls = cls + (isBoldCol ? ' bold' : '');
-        cellArr.push('<td class="'+cellCls.trim()+'">'+esc(disp)+'</td>');
+        // 콤마: 값이 문자열로 저장되므로 _num 파싱 선행 (Excel numFmt '#,##0' 과 동일)
+        var disp = (c.t === 'num' && v !== '') ? _fmtN(_num(v)) : v;
+        // Excel: 곡 행 굵게 = CUE / Track No / 가격 컬럼 · 부모 행은 병합 라벨만 굵게
+        var isBoldCol = !isParentRow && (c.k === 'cue' || c.k === 'trackNo' || c.k === 'dw' || c.k === 'amount' || c.k === 'domestic' || c.k === 'worldwide');
+        cellArr.push('<td'+(isBoldCol?' class="bold"':'')+'>'+esc(disp)+'</td>');
       });
-      return '<tr>' + cellArr.join('') + '</tr>';
+      return '<tr class="drow">' + cellArr.join('') + '</tr>';
     }).join('');
-    // 빈 슬롯 padding (Needle: 최소 6줄 · Annual/Invoice: 표는 실제 항목 수만 · 여기선 Needle 만 padding)
+    // 빈 슬롯 padding — Excel 과 동일: 그룹 포함 총 행수 기준 최소 7행 (Needle 만)
     if (isNeedle) {
-      var songRowsCount = items.filter(function(it){ return it._type !== 'group'; }).length;
-      var padCount = Math.max(0, 6 - songRowsCount);
-      var emptyRow = '<tr>' + cols.map(function(){ return '<td>&nbsp;</td>'; }).join('') + '</tr>';
+      var padCount = Math.max(0, 7 - items.length);
+      var emptyRow = '<tr class="drow">' + cols.map(function(){ return '<td>&nbsp;</td>'; }).join('') + '</tr>';
       for (var pi=0; pi<padCount; pi++) tbHtml += emptyRow;
     }
     // TOTAL 행 — Excel 과 동일: A~D 병합 라벨 + 단위 sync + 수량/가격 합계 (₩)
@@ -17830,48 +17849,53 @@ window.__mq = (function(){
 
     var html = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>'+esc(_exportFileName(r))+'</title>'
       + '<style>'
-      + '@page{size:A4;margin:12mm 10mm;'
-      +   '@top-left{content:""}@top-center{content:""}@top-right{content:""}'
-      +   '@bottom-left{content:"MEDIACUBE";font-family:sans-serif;font-size:9.5px;font-weight:800;color:#94a3b8;letter-spacing:1.6px}'
-      +   '@bottom-center{content:""}'
-      +   '@bottom-right{content:counter(page)" / "counter(pages);font-family:sans-serif;font-size:9.5px;color:#94a3b8;font-weight:600}'
-      + '}'
+      // Excel 페이지 설정과 동일: A4 · 여백 top/bottom 0.4in(10.2mm) left/right 0.3in(7.6mm) · 푸터 없음
+      + '@page{size:A4;margin:10.2mm 7.6mm}'
       + '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
-      + 'body{font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif;color:#0f172a;margin:0;padding:0;font-size:11px;line-height:1.5}'
-      // 헤더 영역 (로고+제목 · 도장은 상단 우측 발신자 폼 위에 절대 배치)
-      + '.doc-wrap{position:relative}'
-      + '.doc-hd{position:relative;padding:6px 0 12px;margin-bottom:12px;min-height:60px}'
-      + '.doc-hd .logo{position:absolute;left:0;top:4px;width:200px;height:auto}'
-      + '.doc-hd h1{text-align:center;font-size:28px;font-weight:800;letter-spacing:14px;margin:8px 0 4px}'
-      // 도장 - 대표자 행의 (인) 위에 오버레이 · 작은 사이즈 · 우측 발신자 폼 영역
-      //   현재 대표자 row 세로 중심 ~156px, (인) 텍스트 우측 발신자 폼 값 셀 중앙 근방
-      + '.doc-wrap .stamp{position:absolute;top:128px;right:200px;width:55px;height:55px;opacity:0.9;z-index:5;pointer-events:none}'
-      + '.top{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}'
-      // 테두리: 파랑 계열 slate 제거 → 중성 웜 그레이로 세련되게
-      //   외곽 1.5px #374151 (gray-700 · 거의 검정에 가까운 웜톤)
-      //   내부 1px #d1d5db (gray-300 · 옅고 부드러움)
-      + '.top table{width:100%;border-collapse:collapse;border:1.5px solid #374151}'
-      + '.top th,.top td{border:1px solid #d1d5db;padding:6px 10px;font-size:11px;text-align:left;vertical-align:middle}'
-      + '.top th{background:#f3f4f6;color:#111827;font-weight:700;width:70px;white-space:nowrap;text-align:center}'
-      + 'table.items{width:100%;border-collapse:collapse;border:1.5px solid #374151}'
-      + 'table.items th,table.items td{border:1px solid #d1d5db;padding:6px 4px;font-size:10.5px;text-align:center;vertical-align:middle}'
-      + 'table.items thead th{background:#ddebf7;color:#111827;font-weight:800;font-size:10px}'
-      + 'table.items .center{text-align:center}'
-      + 'table.items .num{text-align:right;font-variant-numeric:tabular-nums}'
+      // Excel FONT '맑은 고딕' · fitToWidth 축소본 기준: pt 수치를 px 로 그대로 사용 (12pt→12px 등)
+      + 'body{font-family:"Malgun Gothic","맑은 고딕","Apple SD Gothic Neo",sans-serif;color:#000;margin:0;padding:0;font-size:12px;line-height:1.4}'
+      // 제목 박스 — Excel 1~2행: medium(2px 검정) 프레임 · 로고 210×60 좌측 · 제목 26pt 볼드 중앙
+      + '.doc-hd{position:relative;border:2px solid #000;height:64px;display:flex;align-items:center;justify-content:center}'
+      + '.doc-hd .logo{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:210px;height:60px;object-fit:contain}'
+      + '.doc-hd h1{font-size:26px;font-weight:700;margin:0;white-space:pre}'
+      // 상단 폼 — Excel 3~9행: 좌 59% : 우 41% 맞붙음 · 내부 thin(1px 검정) · 외곽/하단 medium(2px)
+      + '.top{display:grid;grid-template-columns:59fr 41fr;border-left:2px solid #000;border-right:2px solid #000;border-bottom:2px solid #000}'
+      + '.top table{width:100%;border-collapse:collapse}'
+      + '.top th,.top td{border:1px solid #000;padding:3px 8px;font-size:11px;text-align:left;vertical-align:middle;height:36px}'
+      + '.top th{background:#f2f2f2;font-weight:700;width:44px;white-space:nowrap;text-align:center}'
+      + '.top th.faxlbl{width:56px}'
+      + '.topR th{width:130px}'
+      + '.top td.bold{font-weight:700}'
+      // 좌측 8~9행: Excel border:false — 셀 박스선 없음 (하단 medium 은 .top border-bottom 이 담당)
+      + '.top tr.bare td{border:none;background:#fff}'
+      + '.top td.note-line{font-weight:700;text-align:left}'
+      // 대표자 (인) 도장 오버레이 — 텍스트 흐름 기준이라 이름 길이·행 높이 무관 정확
+      + '.inmark{position:relative}'
+      + '.inmark .stamp{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:65px;height:65px;opacity:0.9;pointer-events:none}'
+      // 항목 표 — 내부 thin(1px 검정) · 외곽 medium(2px) · 데이터 셀 전부 중앙정렬 (Excel A.center)
+      + 'table.items{width:100%;border-collapse:collapse;border:2px solid #000;table-layout:fixed}'
+      + 'table.items th,table.items td{border:1px solid #000;padding:3px 4px;font-size:12px;text-align:center;vertical-align:middle;word-wrap:break-word}'
+      + 'table.items thead th{background:'+FC.header+';font-weight:700;height:42px;font-size:12px}'
+      + 'table.items tbody tr.drow td{height:50px}'
       + 'table.items .bold{font-weight:700}'
-      + 'table.items .grow td{background:#f5f5f5;text-align:left;font-weight:700;padding:6px 10px}'
-      + 'table.items .totalrow-label{background:#d9e1f2;font-weight:800;color:#0f172a;text-align:center;font-size:11px}'
-      + 'table.items .totalrow-cell{background:#d9e1f2;font-weight:800;color:#0f172a}'
-      + 'table.items th.notes-label{background:#d9e1f2;color:#0f172a;font-weight:800;text-align:center;vertical-align:middle;width:'+cols[0].w+'px;font-size:11px}'
-      + 'table.items td.notes-body{background:#fff;white-space:pre-wrap;min-height:80px;height:80px;vertical-align:top;padding:8px 10px;text-align:left}'
+      + 'table.items td.plabel{text-align:left;font-weight:700;padding-left:8px}'
+      + 'table.items tr.grow td{background:#f5f5f5;height:32px}'
+      + 'table.items tr.grow td.gno{font-weight:700}'
+      + 'table.items tr.grow td.glabel{text-align:left;font-weight:700;padding-left:8px}'
+      // TOTAL — Excel: 상·하 medium 선 · 높이 40 · doc_type 별 fill
+      + 'table.items tr.totalrow td{border-top:2px solid #000;border-bottom:2px solid #000;height:40px}'
+      + 'table.items .totalrow-label{background:'+FC.total+';font-weight:700;text-align:center;font-size:12px}'
+      + 'table.items .totalrow-cell{background:'+FC.total+';font-weight:700}'
+      // 비고 — Excel: 4행×44 (=176) · 라벨 우측 medium 세로선
+      + 'table.items th.notes-label{background:'+FC.notes+';font-weight:700;text-align:center;vertical-align:middle;font-size:12px;border-right:2px solid #000}'
+      + 'table.items td.notes-body{background:#fff;white-space:pre-wrap;height:176px;vertical-align:top;padding:8px;text-align:left;font-size:12px}'
       + '</style></head><body>'
       + '<div class="doc-wrap">'
         + '<div class="doc-hd">'
           + (logoDataUrl ? '<img class="logo" src="'+logoDataUrl+'" alt="mediacube">' : '')
-          + '<h1>'+docLabel.split('').join('        ')+'</h1>'
+          + '<h1>'+titleText+'</h1>'
         + '</div>'
-        + '<div class="top"><table>'+topL+'</table><table>'+topR+'</table></div>'
-        + (stampDataUrl ? '<img class="stamp" src="'+stampDataUrl+'" alt="stamp">' : '')
+        + '<div class="top"><table class="topL">'+topL+'</table><table class="topR">'+topR+'</table></div>'
         + '<table class="items"><thead>'+thHtml+'</thead><tbody>'+tbHtml+'</tbody><tfoot>'+totalRow+notesRow+'</tfoot></table>'
       + '</div>'
       + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});window.addEventListener("afterprint",function(){window.close();});<\/script>'
