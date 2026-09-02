@@ -18084,8 +18084,8 @@ window.__mq = (function(){
     colSpec.widths.forEach(function(w,i){ ws.getColumn(i+1).width = w; });
     // 행 높이 preset — 상단 폼 · 표 헤더까지만 (데이터/TOTAL/비고 는 동적 렌더에서 설정)
     ws.getRow(1).height = 30; ws.getRow(2).height = 30;
-    for (var i=3;i<=8;i++) ws.getRow(i).height = 28;
-    ws.getRow(9).height = 32; ws.getRow(10).height = 42;
+    for (var i=3;i<=8;i++) ws.getRow(i).height = 36;
+    ws.getRow(9).height = 36; ws.getRow(10).height = 42;
     // 제목
     ws.mergeCells(colSpec.titleRange);
     set(ws, colSpec.titleRange.split(':')[0], '견        적        서', { font:F(26,true), border:false });
@@ -18298,7 +18298,7 @@ window.__mq = (function(){
       cell.border = BD;
     }
     // 비고 (동적 위치, 4행)
-    for (var nr = notesStartRow; nr <= notesEndRow; nr++) ws.getRow(nr).height = 32;
+    for (var nr = notesStartRow; nr <= notesEndRow; nr++) ws.getRow(nr).height = 44;
     var notesLblRange = 'A'+notesStartRow+':A'+notesEndRow;
     var notesBodyRange = 'B'+notesStartRow+':'+lastColLetter+notesEndRow;
     ws.mergeCells(notesLblRange);
