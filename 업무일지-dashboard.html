@@ -17758,6 +17758,8 @@ window.__mq = (function(){
       movie: [4.94,15.0,6.44,14.3,7.76,15.70,6.0,7.05,11.5,11.3]
     };
     var pct = isNeedle ? (NEEDLE_PCT[r.sub_type] || NEEDLE_PCT.ott) : null;
+    // 상단 폼 좌/우 분할점 = 표의 Track No 컬럼 오른쪽 선 (첫 5개 컬럼 폭 합) — 상하 일직선 정렬
+    var splitPct = pct ? pct.slice(0, 5).reduce(function(a, b){ return a + b; }, 0) : 57;
     var thHtml = '<tr>' + cols.map(function(c, i){
       var lbl = (i === 0) ? 'No' : c.label;
       var wAttr = (pct && pct[i] != null) ? 'width:'+pct[i]+'%' : 'width:'+c.w+'px';
@@ -17875,7 +17877,8 @@ window.__mq = (function(){
       + '.doc-hd h1{font-size:26px;font-weight:700;margin:0;white-space:pre}'
       // 상단 폼 — Excel 3~9행: 좌 59% : 우 41% 맞붙음 · 내부 thin(1px 검정) · 외곽/하단 medium(2px)
       // 상단 폼 ↔ 표 사이 전폭 구분선은 2px (Excel 9행 하단 medium 대응)
-      + '.top{display:grid;grid-template-columns:57fr 43fr;border-bottom:2px solid #000}'
+      // 좌/우 분할은 표의 Track No 오른쪽 선과 일직선 (splitPct)
+      + '.top{display:grid;grid-template-columns:'+splitPct+'fr '+(100-splitPct)+'fr;border-bottom:2px solid #000}'
       // 외곽 2px(doc-wrap)와 셀 1px 가 겹치지 않도록 — 가장자리 셀의 바깥쪽 테두리 제거
       + '.top tr:first-child th,.top tr:first-child td{border-top:none}'
       + '.top tr:last-child th,.top tr:last-child td{border-bottom:none}'
@@ -18122,7 +18125,7 @@ window.__mq = (function(){
         titleRange:'A1:J2', groupRange:'B11:J11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:J23',
         sumCols:[8,9,10], lastColLetter:'J',
-        stampExt:{col:8.1,row:3.9,w:65,h:65}
+        stampExt:{col:8.4,row:3.9,w:65,h:65}
       };
     } else if (mode === 'ad') {
       colSpec = { widths:[7,25.625,10.625,28.75,11,24.5,6.5,10,16.625],
@@ -18130,7 +18133,7 @@ window.__mq = (function(){
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
-        stampExt:{col:7.95,row:3.9,w:65,h:65}
+        stampExt:{col:8.25,row:3.9,w:65,h:65}
       };
     } else {
       colSpec = { widths:[7,25.625,10.625,28.75,11,24.5,6.5,10,16.625],
@@ -18138,7 +18141,7 @@ window.__mq = (function(){
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
-        stampExt:{col:7.95,row:3.9,w:65,h:65}
+        stampExt:{col:8.25,row:3.9,w:65,h:65}
       };
     }
     // 컬럼 너비
