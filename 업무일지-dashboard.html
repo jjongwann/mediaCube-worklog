@@ -15496,7 +15496,10 @@ window.__mq = (function(){
   }
   function _typeClass(row){ return 'mq-type-' + row.doc_type; }
   function _defaultSender(){
-    return { sender_reg_no:'114-86-09186', sender_company:'(주)미디어큐브', sender_ceo:'김재경', sender_address:'서울 강남구 논현로136길 16 5층', sender_biz_type:'서비스', sender_biz_item:'사운드 · 음반', sender_tel:'02-534-8408', sender_fax:'02-534-8486', sender_person:'이광순' };
+    // 담당자 디폴트: 이광순 이사(sunlee) 계정은 팀명 포함 서식
+    var uname = (typeof _currentUsername !== 'undefined') ? _currentUsername : '';
+    var person = (uname === 'sunlee') ? '사운드컨텐츠팀  이 광 순' : '이광순';
+    return { sender_reg_no:'114-86-09186', sender_company:'(주)미디어큐브', sender_ceo:'김재경', sender_address:'서울 강남구 논현로136길 16 5층', sender_biz_type:'서비스', sender_biz_item:'사운드 · 음반', sender_tel:'02-534-8408', sender_fax:'02-534-8486', sender_person:person };
   }
 
   // ────────────────────────────────────────────────────────────
