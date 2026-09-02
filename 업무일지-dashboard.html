@@ -15241,6 +15241,8 @@ function openQuotePanel() {
   .mq-field .val { padding:6px 10px; font-size:12.5px; color:#0f172a; }
   .mq-field .val input, .mq-field .val select { width:100%; box-sizing:border-box; border:none; outline:none; font-family:inherit; font-size:12.5px; padding:3px 4px; background:transparent; color:#0f172a; }
   .mq-field .val input:focus, .mq-field .val select:focus { background:#fefce8; }
+  /* datalist(수신처 자동완성) input 의 Chromium 화살표 숨김 — [list] 한정이라 date input 캘린더 아이콘은 유지 */
+  .mq-field .val input[list]::-webkit-calendar-picker-indicator { display:none !important; }
   .mq-field .val input[readonly] { color:#64748b; background:#f8fafc; }
   /* items table */
   .mq-items { width:100%; border-collapse:collapse; margin-top:14px; font-size:12px; }
@@ -15639,7 +15641,13 @@ window.__mq = (function(){
   function refresh(){
     return fetch(_URL + '/rest/v1/music_quotes?select=*&order=created_at.desc&limit=500', { headers: _hdr() })
       .then(function(r){ if (!r.ok) return r.text().then(function(t){ throw new Error('HTTP '+r.status+' '+t); }); return r.json(); })
-      .then(function(rows){ _state.rows = Array.isArray(rows) ? rows : []; _state.loaded = true; if (_state.view==='list') _renderList(); })
+      .then(function(rows){
+        _state.rows = Array.isArray(rows) ? rows : []; _state.loaded = true;
+        if (_state.view==='list') _renderList();
+        // 폼이 열린 채 fetch 가 늦게 완료된 경우: 수신처 자동완성 datalist 옵션만 갱신 (폼 재렌더 없음)
+        var dl = document.getElementById('mq-recv-datalist');
+        if (dl) dl.innerHTML = _recvOptionsHtml();
+      })
       .catch(function(e){ console.error('[__mq] fetch', e); _toast('불러오기 실패: music_quotes 테이블 미생성 or 권한'); });
   }
 
@@ -16858,6 +16866,21 @@ window.__mq = (function(){
 
   function _opt(v, l, cur){ return '<option value="'+v+'"'+(v===cur?' selected':'')+'>'+l+'</option>'; }
 
+  // 수신처 자동완성 옵션 — _state.rows (created_at desc 정렬) 의 distinct receiver_company (최신순)
+  // 공백 정규화 + 소문자 키로 dedup · 표시값은 최신 원본 유지 · _esc 로 attribute-safe
+  function _recvOptionsHtml(){
+    var seen = {}, opts = [];
+    (_state.rows||[]).forEach(function(r){
+      var v = String(r.receiver_company||'').replace(/\s+/g,' ').trim();
+      if (!v) return;
+      var key = v.toLowerCase();
+      if (seen[key]) return;
+      seen[key] = 1;
+      opts.push('<option value="'+_esc(v)+'"></option>');
+    });
+    return opts.join('');
+  }
+
   // 상단 좌/우 grid — 거래명세서는 참조/Tel/Fax 없이 · 업종→종목
   function _topGridHtml(r, readonly){
     var isInvoice = (r.doc_type === 'invoice');
@@ -16897,7 +16920,7 @@ window.__mq = (function(){
         var v = r[f.k] || '';
         var inputHtml = readonly
           ? '<span style="padding:3px 4px;display:inline-block">'+ _esc(v) +'</span>'
-          : '<input type="'+f.type+'" value="'+_esc(v)+'" oninput="window.__mq._setFormField(\''+f.k+'\',this.value)">';
+          : '<input type="'+f.type+'" value="'+_esc(v)+'"'+(f.k==='receiver_company'?' list="mq-recv-datalist" autocomplete="off"':'')+' oninput="window.__mq._setFormField(\''+f.k+'\',this.value)">';
         return '<div class="mq-field">'
           + '<div class="lbl">'+f.label+(f.internal?' <span style="font-size:9px;color:#f97316;margin-left:3px">·내부</span>':'')+'</div>'
           + '<div class="val">'+inputHtml+'</div>'
@@ -16905,10 +16928,13 @@ window.__mq = (function(){
       }).join('');
       return '<div class="mq-top-block"><h4>'+title+'</h4>'+rows+'</div>';
     };
+    // datalist 는 편집 폼에서만 출력 — 숨김 상태로 잔존하는 상세뷰(readonly) DOM 에 같은 id 가
+    // 먼저 존재하면 stale 복사본이 자동완성을 가로채므로 (id lookup 은 문서 순서 우선)
     return '<div class="mq-top-grid">'
       + mkBlock('수신·기본정보', L)
       + mkBlock('발신자 (미디어큐브)', R)
-    + '</div>';
+    + '</div>'
+    + (readonly ? '' : '<datalist id="mq-recv-datalist">'+_recvOptionsHtml()+'</datalist>');
   }
 
   // ────────────────────────────────────────────────────────────
