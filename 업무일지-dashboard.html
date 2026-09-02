@@ -23441,25 +23441,25 @@ window.__vendor = (function() {
 
   // ── Supabase 데이터 ──
   // PostgREST 기본 상한(1000행) 을 넘어가면 조용히 truncate → 특정 월 매출이 사라지는 것처럼 보이는
-  // 데이터 손실이 발생. Range 헤더 + Content-Range 로 페이지네이션하여 전체 row 를 확보.
+  // 데이터 손실이 발생. URL 쿼리 limit/offset 로 페이지네이션하여 전체 row 를 확보.
+  // (Range 헤더 방식은 Supabase CORS 화이트리스트에 Range-Unit 이 빠져있어 실패 → 쿼리 방식 채택)
   function fetchAll() {
     var sb = _getSb();
     var PAGE = 1000;
     var acc = [];
-    function _page(from){
-      var to = from + PAGE - 1;
-      var hdr = Object.assign({}, sb.hdr, { 'Range-Unit':'items', 'Range': from + '-' + to, 'Prefer':'count=exact' });
-      return fetch(sb.url + '/rest/v1/vendor_sales?select=*', { headers: hdr })
+    function _page(offset){
+      var u = sb.url + '/rest/v1/vendor_sales?select=*&limit=' + PAGE + '&offset=' + offset;
+      return fetch(u, { headers: sb.hdr })
         .then(function(r){
-          if (!r.ok && r.status !== 206) throw new Error('HTTP ' + r.status);
-          var cr = r.headers.get('Content-Range') || ''; // "from-to/total"
-          var total = parseInt((cr.split('/')[1] || '0'), 10);
-          return r.json().then(function(rows){
-            if (Array.isArray(rows)) acc = acc.concat(rows);
-            var next = from + PAGE;
-            if (total && next < total) return _page(next);
-            return acc;
-          });
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function(rows){
+          if (!Array.isArray(rows)) return acc;
+          acc = acc.concat(rows);
+          // 페이지가 PAGE 미만이면 마지막 페이지 → 종료
+          if (rows.length < PAGE) return acc;
+          return _page(offset + PAGE);
         });
     }
     return _page(0)
