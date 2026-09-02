@@ -17740,10 +17740,11 @@ window.__mq = (function(){
       return '<tr><th>'+esc(row[0])+'</th><td>'+row[1]+'</td></tr>';
     }).join('');
     // 표 헤더 — needle 은 Excel widths 비율(%), 첫 컬럼 라벨은 Excel 과 동일 'No'
+    // 단위 컬럼은 'sync' 한 줄 표시를 위해 6.0% 확보 (CUE 에서 차감)
     var NEEDLE_PCT = {
-      ott:   [4.98,18.22,7.56,20.44,7.82,17.42,4.62,7.11,11.82],
-      ad:    [4.98,18.22,7.56,20.44,7.82,17.42,4.62,7.11,11.82],
-      movie: [4.94,16.49,6.44,17.28,7.76,15.70,4.59,7.05,9.96,9.79]
+      ott:   [4.98,18.22,7.56,19.06,7.82,17.42,6.0,7.11,11.82],
+      ad:    [4.98,18.22,7.56,19.06,7.82,17.42,6.0,7.11,11.82],
+      movie: [4.94,16.49,6.44,15.87,7.76,15.70,6.0,7.05,9.96,9.79]
     };
     var pct = isNeedle ? (NEEDLE_PCT[r.sub_type] || NEEDLE_PCT.ott) : null;
     var thHtml = '<tr>' + cols.map(function(c, i){
@@ -17849,22 +17850,23 @@ window.__mq = (function(){
 
     var html = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>'+esc(_exportFileName(r))+'</title>'
       + '<style>'
-      // Excel 페이지 설정과 동일: A4 · 여백 top/bottom 0.4in(10.2mm) left/right 0.3in(7.6mm) · 푸터 없음
-      + '@page{size:A4;margin:10.2mm 7.6mm}'
+      // Excel 여백(0.4in/0.3in)은 body padding 으로 재현 — @page margin:0 으로 두면
+      // 브라우저 머리말/꼬리말(URL·날짜·제목·페이지)이 그려질 여백 영역 자체가 사라져 미표시됨
+      + '@page{size:A4;margin:0}'
       + '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
       // Excel FONT '맑은 고딕' · fitToWidth 축소본 기준: pt 수치를 px 로 그대로 사용 (12pt→12px 등)
-      + 'body{font-family:"Malgun Gothic","맑은 고딕","Apple SD Gothic Neo",sans-serif;color:#000;margin:0;padding:0;font-size:12px;line-height:1.4}'
+      + 'body{font-family:"Malgun Gothic","맑은 고딕","Apple SD Gothic Neo",sans-serif;color:#000;margin:0;padding:10.2mm 7.6mm;font-size:12px;line-height:1.4}'
       // 제목 박스 — Excel 1~2행: medium(2px 검정) 프레임 · 로고 210×60 좌측 · 제목 26pt 볼드 중앙
       + '.doc-hd{position:relative;border:2px solid #000;height:64px;display:flex;align-items:center;justify-content:center}'
       + '.doc-hd .logo{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:210px;height:60px;object-fit:contain}'
       + '.doc-hd h1{font-size:26px;font-weight:700;margin:0;white-space:pre}'
       // 상단 폼 — Excel 3~9행: 좌 59% : 우 41% 맞붙음 · 내부 thin(1px 검정) · 외곽/하단 medium(2px)
-      + '.top{display:grid;grid-template-columns:59fr 41fr;border-left:2px solid #000;border-right:2px solid #000;border-bottom:2px solid #000}'
+      + '.top{display:grid;grid-template-columns:57fr 43fr;border-left:2px solid #000;border-right:2px solid #000;border-bottom:2px solid #000}'
       + '.top table{width:100%;border-collapse:collapse}'
       + '.top th,.top td{border:1px solid #000;padding:3px 8px;font-size:11px;text-align:left;vertical-align:middle;height:36px}'
       + '.top th{background:#f2f2f2;font-weight:700;width:44px;white-space:nowrap;text-align:center}'
       + '.top th.faxlbl{width:56px}'
-      + '.topR th{width:130px}'
+      + '.topR th{width:96px}'
       + '.top td.bold{font-weight:700}'
       // 좌측 8~9행: Excel border:false — 셀 박스선 없음 (하단 medium 은 .top border-bottom 이 담당)
       + '.top tr.bare td{border:none;background:#fff}'
