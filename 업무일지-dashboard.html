@@ -17874,7 +17874,13 @@ window.__mq = (function(){
       + '.doc-hd .logo{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:210px;height:60px;object-fit:contain}'
       + '.doc-hd h1{font-size:26px;font-weight:700;margin:0;white-space:pre}'
       // 상단 폼 — Excel 3~9행: 좌 59% : 우 41% 맞붙음 · 내부 thin(1px 검정) · 외곽/하단 medium(2px)
-      + '.top{display:grid;grid-template-columns:57fr 43fr;border-bottom:2px solid #000}'
+      + '.top{display:grid;grid-template-columns:57fr 43fr;border-bottom:1px solid #000}'
+      // 외곽 2px(doc-wrap)와 셀 1px 가 겹치지 않도록 — 가장자리 셀의 바깥쪽 테두리 제거
+      + '.top tr:first-child th,.top tr:first-child td{border-top:none}'
+      + '.top tr:last-child th,.top tr:last-child td{border-bottom:none}'
+      + '.topL tr > :first-child{border-left:none}'
+      + '.topL tr > :last-child{border-right:none}'
+      + '.topR tr > :last-child{border-right:none}'
       + '.top table{width:100%;border-collapse:collapse}'
       + '.top th,.top td{border:1px solid #000;padding:3px 8px;font-size:11px;text-align:left;vertical-align:middle;height:36px;word-wrap:break-word;overflow-wrap:break-word}'
       + '.top th{background:#f2f2f2;font-weight:700;width:44px;white-space:nowrap;text-align:center}'
@@ -17886,8 +17892,7 @@ window.__mq = (function(){
       + '.topR th{width:96px}'
       + '.top td.bold{font-weight:700}'
       // 좌측 8~9행: Excel border:false — 셀 박스선 없음 (하단 medium 은 .top border-bottom 이 담당)
-      // bare 행도 좌측 1px 유지 — 다른 행(외곽2px+셀1px)과 왼쪽 모서리 굵기 통일
-      + '.top tr.bare td{border:none;border-left:1px solid #000;background:#fff}'
+      + '.top tr.bare td{border:none;background:#fff}'
       + '.top td.note-line{font-weight:700;text-align:left}'
       // 대표자 (인) 도장 오버레이 — 텍스트 흐름 기준이라 이름 길이·행 높이 무관 정확
       + '.inmark{position:relative}'
@@ -17897,15 +17902,19 @@ window.__mq = (function(){
       + 'table.items th,table.items td{border:1px solid #000;padding:3px 4px;font-size:12px;text-align:center;vertical-align:middle;word-wrap:break-word;overflow-wrap:break-word}'
       // 페이지 경계에서 행 중간이 잘리지 않도록 행 단위로 통째 넘김
       + 'table.items tr{break-inside:avoid}'
-      + 'table.items thead th{background:'+FC.header+';font-weight:700;height:42px;font-size:12px}'
+      + 'table.items thead th{background:'+FC.header+';font-weight:700;height:42px;font-size:12px;border-top:none}'
+      // 표 가장자리 셀도 바깥 테두리 제거 (외곽 2px 와 미겹침)
+      + 'table.items tr > :first-child{border-left:none}'
+      + 'table.items tr > :last-child{border-right:none}'
+      + 'table.items tfoot tr:last-child th,table.items tfoot tr:last-child td{border-bottom:none}'
       + 'table.items tbody tr.drow td{height:50px}'
       + 'table.items .bold{font-weight:700}'
       + 'table.items td.plabel{text-align:left;font-weight:700;padding-left:8px}'
       + 'table.items tr.grow td{background:#f5f5f5;height:32px}'
       + 'table.items tr.grow td.gno{font-weight:700}'
       + 'table.items tr.grow td.glabel{text-align:left;font-weight:700;padding-left:8px}'
-      // TOTAL — 높이 40 · doc_type 별 fill (구획선은 일반 1px)
-      + 'table.items tr.totalrow td{height:40px}'
+      // TOTAL — 행 둘레 상·하 2px (외곽과 함께 유일한 굵은 선) · 높이 40
+      + 'table.items tr.totalrow td{border-top:2px solid #000;border-bottom:2px solid #000;height:40px}'
       + 'table.items .totalrow-label{background:'+FC.total+';font-weight:700;text-align:center;font-size:12px}'
       + 'table.items .totalrow-cell{background:'+FC.total+';font-weight:700}'
       // 비고 — Excel: 4행×44 (=176) · 라벨 우측 medium 세로선
