@@ -22913,6 +22913,7 @@ window._dmIsCardAllowed = function(item){
     case 'mq':      return uname === 'developer' || uname === 'sunlee'; // 음원 견적 관리 (사운드팀)
     case 'emp':
     case 'perm':    return isAdmin;                    // 관리자 전용
+    case 'board':   return false;                      // 게시판 카드 — 전 계정 숨김 (사용자 요청)
     case 'sitemap': return false;                      // 사이트맵 카드 — 전 계정 숨김 (사용자 요청)
     default:        return true;
   }
