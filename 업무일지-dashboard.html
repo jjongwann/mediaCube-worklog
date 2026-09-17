@@ -17197,7 +17197,7 @@ window.__mq = (function(){
       cols.forEach(function(c){ if (c.sum) totals[c.k] = 0; });
       items.forEach(function(it){ if (it._type === 'group') return; cols.forEach(function(c){ if (c.sum) totals[c.k] += _num(it[c.k]); }); });
       // TOTAL 라벨: Needle 은 V.A.T 별도, Invoice/Annual 은 그냥 TOTAL
-      var totalLabel = (r.doc_type === 'invoice' || r.doc_type === 'annual') ? 'TOTAL' : 'TOTAL (Excluding V.A.T)';
+      var totalLabel = 'TOTAL';
       if (r.doc_type === 'invoice') {
         // Invoice TOTAL: NO+품목+코드 (3열) 병합 라벨 + 규격/단위/QTY/단가/공급가액/부가가치세 는
         // summary(_summary=true) 행 값을 그대로 표시 (참조 양식 규칙)
@@ -17394,6 +17394,8 @@ window.__mq = (function(){
   }
   function _addItem(){
     if (!_state.form) return;
+    // 대번호(그룹) 선택 상태면 해당 그룹 끝에 삽입 · 선택 없으면 기존처럼 맨 끝 추가
+    if (_state.selectedIdx.size) { _addSongToSelected(); return; }
     _state.form.items.push(_newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type)));
     _renderForm();
   }
@@ -17845,7 +17847,7 @@ window.__mq = (function(){
     var totalRow;
     if (isNeedle) {
       // 4열 병합 (NO, CD Title, CD No, CUE) + Track No 빈칸 + Publisher 빈칸 + 단위 sync + 수량 + 나머지 합계
-      var totalCells = '<td colspan="4" class="totalrow-label">TOTAL (Excluding V.A.T)</td>';
+      var totalCells = '<td colspan="4" class="totalrow-label">TOTAL</td>';
       for (var ci = 4; ci < cols.length; ci++) {
         var col = cols[ci];
         if (col.k === 'unit' || col.label === '단위' || col.label === '용도' || col.label === '권리') {
@@ -18373,7 +18375,7 @@ window.__mq = (function(){
     var totalRangeStart = 'A'+totalRowNum;
     var totalRangeEnd = 'D'+totalRowNum;
     ws.mergeCells(totalRangeStart+':'+totalRangeEnd);
-    set(ws, totalRangeStart, 'TOTAL (Excluding V.A.T)', { font:F(12,true), fill:FILL.total, align:A.center });
+    set(ws, totalRangeStart, 'TOTAL', { font:F(12,true), fill:FILL.total, align:A.center });
     for (var mc = 5; mc < colSpec.unitCol; mc++) {
       var addr = ws.getRow(totalRowNum).getCell(mc).address;
       set(ws, addr, '', { fill:FILL.total });
@@ -18845,7 +18847,7 @@ window.__mq = (function(){
         cols.forEach(function(c){ if (c.sum) totals[c.k] = 0; });
         items.forEach(function(it){ if (it._type === 'group') return; cols.forEach(function(c){ if (c.sum) totals[c.k] += _num(it[c.k]); }); });
         var totalRow = cols.map(function(c, i){
-          if (i === 0) return 'TOTAL (Excluding V.A.T)';
+          if (i === 0) return 'TOTAL';
           if (i < sumStartIdx) return '';
           return c.sum ? totals[c.k] : '';
         });
