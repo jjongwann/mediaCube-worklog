@@ -19486,6 +19486,8 @@ window.__meeting = (function() {
   function _canView(row) {
     // 관리자(mediacube) · 회계(info) · 개발(developer) 은 모든 회의록 열람
     if (_isFullAccess()) return true;
+    // '미디어큐브 전체' 주관 회의록은 전 부서 열람
+    if (row.dept === '미디어큐브 전체') return true;
     // 그 외에는 소속 부서와 회의의 '주관 부서' 가 일치할 때만 열람
     if (_isSoundDept())  return row.dept === '사운드컨텐츠사업부';
     if (_isSystemDept()) return row.dept === '시스템 사업부';
@@ -19715,7 +19717,8 @@ window.__meeting = (function() {
 
   // 회의록 주관 부서는 두 사업부 (사운드/시스템) 로 고정
   function _allDepts() {
-    return ['사운드컨텐츠사업부','시스템 사업부'];
+    // '미디어큐브 전체' 는 전 부서 공용 회의록 (양쪽 부서 뷰 모두에서 열람됨)
+    return ['사운드컨텐츠사업부','시스템 사업부','미디어큐브 전체'];
   }
 
   function _populateFilters() {
@@ -19741,7 +19744,8 @@ window.__meeting = (function() {
     var authSel = document.getElementById('mtg-fil-author');
     if (authSel) {
       var seen = {}, opts = [];
-      _state.rows.forEach(function(r){ if (r.author_id && !seen[r.author_id]) { seen[r.author_id] = true; opts.push({id:r.author_id, name: r.author_name || r.author_id}); } });
+      // 열람 가능한 회의록의 작성자만 — 타 부서 작성자가 필터에 노출되지 않도록 (_canView 기준)
+      _state.rows.filter(_canView).forEach(function(r){ if (r.author_id && !seen[r.author_id]) { seen[r.author_id] = true; opts.push({id:r.author_id, name: r.author_name || r.author_id}); } });
       opts.sort(function(a,b){ return String(a.name).localeCompare(String(b.name), 'ko'); });
       var prevA = authSel.value;
       authSel.innerHTML = '<option value="">전체 작성자</option>' + opts.map(function(o){
@@ -19784,7 +19788,8 @@ window.__meeting = (function() {
     var filtered = _state.rows.filter(function(r){
       if (!_canView(r)) return false;
       if (fType && r.meeting_type !== fType) return false;
-      if (fDept && r.dept !== fDept) return false;
+      // '미디어큐브 전체' 회의록은 어느 부서 뷰에서도 표시
+      if (fDept && r.dept !== fDept && r.dept !== '미디어큐브 전체') return false;
       if (fAuth && r.author_id !== fAuth) return false;
       if (fFrom && (r.meeting_date || '') < fFrom) return false;
       if (fTo && (r.meeting_date || '') > fTo) return false;
@@ -19874,9 +19879,14 @@ window.__meeting = (function() {
     // 유형 관리 버튼: 관리자 + 지정 계정만 노출
     var typeBtn = document.getElementById('mtg-type-mgr-btn');
     if (typeBtn) typeBtn.style.display = _canManageTypes() ? '' : 'none';
-    // 부서 필터 셀렉트: 관리자·info·developer 만 노출 (부서 소속 사용자는 자기 부서만 보이므로 필터 불필요)
+    // 부서 필터 셀렉트: 항상 숨김 — 부서 전환은 진입 부서 선택 모달·사이드바 사업부 보기(setViewDept)가 담당
+    //   (DOM 은 유지: setViewDept·조회 모달이 값 세팅용으로 사용하는 단일 메커니즘)
     var deptFil = document.getElementById('mtg-fil-dept');
-    if (deptFil) deptFil.style.display = _isFullAccess() ? '' : 'none';
+    if (deptFil) deptFil.style.display = 'none';
+    // full-access(관리자·info·developer) 최초 진입: 조회할 부서 선택 모달
+    if (_isFullAccess() && deptFil && !deptFil.value) {
+      setTimeout(function(){ _openDeptChooser('view'); }, 60);
+    }
     _ensureOverlayInEmbed();
     if (document.body.classList.contains('dev-mode')) {
       // 카탈로그 뷰로 전환 + meeting-embed 서브클래스
@@ -20178,7 +20188,9 @@ window.__meeting = (function() {
   function _needDeptChoice() {
     return _allDepts().indexOf(_userDept()) === -1;
   }
-  function _openDeptChooser() {
+  var _deptChooseMode = 'form'; // 'form' = 신규 작성 부서 선택 · 'view' = 목록 조회 부서 선택
+  function _openDeptChooser(mode) {
+    _deptChooseMode = mode || 'form';
     var ov = document.getElementById('mtg-dept-choose-back');
     if (!ov) {
       ov = document.createElement('div');
@@ -20196,9 +20208,9 @@ window.__meeting = (function() {
       ov.innerHTML = ''
         + '<div style="background:#fff;border-radius:18px;box-shadow:0 32px 80px rgba(15,23,42,0.4);width:560px;max-width:96%;overflow:hidden">'
         +   '<div style="padding:20px 26px;background:linear-gradient(135deg,#0f172a,#2563eb);color:#fff;position:relative">'
-        +     '<div style="font-size:10.5px;font-weight:800;letter-spacing:1.8px;color:rgba(255,255,255,0.75)">NEW MINUTE</div>'
-        +     '<div style="font-size:18px;font-weight:800;margin-top:3px">회의록 작성</div>'
-        +     '<div style="font-size:12px;color:rgba(255,255,255,0.82);margin-top:3px">작성할 부서 양식을 선택하세요</div>'
+        +     '<div id="mtg-dept-choose-kicker" style="font-size:10.5px;font-weight:800;letter-spacing:1.8px;color:rgba(255,255,255,0.75)">NEW MINUTE</div>'
+        +     '<div id="mtg-dept-choose-title" style="font-size:18px;font-weight:800;margin-top:3px">회의록 작성</div>'
+        +     '<div id="mtg-dept-choose-sub" style="font-size:12px;color:rgba(255,255,255,0.82);margin-top:3px">작성할 부서 양식을 선택하세요</div>'
         +     '<button onclick="__meeting._closeDeptChooser()" style="position:absolute;top:16px;right:18px;width:30px;height:30px;border-radius:8px;border:none;background:rgba(255,255,255,0.16);color:#fff;font-size:17px;cursor:pointer">×</button>'
         +   '</div>'
         +   '<div style="padding:22px;display:grid;grid-template-columns:1fr 1fr;gap:14px;background:#fafbfc">'
@@ -20208,6 +20220,19 @@ window.__meeting = (function() {
         + '</div>';
       document.body.appendChild(ov);
     }
+    // mode 별 헤더 문구 (마크업은 공용)
+    var kEl = document.getElementById('mtg-dept-choose-kicker');
+    var tEl = document.getElementById('mtg-dept-choose-title');
+    var sEl = document.getElementById('mtg-dept-choose-sub');
+    if (_deptChooseMode === 'view') {
+      if (kEl) kEl.textContent = 'MEETING MINUTES';
+      if (tEl) tEl.textContent = '회의록 조회';
+      if (sEl) sEl.textContent = '조회할 부서를 선택하세요';
+    } else {
+      if (kEl) kEl.textContent = 'NEW MINUTE';
+      if (tEl) tEl.textContent = '회의록 작성';
+      if (sEl) sEl.textContent = '작성할 부서 양식을 선택하세요';
+    }
     ov.style.display = 'flex';
   }
   function _closeDeptChooser() {
@@ -20216,6 +20241,13 @@ window.__meeting = (function() {
   }
   function _pickFormDept(dept) {
     _closeDeptChooser();
+    if (_deptChooseMode === 'view') {
+      // 조회 모드: 부서 필터에 반영 후 목록 렌더 (setViewDept 와 동일 메커니즘)
+      var fil = document.getElementById('mtg-fil-dept');
+      if (fil) fil.value = dept;
+      render();
+      return;
+    }
     _state._chosenDept = dept;
     openForm();
   }
