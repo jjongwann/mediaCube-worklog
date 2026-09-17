@@ -17268,6 +17268,7 @@ window.__mq = (function(){
       selBar = '<div id="mq-select-bar" class="mq-select-bar" style="display:'+showBar+'">'
         + '<span>선택됨</span><span class="mq-sel-count">'+selCount+'</span>'
         + '<button type="button" class="mq-del-btn" onclick="window.__mq._deleteSelected()">선택 행 삭제</button>'
+        + '<button type="button" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe" onclick="window.__mq._addSongToSelected()">선택 곡 추가</button>'
         + '<button type="button" class="mq-clear-btn" onclick="window.__mq._clearSelection()">선택 해제</button>'
         + '</div>';
     }
@@ -17472,6 +17473,41 @@ window.__mq = (function(){
   function _clearSelection(){
     _state.selectedIdx.clear();
     _state._lastAnchor = null;
+    _renderForm();
+  }
+  // 선택 곡 추가 — 선택된 행이 속한 그룹(부모 NO)의 마지막 자식 뒤에 새 곡 행 삽입
+  //   그룹 경계 = _type:'group' 또는 번호에 '-' 없는 부모 행 (_computeNumbering 기준)
+  //   여러 그룹 선택 시 각 그룹에 1곡씩 · 로컬 _state.form 만 변경 (DB 는 저장 시 기존 직렬화)
+  function _addSongToSelected(){
+    var f = _state.form;
+    if (!f || !_state.selectedIdx.size) return;
+    var items = f.items || [];
+    var nums = _computeNumbering(items, f.doc_type);
+    var isBoundary = function(i){
+      return items[i] && (items[i]._type === 'group' || String((nums[i]||{}).label||'').indexOf('-') === -1);
+    };
+    var insertAfters = [], seenGroup = {};
+    Array.from(_state.selectedIdx).forEach(function(idx){
+      if (!items[idx]) return;
+      // 선택 행이 자식이면 위로 스캔해 그룹 시작(부모/그룹 행) 찾기
+      var start = idx;
+      while (start > 0 && !isBoundary(start)) start--;
+      if (seenGroup[start]) return;
+      seenGroup[start] = 1;
+      // 그룹 끝: 시작 이후 다음 경계 직전
+      var end = start;
+      for (var j = start + 1; j < items.length; j++) {
+        if (isBoundary(j)) break;
+        end = j;
+      }
+      insertAfters.push(end);
+    });
+    if (!insertAfters.length) return;
+    // 뒤에서부터 삽입 — 앞쪽 삽입으로 인한 인덱스 시프트 방지
+    insertAfters.sort(function(a, b){ return b - a; });
+    var key = _schemaKey(f.doc_type, f.sub_type);
+    insertAfters.forEach(function(pos){ items.splice(pos + 1, 0, _newItem(key)); });
+    _state.selectedIdx.clear();
     _renderForm();
   }
   function _deleteSelected(){
@@ -18856,7 +18892,7 @@ window.__mq = (function(){
     _setFilter: _setFilter, _clearFilter: _clearFilter,
     _setFormField: _setFormField, _setItemField: _setItemField,
     _addItem: _addItem, _addGroup: _addGroup, _addManySongs: _addManySongs, _setGroupLabel: _setGroupLabel, _removeItem: _removeItem, _copyTitleToFirstItem: _copyTitleToFirstItem,
-    _toggleRowSelect: _toggleRowSelect, _toggleAllSelect: _toggleAllSelect, _clearSelection: _clearSelection, _deleteSelected: _deleteSelected,
+    _toggleRowSelect: _toggleRowSelect, _toggleAllSelect: _toggleAllSelect, _clearSelection: _clearSelection, _deleteSelected: _deleteSelected, _addSongToSelected: _addSongToSelected,
     _onFileSelect: _onFileSelect, _removePendingFile: _removePendingFile, _removeExistingAttach: _removeExistingAttach,
     _save: _save, _deleteById: _deleteById,
     _openChooser: _openChooser, _closeChooser: _closeChooser, _chooserBack: _chooserBack,
