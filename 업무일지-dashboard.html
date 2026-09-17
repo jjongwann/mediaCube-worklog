@@ -20438,6 +20438,11 @@ window.__meeting = (function() {
 
   // 상세 본문 소절: 주간업무보고(마커) 레코드면 구조화 양식, 아니면 기존 4소절 (사운드·레거시 무변경)
   function _detailBodySections(r) {
+    // _renderDetailHtml 의 로컬 _plainBody 와 동일 구현 (스코프 밖이라 자체 정의 필수)
+    var _plainBody = function(v){
+      if (!v) return '<div class="mtg-detail-body empty">— 입력된 내용이 없습니다 —</div>';
+      return '<div class="mtg-detail-body">' + _esc(v) + '</div>';
+    };
     var o = _sysrptParse(r.content);
     if (!o) {
       return ''
