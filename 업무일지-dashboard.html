@@ -20654,7 +20654,8 @@ window.__meeting = (function() {
       +   '<div><div class="lbl">회의 장소</div><div class="val">' + esc(r.location || '—') + '</div></div>'
       +   '<div><div class="lbl">주관 부서</div><div class="val">' + esc(r.dept || '—') + '</div></div>'
       + '</div>'
-      + section('참석자 (' + attendees.length + '명)', attendeesHtml)
+      // 시스템 주간보고 인쇄에서는 참석자 섹션 미출력 (사용자 요청)
+      + (_sysrptParse(r.content) ? '' : section('참석자 (' + attendees.length + '명)', attendeesHtml))
       + (function(){
           // 주간업무보고(마커) 레코드: 종이 양식과 유사한 구조로 인쇄 · 아니면 기존 4소절 (사운드·레거시 무변경)
           var o = _sysrptParse(r.content);
