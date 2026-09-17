@@ -20643,17 +20643,19 @@ window.__meeting = (function() {
       // print refinements
       + '@media print{body{padding:0}header{margin-bottom:14px}.meta{border-color:#cbd5e1}.meta > div{background:#fff}}'
       + '</style></head><body>'
-      + '<header>'
-      +   '<div class="kicker">MEETING MINUTES</div>'
-      +   '<div class="chips"><span class="chip">' + esc(_typeLabel(r.meeting_type)) + '</span><span class="chip vis">' + esc(visLbl) + '</span></div>'
-      +   '<h1>' + esc(r.title || '무제') + '</h1>'
-      +   '<div class="sub">작성자 · <strong>' + esc(r.author_name || '-') + '</strong>  ·  작성일 ' + _fmtDate((r.created_at||'').slice(0,10)) + '</div>'
-      + '</header>'
-      + '<div class="meta">'
-      +   '<div><div class="lbl">회의 일시</div><div class="val">' + esc(dateStr) + '</div></div>'
-      +   '<div><div class="lbl">회의 장소</div><div class="val">' + esc(r.location || '—') + '</div></div>'
-      +   '<div><div class="lbl">주관 부서</div><div class="val">' + esc(r.dept || '—') + '</div></div>'
-      + '</div>'
+      // 시스템 주간보고 인쇄: 상단 헤더(제목/작성자)·메타(일시/장소/부서) 미출력 — 주간보고 틀만 (사용자 요청)
+      + (_sysrptParse(r.content) ? '' : (''
+        + '<header>'
+        +   '<div class="kicker">MEETING MINUTES</div>'
+        +   '<div class="chips"><span class="chip">' + esc(_typeLabel(r.meeting_type)) + '</span><span class="chip vis">' + esc(visLbl) + '</span></div>'
+        +   '<h1>' + esc(r.title || '무제') + '</h1>'
+        +   '<div class="sub">작성자 · <strong>' + esc(r.author_name || '-') + '</strong>  ·  작성일 ' + _fmtDate((r.created_at||'').slice(0,10)) + '</div>'
+        + '</header>'
+        + '<div class="meta">'
+        +   '<div><div class="lbl">회의 일시</div><div class="val">' + esc(dateStr) + '</div></div>'
+        +   '<div><div class="lbl">회의 장소</div><div class="val">' + esc(r.location || '—') + '</div></div>'
+        +   '<div><div class="lbl">주관 부서</div><div class="val">' + esc(r.dept || '—') + '</div></div>'
+        + '</div>'))
       // 시스템 주간보고 인쇄에서는 참석자 섹션 미출력 (사용자 요청)
       + (_sysrptParse(r.content) ? '' : section('참석자 (' + attendees.length + '명)', attendeesHtml))
       + (function(){
@@ -20673,11 +20675,11 @@ window.__meeting = (function() {
           var lblCell = function(t){ return '<div style="background:#e0f2fe;display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;font-weight:800;color:#075985;border-right:1px solid #cbd5e1;padding:8px 4px;line-height:1.4">' + t + '</div>'; };
           var row = function(cols, inner, last){ return '<div style="display:grid;grid-template-columns:' + cols + (last ? '' : ';border-bottom:1px solid #cbd5e1') + '">' + inner + '</div>'; };
           return ''
-            + '<div style="border:2px solid #334155;border-radius:10px;overflow:hidden;background:#fff;page-break-inside:auto;margin-top:4px">'
+            + '<div style="border:2px solid #334155;background:#fff;page-break-inside:auto;margin-top:4px">'
             +   '<div style="text-align:center;font-size:16px;font-weight:800;letter-spacing:7px;color:#0f172a;padding:14px 8px;border-bottom:2px solid #334155">주 간 업 무 보 고 / 계 획</div>'
-            +   row('92px 1fr 92px 1fr',
+            +   row('92px 1fr 110px 1fr',
                   lblCell('지시 사항') + '<div style="border-right:1px solid #cbd5e1">' + cell(o.directives, 52) + '</div>'
-                + lblCell('업무 협조<br>사항') + '<div>' + cell(o.coop, 52) + '</div>')
+                + lblCell('<span style="white-space:nowrap">업무 협조 사항</span>') + '<div>' + cell(o.coop, 52) + '</div>')
             +   row('1fr 1fr', hd2('지난주 보고 사항') + hd2('금주 주요 업무', 1))
             +   row('1fr 1fr',
                   '<div style="border-right:1px solid #cbd5e1;padding:4px 0 16px">'
