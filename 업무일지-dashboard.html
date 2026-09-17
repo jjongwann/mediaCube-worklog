@@ -18924,7 +18924,7 @@ function closeMusicQuotePanel(){ window.__mq.closePanel(); }
       <input type="date" id="mtg-fil-from" onchange="__meeting.render()" style="padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#374151;outline:none;font-family:inherit;background:#fff" title="시작일">
       <span style="color:#94a3b8;font-size:12px">~</span>
       <input type="date" id="mtg-fil-to" onchange="__meeting.render()" style="padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#374151;outline:none;font-family:inherit;background:#fff" title="종료일">
-      <button onclick="__meeting.clearFilters()" title="필터 초기화" style="display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:11.5px;color:#475569;background:#f8fafc;cursor:pointer;font-weight:700;font-family:inherit;transition:background .12s,border-color .12s,color .12s" onmouseover="this.style.background='#eef2ff';this.style.borderColor='#c7d2fe';this.style.color='#4338ca'" onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e2e8f0';this.style.color='#475569'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 10 9 10"/></svg><span>필터 초기화</span></button>
+      <button onclick="__meeting.clearFilters()" title="필터 초기화" style="display:none;align-items:center;gap:5px;padding:7px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:11.5px;color:#475569;background:#f8fafc;cursor:pointer;font-weight:700;font-family:inherit;transition:background .12s,border-color .12s,color .12s" onmouseover="this.style.background='#eef2ff';this.style.borderColor='#c7d2fe';this.style.color='#4338ca'" onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e2e8f0';this.style.color='#475569'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 10 9 10"/></svg><span>필터 초기화</span></button>
     </div>
     <!-- 리스트 컨테이너 -->
     <div id="mtg-list-wrap" style="flex:1;overflow-y:auto;padding:14px 22px 22px;background:#fff">
@@ -19740,19 +19740,8 @@ window.__meeting = (function() {
       }).join('');
       deptFil.value = prevD;
     }
-    // 작성자 필터: 회의록 rows 안의 unique author
-    var authSel = document.getElementById('mtg-fil-author');
-    if (authSel) {
-      var seen = {}, opts = [];
-      // 열람 가능한 회의록의 작성자만 — 타 부서 작성자가 필터에 노출되지 않도록 (_canView 기준)
-      _state.rows.filter(_canView).forEach(function(r){ if (r.author_id && !seen[r.author_id]) { seen[r.author_id] = true; opts.push({id:r.author_id, name: r.author_name || r.author_id}); } });
-      opts.sort(function(a,b){ return String(a.name).localeCompare(String(b.name), 'ko'); });
-      var prevA = authSel.value;
-      authSel.innerHTML = '<option value="">전체 작성자</option>' + opts.map(function(o){
-        return '<option value="' + _esc(o.id) + '">' + _esc(o.name) + '</option>';
-      }).join('');
-      authSel.value = prevA;
-    }
+    // 작성자 필터: 현재 부서 뷰 기준 (별도 함수 — 부서 전환·render 시에도 갱신)
+    _refreshAuthorFilter();
     // 폼 유형 셀렉트
     var fSel = document.getElementById('mtg-f-type');
     if (fSel) {
@@ -19774,9 +19763,30 @@ window.__meeting = (function() {
     return t ? t.label : (key || '-');
   }
 
+  // 작성자 필터 옵션 — 현재 부서 뷰(mtg-fil-dept)에서 실제 열람되는 회의록의 작성자만
+  //   (full-access 계정도 부서 뷰로 갈린 상태에선 그 부서 작성자만 노출)
+  function _refreshAuthorFilter() {
+    var authSel = document.getElementById('mtg-fil-author');
+    if (!authSel) return;
+    var fD = (document.getElementById('mtg-fil-dept') || {}).value || '';
+    var seen = {}, opts = [];
+    _state.rows.filter(_canView).forEach(function(r){
+      if (fD && r.dept !== fD && r.dept !== '미디어큐브 전체') return;
+      if (r.author_id && !seen[r.author_id]) { seen[r.author_id] = true; opts.push({id:r.author_id, name: r.author_name || r.author_id}); }
+    });
+    opts.sort(function(a,b){ return String(a.name).localeCompare(String(b.name), 'ko'); });
+    var prevA = authSel.value;
+    authSel.innerHTML = '<option value="">전체 작성자</option>' + opts.map(function(o){
+      return '<option value="' + _esc(o.id) + '">' + _esc(o.name) + '</option>';
+    }).join('');
+    authSel.value = prevA;
+  }
+
   function render() {
     var listEl = document.getElementById('mtg-list');
     if (!listEl) return;
+    // 부서 전환(모달·setViewDept)이 render 만 호출하므로 작성자 옵션도 여기서 항상 동기화
+    _refreshAuthorFilter();
     var q = (document.getElementById('mtg-search') || {}).value || '';
     q = q.trim().toLowerCase();
     var fType = (document.getElementById('mtg-fil-type') || {}).value || '';
@@ -19883,8 +19893,9 @@ window.__meeting = (function() {
     //   (DOM 은 유지: setViewDept·조회 모달이 값 세팅용으로 사용하는 단일 메커니즘)
     var deptFil = document.getElementById('mtg-fil-dept');
     if (deptFil) deptFil.style.display = 'none';
-    // full-access(관리자·info·developer) 최초 진입: 조회할 부서 선택 모달
-    if (_isFullAccess() && deptFil && !deptFil.value) {
+    // full-access(관리자·info·developer): 패널 진입 시마다 조회 부서 선택 모달
+    //   (진입 후 다른 부서로 전환하는 수단 — X 로 닫으면 기존 부서 뷰 유지)
+    if (_isFullAccess()) {
       setTimeout(function(){ _openDeptChooser('view'); }, 60);
     }
     _ensureOverlayInEmbed();
