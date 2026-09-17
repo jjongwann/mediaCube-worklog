@@ -20665,35 +20665,36 @@ window.__meeting = (function() {
               + section('참고사항', plainBody(r.notes));
           }
           var lw = o.lastWeek || {};
-          // 조회 페이지와 동일한 프레임 구조 (인쇄 popup 자기완결 — 전부 인라인 스타일) · 한 페이지 지향 컴팩트 사이즈
-          var cell = function(v, pad){ return '<div style="padding:' + (pad || '5px 10px') + ';font-size:10.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;color:' + (v ? '#1f2937' : '#cbd5e1') + ';min-height:18px">' + (v ? esc(v).replace(/\n/g,'<br>') : '—') + '</div>'; };
-          var tag = function(t){ return '<div style="padding:0 10px"><span style="display:inline-block;padding:2px 8px;background:#e2efda;border:1px solid #c6e0b4;border-radius:4px;font-size:9.5px;font-weight:800;color:#375623;margin:5px 0 2px">' + esc(t) + '</span></div>'; };
-          var hd2 = function(t, right){ return '<div style="background:#ededed;text-align:center;font-size:10.5px;font-weight:800;color:#1f2937;padding:6px 8px;letter-spacing:0.5px' + (right ? '' : ';border-right:1px solid #cbd5e1') + '">' + esc(t) + '</div>'; };
-          var lblCell = function(t){ return '<div style="background:#e2efda;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9.5px;font-weight:800;color:#375623;border-right:1px solid #cbd5e1;padding:5px 4px;line-height:1.35">' + t + '</div>'; };
+          // 조회 페이지와 동일한 프레임 구조 (인쇄 popup 자기완결 — 전부 인라인 스타일) · 섹션별 여유 있는 세로 공간
+          var cell = function(v, minH){ return '<div style="padding:9px 12px;font-size:11px;line-height:1.7;white-space:pre-wrap;word-break:break-word;color:' + (v ? '#1f2937' : '#cbd5e1') + ';min-height:' + (minH || 40) + 'px">' + (v ? esc(v).replace(/\n/g,'<br>') : '—') + '</div>'; };
+          var tag = function(t){ return '<div style="padding:0 12px"><span style="display:inline-block;padding:3px 10px;background:#e2efda;border:1px solid #c6e0b4;border-radius:4px;font-size:10px;font-weight:800;color:#375623;margin:10px 0 3px">' + esc(t) + '</span></div>'; };
+          var hd2 = function(t, right){ return '<div style="background:#ededed;text-align:center;font-size:11px;font-weight:800;color:#1f2937;padding:9px 8px;letter-spacing:0.5px' + (right ? '' : ';border-right:1px solid #cbd5e1') + '">' + esc(t) + '</div>'; };
+          var lblCell = function(t){ return '<div style="background:#e2efda;display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;font-weight:800;color:#375623;border-right:1px solid #cbd5e1;padding:8px 4px;line-height:1.4">' + t + '</div>'; };
           var row = function(cols, inner, last){ return '<div style="display:grid;grid-template-columns:' + cols + (last ? '' : ';border-bottom:1px solid #cbd5e1') + '">' + inner + '</div>'; };
           return ''
-            + '<div style="border:2px solid #334155;border-radius:10px;overflow:hidden;background:#fff;page-break-inside:auto;margin-top:2px">'
-            +   '<div style="text-align:center;font-size:15px;font-weight:800;letter-spacing:6px;color:#0f172a;padding:9px 8px;border-bottom:2px solid #334155">주 간 업 무 보 고 / 계 획</div>'
-            +   row('84px 1fr 84px 1fr',
-                  lblCell('지시 사항') + '<div style="border-right:1px solid #cbd5e1">' + cell(o.directives) + '</div>'
-                + lblCell('업무 협조<br>사항') + '<div>' + cell(o.coop) + '</div>')
+            + '<div style="border:2px solid #334155;border-radius:10px;overflow:hidden;background:#fff;page-break-inside:auto;margin-top:4px">'
+            +   '<div style="text-align:center;font-size:16px;font-weight:800;letter-spacing:7px;color:#0f172a;padding:14px 8px;border-bottom:2px solid #334155">주 간 업 무 보 고 / 계 획</div>'
+            +   row('92px 1fr 92px 1fr',
+                  lblCell('지시 사항') + '<div style="border-right:1px solid #cbd5e1">' + cell(o.directives, 52) + '</div>'
+                + lblCell('업무 협조<br>사항') + '<div>' + cell(o.coop, 52) + '</div>')
             +   row('1fr 1fr', hd2('지난주 보고 사항') + hd2('금주 주요 업무', 1))
             +   row('1fr 1fr',
-                  '<div style="border-right:1px solid #cbd5e1;padding:2px 0 8px">'
+                  '<div style="border-right:1px solid #cbd5e1;padding:4px 0 16px">'
                 +   tag('지상파') + cell(lw.jisang) + tag('PP') + cell(lw.pp) + tag('SI') + cell(lw.si)
                 +   tag('NO/SO') + cell(lw.noso) + tag('기타') + cell(lw.etc)
                 + '</div>'
-                + '<div style="padding:2px 0 8px">'
-                +   tag('금주 업무 및 방문 고객사') + cell(o.thisWeek)
-                +   tag('차주 방문 고객사') + cell(o.nextWeekVisit)
+                + '<div style="padding:4px 0 16px">'
+                +   tag('금주 업무 및 방문 고객사') + cell(o.thisWeek, 220)
+                +   tag('차주 방문 고객사') + cell(o.nextWeekVisit, 70)
                 + '</div>')
             +   row('1fr', hd2('프로젝트 진행 현황', 1))
-            +   row('1fr', '<div>' + cell(o.projects) + '</div>')
+            +   row('1fr', '<div>' + cell(o.projects, 64) + '</div>')
             +   row('1fr', hd2('미결사항', 1))
-            +   row('1fr', '<div>' + cell(o.pending) + '</div>', 1)
+            +   row('1fr', '<div>' + cell(o.pending, 64) + '</div>', 1)
             + '</div>';
         })()
-      + section('첨부파일', filesHtml)
+      // 시스템 주간보고 인쇄에서는 첨부파일 섹션 미출력 (사용자 요청)
+      + (_sysrptParse(r.content) ? '' : section('첨부파일', filesHtml))
       + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});window.addEventListener("afterprint",function(){window.close();});<\/script>'
       + '</body></html>';
 
