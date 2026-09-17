@@ -20669,10 +20669,12 @@ window.__board = (function(){
     { key:'notice',  label:'공지사항',  color:'#dc2626', bg:'#fef2f2', border:'#fecaca' },
     { key:'work',    label:'업무 공유', color:'#2563eb', bg:'#eff6ff', border:'#bfdbfe' },
     { key:'file',    label:'자료 공유', color:'#16a34a', bg:'#f0fdf4', border:'#bbf7d0' },
-    { key:'free',    label:'자유게시판', color:'#7c3aed', bg:'#f5f3ff', border:'#ddd6fe' },
-    { key:'suggest', label:'건의사항',  color:'#f59e0b', bg:'#fffbeb', border:'#fde68a' }
+    // hidden: 필터 탭·작성 드롭다운에서 숨김 (사용자 요청) — CAT_MAP 에는 유지되어 기존 글 뱃지는 정상 표시
+    { key:'free',    label:'자유게시판', color:'#7c3aed', bg:'#f5f3ff', border:'#ddd6fe', hidden:1 },
+    { key:'suggest', label:'건의사항',  color:'#f59e0b', bg:'#fffbeb', border:'#fde68a', hidden:1 }
   ];
   var CAT_MAP = {}; CATS.forEach(function(c){ CAT_MAP[c.key]=c; });
+  var VISIBLE_CATS = CATS.filter(function(c){ return !c.hidden; });
 
   var PAGE_SIZE = 15;
 
@@ -20792,7 +20794,7 @@ window.__board = (function(){
 
     // 상단 툴바 (카테고리 chip + 검색 + 작성 버튼)
     var catChips = '<button type="button" onclick="__board.setCat(\'\')" style="padding:6px 12px;border-radius:14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:1px solid '+(_state.filterCat===''?'#0ea5e9':'#e2e8f0')+';background:'+(_state.filterCat===''?'#0ea5e9':'#fff')+';color:'+(_state.filterCat===''?'#fff':'#475569')+'">전체</button>';
-    CATS.forEach(function(c){
+    VISIBLE_CATS.forEach(function(c){
       var active = _state.filterCat === c.key;
       catChips += '<button type="button" onclick="__board.setCat(\''+c.key+'\')" style="padding:6px 12px;border-radius:14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border:1px solid '+(active?c.color:'#e2e8f0')+';background:'+(active?c.color:'#fff')+';color:'+(active?'#fff':'#475569')+'">'+c.label+'</button>';
     });
@@ -20825,7 +20827,9 @@ window.__board = (function(){
     _state.formAttachments = editing && Array.isArray(editing.attachments) ? editing.attachments.slice() : [];
 
     var isAdmin = _isAdminUser();
-    var catOpts = CATS.map(function(c){ return '<option value="'+c.key+'"'+(initCat===c.key?' selected':'')+'>'+c.label+'</option>'; }).join('');
+    // 숨김 카테고리는 드롭다운에서 제외 — 단, 기존 글 수정 시 그 글의 숨김 카테고리는 예외 포함 (카테고리 의도치 않은 변경 방지)
+    var catOpts = CATS.filter(function(c){ return !c.hidden || c.key === initCat; })
+      .map(function(c){ return '<option value="'+c.key+'"'+(initCat===c.key?' selected':'')+'>'+c.label+'</option>'; }).join('');
 
     // 부서·직원 옵션 (visibility=dept/user 시)
     // 관리자(mediacube · 미디어큐브 부서) 는 항상 전 게시글 조회 가능하므로 목록에서 제외
