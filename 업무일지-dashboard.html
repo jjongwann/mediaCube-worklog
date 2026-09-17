@@ -17245,7 +17245,7 @@ window.__mq = (function(){
         addBtns = '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'
           + '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addGroup()" style="background:#eff6ff;color:#2066ff;border-color:#bfdbfe"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 프로젝트 추가</button>'
           + '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addItem()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 곡 추가</button>'
-          + '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addManySongs(30)" style="background:#fef3c7;color:#a16207;border-color:#fde68a"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 곡 30개 추가</button>'
+          + '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addManySongs(10)" style="background:#fef3c7;color:#a16207;border-color:#fde68a"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 곡 10개 추가</button>'
         + '</div>';
       } else {
         // annual 은 프로젝트 그룹핑 지원, invoice(거래명세서) 는 미지원
@@ -17256,7 +17256,7 @@ window.__mq = (function(){
         addBtns = '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'
           + annualProjectBtn
           + '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addItem()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 행 추가</button>'
-          + '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addManySongs(30)" style="background:#fef3c7;color:#a16207;border-color:#fde68a"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 행 30개 추가</button>'
+          + '<button type="button" class="mq-item-add-btn" onclick="window.__mq._addManySongs(10)" style="background:#fef3c7;color:#a16207;border-color:#fde68a"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 행 10개 추가</button>'
         + '</div>';
       }
     }
@@ -17269,6 +17269,7 @@ window.__mq = (function(){
         + '<span>선택됨</span><span class="mq-sel-count">'+selCount+'</span>'
         + '<button type="button" class="mq-del-btn" onclick="window.__mq._deleteSelected()">선택 행 삭제</button>'
         + '<button type="button" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe" onclick="window.__mq._addSongToSelected()">선택 곡 추가</button>'
+        + '<button type="button" style="background:#fef3c7;color:#a16207;border:1px solid #fde68a" onclick="window.__mq._addSongToSelected(10)">+ 곡 10개 추가</button>'
         + '<button type="button" class="mq-clear-btn" onclick="window.__mq._clearSelection()">선택 해제</button>'
         + '</div>';
     }
@@ -17407,6 +17408,8 @@ window.__mq = (function(){
   }
   function _addManySongs(n){
     if (!_state.form) return;
+    // 대번호(그룹) 선택 상태면 해당 그룹 끝에 n개 삽입 · 선택 없으면 기존처럼 맨 끝 n개
+    if (_state.selectedIdx.size) { _addSongToSelected(n); return; }
     var key = _schemaKey(_state.form.doc_type, _state.form.sub_type);
     for (var i=0; i<n; i++) _state.form.items.push(_newItem(key));
     _renderForm();
@@ -17480,7 +17483,7 @@ window.__mq = (function(){
   // 선택 곡 추가 — 선택된 행이 속한 그룹(부모 NO)의 마지막 자식 뒤에 새 곡 행 삽입
   //   그룹 경계 = _type:'group' 또는 번호에 '-' 없는 부모 행 (_computeNumbering 기준)
   //   여러 그룹 선택 시 각 그룹에 1곡씩 · 로컬 _state.form 만 변경 (DB 는 저장 시 기존 직렬화)
-  function _addSongToSelected(){
+  function _addSongToSelected(count){
     var f = _state.form;
     if (!f || !_state.selectedIdx.size) return;
     var items = f.items || [];
@@ -17507,8 +17510,13 @@ window.__mq = (function(){
     if (!insertAfters.length) return;
     // 뒤에서부터 삽입 — 앞쪽 삽입으로 인한 인덱스 시프트 방지
     insertAfters.sort(function(a, b){ return b - a; });
+    var n = Math.max(1, parseInt(count, 10) || 1);
     var key = _schemaKey(f.doc_type, f.sub_type);
-    insertAfters.forEach(function(pos){ items.splice(pos + 1, 0, _newItem(key)); });
+    insertAfters.forEach(function(pos){
+      var newRows = [];
+      for (var c = 0; c < n; c++) newRows.push(_newItem(key));
+      items.splice.apply(items, [pos + 1, 0].concat(newRows));
+    });
     _state.selectedIdx.clear();
     _renderForm();
   }
