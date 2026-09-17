@@ -19030,49 +19030,43 @@ function closeMusicQuotePanel(){ window.__mq.closePanel(); }
         <!-- ══ 시스템 사업부 전용: 주간업무보고/계획 구조 폼 (dept='시스템 사업부' 선택 시 표시) ══ -->
         <div id="mtg-f-sysrpt" style="display:none">
           <div class="mtg-detail-section">
-            <div style="text-align:center;font-size:16px;font-weight:800;letter-spacing:6px;color:#0f172a;padding:4px 0 12px">주간업무보고 / 계획</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-              <div>
-                <div class="mtg-sys-lbl">지시 사항</div>
-                <textarea id="mtg-sys-directives" rows="2" class="mtg-input" placeholder="지시 사항" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
+            <div class="mtg-sys-frame">
+              <div class="mtg-sys-title">주 간 업 무 보 고 / 계 획</div>
+              <div class="mtg-sys-row" style="grid-template-columns:96px 1fr 96px 1fr">
+                <div class="mtg-sys-cell-lbl">지시 사항</div>
+                <div class="mtg-sys-cell mtg-sys-cell-div"><textarea id="mtg-sys-directives" rows="2" class="mtg-sys-ta" placeholder="지시 사항"></textarea></div>
+                <div class="mtg-sys-cell-lbl">업무 협조<br>사항</div>
+                <div class="mtg-sys-cell"><textarea id="mtg-sys-coop" rows="2" class="mtg-sys-ta" placeholder="업무 협조 사항"></textarea></div>
               </div>
-              <div>
-                <div class="mtg-sys-lbl">업무 협조 사항</div>
-                <textarea id="mtg-sys-coop" rows="2" class="mtg-input" placeholder="업무 협조 사항" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
+              <div class="mtg-sys-row" style="grid-template-columns:1fr 1fr">
+                <div class="mtg-sys-hd2 mtg-sys-cell-div">지난주 보고 사항</div>
+                <div class="mtg-sys-hd2">금주 주요 업무</div>
               </div>
+              <div class="mtg-sys-row" style="grid-template-columns:1fr 1fr">
+                <div class="mtg-sys-col mtg-sys-cell-div">
+                  <div><span class="mtg-sys-tag">지상파</span></div>
+                  <textarea id="mtg-sys-lw-jisang" rows="3" class="mtg-sys-ta" placeholder="지상파 관련 보고"></textarea>
+                  <div><span class="mtg-sys-tag">PP</span></div>
+                  <textarea id="mtg-sys-lw-pp" rows="3" class="mtg-sys-ta" placeholder="PP 관련 보고"></textarea>
+                  <div><span class="mtg-sys-tag">SI</span></div>
+                  <textarea id="mtg-sys-lw-si" rows="3" class="mtg-sys-ta" placeholder="SI 관련 보고"></textarea>
+                  <div><span class="mtg-sys-tag">NO/SO</span></div>
+                  <textarea id="mtg-sys-lw-noso" rows="3" class="mtg-sys-ta" placeholder="NO/SO 관련 보고"></textarea>
+                  <div><span class="mtg-sys-tag">기타</span></div>
+                  <textarea id="mtg-sys-lw-etc" rows="3" class="mtg-sys-ta" placeholder="기타 보고"></textarea>
+                </div>
+                <div class="mtg-sys-col">
+                  <div><span class="mtg-sys-tag">금주 업무 및 방문 고객사</span></div>
+                  <textarea id="mtg-sys-tw-main" rows="14" class="mtg-sys-ta" placeholder="금주 업무 및 방문 고객사"></textarea>
+                  <div><span class="mtg-sys-tag">차주 방문 고객사</span></div>
+                  <textarea id="mtg-sys-tw-next" rows="6" class="mtg-sys-ta" placeholder="차주 방문 고객사"></textarea>
+                </div>
+              </div>
+              <div class="mtg-sys-row" style="grid-template-columns:1fr"><div class="mtg-sys-hd2">프로젝트 진행 현황</div></div>
+              <div class="mtg-sys-row" style="grid-template-columns:1fr"><div class="mtg-sys-cell" style="padding:10px 12px"><textarea id="mtg-sys-projects" rows="3" class="mtg-sys-ta" placeholder="프로젝트 진행 현황"></textarea></div></div>
+              <div class="mtg-sys-row" style="grid-template-columns:1fr"><div class="mtg-sys-hd2">미결사항</div></div>
+              <div class="mtg-sys-row" style="grid-template-columns:1fr"><div class="mtg-sys-cell" style="padding:10px 12px"><textarea id="mtg-sys-pending" rows="3" class="mtg-sys-ta" placeholder="미결사항"></textarea></div></div>
             </div>
-          </div>
-          <div class="mtg-detail-section">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-              <div>
-                <div class="mtg-sys-hd">지난주 보고 사항</div>
-                <div class="mtg-sys-lbl">지상파</div>
-                <textarea id="mtg-sys-lw-jisang" rows="3" class="mtg-input" placeholder="지상파 관련 보고" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
-                <div class="mtg-sys-lbl" style="margin-top:8px">PP</div>
-                <textarea id="mtg-sys-lw-pp" rows="3" class="mtg-input" placeholder="PP 관련 보고" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
-                <div class="mtg-sys-lbl" style="margin-top:8px">SI</div>
-                <textarea id="mtg-sys-lw-si" rows="3" class="mtg-input" placeholder="SI 관련 보고" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
-                <div class="mtg-sys-lbl" style="margin-top:8px">NO/SO</div>
-                <textarea id="mtg-sys-lw-noso" rows="3" class="mtg-input" placeholder="NO/SO 관련 보고" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
-                <div class="mtg-sys-lbl" style="margin-top:8px">기타</div>
-                <textarea id="mtg-sys-lw-etc" rows="3" class="mtg-input" placeholder="기타 보고" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
-              </div>
-              <div>
-                <div class="mtg-sys-hd">금주 주요 업무</div>
-                <div class="mtg-sys-lbl">금주 업무 및 방문 고객사</div>
-                <textarea id="mtg-sys-tw-main" rows="10" class="mtg-input" placeholder="금주 업무 및 방문 고객사" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
-                <div class="mtg-sys-lbl" style="margin-top:8px">차주 방문 고객사</div>
-                <textarea id="mtg-sys-tw-next" rows="5" class="mtg-input" placeholder="차주 방문 고객사" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
-              </div>
-            </div>
-          </div>
-          <div class="mtg-detail-section">
-            <div class="mtg-sys-hd">프로젝트 진행 현황</div>
-            <textarea id="mtg-sys-projects" rows="3" class="mtg-input" placeholder="프로젝트 진행 현황" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
-          </div>
-          <div class="mtg-detail-section">
-            <div class="mtg-sys-hd">미결사항</div>
-            <textarea id="mtg-sys-pending" rows="3" class="mtg-input" placeholder="미결사항" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
           </div>
         </div>
 
@@ -19428,9 +19422,21 @@ function closeMusicQuotePanel(){ window.__mq.closePanel(); }
   .mtg-detail-btn.edit:hover { background: #1a52d0; }
   .mtg-detail-btn.del { background: #fff; color: #dc2626; border: 1px solid #fecaca; }
   .mtg-detail-btn.del:hover { background: #fef2f2; }
-  /* 시스템 사업부 주간업무보고 폼/상세 — 종이 양식의 연녹색 라벨 · 회색 섹션 헤더 */
-  .mtg-sys-lbl { display:inline-block; padding:4px 10px; background:#e2efda; border:1px solid #c6e0b4; border-radius:5px; font-size:11.5px; font-weight:800; color:#375623; margin-bottom:5px; }
-  .mtg-sys-hd { padding:6px 12px; background:#ededed; border:1px solid #d9d9d9; border-radius:5px; font-size:12.5px; font-weight:800; color:#1f2937; margin-bottom:8px; text-align:center; letter-spacing:0.5px; }
+  /* 시스템 사업부 주간업무보고 폼/상세 — 종이 양식 재현: 외곽 프레임 + 셀 구분선 + 연녹색 라벨 + 회색 섹션 헤더 */
+  .mtg-sys-frame { border:2px solid #334155; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 8px rgba(15,23,42,0.06); }
+  .mtg-sys-title { text-align:center; font-size:18px; font-weight:800; letter-spacing:7px; color:#0f172a; padding:16px 10px; border-bottom:2px solid #334155; background:#fff; }
+  .mtg-sys-row { display:grid; border-bottom:1px solid #cbd5e1; }
+  .mtg-sys-row:last-child { border-bottom:none; }
+  .mtg-sys-cell-lbl { background:#e2efda; display:flex; align-items:center; justify-content:center; text-align:center; font-size:11.5px; font-weight:800; color:#375623; border-right:1px solid #cbd5e1; padding:8px 6px; line-height:1.4; }
+  .mtg-sys-cell { padding:6px 10px; }
+  .mtg-sys-cell-div { border-right:1px solid #cbd5e1; }
+  .mtg-sys-hd2 { background:#ededed; text-align:center; font-size:12.5px; font-weight:800; color:#1f2937; padding:9px 10px; letter-spacing:0.5px; }
+  .mtg-sys-col { padding:6px 12px 12px; }
+  .mtg-sys-tag { display:inline-block; padding:3px 10px; background:#e2efda; border:1px solid #c6e0b4; border-radius:5px; font-size:11px; font-weight:800; color:#375623; margin:8px 0 5px; }
+  .mtg-sys-ta { width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:7px; outline:none; font-family:inherit; font-size:12.5px; line-height:1.6; padding:7px 9px; background:#fafbfc; resize:vertical; transition:border-color .12s; }
+  .mtg-sys-ta:focus { border-color:#2563eb; background:#fff; }
+  .mtg-sys-body { padding:8px 12px; font-size:13px; line-height:1.7; white-space:pre-wrap; color:#1f2937; min-height:34px; }
+  .mtg-sys-body .empty { color:#cbd5e1; }
 </style>
 
 <script>
@@ -20520,30 +20526,39 @@ window.__meeting = (function() {
     }
     var lw = o.lastWeek || {};
     var body = function(v){
-      return v ? '<div class="mtg-detail-body" style="white-space:pre-wrap">' + _esc(v) + '</div>'
-               : '<div class="mtg-detail-body empty">—</div>';
+      return '<div class="mtg-sys-body">' + (v ? _esc(v) : '<span class="empty">—</span>') + '</div>';
     };
-    var sub = function(lbl, v){ return '<div class="mtg-sys-lbl" style="margin-top:8px">' + _esc(lbl) + '</div>' + body(v); };
+    var tag = function(t){ return '<div style="padding:0 12px"><span class="mtg-sys-tag">' + _esc(t) + '</span></div>'; };
     return ''
       + '<div class="mtg-detail-section">'
-      +   '<div style="text-align:center;font-size:17px;font-weight:800;letter-spacing:6px;color:#0f172a;padding:2px 0 12px">주간업무보고 / 계획</div>'
-      +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
-      +     '<div><div class="mtg-sys-lbl">지시 사항</div>' + body(o.directives) + '</div>'
-      +     '<div><div class="mtg-sys-lbl">업무 협조 사항</div>' + body(o.coop) + '</div>'
+      + '<div class="mtg-sys-frame">'
+      +   '<div class="mtg-sys-title">주 간 업 무 보 고 / 계 획</div>'
+      +   '<div class="mtg-sys-row" style="grid-template-columns:96px 1fr 96px 1fr">'
+      +     '<div class="mtg-sys-cell-lbl">지시 사항</div>'
+      +     '<div class="mtg-sys-cell-div">' + body(o.directives) + '</div>'
+      +     '<div class="mtg-sys-cell-lbl">업무 협조<br>사항</div>'
+      +     '<div>' + body(o.coop) + '</div>'
       +   '</div>'
-      + '</div>'
-      + '<div class="mtg-detail-section">'
-      +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">'
-      +     '<div><div class="mtg-sys-hd">지난주 보고 사항</div>'
-      +       sub('지상파', lw.jisang) + sub('PP', lw.pp) + sub('SI', lw.si) + sub('NO/SO', lw.noso) + sub('기타', lw.etc)
+      +   '<div class="mtg-sys-row" style="grid-template-columns:1fr 1fr">'
+      +     '<div class="mtg-sys-hd2 mtg-sys-cell-div">지난주 보고 사항</div>'
+      +     '<div class="mtg-sys-hd2">금주 주요 업무</div>'
+      +   '</div>'
+      +   '<div class="mtg-sys-row" style="grid-template-columns:1fr 1fr">'
+      +     '<div class="mtg-sys-cell-div" style="padding:4px 0 12px">'
+      +       tag('지상파') + body(lw.jisang) + tag('PP') + body(lw.pp) + tag('SI') + body(lw.si)
+      +       tag('NO/SO') + body(lw.noso) + tag('기타') + body(lw.etc)
       +     '</div>'
-      +     '<div><div class="mtg-sys-hd">금주 주요 업무</div>'
-      +       sub('금주 업무 및 방문 고객사', o.thisWeek) + sub('차주 방문 고객사', o.nextWeekVisit)
+      +     '<div style="padding:4px 0 12px">'
+      +       tag('금주 업무 및 방문 고객사') + body(o.thisWeek)
+      +       tag('차주 방문 고객사') + body(o.nextWeekVisit)
       +     '</div>'
       +   '</div>'
+      +   '<div class="mtg-sys-row" style="grid-template-columns:1fr"><div class="mtg-sys-hd2">프로젝트 진행 현황</div></div>'
+      +   '<div class="mtg-sys-row" style="grid-template-columns:1fr"><div>' + body(o.projects) + '</div></div>'
+      +   '<div class="mtg-sys-row" style="grid-template-columns:1fr"><div class="mtg-sys-hd2">미결사항</div></div>'
+      +   '<div class="mtg-sys-row" style="grid-template-columns:1fr"><div>' + body(o.pending) + '</div></div>'
       + '</div>'
-      + '<div class="mtg-detail-section"><div class="mtg-sys-hd">프로젝트 진행 현황</div>' + body(o.projects) + '</div>'
-      + '<div class="mtg-detail-section"><div class="mtg-sys-hd">미결사항</div>' + body(o.pending) + '</div>';
+      + '</div>';
   }
 
   // 상세 페이지에서 '수정' 클릭 시: 상세 닫고 편집 모달 열기
