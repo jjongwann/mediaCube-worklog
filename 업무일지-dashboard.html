@@ -20676,7 +20676,9 @@ window.__meeting = (function() {
           var row = function(cols, inner, last){ return '<div style="display:grid;grid-template-columns:' + cols + (last ? '' : ';border-bottom:1px solid #cbd5e1') + '">' + inner + '</div>'; };
           return ''
             + '<div style="border:2px solid #334155;background:#fff;page-break-inside:auto;margin-top:4px">'
-            +   '<div style="text-align:center;font-size:16px;font-weight:800;letter-spacing:7px;color:#0f172a;padding:14px 8px;border-bottom:2px solid #334155">주 간 업 무 보 고 / 계 획</div>'
+            +   '<div style="position:relative;text-align:center;font-size:16px;font-weight:800;letter-spacing:7px;color:#0f172a;padding:14px 8px;border-bottom:2px solid #334155">주 간 업 무 보 고 / 계 획'
+            +     (r.meeting_date ? '<span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;letter-spacing:0;color:#334155">' + esc(_fmtDate(r.meeting_date)) + '</span>' : '')
+            +   '</div>'
             +   row('92px 1fr 110px 1fr',
                   lblCell('지시 사항') + '<div style="border-right:1px solid #cbd5e1">' + cell(o.directives, 52) + '</div>'
                 + lblCell('<span style="white-space:nowrap">업무 협조 사항</span>') + '<div>' + cell(o.coop, 52) + '</div>')
