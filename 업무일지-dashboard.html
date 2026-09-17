@@ -19002,28 +19002,78 @@ function closeMusicQuotePanel(){ window.__mq.closePanel(); }
           <div id="mtg-f-attendees" style="display:flex;flex-wrap:wrap;gap:6px;max-height:220px;overflow-y:auto;padding:12px;border:1px solid #e2e8f0;border-radius:10px;background:#fafbfc"></div>
         </div>
 
+        <!-- ══ 일반(사운드) 폼 소절 — 시스템 사업부 선택 시 숨김 (DOM 제거 금지: saveMinute 등이 무가드 접근) ══ -->
         <!-- 회의 안건 -->
-        <div class="mtg-detail-section">
+        <div class="mtg-detail-section mtg-classic-sec">
           <div class="mtg-detail-section-label">회의 안건</div>
           <textarea id="mtg-f-agenda" rows="3" class="mtg-input" placeholder="회의에서 다룰 안건을 입력하세요" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
         </div>
 
         <!-- 회의 내용 -->
-        <div class="mtg-detail-section">
+        <div class="mtg-detail-section mtg-classic-sec">
           <div class="mtg-detail-section-label">회의 내용</div>
           <textarea id="mtg-f-content" rows="12" class="mtg-input" placeholder="회의 진행 내용을 자세히 입력하세요" style="resize:vertical;line-height:1.75;background:#fafbfc"></textarea>
         </div>
 
         <!-- 주요 결정사항 -->
-        <div class="mtg-detail-section">
+        <div class="mtg-detail-section mtg-classic-sec">
           <div class="mtg-detail-section-label">주요 결정사항</div>
           <textarea id="mtg-f-decisions" rows="4" class="mtg-input" placeholder="회의에서 결정된 내용을 정리해주세요" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
         </div>
 
         <!-- 참고사항 -->
-        <div class="mtg-detail-section">
+        <div class="mtg-detail-section mtg-classic-sec">
           <div class="mtg-detail-section-label">참고사항</div>
           <textarea id="mtg-f-notes" rows="3" class="mtg-input" placeholder="후속 조치·특이사항·기타 참고사항" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
+        </div>
+
+        <!-- ══ 시스템 사업부 전용: 주간업무보고/계획 구조 폼 (dept='시스템 사업부' 선택 시 표시) ══ -->
+        <div id="mtg-f-sysrpt" style="display:none">
+          <div class="mtg-detail-section">
+            <div style="text-align:center;font-size:16px;font-weight:800;letter-spacing:6px;color:#0f172a;padding:4px 0 12px">주간업무보고 / 계획</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div>
+                <div class="mtg-sys-lbl">지시 사항</div>
+                <textarea id="mtg-sys-directives" rows="2" class="mtg-input" placeholder="지시 사항" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
+              </div>
+              <div>
+                <div class="mtg-sys-lbl">업무 협조 사항</div>
+                <textarea id="mtg-sys-coop" rows="2" class="mtg-input" placeholder="업무 협조 사항" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="mtg-detail-section">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div>
+                <div class="mtg-sys-hd">지난주 보고 사항</div>
+                <div class="mtg-sys-lbl">지상파</div>
+                <textarea id="mtg-sys-lw-jisang" rows="3" class="mtg-input" placeholder="지상파 관련 보고" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
+                <div class="mtg-sys-lbl" style="margin-top:8px">PP</div>
+                <textarea id="mtg-sys-lw-pp" rows="3" class="mtg-input" placeholder="PP 관련 보고" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
+                <div class="mtg-sys-lbl" style="margin-top:8px">SI</div>
+                <textarea id="mtg-sys-lw-si" rows="3" class="mtg-input" placeholder="SI 관련 보고" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
+                <div class="mtg-sys-lbl" style="margin-top:8px">NO/SO</div>
+                <textarea id="mtg-sys-lw-noso" rows="3" class="mtg-input" placeholder="NO/SO 관련 보고" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
+                <div class="mtg-sys-lbl" style="margin-top:8px">기타</div>
+                <textarea id="mtg-sys-lw-etc" rows="3" class="mtg-input" placeholder="기타 보고" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
+              </div>
+              <div>
+                <div class="mtg-sys-hd">금주 주요 업무</div>
+                <div class="mtg-sys-lbl">금주 업무 및 방문 고객사</div>
+                <textarea id="mtg-sys-tw-main" rows="10" class="mtg-input" placeholder="금주 업무 및 방문 고객사" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
+                <div class="mtg-sys-lbl" style="margin-top:8px">차주 방문 고객사</div>
+                <textarea id="mtg-sys-tw-next" rows="5" class="mtg-input" placeholder="차주 방문 고객사" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="mtg-detail-section">
+            <div class="mtg-sys-hd">프로젝트 진행 현황</div>
+            <textarea id="mtg-sys-projects" rows="3" class="mtg-input" placeholder="프로젝트 진행 현황" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
+          </div>
+          <div class="mtg-detail-section">
+            <div class="mtg-sys-hd">미결사항</div>
+            <textarea id="mtg-sys-pending" rows="3" class="mtg-input" placeholder="미결사항" style="resize:vertical;line-height:1.6;background:#fafbfc"></textarea>
+          </div>
         </div>
 
         <!-- 첨부파일 -->
@@ -19378,6 +19428,9 @@ function closeMusicQuotePanel(){ window.__mq.closePanel(); }
   .mtg-detail-btn.edit:hover { background: #1a52d0; }
   .mtg-detail-btn.del { background: #fff; color: #dc2626; border: 1px solid #fecaca; }
   .mtg-detail-btn.del:hover { background: #fef2f2; }
+  /* 시스템 사업부 주간업무보고 폼/상세 — 종이 양식의 연녹색 라벨 · 회색 섹션 헤더 */
+  .mtg-sys-lbl { display:inline-block; padding:4px 10px; background:#e2efda; border:1px solid #c6e0b4; border-radius:5px; font-size:11.5px; font-weight:800; color:#375623; margin-bottom:5px; }
+  .mtg-sys-hd { padding:6px 12px; background:#ededed; border:1px solid #d9d9d9; border-radius:5px; font-size:12.5px; font-weight:800; color:#1f2937; margin-bottom:8px; text-align:center; letter-spacing:0.5px; }
 </style>
 
 <script>
@@ -19440,6 +19493,64 @@ window.__meeting = (function() {
   function _toast(msg) {
     if (typeof showToast === 'function') { try { showToast(msg); return; } catch(e){} }
     console.log('[meeting]', msg);
+  }
+
+  // ── 시스템 사업부 주간업무보고 (content 필드에 마커+JSON 직렬화 · DB 스키마 무변경) ──
+  // 표시/왕복 분기는 반드시 '마커 존재 + JSON.parse 성공' 기준 (dept 기준 금지 —
+  // 마커 없는 레거시 시스템 회의록은 기존 렌더 유지). 폼 레이아웃만 dept 셀렉트 값으로 결정.
+  var SYSRPT_MARK = '__SYSRPT__';
+  function _sysrptParse(v) {
+    if (typeof v !== 'string' || v.indexOf(SYSRPT_MARK) !== 0) return null;
+    try { var o = JSON.parse(v.slice(SYSRPT_MARK.length)); return (o && typeof o === 'object') ? o : null; }
+    catch(e) { return null; }
+  }
+  // 검색 haystack 용: 마커 행은 값 텍스트만 평탄화 (JSON 키·마커 오탐 방지)
+  function _sysrptText(v) {
+    var o = _sysrptParse(v);
+    if (!o) return v || '';
+    var lw = o.lastWeek || {};
+    return [o.directives, o.coop, lw.jisang, lw.pp, lw.si, lw.noso, lw.etc, o.thisWeek, o.nextWeekVisit, o.projects, o.pending]
+      .filter(Boolean).join(' ');
+  }
+  // 폼 소절 토글: dept 셀렉트가 '시스템 사업부' 면 주간보고 폼, 아니면 기존(classic) 폼
+  function _applyFormLayout() {
+    var dept = (document.getElementById('mtg-f-dept') || {}).value || '';
+    var isSys = dept === '시스템 사업부';
+    var sys = document.getElementById('mtg-f-sysrpt');
+    if (sys) sys.style.display = isSys ? '' : 'none';
+    document.querySelectorAll('#mtg-form-view .mtg-classic-sec').forEach(function(el){
+      el.style.display = isSys ? 'none' : '';
+    });
+  }
+  function _sysFormActive() {
+    var sys = document.getElementById('mtg-f-sysrpt');
+    return !!(sys && sys.style.display !== 'none');
+  }
+  var _SYS_FIELD_MAP = [
+    ['mtg-sys-directives', 'directives'], ['mtg-sys-coop', 'coop'],
+    ['mtg-sys-lw-jisang', 'lastWeek.jisang'], ['mtg-sys-lw-pp', 'lastWeek.pp'],
+    ['mtg-sys-lw-si', 'lastWeek.si'], ['mtg-sys-lw-noso', 'lastWeek.noso'], ['mtg-sys-lw-etc', 'lastWeek.etc'],
+    ['mtg-sys-tw-main', 'thisWeek'], ['mtg-sys-tw-next', 'nextWeekVisit'],
+    ['mtg-sys-projects', 'projects'], ['mtg-sys-pending', 'pending']
+  ];
+  function _sysFormRead() {
+    var o = { lastWeek: {} };
+    _SYS_FIELD_MAP.forEach(function(m){
+      var el = document.getElementById(m[0]);
+      var v = el ? (el.value || '') : '';
+      var path = m[1].split('.');
+      if (path.length === 2) o[path[0]][path[1]] = v; else o[path[0]] = v;
+    });
+    return o;
+  }
+  function _sysFormFill(o) {
+    o = o || {}; var lw = o.lastWeek || {};
+    _SYS_FIELD_MAP.forEach(function(m){
+      var el = document.getElementById(m[0]);
+      if (!el) return;
+      var path = m[1].split('.');
+      el.value = (path.length === 2 ? (lw[path[1]] || '') : (o[path[0]] || ''));
+    });
   }
   function _fmtDate(d) {
     if (!d) return '-';
@@ -19672,7 +19783,7 @@ window.__meeting = (function() {
       if (fFrom && (r.meeting_date || '') < fFrom) return false;
       if (fTo && (r.meeting_date || '') > fTo) return false;
       if (q) {
-        var hay = ((r.title||'') + ' ' + (r.agenda||'') + ' ' + (r.content||'') + ' ' + (r.decisions||'') + ' ' + (r.notes||'') + ' ' + (r.location||'') + ' ' + (r.author_name||'')).toLowerCase();
+        var hay = ((r.title||'') + ' ' + (r.agenda||'') + ' ' + _sysrptText(r.content) + ' ' + (r.decisions||'') + ' ' + (r.notes||'') + ' ' + (r.location||'') + ' ' + (r.author_name||'')).toLowerCase();
         if (hay.indexOf(q) === -1) return false;
       }
       return true;
@@ -19830,6 +19941,7 @@ window.__meeting = (function() {
     document.getElementById('mtg-f-content').value = '';
     document.getElementById('mtg-f-decisions').value = '';
     document.getElementById('mtg-f-notes').value = '';
+    _sysFormFill(null); // 주간업무보고 필드도 클리어 (이전 세션 잔존 값 방지)
     document.getElementById('mtg-f-attendee-search').value = '';
     var fInp = document.getElementById('mtg-f-file-input'); if (fInp) fInp.value = '';
     var picker = document.getElementById('mtg-f-file-picker'); if (picker) picker.style.display = '';
@@ -19929,6 +20041,8 @@ window.__meeting = (function() {
   }
   document.addEventListener('change', function(e){
     if (e.target && e.target.name === 'mtg-visibility') _setVisibility(e.target.value);
+    // dept 전환 시 폼 소절 스왑 (classic ↔ 주간업무보고) — 입력값은 DOM 유지로 보존됨
+    if (e.target && e.target.id === 'mtg-f-dept') _applyFormLayout();
   });
 
   function _renderAttendeeChips() {
@@ -20024,7 +20138,15 @@ window.__meeting = (function() {
     }
     document.getElementById('mtg-f-author').value = row.author_name || '';
     document.getElementById('mtg-f-agenda').value = row.agenda || '';
-    document.getElementById('mtg-f-content').value = row.content || '';
+    // 주간업무보고(마커) 레코드: JSON 을 textarea 에 노출하지 않고 구조 필드에 분배
+    var sysObj = _sysrptParse(row.content);
+    if (sysObj) {
+      document.getElementById('mtg-f-content').value = '';
+      _sysFormFill(sysObj);
+    } else {
+      document.getElementById('mtg-f-content').value = row.content || '';
+      _sysFormFill(null);
+    }
     document.getElementById('mtg-f-decisions').value = row.decisions || '';
     document.getElementById('mtg-f-notes').value = row.notes || '';
     var atts = Array.isArray(row.attachments) ? row.attachments : [];
@@ -20080,6 +20202,8 @@ window.__meeting = (function() {
       var delBtn2 = document.getElementById('mtg-f-delete-btn');
       if (delBtn2) delBtn2.style.display = 'none';
     }
+    // dept 값 확정(신규 기본값·수정 프리필) 후 폼 레이아웃 적용 — 신규/수정 공통 경로
+    _applyFormLayout();
     formView.scrollTop = 0;
     setTimeout(function(){ var t = document.getElementById('mtg-f-title'); if (t) t.focus(); }, 80);
   }
@@ -20112,10 +20236,13 @@ window.__meeting = (function() {
         location: (document.getElementById('mtg-f-location') || {}).value || '',
         dept: document.getElementById('mtg-f-dept').value || '',
         attendees: attendeesArr,
-        agenda: document.getElementById('mtg-f-agenda').value || '',
-        content: document.getElementById('mtg-f-content').value || '',
-        decisions: document.getElementById('mtg-f-decisions').value || '',
-        notes: document.getElementById('mtg-f-notes').value || '',
+        agenda: _sysFormActive() ? '' : (document.getElementById('mtg-f-agenda').value || ''),
+        // 시스템 주간보고 폼 활성 시: 구조 필드를 마커+JSON 으로 content 에 직렬화 (현재 활성 레이아웃 기준)
+        content: _sysFormActive()
+          ? (SYSRPT_MARK + JSON.stringify(_sysFormRead()))
+          : (document.getElementById('mtg-f-content').value || ''),
+        decisions: _sysFormActive() ? '' : (document.getElementById('mtg-f-decisions').value || ''),
+        notes: _sysFormActive() ? '' : (document.getElementById('mtg-f-notes').value || ''),
         attachments: mergedAttachments,
         visibility: _state.editingVisibility || 'all',
         updated_at: new Date().toISOString()
@@ -20299,22 +20426,7 @@ window.__meeting = (function() {
       +     '<div class="mtg-detail-section-label">참석자 (' + attendees.length + '명)</div>'
       +     attendeesHtml
       +   '</div>'
-      +   '<div class="mtg-detail-section">'
-      +     '<div class="mtg-detail-section-label">회의 안건</div>'
-      +     _plainBody(r.agenda)
-      +   '</div>'
-      +   '<div class="mtg-detail-section">'
-      +     '<div class="mtg-detail-section-label">회의 내용</div>'
-      +     _plainBody(r.content)
-      +   '</div>'
-      +   '<div class="mtg-detail-section">'
-      +     '<div class="mtg-detail-section-label">주요 결정사항</div>'
-      +     _plainBody(r.decisions)
-      +   '</div>'
-      +   '<div class="mtg-detail-section">'
-      +     '<div class="mtg-detail-section-label">참고사항</div>'
-      +     _plainBody(r.notes)
-      +   '</div>'
+      +   _detailBodySections(r)
       +   '<div class="mtg-detail-section">'
       +     '<div class="mtg-detail-section-label">첨부파일</div>'
       +     filesHtml
@@ -20322,6 +20434,56 @@ window.__meeting = (function() {
       +   actionsHtml
       + '</div>'
       + '</div>';
+  }
+
+  // 상세 본문 소절: 주간업무보고(마커) 레코드면 구조화 양식, 아니면 기존 4소절 (사운드·레거시 무변경)
+  function _detailBodySections(r) {
+    var o = _sysrptParse(r.content);
+    if (!o) {
+      return ''
+        + '<div class="mtg-detail-section">'
+        +   '<div class="mtg-detail-section-label">회의 안건</div>'
+        +   _plainBody(r.agenda)
+        + '</div>'
+        + '<div class="mtg-detail-section">'
+        +   '<div class="mtg-detail-section-label">회의 내용</div>'
+        +   _plainBody(r.content)
+        + '</div>'
+        + '<div class="mtg-detail-section">'
+        +   '<div class="mtg-detail-section-label">주요 결정사항</div>'
+        +   _plainBody(r.decisions)
+        + '</div>'
+        + '<div class="mtg-detail-section">'
+        +   '<div class="mtg-detail-section-label">참고사항</div>'
+        +   _plainBody(r.notes)
+        + '</div>';
+    }
+    var lw = o.lastWeek || {};
+    var body = function(v){
+      return v ? '<div class="mtg-detail-body" style="white-space:pre-wrap">' + _esc(v) + '</div>'
+               : '<div class="mtg-detail-body empty">—</div>';
+    };
+    var sub = function(lbl, v){ return '<div class="mtg-sys-lbl" style="margin-top:8px">' + _esc(lbl) + '</div>' + body(v); };
+    return ''
+      + '<div class="mtg-detail-section">'
+      +   '<div style="text-align:center;font-size:17px;font-weight:800;letter-spacing:6px;color:#0f172a;padding:2px 0 12px">주간업무보고 / 계획</div>'
+      +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+      +     '<div><div class="mtg-sys-lbl">지시 사항</div>' + body(o.directives) + '</div>'
+      +     '<div><div class="mtg-sys-lbl">업무 협조 사항</div>' + body(o.coop) + '</div>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="mtg-detail-section">'
+      +   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">'
+      +     '<div><div class="mtg-sys-hd">지난주 보고 사항</div>'
+      +       sub('지상파', lw.jisang) + sub('PP', lw.pp) + sub('SI', lw.si) + sub('NO/SO', lw.noso) + sub('기타', lw.etc)
+      +     '</div>'
+      +     '<div><div class="mtg-sys-hd">금주 주요 업무</div>'
+      +       sub('금주 업무 및 방문 고객사', o.thisWeek) + sub('차주 방문 고객사', o.nextWeekVisit)
+      +     '</div>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="mtg-detail-section"><div class="mtg-sys-hd">프로젝트 진행 현황</div>' + body(o.projects) + '</div>'
+      + '<div class="mtg-detail-section"><div class="mtg-sys-hd">미결사항</div>' + body(o.pending) + '</div>';
   }
 
   // 상세 페이지에서 '수정' 클릭 시: 상세 닫고 편집 모달 열기
@@ -20418,10 +20580,38 @@ window.__meeting = (function() {
       +   '<div><div class="lbl">주관 부서</div><div class="val">' + esc(r.dept || '—') + '</div></div>'
       + '</div>'
       + section('참석자 (' + attendees.length + '명)', attendeesHtml)
-      + section('회의 안건', plainBody(r.agenda))
-      + section('회의 내용', plainBody(r.content))
-      + section('주요 결정사항', plainBody(r.decisions))
-      + section('참고사항', plainBody(r.notes))
+      + (function(){
+          // 주간업무보고(마커) 레코드: 종이 양식과 유사한 구조로 인쇄 · 아니면 기존 4소절 (사운드·레거시 무변경)
+          var o = _sysrptParse(r.content);
+          if (!o) {
+            return section('회의 안건', plainBody(r.agenda))
+              + section('회의 내용', plainBody(r.content))
+              + section('주요 결정사항', plainBody(r.decisions))
+              + section('참고사항', plainBody(r.notes));
+          }
+          var lw = o.lastWeek || {};
+          var cell = function(v){ return '<div class="body' + (v ? '' : ' empty') + '" style="padding-left:0">' + (v ? esc(v).replace(/\n/g,'<br>') : '—') + '</div>'; };
+          var grn = function(t){ return '<div style="display:inline-block;padding:3px 10px;background:#e2efda;border:1px solid #c6e0b4;border-radius:4px;font-size:10px;font-weight:800;color:#375623;margin:8px 0 4px">' + esc(t) + '</div>'; };
+          var gry = function(t){ return '<div style="padding:5px 10px;background:#ededed;border:1px solid #d9d9d9;border-radius:4px;font-size:11px;font-weight:800;color:#1f2937;text-align:center;margin-bottom:6px">' + esc(t) + '</div>'; };
+          return ''
+            + '<div style="text-align:center;font-size:18px;font-weight:800;letter-spacing:8px;margin:4px 0 12px">주간업무보고 / 계획</div>'
+            + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">'
+            +   '<div>' + grn('지시 사항') + cell(o.directives) + '</div>'
+            +   '<div>' + grn('업무 협조 사항') + cell(o.coop) + '</div>'
+            + '</div>'
+            + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px;align-items:start">'
+            +   '<div>' + gry('지난주 보고 사항')
+            +     grn('지상파') + cell(lw.jisang) + grn('PP') + cell(lw.pp) + grn('SI') + cell(lw.si)
+            +     grn('NO/SO') + cell(lw.noso) + grn('기타') + cell(lw.etc)
+            +   '</div>'
+            +   '<div>' + gry('금주 주요 업무')
+            +     grn('금주 업무 및 방문 고객사') + cell(o.thisWeek)
+            +     grn('차주 방문 고객사') + cell(o.nextWeekVisit)
+            +   '</div>'
+            + '</div>'
+            + '<div style="margin-bottom:12px">' + gry('프로젝트 진행 현황') + cell(o.projects) + '</div>'
+            + '<div style="margin-bottom:12px">' + gry('미결사항') + cell(o.pending) + '</div>';
+        })()
       + section('첨부파일', filesHtml)
       + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});window.addEventListener("afterprint",function(){window.close();});<\/script>'
       + '</body></html>';
