@@ -20299,7 +20299,8 @@ window.__meeting = (function() {
   function _pickFormDept(dept) {
     _closeDeptChooser();
     if (_deptChooseMode === 'view') {
-      // 조회 모드: 부서 필터에 반영 후 목록 렌더 (setViewDept 와 동일 메커니즘)
+      // 조회 모드: 상세/폼이 열려 있으면 목록 뷰로 복귀 후 부서 필터 반영 + 렌더
+      _backToList();
       var fil = document.getElementById('mtg-fil-dept');
       if (fil) fil.value = dept;
       render();
