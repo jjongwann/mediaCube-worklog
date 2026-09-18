@@ -30225,5 +30225,80 @@ function _showVendorChooser() {
   window._salesRender              = _salesRender; // journal 로드 후 재렌더 지원
 })();
 </script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   전역 기간 검증 — 앱 전체의 기간 선택 쌍에서 '종료 < 시작' 차단
+   · document 캡처 단계 change 리스너 1개: 위반 시 알림 + 직전 유효값 복원
+     + stopPropagation 으로 위젯의 조회/렌더 리스너(인라인 onchange 포함) 실행 자체를 차단
+   · 각 위젯 코드는 무변경 — 표시 계층만, DB/데이터 무관
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+  // date/month input 쌍 (값 'YYYY-MM-DD' 또는 'YYYY-MM' — 패딩되어 문자열 비교 안전)
+  var DATE_PAIRS = [
+    ['ach-date-from','ach-date-to'],                 // 업무 성과
+    ['drp-from','drp-to'],                           // 업무일지 기간 조회
+    ['emp-task-start-date','emp-task-end-date'],     // 직원별 현황
+    ['hist-date-from','hist-date-to'],               // 업무 히스토리
+    ['mtg-fil-from','mtg-fil-to'],                   // 회의록
+    ['sales-act-from','sales-act-to'],               // 영업 활동
+    ['scal-evt-start','scal-evt-end'],               // 공유 캘린더 일정
+    ['soundteam-date-from','soundteam-date-to'],     // 음원팀 업무 현황
+    ['systemteam-date-from','systemteam-date-to']    // 시스템팀 업무 현황
+  ];
+  // 단일 셀렉트 쌍 · 값 'YYYY-M' (월 무패딩 → 숫자 파싱 비교)
+  var YMKEY_PAIRS = [
+    ['cumul-from','cumul-to'],                       // 월별 누계 매출 통계
+    ['bmat-cumul-from','bmat-cumul-to']              // BMAT 누계
+  ];
+  // 년/월 셀렉트 4개 쌍 [fromY, fromM, toY, toM]
+  var YM4_PAIRS = [
+    ['vendor-needle-from-year','vendor-needle-from-month','vendor-needle-to-year','vendor-needle-to-month'], // 거래처별 매출 (CMO 포함 공용)
+    ['sys-cumul-from-year','sys-cumul-from-month','sys-cumul-to-year','sys-cumul-to-month'],                 // 시스템 누계
+    ['quote-from-year','quote-from-month','quote-to-year','quote-to-month']                                  // 견적 관리
+  ];
+  var WATCH = {};
+  DATE_PAIRS.forEach(function(p){ WATCH[p[0]] = WATCH[p[1]] = { pair: p, kind: 'date' }; });
+  YMKEY_PAIRS.forEach(function(p){ WATCH[p[0]] = WATCH[p[1]] = { pair: p, kind: 'ymkey' }; });
+  YM4_PAIRS.forEach(function(p){ p.forEach(function(id){ WATCH[id] = { pair: p, kind: 'ym4' }; }); });
+  function _v(id){ var el = document.getElementById(id); return el ? el.value : ''; }
+  function _ymNum(v){
+    if (!v) return null;
+    var p = String(v).split('-');
+    var y = parseInt(p[0], 10), m = parseInt(p[1], 10) || 0;
+    return isNaN(y) ? null : y * 100 + m;
+  }
+  function _violated(w){
+    if (w.kind === 'date') {
+      var f = _v(w.pair[0]), t = _v(w.pair[1]);
+      return !!(f && t && t < f);
+    }
+    if (w.kind === 'ymkey') {
+      var fk = _ymNum(_v(w.pair[0])), tk = _ymNum(_v(w.pair[1]));
+      return fk != null && tk != null && tk < fk;
+    }
+    var fy = parseInt(_v(w.pair[0]), 10), fm = parseInt(_v(w.pair[1]), 10);
+    var ty = parseInt(_v(w.pair[2]), 10), tm = parseInt(_v(w.pair[3]), 10);
+    if (isNaN(fy) || isNaN(fm) || isNaN(ty) || isNaN(tm)) return false;
+    return (ty * 100 + tm) < (fy * 100 + fm);
+  }
+  // 변경 전 값 저장 (복원용) — focus 가 change 에 항상 선행
+  document.addEventListener('focusin', function(e){
+    var el = e.target;
+    if (el && el.id && WATCH[el.id]) el.dataset.mcPrevVal = el.value;
+  }, true);
+  document.addEventListener('change', function(e){
+    var el = e.target;
+    if (!el || !el.id || !WATCH[el.id]) return;
+    var w = WATCH[el.id];
+    if (!_violated(w)) { el.dataset.mcPrevVal = el.value; return; }
+    alert('종료일은 시작일보다 빠를 수 없습니다.');
+    if (el.dataset.mcPrevVal !== undefined) el.value = el.dataset.mcPrevVal;
+    else if (el.tagName === 'INPUT') el.value = '';
+    e.stopImmediatePropagation();
+    e.stopPropagation();
+  }, true);
+})();
+</script>
 </body>
 </html>
