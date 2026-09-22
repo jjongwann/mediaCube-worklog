@@ -19097,9 +19097,9 @@ function closeMusicQuotePanel(){ window.__mq.closePanel(); }
                 </div>
                 <div class="mtg-sys-col">
                   <div><span class="mtg-sys-tag">금주 업무 및 방문 고객사</span></div>
-                  <textarea id="mtg-sys-tw-main" rows="14" class="mtg-sys-ta" placeholder="금주 업무 및 방문 고객사"></textarea>
-                  <div><span class="mtg-sys-tag">차주 방문 고객사</span></div>
-                  <textarea id="mtg-sys-tw-next" rows="6" class="mtg-sys-ta" placeholder="차주 방문 고객사"></textarea>
+                  <textarea id="mtg-sys-tw-main" rows="15" class="mtg-sys-ta" placeholder="금주 업무 및 방문 고객사"></textarea>
+                  <div><span class="mtg-sys-tag">차주 업무 및 방문 고객사</span></div>
+                  <textarea id="mtg-sys-tw-next" rows="6" class="mtg-sys-ta" placeholder="차주 업무 및 방문 고객사"></textarea>
                 </div>
               </div>
               <div class="mtg-sys-row" style="grid-template-columns:1fr"><div class="mtg-sys-hd2">프로젝트 진행 현황</div></div>
@@ -20647,7 +20647,7 @@ window.__meeting = (function() {
       +     '</div>'
       +     '<div style="padding:4px 0 12px">'
       +       tag('금주 업무 및 방문 고객사') + body(o.thisWeek)
-      +       tag('차주 방문 고객사') + body(o.nextWeekVisit)
+      +       tag('차주 업무 및 방문 고객사') + body(o.nextWeekVisit)
       +     '</div>'
       +   '</div>'
       +   '<div class="mtg-sys-row" style="grid-template-columns:1fr"><div class="mtg-sys-hd2">프로젝트 진행 현황</div></div>'
@@ -20790,7 +20790,7 @@ window.__meeting = (function() {
                 + '</div>'
                 + '<div style="padding:4px 0 16px">'
                 +   tag('금주 업무 및 방문 고객사') + cell(o.thisWeek, 220)
-                +   tag('차주 방문 고객사') + cell(o.nextWeekVisit, 70)
+                +   tag('차주 업무 및 방문 고객사') + cell(o.nextWeekVisit, 70)
                 + '</div>')
             +   row('1fr', hd2('프로젝트 진행 현황', 1))
             +   row('1fr', '<div>' + cell(o.projects, 64) + '</div>')
