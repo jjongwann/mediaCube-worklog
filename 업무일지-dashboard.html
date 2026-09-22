@@ -19569,6 +19569,12 @@ window.__meeting = (function() {
     document.querySelectorAll('#mtg-form-view .mtg-classic-sec').forEach(function(el){
       el.style.display = isSys ? 'none' : '';
     });
+    // 시스템 사업부 폼: 참석자 기본값 (권영재·김세준 차장) — 비어있을 때만 (수정 모드 기존 참석자 보존)
+    if (isSys && !Object.keys(_state.selectedAttendees).length) {
+      _state.selectedAttendees['08820a7c-5c3c-4f75-9658-9abe0e4cb722'] = { id: '08820a7c-5c3c-4f75-9658-9abe0e4cb722', name: '권영재 차장', dept: '시스템 사업부' };
+      _state.selectedAttendees['37296591-98ac-4f62-9a37-77973e8d67d1'] = { id: '37296591-98ac-4f62-9a37-77973e8d67d1', name: '김세준 차장', dept: '시스템 사업부' };
+      _renderAttendeeChips();
+    }
   }
   function _sysFormActive() {
     var sys = document.getElementById('mtg-f-sysrpt');
