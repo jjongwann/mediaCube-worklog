@@ -19090,7 +19090,10 @@ function closeMusicQuotePanel(){ window.__mq.closePanel(); }
               </div>
               <div class="mtg-sys-row" style="grid-template-columns:1fr 1fr">
                 <div class="mtg-sys-col mtg-sys-cell-div">
-                  <div><span class="mtg-sys-tag">보고사항</span></div>
+                  <div style="display:flex;justify-content:space-between;align-items:center">
+                    <span class="mtg-sys-tag">보고사항</span>
+                    <button type="button" onclick="__meeting._sysLoadPrevReport()" title="가장 최근 회의록의 '금주 업무 및 방문 고객사'를 불러옵니다" style="padding:4px 11px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">불러오기</button>
+                  </div>
                   <textarea id="mtg-sys-lw-report" rows="15" class="mtg-sys-ta" placeholder="지난주 보고 사항"></textarea>
                   <div><span class="mtg-sys-tag">기타</span></div>
                   <textarea id="mtg-sys-lw-etc" rows="6" class="mtg-sys-ta" placeholder="기타 보고"></textarea>
@@ -19584,6 +19587,25 @@ window.__meeting = (function() {
   function _sysFormActive() {
     var sys = document.getElementById('mtg-f-sysrpt');
     return !!(sys && sys.style.display !== 'none');
+  }
+  // '보고사항 불러오기' — 가장 최근 시스템 주간보고 회의록의 '금주 업무 및 방문 고객사'(thisWeek)를
+  // 이번 폼의 보고사항 칸에 채움 (지난주에 계획한 금주 업무 = 이번 주의 지난주 보고)
+  // _state.rows 는 meeting_date desc 정렬 — 읽기 전용 · 로컬 폼만 변경 (DB 무관)
+  function _sysLoadPrevReport() {
+    var prev = null;
+    for (var i = 0; i < _state.rows.length; i++) {
+      var r = _state.rows[i];
+      if (_state.editingId && r.id === _state.editingId) continue; // 수정 중인 자기 자신 제외
+      var o = _sysrptParse(r.content);
+      if (o) { prev = o; break; }
+    }
+    if (!prev || !prev.thisWeek) { _toast('불러올 이전 회의록이 없습니다'); return; }
+    var el = document.getElementById('mtg-sys-lw-report');
+    if (!el) return;
+    if (el.value.trim() && el.value.trim() !== prev.thisWeek.trim()
+        && !confirm('보고사항에 이미 내용이 있습니다. 이전 회의록의 금주 업무로 덮어쓸까요?')) return;
+    el.value = prev.thisWeek;
+    _toast('이전 회의록의 금주 업무를 불러왔습니다');
   }
   var _SYS_FIELD_MAP = [
     ['mtg-sys-directives', 'directives'], ['mtg-sys-coop', 'coop'],
@@ -20879,7 +20901,7 @@ window.__meeting = (function() {
   return {
     openPanel: openPanel, closePanel: closePanel, render: render, clearFilters: clearFilters,
     openForm: openForm, closeForm: closeForm, saveMinute: saveMinute, deleteMinute: deleteMinute,
-    _pickFormDept: _pickFormDept, _closeDeptChooser: _closeDeptChooser,
+    _pickFormDept: _pickFormDept, _closeDeptChooser: _closeDeptChooser, _sysLoadPrevReport: _sysLoadPrevReport,
     openDetail: openDetail, _setFormMode: _setFormMode, _deleteById: _deleteById,
     _backToList: _backToList, _editFromDetail: _editFromDetail, _printDetail: _printDetail,
     openTypeManager: openTypeManager, closeTypeManager: closeTypeManager, addType: addType,
