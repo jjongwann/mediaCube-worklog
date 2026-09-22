@@ -19090,16 +19090,10 @@ function closeMusicQuotePanel(){ window.__mq.closePanel(); }
               </div>
               <div class="mtg-sys-row" style="grid-template-columns:1fr 1fr">
                 <div class="mtg-sys-col mtg-sys-cell-div">
-                  <div><span class="mtg-sys-tag">지상파</span></div>
-                  <textarea id="mtg-sys-lw-jisang" rows="3" class="mtg-sys-ta" placeholder="지상파 관련 보고"></textarea>
-                  <div><span class="mtg-sys-tag">PP</span></div>
-                  <textarea id="mtg-sys-lw-pp" rows="3" class="mtg-sys-ta" placeholder="PP 관련 보고"></textarea>
-                  <div><span class="mtg-sys-tag">SI</span></div>
-                  <textarea id="mtg-sys-lw-si" rows="3" class="mtg-sys-ta" placeholder="SI 관련 보고"></textarea>
-                  <div><span class="mtg-sys-tag">NO/SO</span></div>
-                  <textarea id="mtg-sys-lw-noso" rows="3" class="mtg-sys-ta" placeholder="NO/SO 관련 보고"></textarea>
+                  <div><span class="mtg-sys-tag">보고사항</span></div>
+                  <textarea id="mtg-sys-lw-report" rows="15" class="mtg-sys-ta" placeholder="지난주 보고 사항"></textarea>
                   <div><span class="mtg-sys-tag">기타</span></div>
-                  <textarea id="mtg-sys-lw-etc" rows="3" class="mtg-sys-ta" placeholder="기타 보고"></textarea>
+                  <textarea id="mtg-sys-lw-etc" rows="6" class="mtg-sys-ta" placeholder="기타 보고"></textarea>
                 </div>
                 <div class="mtg-sys-col">
                   <div><span class="mtg-sys-tag">금주 업무 및 방문 고객사</span></div>
@@ -19563,7 +19557,7 @@ window.__meeting = (function() {
     var o = _sysrptParse(v);
     if (!o) return v || '';
     var lw = o.lastWeek || {};
-    return [o.directives, o.coop, lw.jisang, lw.pp, lw.si, lw.noso, lw.etc, o.thisWeek, o.nextWeekVisit, o.projects, o.pending]
+    return [o.directives, o.coop, lw.report, lw.jisang, lw.pp, lw.si, lw.noso, lw.etc, o.thisWeek, o.nextWeekVisit, o.projects, o.pending]
       .filter(Boolean).join(' ');
   }
   // 폼 소절 토글: dept 셀렉트가 '시스템 사업부' 면 주간보고 폼, 아니면 기존(classic) 폼
@@ -19582,8 +19576,7 @@ window.__meeting = (function() {
   }
   var _SYS_FIELD_MAP = [
     ['mtg-sys-directives', 'directives'], ['mtg-sys-coop', 'coop'],
-    ['mtg-sys-lw-jisang', 'lastWeek.jisang'], ['mtg-sys-lw-pp', 'lastWeek.pp'],
-    ['mtg-sys-lw-si', 'lastWeek.si'], ['mtg-sys-lw-noso', 'lastWeek.noso'], ['mtg-sys-lw-etc', 'lastWeek.etc'],
+    ['mtg-sys-lw-report', 'lastWeek.report'], ['mtg-sys-lw-etc', 'lastWeek.etc'],
     ['mtg-sys-tw-main', 'thisWeek'], ['mtg-sys-tw-next', 'nextWeekVisit'],
     ['mtg-sys-projects', 'projects'], ['mtg-sys-pending', 'pending']
   ];
@@ -19605,6 +19598,17 @@ window.__meeting = (function() {
       var path = m[1].split('.');
       el.value = (path.length === 2 ? (lw[path[1]] || '') : (o[path[0]] || ''));
     });
+    // 레거시 호환: 구 구조(지상파/PP/SI/NO·SO 분리 저장) 레코드는 라벨 프리픽스와 함께
+    // '보고사항' 칸으로 병합 프리필 — 수정 저장 시 새 구조(report)로 자연 마이그레이션
+    if (!lw.report && (lw.jisang || lw.pp || lw.si || lw.noso)) {
+      var repEl = document.getElementById('mtg-sys-lw-report');
+      if (repEl) {
+        repEl.value = [['지상파', lw.jisang], ['PP', lw.pp], ['SI', lw.si], ['NO/SO', lw.noso]]
+          .filter(function(p){ return p[1]; })
+          .map(function(p){ return '[' + p[0] + ']\n' + p[1]; })
+          .join('\n\n');
+      }
+    }
   }
   function _fmtDate(d) {
     if (!d) return '-';
@@ -20635,8 +20639,11 @@ window.__meeting = (function() {
       +   '</div>'
       +   '<div class="mtg-sys-row" style="grid-template-columns:1fr 1fr">'
       +     '<div class="mtg-sys-cell-div" style="padding:4px 0 12px">'
-      +       tag('지상파') + body(lw.jisang) + tag('PP') + body(lw.pp) + tag('SI') + body(lw.si)
-      +       tag('NO/SO') + body(lw.noso) + tag('기타') + body(lw.etc)
+      // 신규 구조(보고사항/기타 2소절) · 레거시(지상파~NO/SO 분리 저장)는 기존 5소절 렌더 유지
+      +     (lw.report != null
+              ? tag('보고사항') + body(lw.report) + tag('기타') + body(lw.etc)
+              : tag('지상파') + body(lw.jisang) + tag('PP') + body(lw.pp) + tag('SI') + body(lw.si)
+                + tag('NO/SO') + body(lw.noso) + tag('기타') + body(lw.etc))
       +     '</div>'
       +     '<div style="padding:4px 0 12px">'
       +       tag('금주 업무 및 방문 고객사') + body(o.thisWeek)
@@ -20775,8 +20782,11 @@ window.__meeting = (function() {
             +   row('1fr 1fr', hd2('지난주 보고 사항') + hd2('금주 주요 업무', 1))
             +   row('1fr 1fr',
                   '<div style="border-right:1px solid #cbd5e1;padding:4px 0 16px">'
-                +   tag('지상파') + cell(lw.jisang) + tag('PP') + cell(lw.pp) + tag('SI') + cell(lw.si)
-                +   tag('NO/SO') + cell(lw.noso) + tag('기타') + cell(lw.etc)
+                // 신규 구조(보고사항/기타) · 레거시는 기존 5소절 인쇄 유지
+                + (lw.report != null
+                    ? tag('보고사항') + cell(lw.report, 220) + tag('기타') + cell(lw.etc, 70)
+                    : tag('지상파') + cell(lw.jisang) + tag('PP') + cell(lw.pp) + tag('SI') + cell(lw.si)
+                      + tag('NO/SO') + cell(lw.noso) + tag('기타') + cell(lw.etc))
                 + '</div>'
                 + '<div style="padding:4px 0 16px">'
                 +   tag('금주 업무 및 방문 고객사') + cell(o.thisWeek, 220)
