@@ -19092,16 +19092,19 @@ function closeMusicQuotePanel(){ window.__mq.closePanel(); }
                 <div class="mtg-sys-col mtg-sys-cell-div">
                   <div style="display:flex;justify-content:space-between;align-items:center">
                     <span class="mtg-sys-tag">보고사항</span>
-                    <button type="button" onclick="__meeting._sysLoadPrevReport()" title="가장 최근 회의록의 '금주 업무 및 방문 고객사'를 불러옵니다" style="padding:4px 11px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">불러오기</button>
+                    <span style="display:flex;gap:6px;align-items:center">
+                      <button type="button" class="mtg-sys-bold-btn" onmousedown="event.preventDefault()" onclick="__meeting._sysBoldToggle('mtg-sys-lw-report')" title="선택한 텍스트를 굵게 (조회·인쇄 시 굵게 표시)">B</button>
+                      <button type="button" onclick="__meeting._sysLoadPrevReport()" title="가장 최근 회의록의 '금주 업무 및 방문 고객사'를 불러옵니다" style="padding:4px 11px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">불러오기</button>
+                    </span>
                   </div>
                   <textarea id="mtg-sys-lw-report" rows="15" class="mtg-sys-ta" placeholder="지난주 보고 사항"></textarea>
-                  <div><span class="mtg-sys-tag">기타</span></div>
+                  <div style="display:flex;justify-content:space-between;align-items:center"><span class="mtg-sys-tag">기타</span><button type="button" class="mtg-sys-bold-btn" onmousedown="event.preventDefault()" onclick="__meeting._sysBoldToggle('mtg-sys-lw-etc')" title="선택한 텍스트를 굵게 (조회·인쇄 시 굵게 표시)">B</button></div>
                   <textarea id="mtg-sys-lw-etc" rows="6" class="mtg-sys-ta" placeholder="기타 보고"></textarea>
                 </div>
                 <div class="mtg-sys-col">
-                  <div><span class="mtg-sys-tag">금주 업무 및 방문 고객사</span></div>
+                  <div style="display:flex;justify-content:space-between;align-items:center"><span class="mtg-sys-tag">금주 업무 및 방문 고객사</span><button type="button" class="mtg-sys-bold-btn" onmousedown="event.preventDefault()" onclick="__meeting._sysBoldToggle('mtg-sys-tw-main')" title="선택한 텍스트를 굵게 (조회·인쇄 시 굵게 표시)">B</button></div>
                   <textarea id="mtg-sys-tw-main" rows="15" class="mtg-sys-ta" placeholder="금주 업무 및 방문 고객사"></textarea>
-                  <div><span class="mtg-sys-tag">차주 업무 및 방문 고객사</span></div>
+                  <div style="display:flex;justify-content:space-between;align-items:center"><span class="mtg-sys-tag">차주 업무 및 방문 고객사</span><button type="button" class="mtg-sys-bold-btn" onmousedown="event.preventDefault()" onclick="__meeting._sysBoldToggle('mtg-sys-tw-next')" title="선택한 텍스트를 굵게 (조회·인쇄 시 굵게 표시)">B</button></div>
                   <textarea id="mtg-sys-tw-next" rows="6" class="mtg-sys-ta" placeholder="차주 업무 및 방문 고객사"></textarea>
                 </div>
               </div>
@@ -19478,6 +19481,8 @@ function closeMusicQuotePanel(){ window.__mq.closePanel(); }
   .mtg-sys-tag { display:inline-block; padding:3px 10px; background:#e0f2fe; border:1px solid #bae6fd; border-radius:5px; font-size:11px; font-weight:800; color:#075985; margin:8px 0 5px; }
   .mtg-sys-ta { width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:7px; outline:none; font-family:inherit; font-size:12.5px; line-height:1.6; padding:7px 9px; background:#fafbfc; resize:vertical; transition:border-color .12s; }
   .mtg-sys-ta:focus { border-color:#2563eb; background:#fff; }
+  .mtg-sys-bold-btn { padding:3px 10px; background:#f8fafc; color:#334155; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; font-weight:900; cursor:pointer; font-family:inherit; line-height:1.3; }
+  .mtg-sys-bold-btn:hover { background:#e2e8f0; }
   .mtg-sys-body { padding:8px 12px; font-size:13px; line-height:1.7; white-space:pre-wrap; color:#1f2937; min-height:34px; }
   .mtg-sys-body .empty { color:#cbd5e1; }
 </style>
@@ -19561,7 +19566,7 @@ window.__meeting = (function() {
     if (!o) return v || '';
     var lw = o.lastWeek || {};
     return [o.directives, o.coop, lw.report, lw.jisang, lw.pp, lw.si, lw.noso, lw.etc, o.thisWeek, o.nextWeekVisit, o.projects, o.pending]
-      .filter(Boolean).join(' ');
+      .filter(Boolean).join(' ').replace(/\*\*/g, '');
   }
   // 폼 소절 토글: dept 셀렉트가 '시스템 사업부' 면 주간보고 폼, 아니면 기존(classic) 폼
   function _applyFormLayout() {
@@ -19587,6 +19592,32 @@ window.__meeting = (function() {
   function _sysFormActive() {
     var sys = document.getElementById('mtg-f-sysrpt');
     return !!(sys && sys.style.display !== 'none');
+  }
+  // 볼드 마커(**텍스트**) 토글 — textarea 선택 범위를 감싸기/해제. 저장은 plain text + 마커 (DB 무관)
+  function _sysBoldToggle(taId) {
+    var el = document.getElementById(taId);
+    if (!el) return;
+    var s = el.selectionStart, e = el.selectionEnd;
+    if (s == null || s === e) { _toast('굵게 할 텍스트를 먼저 드래그로 선택하세요'); el.focus(); return; }
+    var v = el.value, sel = v.slice(s, e);
+    var next, ns, ne;
+    if (/^\*\*[\s\S]*\*\*$/.test(sel)) {
+      // 해제
+      var un = sel.slice(2, -2);
+      next = v.slice(0, s) + un + v.slice(e); ns = s; ne = s + un.length;
+    } else if (v.slice(s - 2, s) === '**' && v.slice(e, e + 2) === '**') {
+      // 선택 바깥에 마커가 있는 경우 해제
+      next = v.slice(0, s - 2) + sel + v.slice(e + 2); ns = s - 2; ne = ns + sel.length;
+    } else {
+      next = v.slice(0, s) + '**' + sel + '**' + v.slice(e); ns = s; ne = e + 4;
+    }
+    el.value = next;
+    el.focus();
+    el.setSelectionRange(ns, ne);
+  }
+  // 볼드 마커 렌더 — _esc 선행 후 **…** 만 <b> 로 (XSS 안전) · 조회/인쇄 공용
+  function _sysRich(v) {
+    return _esc(v).replace(/\*\*([^*\n][^*]*?)\*\*/g, '<b>$1</b>');
   }
   // '보고사항 불러오기' — 가장 최근 시스템 주간보고 회의록의 '금주 업무 및 방문 고객사'(thisWeek)를
   // 이번 폼의 보고사항 칸에 채움 (지난주에 계획한 금주 업무 = 이번 주의 지난주 보고)
@@ -20653,7 +20684,7 @@ window.__meeting = (function() {
     }
     var lw = o.lastWeek || {};
     var body = function(v){
-      return '<div class="mtg-sys-body">' + (v ? _esc(v) : '<span class="empty">—</span>') + '</div>';
+      return '<div class="mtg-sys-body">' + (v ? _sysRich(v) : '<span class="empty">—</span>') + '</div>';
     };
     var tag = function(t){ return '<div style="padding:0 12px"><span class="mtg-sys-tag">' + _esc(t) + '</span></div>'; };
     return ''
@@ -20799,7 +20830,7 @@ window.__meeting = (function() {
           }
           var lw = o.lastWeek || {};
           // 조회 페이지와 동일한 프레임 구조 (인쇄 popup 자기완결 — 전부 인라인 스타일) · 섹션별 여유 있는 세로 공간
-          var cell = function(v, minH){ return '<div style="padding:9px 12px;font-size:11px;line-height:1.7;white-space:pre-wrap;word-break:break-word;color:' + (v ? '#1f2937' : '#cbd5e1') + ';min-height:' + (minH || 40) + 'px">' + (v ? esc(v).replace(/\n/g,'<br>') : '—') + '</div>'; };
+          var cell = function(v, minH){ return '<div style="padding:9px 12px;font-size:11px;line-height:1.7;white-space:pre-wrap;word-break:break-word;color:' + (v ? '#1f2937' : '#cbd5e1') + ';min-height:' + (minH || 40) + 'px">' + (v ? _sysRich(v).replace(/\n/g,'<br>') : '—') + '</div>'; };
           var tag = function(t){ return '<div style="padding:0 12px"><span style="display:inline-block;padding:3px 10px;background:#e0f2fe;border:1px solid #bae6fd;border-radius:4px;font-size:10px;font-weight:800;color:#075985;margin:10px 0 3px">' + esc(t) + '</span></div>'; };
           var hd2 = function(t, right){ return '<div style="background:#ededed;text-align:center;font-size:11px;font-weight:800;color:#1f2937;padding:9px 8px;letter-spacing:0.5px' + (right ? '' : ';border-right:1px solid #cbd5e1') + '">' + esc(t) + '</div>'; };
           var lblCell = function(t){ return '<div style="background:#e0f2fe;display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;font-weight:800;color:#075985;border-right:1px solid #cbd5e1;padding:8px 4px;line-height:1.4">' + t + '</div>'; };
@@ -20901,7 +20932,7 @@ window.__meeting = (function() {
   return {
     openPanel: openPanel, closePanel: closePanel, render: render, clearFilters: clearFilters,
     openForm: openForm, closeForm: closeForm, saveMinute: saveMinute, deleteMinute: deleteMinute,
-    _pickFormDept: _pickFormDept, _closeDeptChooser: _closeDeptChooser, _sysLoadPrevReport: _sysLoadPrevReport,
+    _pickFormDept: _pickFormDept, _closeDeptChooser: _closeDeptChooser, _sysLoadPrevReport: _sysLoadPrevReport, _sysBoldToggle: _sysBoldToggle,
     openDetail: openDetail, _setFormMode: _setFormMode, _deleteById: _deleteById,
     _backToList: _backToList, _editFromDetail: _editFromDetail, _printDetail: _printDetail,
     openTypeManager: openTypeManager, closeTypeManager: closeTypeManager, addType: addType,
