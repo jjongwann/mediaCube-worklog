@@ -19132,34 +19132,7 @@ function closeMusicQuotePanel(){ window.__mq.closePanel(); }
           <div id="mtg-f-file-list" style="display:flex;flex-direction:column;gap:5px;margin-top:10px"></div>
         </div>
 
-        <!-- 공개 범위 -->
-        <div class="mtg-detail-section">
-          <div class="mtg-detail-section-label">공개 범위 *</div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <label class="mtg-vis-radio" data-val="sound" style="flex:1;min-width:200px;display:flex;align-items:center;gap:10px;padding:14px 16px;border:2px solid #e2e8f0;border-radius:12px;cursor:pointer;transition:all .12s">
-              <input type="radio" name="mtg-visibility" value="sound" style="accent-color:#7c3aed">
-              <div style="display:flex;flex-direction:column;gap:2px">
-                <span style="font-size:13px;font-weight:700;color:#0f172a">사운드컨텐츠사업부</span>
-                <span style="font-size:11px;color:#64748b">사운드 사업부만 열람</span>
-              </div>
-            </label>
-            <label class="mtg-vis-radio" data-val="system" style="flex:1;min-width:200px;display:flex;align-items:center;gap:10px;padding:14px 16px;border:2px solid #e2e8f0;border-radius:12px;cursor:pointer;transition:all .12s">
-              <input type="radio" name="mtg-visibility" value="system" style="accent-color:#0891b2">
-              <div style="display:flex;flex-direction:column;gap:2px">
-                <span style="font-size:13px;font-weight:700;color:#0f172a">시스템 사업부</span>
-                <span style="font-size:11px;color:#64748b">시스템 사업부만 열람</span>
-              </div>
-            </label>
-            <label class="mtg-vis-radio" data-val="all" style="flex:1;min-width:200px;display:flex;align-items:center;gap:10px;padding:14px 16px;border:2px solid #e2e8f0;border-radius:12px;cursor:pointer;transition:all .12s">
-              <input type="radio" name="mtg-visibility" value="all" style="accent-color:#2066ff" checked>
-              <div style="display:flex;flex-direction:column;gap:2px">
-                <span style="font-size:13px;font-weight:700;color:#0f172a">전사 공개</span>
-                <span style="font-size:11px;color:#64748b">모든 사업부 열람</span>
-              </div>
-            </label>
-          </div>
-          <div style="font-size:11px;color:#94a3b8;margin-top:8px">관리자 · 회계 · 개발팀 계정은 공개 범위와 무관하게 모두 열람 가능합니다.</div>
-        </div>
+        <!-- 공개 범위 UI 제거 — 열람 제한은 _canView 가 주관 부서(dept) 기준으로 수행. 저장 시 visibility 는 dept 로 자동 유도 -->
 
         <!-- Actions -->
         <div class="mtg-detail-actions">
@@ -19197,8 +19170,6 @@ function closeMusicQuotePanel(){ window.__mq.closePanel(); }
 </div>
 
 <style>
-  .mtg-vis-radio:hover { border-color: #0f766e !important; background: #f0fdfa; }
-  .mtg-vis-radio.active { border-color: #0f766e !important; background: #f0fdfa; }
   /* 회의록 폼 통합 스타일 — 라벨/인풋/셀렉트 */
   .mtg-lbl {
     display: block;
@@ -19507,7 +19478,6 @@ window.__meeting = (function() {
     types: [],   // [{key,label,sort_order}]
     editingId: null,
     selectedAttendees: {},  // { userId: {id,name,dept} }
-    editingVisibility: 'all',
     // 첨부파일 관리
     existingAttachments: [], // 기존 저장된 파일 (수정 시 로드) — 각 항목 {name,url,size,type}
     pendingFiles: []         // 이번 세션에 신규 선택한 File 객체들 (저장 시 업로드)
@@ -20064,7 +20034,6 @@ window.__meeting = (function() {
   function _resetForm() {
     _state.editingId = null;
     _state.selectedAttendees = {};
-    _state.editingVisibility = 'all';
     _state.existingAttachments = [];
     _state.pendingFiles = [];
     // (구 모달 헤더 mtg-form-mode/mtg-form-title 은 embed 리팩터로 제거됨. 헤더 타이틀은 openForm 에서 mtg-header-kicker/mtg-header-title 로 세팅)
@@ -20086,7 +20055,6 @@ window.__meeting = (function() {
     document.getElementById('mtg-f-attendee-search').value = '';
     var fInp = document.getElementById('mtg-f-file-input'); if (fInp) fInp.value = '';
     var picker = document.getElementById('mtg-f-file-picker'); if (picker) picker.style.display = '';
-    _setVisibility('all');
     _renderAttendeeChips();
     _renderFileList(false);
     document.getElementById('mtg-f-delete-btn').style.display = 'none';
@@ -20171,17 +20139,7 @@ window.__meeting = (function() {
     }));
   }
 
-  function _setVisibility(v) {
-    _state.editingVisibility = v;
-    document.querySelectorAll('input[name="mtg-visibility"]').forEach(function(r){
-      r.checked = (r.value === v);
-    });
-    document.querySelectorAll('.mtg-vis-radio').forEach(function(l){
-      l.classList.toggle('active', l.getAttribute('data-val') === v);
-    });
-  }
   document.addEventListener('change', function(e){
-    if (e.target && e.target.name === 'mtg-visibility') _setVisibility(e.target.value);
     // dept 전환 시 폼 소절 스왑 (classic ↔ 주간업무보고) — 입력값은 DOM 유지로 보존됨
     if (e.target && e.target.id === 'mtg-f-dept') _applyFormLayout();
   });
@@ -20298,7 +20256,6 @@ window.__meeting = (function() {
     _state.pendingFiles = [];
     var attendees = Array.isArray(row.attendees) ? row.attendees : [];
     attendees.forEach(function(a){ if (a.id) _state.selectedAttendees[a.id] = a; });
-    _setVisibility(row.visibility || 'all');
     _renderAttendeeChips();
     _renderFileList(false); // 기존 첨부파일 목록 렌더 (수정 폼 진입 시 파일이 보이도록)
   }
@@ -20463,7 +20420,8 @@ window.__meeting = (function() {
         decisions: _sysFormActive() ? '' : (document.getElementById('mtg-f-decisions').value || ''),
         notes: _sysFormActive() ? '' : (document.getElementById('mtg-f-notes').value || ''),
         attachments: mergedAttachments,
-        visibility: _state.editingVisibility || 'all',
+        // 공개 범위 라디오 제거 — 주관 부서로 자동 유도 (visibility 는 목록/상세 칩 표시용, 열람 제한은 _canView 가 dept 로 수행)
+        visibility: ({ '사운드컨텐츠사업부': 'sound', '시스템 사업부': 'system' })[document.getElementById('mtg-f-dept').value || ''] || 'all',
         updated_at: new Date().toISOString()
       };
       if (_state.editingId) {
