@@ -15687,10 +15687,33 @@ window.__mq = (function(){
     }
   }
   function refresh(){
-    return fetch(_URL + '/rest/v1/music_quotes?select=*&order=created_at.desc&limit=500', { headers: _hdr() })
-      .then(function(r){ if (!r.ok) return r.text().then(function(t){ throw new Error('HTTP '+r.status+' '+t); }); return r.json(); })
+    // 기존 '최신 500건' 상한 제거 → 1000건씩 나눠 전량 수집 (quotes/vendor_sales 와 동일 패턴).
+    // order 에는 고유키 tiebreaker(id.asc) 필수 — 동일 created_at 행이 페이지 경계에서 중복/누락되지 않도록.
+    var PAGE = 1000;
+    var acc = [];
+    function _page(offset){
+      var u = _URL + '/rest/v1/music_quotes?select=*&order=created_at.desc,id.asc&limit=' + PAGE + '&offset=' + offset;
+      return fetch(u, { headers: _hdr() })
+        .then(function(r){ if (!r.ok) return r.text().then(function(t){ throw new Error('HTTP '+r.status+' '+t); }); return r.json(); })
+        .then(function(rows){
+          if (!Array.isArray(rows)) return acc;
+          acc = acc.concat(rows);
+          if (rows.length < PAGE) return acc;
+          return _page(offset + PAGE);
+        });
+    }
+    return _page(0)
       .then(function(rows){
-        _state.rows = Array.isArray(rows) ? rows : []; _state.loaded = true;
+        // 안전망: 동일 id 행이 중복 수신되어도 1개만 유지
+        var seen = {};
+        _state.rows = (Array.isArray(rows) ? rows : []).filter(function(r){
+          var k = r && r.id;
+          if (k == null) return true;
+          if (seen[k]) return false;
+          seen[k] = true;
+          return true;
+        });
+        _state.loaded = true;
         if (_state.view==='list') _renderList();
         // 수신처 자동완성 드롭다운은 열릴 때마다 _recvSuggList() 를 재조회하므로 별도 갱신 불필요
       })
