@@ -14579,14 +14579,36 @@ window.__quote = (function() {
   }
 
   function fetchAll() {
+    // PostgREST 는 1000행 초과 시 조용히 잘라냄 → limit/offset 페이지네이션으로 전체 수집.
+    // order 에는 고유키 tiebreaker(id.asc) 필수 — 동일 quote_date 행이 페이지 경계에서 중복/누락되지 않도록.
     var sb = _getSb();
-    return fetch(sb.url + '/rest/v1/quotes?select=*&order=quote_date.desc', { headers: sb.hdr })
-      .then(function(r){
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      })
+    var PAGE = 1000;
+    var acc = [];
+    function _page(offset){
+      var u = sb.url + '/rest/v1/quotes?select=*&order=quote_date.desc,id.asc&limit=' + PAGE + '&offset=' + offset;
+      return fetch(u, { headers: sb.hdr })
+        .then(function(r){
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function(rows){
+          if (!Array.isArray(rows)) return acc;
+          acc = acc.concat(rows);
+          if (rows.length < PAGE) return acc;
+          return _page(offset + PAGE);
+        });
+    }
+    return _page(0)
       .then(function(rows){
-        _state.rows = Array.isArray(rows) ? rows : [];
+        // 안전망: 동일 id 행이 중복 수신되어도 1개만 유지
+        var seen = {};
+        _state.rows = (Array.isArray(rows) ? rows : []).filter(function(r){
+          var k = r && r.id;
+          if (k == null) return true;
+          if (seen[k]) return false;
+          seen[k] = true;
+          return true;
+        });
         _state.loaded = true;
       })
       .catch(function(e){
