@@ -3633,10 +3633,35 @@
       tasks: r.tasks || [], workProgress: r.work_progress || null, pinned: r.pinned || false,
       user_id: r.user_id || null };
   }
+  // journals 전량 수집 헬퍼 — PostgREST 1000행 상한 대비 limit/offset 페이지네이션 (vendor_sales/quotes 와 동일 패턴).
+  // baseUrl 의 order= 에는 고유키 tiebreaker(id.asc)까지 포함해 호출할 것 (페이지 경계 고정) + 동일 id 중복 수신 안전망.
+  function _sbFetchPaged(baseUrl, headers) {
+    var PAGE = 1000;
+    var acc = [];
+    function _page(offset) {
+      return fetch(baseUrl + '&limit=' + PAGE + '&offset=' + offset, { headers: headers })
+        .then(function(r){ return r.json(); })
+        .then(function(rows){
+          if (!Array.isArray(rows)) return acc;
+          acc = acc.concat(rows);
+          if (rows.length < PAGE) return acc;
+          return _page(offset + PAGE);
+        });
+    }
+    return _page(0).then(function(rows){
+      var seen = {};
+      return rows.filter(function(r){
+        var k = r && r.id;
+        if (k == null) return true;
+        if (seen[k]) return false;
+        seen[k] = true;
+        return true;
+      });
+    });
+  }
   async function sbFetch() {
     try {
-      var res = await fetch(SB_URL + '/rest/v1/journals?select=*&order=date.desc,created_at.desc', { headers: SB_HDR });
-      var rows = await res.json();
+      var rows = await _sbFetchPaged(SB_URL + '/rest/v1/journals?select=*&order=date.desc,created_at.desc,id.asc', SB_HDR);
       journalCache = Array.isArray(rows) ? rows.map(dbToLocal) : [];
     } catch(e) { console.error('Supabase fetch error', e); journalCache = []; }
     // Supabase에서 로드된 상태를 스냅샷으로 저장 (변경 감지 기준점)
@@ -11518,11 +11543,10 @@
     var orParts = SOUND_NAMES.map(function(n) {
       return 'author.eq.' + encodeURIComponent(n);
     }).join(',');
-    var url = SB_URL + '/rest/v1/journals?select=*&or=(' + orParts + ')&order=date.desc,created_at.desc';
+    var url = SB_URL + '/rest/v1/journals?select=*&or=(' + orParts + ')&order=date.desc,created_at.desc,id.asc';
     try {
-      // 1차: 현재 사용자 JWT로 시도
-      var res = await fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } });
-      var rows = await res.json();
+      // 1차: 현재 사용자 JWT로 시도 (1000행 상한 대비 페이지네이션)
+      var rows = await _sbFetchPaged(url, { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken });
       if (Array.isArray(rows) && rows.length > 0) {
         _soundTeamCache = rows.map(dbToLocal);
         return;
@@ -11530,8 +11554,7 @@
     } catch(e) {}
     try {
       // 2차: anon key로 시도 (RLS가 anon 허용하는 경우)
-      var res2 = await fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } });
-      var rows2 = await res2.json();
+      var rows2 = await _sbFetchPaged(url, { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY });
       if (Array.isArray(rows2) && rows2.length > 0) {
         _soundTeamCache = rows2.map(dbToLocal);
         return;
@@ -11824,11 +11847,10 @@
     var orParts = SYSTEM_NAMES.map(function(n) {
       return 'author.eq.' + encodeURIComponent(n);
     }).join(',');
-    var url = SB_URL + '/rest/v1/journals?select=*&or=(' + orParts + ')&order=date.desc,created_at.desc';
+    var url = SB_URL + '/rest/v1/journals?select=*&or=(' + orParts + ')&order=date.desc,created_at.desc,id.asc';
     try {
-      // 1차: 현재 사용자 JWT
-      var res = await fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken } });
-      var rows = await res.json();
+      // 1차: 현재 사용자 JWT (1000행 상한 대비 페이지네이션)
+      var rows = await _sbFetchPaged(url, { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + _sbToken });
       if (Array.isArray(rows) && rows.length > 0) {
         _systemTeamCache = rows.map(dbToLocal);
         return;
@@ -11836,8 +11858,7 @@
     } catch(e) {}
     try {
       // 2차: anon key (RLS 가 anon 허용하는 경우 폴백)
-      var res2 = await fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } });
-      var rows2 = await res2.json();
+      var rows2 = await _sbFetchPaged(url, { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY });
       if (Array.isArray(rows2) && rows2.length > 0) {
         _systemTeamCache = rows2.map(dbToLocal);
         return;
