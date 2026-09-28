@@ -25266,12 +25266,12 @@ window.__vendor = (function() {
     //     2) 무료 BLANKET → 기본 활성 (매출 개념 없음)
     //     3) 그 외 → 기간 합계 > 0
     //   [시스템 사업부]  ← extra.active 무시. 사용자 요구: 기간 안 계산서 있는 프로젝트만.
-    //     · 상태 필터 'todo' (예정): 계산서 없는 그룹(hasInvoice=false)만 활성
+    //     · 상태 필터 'todo' (예정): 상태 필터를 통과한 예정 그룹 전부 활성 (계산서 유무 무관 — 정렬에서 계산서 없는 그룹 우선)
     //     · 그 외 (전체 or 'wip'): 기간 안 매출 합계 > 0 인 그룹만 활성
     var activeNames = allVendorsAfterFilter.filter(function(n){
       if (isSysCatGroup) {
-        // 예정 필터: 계산서 없는 그룹만 활성으로 (기간 무관)
-        if (sysStatusFilter === 'todo') return !byVendor[n].hasInvoice;
+        // 예정 필터: 계산서 있는 예정 프로젝트도 목록에 표시 (사용자 요청 2026-09)
+        if (sysStatusFilter === 'todo') return true;
         // 그 외: 기간 안 매출 실제 존재 여부로만 판정 (extra.active 무시)
         var months = byVendor[n].months;
         var sum = 0;
@@ -25366,9 +25366,15 @@ window.__vendor = (function() {
         return aVal.localeCompare(bVal) * _dir;
       }
       // 시스템 사업부 기본 정렬: 계산서 날짜 최신순 (없는 그룹은 뒤로)
+      // 단, 상태 필터 '예정' 에서는 반대로 계산서 없는 그룹이 최상단, 그 다음 계산서 있는 예정 그룹 (사용자 요청)
       if (isSysCatGroup) {
         var _aInv = _pickFieldFromRows(_groupRowsOf(cat, a.gkey, true), 'invoice_date') || '';
         var _bInv = _pickFieldFromRows(_groupRowsOf(cat, b.gkey, true), 'invoice_date') || '';
+        if (sysStatusFilter === 'todo') {
+          if (!_aInv !== !_bInv) return !_aInv ? -1 : 1; // 계산서 없는 그룹 우선
+          if (!_aInv && !_bInv) return 0;
+          return _bInv.localeCompare(_aInv); // 계산서 있는 예정끼리는 최신순
+        }
         if (!_aInv && !_bInv) return 0;
         if (!_aInv) return 1;
         if (!_bInv) return -1;
