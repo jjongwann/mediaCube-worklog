@@ -18014,7 +18014,7 @@ window.__mq = (function(){
       + '.top tr.bare td{border:none;background:#fff}'
       + '.top td.note-line{font-weight:700;text-align:left}'
       // 대표자 (인) 도장 오버레이 — 텍스트 흐름 기준이라 이름 길이·행 높이 무관 정확
-      + '.inmark{position:relative;float:right;margin-right:28px}' /* (인)·도장 셀 우측 배치 (사용자 요청) */
+      + '.inmark{position:relative}' /* (인)·도장 은 이름 바로 뒤 인라인 배치 (사용자 요청) */
       + '.inmark .stamp{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:65px;height:65px;opacity:0.9;pointer-events:none}'
       // 항목 표 — 내부 thin(1px 검정) · 외곽 medium(2px) · 데이터 셀 전부 중앙정렬 (Excel A.center)
       + 'table.items{width:100%;border-collapse:collapse;table-layout:fixed}'
@@ -18240,7 +18240,7 @@ window.__mq = (function(){
         titleRange:'A1:J2', groupRange:'B11:J11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:J23',
         sumCols:[8,9,10], lastColLetter:'J',
-        stampExt:{col:9.3,row:3.9,w:65,h:65}, ceoGap:34
+        stampExt:{col:8.4,row:3.9,w:65,h:65}, ceoGap:3
       };
     } else if (mode === 'ad') {
       colSpec = { widths:[7,25.625,10.625,28.75,11,24.5,6.5,10,16.625],
@@ -18248,7 +18248,7 @@ window.__mq = (function(){
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
-        stampExt:{col:8.45,row:3.9,w:65,h:65}, ceoGap:22
+        stampExt:{col:8.25,row:3.9,w:65,h:65}, ceoGap:3
       };
     } else {
       colSpec = { widths:[7,25.625,10.625,28.75,11,24.5,6.5,10,16.625],
@@ -18256,7 +18256,7 @@ window.__mq = (function(){
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
-        stampExt:{col:8.45,row:3.9,w:65,h:65}, ceoGap:22
+        stampExt:{col:8.25,row:3.9,w:65,h:65}, ceoGap:3
       };
     }
     // 컬럼 너비
