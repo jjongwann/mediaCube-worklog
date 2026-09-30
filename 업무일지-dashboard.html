@@ -15500,7 +15500,7 @@ window.__mq = (function(){
       {k:'cdNo',label:'CD No',w:90,t:'text',g:1},
       {k:'cue',label:'CUE',w:180,t:'text',c:1,g:1},
       {k:'trackNo',label:'Track No',w:75,t:'text',c:1},
-      {k:'publisher',label:'Publisher / Composer',w:220,t:'text'},
+      {k:'publisher',label:'Publisher | Composer',w:220,t:'text'},
       {k:'unit',label:'단위',w:60,t:'text',c:1},
       {k:'qty',label:'수량',w:60,t:'num',r:1,sum:1},
       {k:'dw',label:'Domestic & Worldwide',w:150,t:'num',r:1,sum:1}
@@ -15511,7 +15511,7 @@ window.__mq = (function(){
       {k:'cdNo',label:'CD No',w:90,t:'text',g:1},
       {k:'cue',label:'CUE',w:180,t:'text',c:1,g:1},
       {k:'trackNo',label:'Track No',w:75,t:'text',c:1},
-      {k:'publisher',label:'Publisher / Composer',w:220,t:'text'},
+      {k:'publisher',label:'Publisher | Composer',w:220,t:'text'},
       {k:'unit',label:'단위',w:60,t:'text',c:1},
       {k:'qty',label:'수량',w:60,t:'num',r:1,sum:1},
       {k:'amount',label:'금액',w:120,t:'num',r:1,sum:1}
@@ -15522,7 +15522,7 @@ window.__mq = (function(){
       {k:'cdNo',label:'CD No',w:85,t:'text',g:1},
       {k:'cue',label:'CUE',w:170,t:'text',c:1,g:1},
       {k:'trackNo',label:'Track No',w:70,t:'text',c:1},
-      {k:'publisher',label:'Publisher / Composer',w:200,t:'text'},
+      {k:'publisher',label:'Publisher | Composer',w:200,t:'text'},
       {k:'unit',label:'단위',w:60,t:'text',c:1},
       {k:'qty',label:'수량',w:60,t:'num',r:1,sum:1},
       {k:'domestic',label:'Domestic',w:110,t:'num',r:1,sum:1},
@@ -16587,7 +16587,7 @@ window.__mq = (function(){
         var xTitle = xCdTitle || findColX(['품목']);
         var xCue = findColX(['cue','cue(s)','규격']);
         var xTrack = findColX(['trackno','track no']);
-        var xPub = findColX(['publisher/composer','publisher / composer','publisher','composer']);
+        var xPub = findColX(['publisher|composer','publisher/composer','publisher / composer','publisher','composer']);
         var xUnit = findColX(['단위','용도','권리']);
         var xQty = findColX(['수량','qty']);
         var xAmount = findColX(['금액','금액','domestic&worldwide','domestic','금']);
@@ -17875,7 +17875,8 @@ window.__mq = (function(){
     var thHtml = '<tr>' + cols.map(function(c, i){
       var lbl = (i === 0) ? 'No' : c.label;
       var wAttr = (pct && pct[i] != null) ? 'width:'+pct[i]+'%' : 'width:'+c.w+'px';
-      return '<th style="'+wAttr+'">'+esc(lbl)+'</th>';
+      // Publisher | Composer 헤더는 인쇄에서 한 줄 유지 (사용자 요청)
+      return '<th style="'+wAttr+(c.k==='publisher'?';white-space:nowrap':'')+'">'+esc(lbl)+'</th>';
     }).join('') + '</tr>';
     // 표 rows — Excel 정렬 규칙: 데이터 셀 전부 중앙 · 병합 라벨만 좌측/굵게
     var tbHtml = items.map(function(it, idx){
@@ -18233,7 +18234,7 @@ window.__mq = (function(){
     var colSpec;
     if (mode === 'movie') {
       colSpec = { widths:[7,23.375,9.125,24.5,11,22.25,6.5,10,14.125,13.875],
-        headers:['No','CD Title','CD No','CUE','Track No','Publisher / Composer','단위','수량','Domestic','Worldwide'],
+        headers:['No','CD Title','CD No','CUE','Track No','Publisher | Composer','단위','수량','Domestic','Worldwide'],
         titleRange:'A1:J2', groupRange:'B11:J11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:J23',
         sumCols:[8,9,10], lastColLetter:'J',
@@ -18241,7 +18242,7 @@ window.__mq = (function(){
       };
     } else if (mode === 'ad') {
       colSpec = { widths:[7,25.625,10.625,28.75,11,24.5,6.5,10,16.625],
-        headers:['No','CD Title','CD No','CUE','Track No','Publisher / Composer','단위','수량','금액'],
+        headers:['No','CD Title','CD No','CUE','Track No','Publisher | Composer','단위','수량','금액'],
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
@@ -18249,7 +18250,7 @@ window.__mq = (function(){
       };
     } else {
       colSpec = { widths:[7,25.625,10.625,28.75,11,24.5,6.5,10,16.625],
-        headers:['No','CD Title','CD No','CUE','Track No','Publisher / Composer','단위','수량','Domestic & Worldwide'],
+        headers:['No','CD Title','CD No','CUE','Track No','Publisher | Composer','단위','수량','Domestic & Worldwide'],
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
