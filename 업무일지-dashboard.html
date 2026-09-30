@@ -17844,7 +17844,7 @@ window.__mq = (function(){
     var bizItemLabel = isInvoice ? '업태 / 종목' : '업태 / 업종';
     var bizItemCombined = (r.sender_biz_type||'') + '   /   ' + (r.sender_biz_item||'');
     var senderTelCombined = (r.sender_tel||'') + '   /   ' + (r.sender_fax||'');
-    var ceoVal = esc(_ceoDisp(r.sender_ceo)) + '&nbsp;&nbsp;&nbsp;<span class="inmark">(인)'
+    var ceoVal = esc(_ceoDisp(r.sender_ceo)) + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="inmark">(인)'
       + (stampDataUrl ? '<img class="stamp" src="'+stampDataUrl+'" alt="">' : '')
       + '</span>';
     var RRows = [
@@ -18247,7 +18247,7 @@ window.__mq = (function(){
         titleRange:'A1:J2', groupRange:'B11:J11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:J23',
         sumCols:[8,9,10], lastColLetter:'J',
-        stampExt:{col:7.35,row:3.9,w:65,h:65}, ceoGap:3
+        stampExt:{col:7.7,row:3.9,w:65,h:65}, ceoGap:5
       };
     } else if (mode === 'ad') {
       colSpec = { widths:[7,25.625,10.625,28.75,11,24.5,6.5,10,16.625],
@@ -18255,7 +18255,7 @@ window.__mq = (function(){
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
-        stampExt:{col:7.35,row:3.9,w:65,h:65}, ceoGap:3
+        stampExt:{col:7.7,row:3.9,w:65,h:65}, ceoGap:5
       };
     } else {
       colSpec = { widths:[7,25.625,10.625,28.75,11,24.5,6.5,10,16.625],
@@ -18263,7 +18263,7 @@ window.__mq = (function(){
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
-        stampExt:{col:7.35,row:3.9,w:65,h:65}, ceoGap:3
+        stampExt:{col:7.7,row:3.9,w:65,h:65}, ceoGap:5
       };
     }
     // 컬럼 너비
