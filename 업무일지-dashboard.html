@@ -17866,9 +17866,9 @@ window.__mq = (function(){
     // 단위 컬럼은 'sync' 한 줄 표시를 위해 6.0% 확보 (CUE 에서 차감)
     // Publisher 확대 + 금액 한 줄 유지(수량에서 차감해 금액 확보) — 상단 폼 분할선(첫 5열 합)은 불변
     var NEEDLE_PCT = {
-      ott:   [4.98,18.22,7.56,19.06,7.82,19.02,6.0,6.2,11.13],
-      ad:    [4.98,18.22,7.56,19.06,7.82,19.02,6.0,6.2,11.13],
-      movie: [4.94,15.0,6.44,14.3,7.76,17.0,6.0,6.2,11.05,11.3]
+      ott:   [4.98,18.22,7.56,19.06,7.82,18.62,6.0,5.7,12.03],
+      ad:    [4.98,18.22,7.56,19.06,7.82,18.62,6.0,5.7,12.03],
+      movie: [4.94,15.0,6.44,14.3,7.76,16.6,6.0,5.7,11.95,11.3]
     };
     var pct = isNeedle ? (NEEDLE_PCT[r.sub_type] || NEEDLE_PCT.ott) : null;
     // 상단 폼 좌/우 분할점 = 표의 Track No 컬럼 오른쪽 선 (첫 5개 컬럼 폭 합) — 상하 일직선 정렬
@@ -17932,7 +17932,8 @@ window.__mq = (function(){
           var v = totals[col.k];
           var isPrice = col.k !== 'qty';
           var disp = isPrice ? ('₩ '+_fmtN(v)) : _fmtN(v);
-          totalCells += '<td class="center totalrow-cell">'+esc(disp)+'</td>';
+          // ₩ 합계는 항상 한 줄 유지 (사용자 요청)
+          totalCells += '<td class="center totalrow-cell"'+(isPrice?' style="white-space:nowrap"':'')+'>'+esc(disp)+'</td>';
         } else {
           totalCells += '<td class="totalrow-cell">&nbsp;</td>';
         }
@@ -17950,7 +17951,7 @@ window.__mq = (function(){
             var isPrice = (c.k === 'unitPrice' || c.k === 'supplyPrice' || c.k === 'vat');
             var isNumC = c.t === 'num';
             var disp = isPrice ? ('₩ '+_fmtN(_num(v))) : (isNumC ? _fmtN(_num(v)) : String(v));
-            return '<td class="center totalrow-cell">'+esc(disp)+'</td>';
+            return '<td class="center totalrow-cell"'+(isPrice?' style="white-space:nowrap"':'')+'>'+esc(disp)+'</td>';
           }).join('')
       + '</tr>';
     } else {
