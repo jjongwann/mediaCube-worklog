@@ -15550,7 +15550,7 @@ window.__mq = (function(){
     // 담당자 디폴트: 이광순 이사(sunlee) 계정은 팀명 포함 서식
     var uname = (typeof _currentUsername !== 'undefined') ? _currentUsername : '';
     var person = (uname === 'sunlee') ? '사운드컨텐츠팀  이 광 순' : '이광순';
-    return { sender_reg_no:'114-86-09186', sender_company:'(주)미디어큐브', sender_ceo:'김재경', sender_address:'서울 강남구 논현로136길 16 5층', sender_biz_type:'서비스', sender_biz_item:'사운드 · 음반', sender_tel:'02-534-8408', sender_fax:'02-534-8486', sender_person:person };
+    return { sender_reg_no:'114-86-09186', sender_company:'(주)미디어큐브', sender_ceo:'김   재   경', sender_address:'서울 강남구 논현로136길 16 5층', sender_biz_type:'서비스', sender_biz_item:'사운드 · 음반', sender_tel:'02-534-8408', sender_fax:'02-534-8486', sender_person:person };
   }
 
   // ────────────────────────────────────────────────────────────
@@ -18014,7 +18014,7 @@ window.__mq = (function(){
       + '.top tr.bare td{border:none;background:#fff}'
       + '.top td.note-line{font-weight:700;text-align:left}'
       // 대표자 (인) 도장 오버레이 — 텍스트 흐름 기준이라 이름 길이·행 높이 무관 정확
-      + '.inmark{position:relative}'
+      + '.inmark{position:relative;float:right;margin-right:28px}' /* (인)·도장 셀 우측 배치 (사용자 요청) */
       + '.inmark .stamp{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:65px;height:65px;opacity:0.9;pointer-events:none}'
       // 항목 표 — 내부 thin(1px 검정) · 외곽 medium(2px) · 데이터 셀 전부 중앙정렬 (Excel A.center)
       + 'table.items{width:100%;border-collapse:collapse;table-layout:fixed}'
@@ -18240,7 +18240,7 @@ window.__mq = (function(){
         titleRange:'A1:J2', groupRange:'B11:J11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:J23',
         sumCols:[8,9,10], lastColLetter:'J',
-        stampExt:{col:8.1,row:3.9,w:65,h:65}
+        stampExt:{col:9.3,row:3.9,w:65,h:65}, ceoGap:34
       };
     } else if (mode === 'ad') {
       colSpec = { widths:[7,25.625,10.625,28.75,11,24.5,6.5,10,16.625],
@@ -18248,7 +18248,7 @@ window.__mq = (function(){
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
-        stampExt:{col:7.95,row:3.9,w:65,h:65}
+        stampExt:{col:8.45,row:3.9,w:65,h:65}, ceoGap:22
       };
     } else {
       colSpec = { widths:[7,25.625,10.625,28.75,11,24.5,6.5,10,16.625],
@@ -18256,7 +18256,7 @@ window.__mq = (function(){
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
-        stampExt:{col:7.95,row:3.9,w:65,h:65}
+        stampExt:{col:8.45,row:3.9,w:65,h:65}, ceoGap:22
       };
     }
     // 컬럼 너비
@@ -18307,8 +18307,9 @@ window.__mq = (function(){
     };
     mkRSimple(3, '등록번호', r.sender_reg_no||'');
     mkRSimple(4, '상호명',   r.sender_company||'');
-    // 대표자 이름 옆에 (인) 표기 · 도장 이미지가 이 셀 위에 오버레이됨
-    mkRSimple(5, '대표자',   (r.sender_ceo || '') ? (r.sender_ceo + '   (인)') : '(인)');
+    // 대표자 이름 왼쪽 + (인)/도장 은 셀 우측 배치 (ceoGap 공백으로 밀어냄 · 도장은 stampExt.col 로 정렬)
+    var _ceoGapStr = new Array((colSpec.ceoGap || 3) + 1).join(' ');
+    mkRSimple(5, '대표자',   (r.sender_ceo || '') ? (r.sender_ceo + _ceoGapStr + '(인)') : '(인)');
     mkRSimple(6, '소재지',   r.sender_address||'');
     // 7행: 업태 + 종목 (한 줄에 두 칸)
     //   movie(10열 F~J): F=업태, G:H=업태값, I=종목, J=종목값 (실제 종목값 좁으면 J만)
