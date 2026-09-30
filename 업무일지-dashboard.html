@@ -15552,6 +15552,13 @@ window.__mq = (function(){
     var person = (uname === 'sunlee') ? '사운드컨텐츠팀  이 광 순' : '이광순';
     return { sender_reg_no:'114-86-09186', sender_company:'(주)미디어큐브', sender_ceo:'김   재   경', sender_address:'서울 강남구 논현로136길 16 5층', sender_biz_type:'서비스', sender_biz_item:'사운드 · 음반', sender_tel:'02-534-8408', sender_fax:'02-534-8486', sender_person:person };
   }
+  // 대표자 표기 변환 (엑셀/PDF 출력 전용): 공백 없는 2~4자 한글 이름이면 글자 사이 3칸 공백
+  // ('김재경' → '김   재   경') — 기존 저장 레코드도 출력 시 동일 표기. 이미 공백 있으면 그대로.
+  function _ceoDisp(name){
+    var n = String(name || '').trim();
+    if (/^[가-힣]{2,4}$/.test(n)) return n.split('').join('   ');
+    return n;
+  }
 
   // ────────────────────────────────────────────────────────────
   // 상태
@@ -17837,7 +17844,7 @@ window.__mq = (function(){
     var bizItemLabel = isInvoice ? '업태 / 종목' : '업태 / 업종';
     var bizItemCombined = (r.sender_biz_type||'') + '   /   ' + (r.sender_biz_item||'');
     var senderTelCombined = (r.sender_tel||'') + '   /   ' + (r.sender_fax||'');
-    var ceoVal = esc(r.sender_ceo||'') + '&nbsp;&nbsp;&nbsp;<span class="inmark">(인)'
+    var ceoVal = esc(_ceoDisp(r.sender_ceo)) + '&nbsp;&nbsp;&nbsp;<span class="inmark">(인)'
       + (stampDataUrl ? '<img class="stamp" src="'+stampDataUrl+'" alt="">' : '')
       + '</span>';
     var RRows = [
@@ -18240,7 +18247,7 @@ window.__mq = (function(){
         titleRange:'A1:J2', groupRange:'B11:J11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:J23',
         sumCols:[8,9,10], lastColLetter:'J',
-        stampExt:{col:8.4,row:3.9,w:65,h:65}, ceoGap:3
+        stampExt:{col:7.35,row:3.9,w:65,h:65}, ceoGap:3
       };
     } else if (mode === 'ad') {
       colSpec = { widths:[7,25.625,10.625,28.75,11,24.5,6.5,10,16.625],
@@ -18248,7 +18255,7 @@ window.__mq = (function(){
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
-        stampExt:{col:8.25,row:3.9,w:65,h:65}, ceoGap:3
+        stampExt:{col:7.35,row:3.9,w:65,h:65}, ceoGap:3
       };
     } else {
       colSpec = { widths:[7,25.625,10.625,28.75,11,24.5,6.5,10,16.625],
@@ -18256,7 +18263,7 @@ window.__mq = (function(){
         titleRange:'A1:I2', groupRange:'B11:I11', totalRange:'A19:D19', unitCol:7,
         notesLbl:'A20:A23', notesBody:'B20:I23',
         sumCols:[8,9], lastColLetter:'I',
-        stampExt:{col:8.25,row:3.9,w:65,h:65}, ceoGap:3
+        stampExt:{col:7.35,row:3.9,w:65,h:65}, ceoGap:3
       };
     }
     // 컬럼 너비
@@ -18307,9 +18314,9 @@ window.__mq = (function(){
     };
     mkRSimple(3, '등록번호', r.sender_reg_no||'');
     mkRSimple(4, '상호명',   r.sender_company||'');
-    // 대표자 이름 왼쪽 + (인)/도장 은 셀 우측 배치 (ceoGap 공백으로 밀어냄 · 도장은 stampExt.col 로 정렬)
+    // 대표자: 글자 사이 3칸 공백 표기 + 이름 뒤 (인) · 도장은 stampExt.col 로 (인) 위 정렬
     var _ceoGapStr = new Array((colSpec.ceoGap || 3) + 1).join(' ');
-    mkRSimple(5, '대표자',   (r.sender_ceo || '') ? (r.sender_ceo + _ceoGapStr + '(인)') : '(인)');
+    mkRSimple(5, '대표자',   (r.sender_ceo || '') ? (_ceoDisp(r.sender_ceo) + _ceoGapStr + '(인)') : '(인)');
     mkRSimple(6, '소재지',   r.sender_address||'');
     // 7행: 업태 + 종목 (한 줄에 두 칸)
     //   movie(10열 F~J): F=업태, G:H=업태값, I=종목, J=종목값 (실제 종목값 좁으면 J만)
