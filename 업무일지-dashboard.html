@@ -25847,6 +25847,27 @@ window.__vendor = (function() {
       list = list.filter(function(v){ return (v.source || '') === srcFilter; });
     }
 
+    // 선곡료 보유 필터 ('' | 'has' | 'none') — 신규 고객 패널 전용 (동일 거래처명의 선곡료(song) 행 보유 기준)
+    var ncSongSel = document.getElementById('vendor-needle-song-filter');
+    if (ncSongSel) {
+      ncSongSel.style.display = '';
+      ncSongSel.options[0].text = '선곡료 전체';
+      ncSongSel.options[1].text = '선곡료 있는 거래처';
+      ncSongSel.options[2].text = '선곡료 없는 거래처';
+    }
+    var ncSongFilter = ncSongSel ? (ncSongSel.value || '') : '';
+    if (ncSongFilter) {
+      var ncSongVendors = {};
+      _state.rows.forEach(function(r){ if (r.category === 'song') ncSongVendors[r.vendor_name] = true; });
+      list = list.filter(function(v){
+        return ncSongFilter === 'has' ? !!ncSongVendors[v.name] : !ncSongVendors[v.name];
+      });
+    }
+
+    // 기간 필터: 선택 기간에 매출(금액/건수)이 있는 신규 거래처만 표시 — KPI 카드도 이 결과 기준 (사용자 요청 2026-10)
+    //  · 예외: 매출 행이 아예 없는(등록만 된) 거래처는 기간과 무관하게 노출 — 신규 등록 직후 사라지는 혼란 방지
+    list = list.filter(function(v){ return v.periodSales > 0 || v.periodCount > 0 || v.totalSales === 0; });
+
     // 등록일 빠른 순 (최근 등록일 → 오래된 등록일 순으로 정렬)
     list.sort(function(a, b){ return b.earliestCreated - a.earliestCreated; });
 
