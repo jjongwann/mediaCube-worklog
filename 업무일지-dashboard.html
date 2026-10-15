@@ -19590,7 +19590,10 @@ window.__meeting = (function() {
   }
   function _canEdit(row) {
     if (_isAdminUser()) return true;
-    return row.author_id === _uname();
+    if (row.author_id === _uname()) return true;
+    // 시스템 사업부 직원(권영재·김세준 차장)끼리는 서로의 회의록 수정/삭제 가능 (사용자 요청 2026-10)
+    if (_isSystemDept() && SYS_USERS.indexOf(row.author_id) !== -1) return true;
+    return false;
   }
   function _esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function _toast(msg) {
