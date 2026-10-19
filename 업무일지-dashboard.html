@@ -9776,9 +9776,10 @@
   function _bmatRowFor(monthKey, channel) {
     return _bmatRows.find(function(r){ return r.month_key === monthKey && r.channel === channel; });
   }
-  // 입력 모달용: 기본 채널 + "해당 월"에만 데이터가 있는 채널 (다른 월에만 있는 채널은 제외)
-  // → 사용자가 특정 월에서 채널을 삭제한 뒤 모달 재오픈 시 그 채널이 다시 나타나지 않도록.
-  function _bmatChannelsForMonth(monthKey) {
+  // 입력 모달 전용: 기본 채널(항상 입력 행으로 노출) + "해당 월"에 데이터가 있는 채널
+  // ※ 주의: 차트용 _bmatChannelsForMonth(해당 월 데이터만) 와 별개 함수 —
+  //   과거 동명 정의로 차트까지 기본 채널이 0으로 그려지던 버그가 있어 분리함 (2026-10)
+  function _bmatChannelsForInput(monthKey) {
     var seen = {};
     BMAT_DEFAULT_CHANNELS.forEach(function(c){ seen[c] = true; });
     _bmatRows.forEach(function(r){
@@ -10148,7 +10149,7 @@
     var mk = y + '-' + m;
     // 입력 모달: 기본 채널 + 이 월에 실제 데이터가 있는 채널만
     // (다른 월에만 있는 채널을 끌어오면 사용자가 삭제해도 다시 살아나는 버그 발생)
-    var channels = _bmatChannelsForMonth(mk);
+    var channels = _bmatChannelsForInput(mk);
     var rowsHost = document.getElementById('bmat-input-rows');
     rowsHost.innerHTML = '';
     channels.forEach(function(c){
