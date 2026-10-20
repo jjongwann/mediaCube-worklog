@@ -15647,11 +15647,19 @@ window.__mq = (function(){
   // scope: 'quote' (Needle/Annual 견적서) 또는 'invoice' (거래명세서) — 페이지 UX 분리용
   var _scope = 'quote';
 
-  // 사이드바 진입 시 카드 chooser: 견적서 vs 거래명세서 선택
-  //   같은 developer 게이팅 → chooser 카드 클릭 시 openPanel(scope) 로 진입
-  function openEntry(){
+  // 접근 허용: 관리자(mediacube) · info(김혜진 대리) · developer/sunlee · 사운드컨텐츠사업부 전원 (2026-10 확대)
+  // — 사이드바/카탈로그 노출 조건과 반드시 동일하게 유지할 것
+  function _mqCanAccess(){
+    if (typeof _isAdmin !== 'undefined' && _isAdmin) return true;
     var uname = (typeof _currentUsername !== 'undefined') ? _currentUsername : '';
-    if (uname !== 'developer' && uname !== 'sunlee') { _toast('접근 권한이 없습니다 '); return; }
+    if (['developer', 'sunlee', 'info'].indexOf(uname) !== -1) return true;
+    try { if (typeof _userDeptKey === 'function' && _userDeptKey(_userId) === 'sound') return true; } catch(e){}
+    return false;
+  }
+
+  // 사이드바 진입 시 카드 chooser: 견적서 vs 거래명세서 선택
+  function openEntry(){
+    if (!_mqCanAccess()) { _toast('접근 권한이 없습니다 '); return; }
     var ov = document.getElementById('mq-entry-back');
     if (!ov) {
       // 인라인 CSS 주입 (호버 트랜지션 · 애니메이션)
@@ -15727,9 +15735,7 @@ window.__mq = (function(){
   }
 
   function openPanel(scope){
-    // developer 계정만
-    var uname = (typeof _currentUsername !== 'undefined') ? _currentUsername : '';
-    if (uname !== 'developer' && uname !== 'sunlee') { _toast('접근 권한이 없습니다 '); return; }
+    if (!_mqCanAccess()) { _toast('접근 권한이 없습니다 '); return; }
     _scope = (scope === 'invoice') ? 'invoice' : 'quote';
     var ov = document.getElementById('mq-overlay');
     if (!ov) return;
