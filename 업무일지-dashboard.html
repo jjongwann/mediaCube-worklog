@@ -3832,11 +3832,13 @@
     if (saleshubBtn) {
       saleshubBtn.style.display = _isAdmin ? '' : 'none';
     }
-    // 음원 견적 관리 (사운드팀): developer(임종완 주임) · sunlee(이광순 이사)
+    // 음원 견적 관리: 사운드컨텐츠사업부 전원 + info(김혜진 대리) + developer·sunlee (2026-10 확대)
+    // (관리자는 '견적 관리' 진입 시 음원/시스템 선택 모달을 쓰므로 별도 버튼 불필요)
     var mqBtn = document.getElementById('mq-sidebar-btn');
     if (mqBtn) {
-      var _mqAllow = ['developer','sunlee'];
-      var canSeeMq = (typeof _currentUsername !== 'undefined' && _mqAllow.indexOf(_currentUsername) !== -1);
+      var _mqAllow = ['developer','sunlee','info'];
+      var canSeeMq = (typeof _currentUsername !== 'undefined' && _mqAllow.indexOf(_currentUsername) !== -1)
+        || (_userDeptKey(_userId) === 'sound');
       mqBtn.style.display = canSeeMq ? '' : 'none';
     }
     // 직원별 필터 셀렉트: 관리자 또는 전체 일지 열람 화이트리스트 계정에 노출
@@ -15179,8 +15181,68 @@ window.__quote = (function() {
 })();
 
 // 사이드바 진입점 (전역)
+// 관리자(mediacube): '음원 견적 관리 / 시스템 견적 관리' 선택 모달 → 그 외 계정은 기존대로 시스템 견적 직행
 function openQuotePanel() {
+  if (typeof _isAdmin !== 'undefined' && _isAdmin) { _showQuoteChooser(); return; }
   window.__quote.openPanel();
+}
+function _closeQuoteChooser() {
+  var ov = document.getElementById('quote-chooser-overlay');
+  if (ov) ov.style.display = 'none';
+}
+function _pickQuoteKind(kind) {
+  _closeQuoteChooser();
+  if (kind === 'music') { if (window.__mq) window.__mq.openPanel('quote'); }
+  else { window.__quote.openPanel(); }
+}
+function _ensureQuoteChooserOverlay() {
+  if (document.getElementById('quote-chooser-overlay')) return;
+  var div = document.createElement('div');
+  div.id = 'quote-chooser-overlay';
+  div.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:99996;align-items:center;justify-content:center;padding:24px';
+  div.onclick = function(e){ if (e.target === this) _closeQuoteChooser(); };
+  var CARDS = [
+    { kind: 'music',  title: '음원 견적 관리',   subtitle: '사운드팀 Needle · Annual · 거래명세서',
+      color: '#2563eb', gradFrom: '#2563eb', gradTo: '#1d4ed8',
+      icon: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>' },
+    { kind: 'system', title: '시스템 견적 관리', subtitle: '시스템 사업부 견적 등록 · 조회 · 관리',
+      color: '#4338ca', gradFrom: '#4338ca', gradTo: '#3730a3',
+      icon: '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>' }
+  ];
+  div.innerHTML = ''+
+    '<div style="width:100%;max-width:640px;background:#fff;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,0.3);overflow:hidden;font-family:inherit">'+
+      '<div style="padding:18px 22px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#475569,#1e293b);color:#fff">'+
+        '<div>'+
+          '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:#cbd5e1">SELECT QUOTES</div>'+
+          '<div style="font-size:16px;font-weight:800;margin-top:2px;letter-spacing:-0.3px">견적 관리 선택</div>'+
+        '</div>'+
+        '<button onclick="_closeQuoteChooser()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;cursor:pointer;font-size:18px;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:background .15s" onmouseover="this.style.background=\'rgba(255,255,255,0.28)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.15)\'">×</button>'+
+      '</div>'+
+      '<div id="quote-chooser-cards" style="padding:22px;display:grid;grid-template-columns:1fr 1fr;gap:14px"></div>'+
+    '</div>';
+  document.body.appendChild(div);
+  var box = div.querySelector('#quote-chooser-cards');
+  CARDS.forEach(function(c){
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    var grad = 'linear-gradient(135deg,'+c.gradFrom+','+c.gradTo+')';
+    btn.style.cssText = 'position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:22px 20px 20px;background:#fff;border:2px solid #e2e8f0;border-radius:14px;cursor:pointer;text-align:left;font-family:inherit;transition:transform .18s,box-shadow .18s,border-color .18s;overflow:hidden';
+    btn.onmouseover = function(){ this.style.transform = 'translateY(-3px)'; this.style.boxShadow = '0 12px 28px '+c.color+'33'; this.style.borderColor = c.color; };
+    btn.onmouseout = function(){ this.style.transform = ''; this.style.boxShadow = ''; this.style.borderColor = '#e2e8f0'; };
+    btn.onclick = function(){ _pickQuoteKind(c.kind); };
+    btn.innerHTML = ''+
+      '<div style="width:44px;height:44px;border-radius:12px;background:'+grad+';display:flex;align-items:center;justify-content:center">'+
+        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+c.icon+'</svg>'+
+      '</div>'+
+      '<div style="font-size:15px;font-weight:800;color:#0f172a;letter-spacing:-0.3px">'+c.title+'</div>'+
+      '<div style="font-size:11.5px;color:#64748b;line-height:1.5">'+c.subtitle+'</div>';
+    box.appendChild(btn);
+  });
+}
+function _showQuoteChooser() {
+  _ensureQuoteChooserOverlay();
+  var ov = document.getElementById('quote-chooser-overlay');
+  if (ov) ov.style.display = 'flex';
 }
 </script>
 
@@ -23388,14 +23450,14 @@ window._dmIsCardAllowed = function(item){
   var isSystemDept = SYS_USERS.indexOf(uname) !== -1;
   // 최해현 사원(webmaster20): 카탈로그에 4개 카드만 노출
   if (uname === 'webmaster20') {
-    var WM_ALLOWED = ['journal', 'sound', 'msg', 'meeting'];
+    var WM_ALLOWED = ['journal', 'sound', 'msg', 'meeting', 'mq']; // 음원 견적 관리 추가 (2026-10)
     return WM_ALLOWED.indexOf(item.key) !== -1;
   }
   switch (item.key) {
     case 'sound':   return !isSystemDept;              // 음원팀 업무 현황
     case 'bmat':    return !isSystemDept;              // BMAT 모니터링 통계
     case 'quote':   return isAdmin || isInfo || isSystemDept; // 견적 관리 (시스템팀 legacy)
-    case 'mq':      return uname === 'developer' || uname === 'sunlee'; // 음원 견적 관리 (사운드팀)
+    case 'mq':      return isInfo || (!isAdmin && !isSystemDept); // 음원 견적: 사운드팀 전원 + info (관리자는 '견적 관리' 선택 모달 사용)
     case 'emp':
     case 'perm':    return isAdmin;                    // 관리자 전용
     case 'sitemap': return false;                      // 사이트맵 카드 — 전 계정 숨김 (사용자 요청)
