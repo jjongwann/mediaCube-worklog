@@ -15595,13 +15595,29 @@ window.__mq = (function(){
     invoice: _INVOICE_COLS
   };
 
-  function _schemaKey(docType, subType){
-    if (docType === 'needle') return 'needle_' + (subType || 'ott');
+  // Needle 금액 컬럼 모드 (price_mode): 'dw'(D&W 통합 1열) | 'amount'(금액 1열) | 'split'(Domestic/Worldwide 분리 2열)
+  // 미지정(레거시 레코드)은 카테고리 기본값: ott→dw · ad→amount · movie→split (기존 동작 그대로)
+  function _defaultPriceMode(subType){ return subType === 'ad' ? 'amount' : (subType === 'movie' ? 'split' : 'dw'); }
+  function _validPriceMode(pm){ return (pm === 'dw' || pm === 'amount' || pm === 'split') ? pm : null; }
+  function _priceModeOf(r){
+    if (!r || r.doc_type !== 'needle') return null;
+    return _validPriceMode(r.price_mode) || _defaultPriceMode(r.sub_type);
+  }
+  // 엑셀/PDF 레이아웃 키 ('ott'/'ad'/'movie' colSpec·PCT 키) — price_mode 기준
+  function _needleModeKey(r){
+    var pm = _priceModeOf(r);
+    return pm === 'amount' ? 'ad' : (pm === 'split' ? 'movie' : 'ott');
+  }
+  function _schemaKey(docType, subType, priceMode){
+    if (docType === 'needle') {
+      var pm = _validPriceMode(priceMode) || _defaultPriceMode(subType);
+      return pm === 'amount' ? 'needle_ad' : (pm === 'split' ? 'needle_movie' : 'needle_ott');
+    }
     if (docType === 'annual') return 'annual';
     if (docType === 'invoice') return 'invoice';
     return 'needle_ott';
   }
-  function _cols(row){ return ITEM_COLS[_schemaKey(row.doc_type, row.sub_type)] || ITEM_COLS.needle_ott; }
+  function _cols(row){ return ITEM_COLS[_schemaKey(row.doc_type, row.sub_type, row.price_mode)] || ITEM_COLS.needle_ott; }
   function _typeLabel(row){
     if (row.doc_type === 'needle') return 'Needle · ' + ({ott:'OTT',ad:'광고',movie:'영화'}[row.sub_type]||'?');
     if (row.doc_type === 'annual') return 'Annual';
@@ -15873,18 +15889,20 @@ window.__mq = (function(){
     });
     return year + '-' + String(maxN + 1).padStart(3, '0');
   }
-  function _newForm(docType, subType){
+  function _newForm(docType, subType, priceMode){
     docType = docType || 'needle';
     subType = subType || 'ott';
+    var _pm = (docType === 'needle') ? (_validPriceMode(priceMode) || _defaultPriceMode(subType)) : null;
     var f = {
       id: null,
       doc_type: docType, sub_type: subType,
+      price_mode: _pm,
       quote_no: _nextQuoteNo(), status: '진행', // 신규 견적 기본 상태 (사용자 요청 2026-09)
       tax_invoice_date: '',
       doc_date: _today(),
       receiver_company: '', receiver_person: '', receiver_tel: '', receiver_fax: '',
       doc_title: '',
-      items: [ _newItem(_schemaKey(docType, subType)) ],
+      items: [ _newItem(_schemaKey(docType, subType, _pm)) ],
       notes: '',
       attachments: [], pendingFiles: []
     };
@@ -15917,6 +15935,7 @@ window.__mq = (function(){
     _chooserState = { step:1, docType:null, mode:'new' };
   }
   function _chooserBack(){
+    if (_chooserState.step === 3) { _chooserState.step = 2; _chooserState.subType = null; _renderChooser(); return; }
     if (_chooserState.step === 2) { _chooserState.step = 1; _chooserState.docType = null; _renderChooser(); }
   }
   function _renderChooser(){
@@ -15953,11 +15972,32 @@ window.__mq = (function(){
           + '<div class="desc">'+c.desc.replace(/\n/g,'<br>')+'</div>'
         + '</div>';
       }).join('');
+    } else if (_chooserState.step === 3) {
+      // Step 3 (Needle 신규 작성 전용): 합산 대상(금액 컬럼 구성) 선택
+      var catLbl3 = { ott:'OTT', ad:'광고', movie:'영화' }[_chooserState.subType] || '';
+      title.textContent = '합산 대상 선택';
+      sub.textContent = 'Needle 견적서 · ' + catLbl3 + ' — 표의 금액 컬럼 구성을 선택하세요';
+      step.textContent = '3 / 3 단계';
+      backBtn.style.display = 'inline-block';
+      var pmCards = [
+        { key:'dw',     title:'Domestic & Worldwide', desc:'통합 1열\n수량 + D&W 합산', ico:'<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>' },
+        { key:'amount', title:'금액',                 desc:'단일 금액 1열\n수량 + 금액 합산', ico:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
+        { key:'split',  title:'Domestic / Worldwide', desc:'분리 2열\n수량 + 각각 합산', ico:'<rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/>' }
+      ];
+      grid.style.gridTemplateColumns = 'repeat(' + pmCards.length + ',1fr)';
+      grid.innerHTML = pmCards.map(function(c){
+        return '<div class="mq-choice" onclick="window.__mq._pickPriceMode(\''+c.key+'\')">'
+          + '<div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+c.ico+'</svg></div>'
+          + '<div class="title">'+c.title+'</div>'
+          + '<div class="desc">'+c.desc.replace(/\n/g,'<br>')+'</div>'
+        + '</div>';
+      }).join('');
     } else {
       var docLbl = _chooserState.docType === 'needle' ? 'Needle 견적서' : (_chooserState.docType === 'annual' ? 'Annual 견적서' : '거래명세서');
       title.textContent = '카테고리 선택';
       sub.textContent = docLbl + ' — 사용 카테고리를 선택하세요 (관리·필터용)';
-      step.textContent = '2 / 2 단계';
+      // Needle 신규 작성은 3단계(합산 대상 선택)까지 진행
+      step.textContent = (_chooserState.docType === 'needle' && (_chooserState.mode || 'new') === 'new') ? '2 / 3 단계' : '2 / 2 단계';
       backBtn.style.display = 'inline-block';
       var subCards = [
         { key:'ott',   title:'OTT',   desc:'OTT · 방송', ico:'<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>' },
@@ -16801,10 +16841,26 @@ window.__mq = (function(){
       _openUploadPanel();
       return;
     }
+    // Needle 신규 작성: Step 3 (합산 대상 선택) 으로 진행
+    if (dt === 'needle') {
+      _chooserState.subType = subType;
+      _chooserState.step = 3;
+      _renderChooser();
+      return;
+    }
     _closeChooser();
-    // form 진입
+    _enterNewForm(dt, subType, null);
+  }
+  // Step 3 에서 합산 대상(금액 컬럼 모드) 선택 → 폼 진입
+  function _pickPriceMode(pm){
+    var dt = _chooserState.docType || 'needle';
+    var st = _chooserState.subType || 'ott';
+    _closeChooser();
+    _enterNewForm(dt, st, pm);
+  }
+  function _enterNewForm(dt, subType, priceMode){
     _state.view = 'form'; _state.editingId = null; _state.viewingId = null;
-    _state.form = _newForm(dt, subType);
+    _state.form = _newForm(dt, subType, priceMode);
     _visible('mq-list-wrap', false); _visible('mq-detail-view', false); _visible('mq-form-view', true);
     _visible('mq-filter-bar', false);
     _showBtn('mq-new-btn', false); _showBtn('mq-back-btn', true);
@@ -16815,6 +16871,7 @@ window.__mq = (function(){
     return {
       id: r.id,
       doc_type: r.doc_type||'needle', sub_type: r.sub_type||'',
+      price_mode: r.price_mode || '',
       quote_no: r.quote_no||'', status: r.status||'미결',
       tax_invoice_date: r.tax_invoice_date||'',
       doc_date: r.doc_date||'',
@@ -17482,14 +17539,14 @@ window.__mq = (function(){
     // doc_type 변경 시: sub_type 은 관리 태그로 유지 · items schema 만 재설정
     if (k === 'doc_type') {
       if (!_state.form.sub_type) _state.form.sub_type = 'ott';
-      _state.form.items = [ _newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type)) ];
+      _state.form.items = [ _newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type, _state.form.price_mode)) ];
       _renderForm();
       return;
     }
     // sub_type 변경 시: Needle 만 items schema 리셋 (Annual/invoice 는 표 구조 동일)
     if (k === 'sub_type') {
       if (_state.form.doc_type === 'needle') {
-        _state.form.items = [ _newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type)) ];
+        _state.form.items = [ _newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type, _state.form.price_mode)) ];
       }
       _renderForm();
       return;
@@ -17539,20 +17596,20 @@ window.__mq = (function(){
     if (!_state.form) return;
     // 대번호(그룹) 선택 상태면 해당 그룹 끝에 삽입 · 선택 없으면 기존처럼 맨 끝 추가
     if (_state.selectedIdx.size) { _addSongToSelected(); return; }
-    _state.form.items.push(_newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type)));
+    _state.form.items.push(_newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type, _state.form.price_mode)));
     _renderForm();
   }
   function _addGroup(){
     if (!_state.form) return;
     _state.form.items.push({ _type: 'group', label: '' });
-    _state.form.items.push(_newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type)));
+    _state.form.items.push(_newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type, _state.form.price_mode)));
     _renderForm();
   }
   function _addManySongs(n){
     if (!_state.form) return;
     // 대번호(그룹) 선택 상태면 해당 그룹 끝에 n개 삽입 · 선택 없으면 기존처럼 맨 끝 n개
     if (_state.selectedIdx.size) { _addSongToSelected(n); return; }
-    var key = _schemaKey(_state.form.doc_type, _state.form.sub_type);
+    var key = _schemaKey(_state.form.doc_type, _state.form.sub_type, _state.form.price_mode);
     for (var i=0; i<n; i++) _state.form.items.push(_newItem(key));
     _renderForm();
   }
@@ -17572,7 +17629,7 @@ window.__mq = (function(){
     if (!title) { _toast('제목을 먼저 입력해주세요'); return; }
     // items 는 빈 배열일 수 있음 (전체 삭제 · Excel import 빈 표 · 수정 모드) → 1행 재시드
     if (!Array.isArray(f.items) || !f.items.length) {
-      f.items = [ _newItem(_schemaKey(f.doc_type, f.sub_type)) ];
+      f.items = [ _newItem(_schemaKey(f.doc_type, f.sub_type, f.price_mode)) ];
     }
     var it = f.items[0];
     if (!it) return;
@@ -17653,7 +17710,7 @@ window.__mq = (function(){
     // 뒤에서부터 삽입 — 앞쪽 삽입으로 인한 인덱스 시프트 방지
     insertAfters.sort(function(a, b){ return b - a; });
     var n = Math.max(1, parseInt(count, 10) || 1);
-    var key = _schemaKey(f.doc_type, f.sub_type);
+    var key = _schemaKey(f.doc_type, f.sub_type, f.price_mode);
     insertAfters.forEach(function(pos){
       var newRows = [];
       for (var c = 0; c < n; c++) newRows.push(_newItem(key));
@@ -17796,6 +17853,8 @@ window.__mq = (function(){
       var body = {
         // Needle 만 sub_type 사용 (OTT/광고/영화) · Annual/Invoice 는 null 로 정규화
         doc_type: f.doc_type, sub_type: (f.doc_type === 'needle') ? (f.sub_type||null) : null,
+        // Needle 금액 컬럼 모드 (dw/amount/split) — DB: music_quotes.price_mode (ALTER 로 추가, 레거시 null 은 카테고리 기본값)
+        price_mode: (f.doc_type === 'needle') ? _priceModeOf(f) : null,
         quote_no: f.quote_no||null, status: f.status||'미결',
         tax_invoice_date: f.tax_invoice_date||null,
         doc_date: f.doc_date||null,
@@ -17946,7 +18005,7 @@ window.__mq = (function(){
       ad:    [4.98,18.22,7.56,19.06,7.82,18.62,6.0,5.7,12.03],
       movie: [4.94,15.0,6.44,14.3,7.76,16.6,6.0,5.7,11.95,11.3]
     };
-    var pct = isNeedle ? (NEEDLE_PCT[r.sub_type] || NEEDLE_PCT.ott) : null;
+    var pct = isNeedle ? (NEEDLE_PCT[_needleModeKey(r)] || NEEDLE_PCT.ott) : null;
     // 상단 폼 좌/우 분할점 = 표의 Track No 컬럼 오른쪽 선 (첫 5개 컬럼 폭 합) — 상하 일직선 정렬
     var splitPct = pct ? pct.slice(0, 5).reduce(function(a, b){ return a + b; }, 0) : 57;
     var thHtml = '<tr>' + cols.map(function(c, i){
@@ -18904,7 +18963,7 @@ window.__mq = (function(){
       wb.calcProperties = wb.calcProperties || {};
       wb.calcProperties.fullCalcOnLoad = true;
       if (r.doc_type === 'needle') {
-        _buildXlsx_needle(wb, r, logoBuf, stampBuf, r.sub_type || 'ott');
+        _buildXlsx_needle(wb, r, logoBuf, stampBuf, _needleModeKey(r));
       } else if (r.doc_type === 'annual') {
         _buildXlsx_annual(wb, r, logoBuf, stampBuf, false);
       } else if (r.doc_type === 'invoice') {
@@ -19052,7 +19111,7 @@ window.__mq = (function(){
     _onFileSelect: _onFileSelect, _removePendingFile: _removePendingFile, _removeExistingAttach: _removeExistingAttach,
     _save: _save, _deleteById: _deleteById,
     _openChooser: _openChooser, _closeChooser: _closeChooser, _chooserBack: _chooserBack,
-    _pickDocType: _pickDocType, _pickSubType: _pickSubType,
+    _pickDocType: _pickDocType, _pickSubType: _pickSubType, _pickPriceMode: _pickPriceMode,
     _openImportChooser: _openImportChooser, _closeUpload: _closeUpload,
     _onImportDragOver: _onImportDragOver, _onImportDragLeave: _onImportDragLeave, _onImportDrop: _onImportDrop,
     _onImportFileChange: _onImportFileChange, _clearImportFile: _clearImportFile, _startImport: _startImport,
