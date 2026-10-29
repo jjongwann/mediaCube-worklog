@@ -17539,6 +17539,10 @@ window.__mq = (function(){
     // doc_type 변경 시: sub_type 은 관리 태그로 유지 · items schema 만 재설정
     if (k === 'doc_type') {
       if (!_state.form.sub_type) _state.form.sub_type = 'ott';
+      // Needle 로 전환 시 price_mode 정규화 (유효값 유지, 없으면 카테고리 기본값) · 그 외 유형은 null
+      _state.form.price_mode = (_state.form.doc_type === 'needle')
+        ? (_validPriceMode(_state.form.price_mode) || _defaultPriceMode(_state.form.sub_type))
+        : null;
       _state.form.items = [ _newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type, _state.form.price_mode)) ];
       _renderForm();
       return;
@@ -17546,6 +17550,8 @@ window.__mq = (function(){
     // sub_type 변경 시: Needle 만 items schema 리셋 (Annual/invoice 는 표 구조 동일)
     if (k === 'sub_type') {
       if (_state.form.doc_type === 'needle') {
+        // 카테고리 변경 시 합산 대상(금액 컬럼)도 새 카테고리 기본값으로 전환 (사용자 요청 2026-10)
+        _state.form.price_mode = _defaultPriceMode(_state.form.sub_type);
         _state.form.items = [ _newItem(_schemaKey(_state.form.doc_type, _state.form.sub_type, _state.form.price_mode)) ];
       }
       _renderForm();
