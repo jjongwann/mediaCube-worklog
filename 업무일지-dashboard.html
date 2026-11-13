@@ -16072,9 +16072,9 @@ window.__mq = (function(){
       step.textContent = '3 / 3 단계';
       backBtn.style.display = 'inline-block';
       var pmCards = [
-        { key:'dw',     title:'Domestic & Worldwide', desc:'통합 1열\n수량 + D&W 합산', ico:'<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>' },
-        { key:'amount', title:'금액',                 desc:'단일 금액 1열\n수량 + 금액 합산', ico:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
-        { key:'split',  title:'Domestic / Worldwide', desc:'분리 2열\n수량 + 각각 합산', ico:'<rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/>' }
+        { key:'dw',     title:'Domestic & Worldwide', desc:'OTT', ico:'<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>' },
+        { key:'amount', title:'금액',                 desc:'광고', ico:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
+        { key:'split',  title:'Domestic / Worldwide', desc:'영화', ico:'<rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/>' }
       ];
       grid.style.gridTemplateColumns = 'repeat(' + pmCards.length + ',1fr)';
       grid.innerHTML = pmCards.map(function(c){
@@ -17322,7 +17322,9 @@ window.__mq = (function(){
         var v = r[f.k] || '';
         var inputHtml;
         if (readonly) {
-          inputHtml = '<span style="padding:3px 4px;display:inline-block">'+ _esc(v) +'</span>';
+          // 상세 뷰: DATE 만 'YYYY년 MM월 DD일' 표시 (입력폼 · 세금계산서 발행일 · 저장값은 ISO 그대로)
+          var dispV = (f.k === 'doc_date') ? _MQ_XL.fmtDate(v) : v;
+          inputHtml = '<span style="padding:3px 4px;display:inline-block">'+ _esc(dispV) +'</span>';
         } else if (f.k === 'doc_title' && !isInvoice) {
           // 제목 + '복사' 버튼 (견적서/Annual 전용): 제목 값을 항목 1행 병합 칸(CD Title/품목)에 복사
           //   invoice 는 행 병합 렌더가 없고 _summary 행 보호가 필요하므로 버튼 미노출
@@ -18357,7 +18359,10 @@ window.__mq = (function(){
         cell.border = Object.assign({}, cell.border||{}, patch);
       }
     }
-    function fmtDate(d){ if (!d) return ''; var s = String(d); if (s.length>=10) return s.slice(0,4)+'-'+s.slice(5,7)+'-'+s.slice(8,10); return s; }
+    // DATE(doc_date) 출력 표시 전용 — 'YYYY-MM-DD' → 'YYYY년 MM월 DD일' (PDF · Excel 공용)
+    //   * 표시 문자열만 생성 · 원본 r.doc_date / DB 값은 그대로 ISO 유지
+    //   * 재업로드 시 _normDate 가 'YYYY년 MM월 DD일' → ISO 로 복원
+    function fmtDate(d){ if (!d) return ''; var s = String(d); var m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (!m) return s; return m[1]+'년 '+String(m[2]).padStart(2,'0')+'월 '+String(m[3]).padStart(2,'0')+'일'; }
     // items 를 group + song 배열로 분해 (with numbering)
     function itemsToRows(items, docType){
       // 넘버링:
