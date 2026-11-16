@@ -18314,8 +18314,11 @@ window.__mq = (function(){
       var _sumTotal = 0;
       items.forEach(function(it){ if (it && it._type !== 'group') _sumTotal += _num(it.totalWithVat); });
       var _koAmt = _sumTotal ? (_MQ_XL.numToKorean(_sumTotal) + '원정(V.A.T포함)') : '';
+      // 한 칸에 "한글 금액 → 숫자 금액" 순서로 띄어쓰기 구분 (참조 거래명세서 양식)
       sumBand = '<tr class="sumband"><th class="sumband-label">합계<br>금액</th>'
-        + '<td colspan="'+(cols.length-1)+'" class="sumband-val">'+esc(_koAmt)+'</td></tr>';
+        + '<td colspan="'+(cols.length-1)+'" class="sumband-val">'+esc(_koAmt)
+        + (_sumTotal ? '<span class="sumband-num">'+esc(_fmtN(_sumTotal))+'</span>' : '')
+        + '</td></tr>';
     }
 
     var html = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>'+esc(_exportFileName(r))+'</title>'
@@ -18371,7 +18374,8 @@ window.__mq = (function(){
       + 'table.items.annual td.notes-body{height:150px}'
       // Annual 합계금액 띠 (Excel R10 재현 — 연파랑 배경 · 한글 금액 우측 정렬)
       + 'table.items tr.sumband th.sumband-label{background:#d9e1f2;font-weight:700;text-align:center;font-size:11px;line-height:1.25;border-top:none}'
-      + 'table.items tr.sumband td.sumband-val{background:#d9e1f2;font-weight:700;text-align:right;padding-right:14px;font-size:12.5px;height:40px;border-top:none}'
+      + 'table.items tr.sumband td.sumband-val{background:#d9e1f2;font-weight:700;text-align:left;padding-left:16px;font-size:12.5px;height:40px;border-top:none}'
+      + 'table.items tr.sumband td.sumband-val .sumband-num{margin-left:56px;font-size:13px;letter-spacing:0.3px}'
       + 'table.items tr.notes-row th,table.items tr.notes-row td{border-bottom:none}'
       // 표 가장자리 셀도 바깥 테두리 제거 (외곽 2px 와 미겹침)
       + 'table.items tr > :first-child{border-left:none}'
@@ -18991,9 +18995,9 @@ window.__mq = (function(){
       set(ws, 'B9', combinedText, { font:F(14,true), align:{horizontal:'left', vertical:'middle', indent:2} });
     } else {
       set(ws, 'A10', '합계 금액', { font:F(11,true), fill:FILL.total, align:A.center });
-      // 한글 합계 금액 한 번만 — 우측 정렬 (숫자 ₩ 셀 제거)
+      // 한 칸에 "한글 금액 → 숫자 금액" 순서로 띄어쓰기 구분 (참조 거래명세서 양식)
       ws.mergeCells('B10:I10');
-      set(ws, 'B10', total ? _MQ_XL.numToKorean(total) + '원정(V.A.T포함)' : '', { font:F(11,true), align:{horizontal:'right', vertical:'middle', indent:2}, fill:FILL.total });
+      set(ws, 'B10', total ? (_MQ_XL.numToKorean(total) + '원정(V.A.T포함)' + ' '.repeat(30) + total.toLocaleString()) : '', { font:F(11,true), align:{horizontal:'left', vertical:'middle', indent:2}, fill:FILL.total });
     }
     // 표 헤더 — Invoice 는 R10 (회색 배경), Annual 은 R11 (하늘색 배경)
     var headerRow = isInvoice ? 10 : 11;
