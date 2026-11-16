@@ -18195,6 +18195,11 @@ window.__mq = (function(){
     var pct = isNeedle ? (NEEDLE_PCT[_needleModeKey(r)] || NEEDLE_PCT.ott) : null;
     // 상단 폼 좌/우 분할점 = 표의 Track No 컬럼 오른쪽 선 (첫 5개 컬럼 폭 합) — 상하 일직선 정렬
     var splitPct = pct ? pct.slice(0, 5).reduce(function(a, b){ return a + b; }, 0) : 57;
+    // Annual·Invoice: px 고정폭 합(≈920px)이 A4 인쇄폭을 넘어 우측이 잘림 → 컬럼 비율(%)로 정규화해 100% 에 맞춤
+    if (!pct) {
+      var _twSum = cols.reduce(function(a, c){ return a + (c.w || 0); }, 0) || 1;
+      pct = cols.map(function(c){ return +(((c.w || 0) / _twSum) * 100).toFixed(2); });
+    }
     var thHtml = '<tr>' + cols.map(function(c, i){
       var lbl = (i === 0) ? 'No' : c.label;
       var wAttr = (pct && pct[i] != null) ? 'width:'+pct[i]+'%' : 'width:'+c.w+'px';
@@ -18927,7 +18932,7 @@ window.__mq = (function(){
       var R = [
         ['E3','등록번호','F3:I3', r.sender_reg_no||''],
         ['E4','상호명',  'F4:I4', r.sender_company||''],
-        ['E5','대표자',  'F5:I5', r.sender_ceo||''],
+        ['E5','대표자',  'F5:I5', (r.sender_ceo||'') ? (_ceoDisp(r.sender_ceo) + '     (인)') : '(인)'],
         ['E6','소재지',  'F6:I6', r.sender_address||''],
         ['E7','업태',    'F7:I7', r.sender_biz_type||''],
         ['E8',bizItemLabel,'F8:I8', r.sender_biz_item||''],
@@ -19127,10 +19132,10 @@ window.__mq = (function(){
     }
     if (stampBuf) {
       var sid = wb.addImage({ buffer:stampBuf, extension:'png' });
-      // Invoice: 대표자(R5) 의 (인) 위 정확 오버레이 · Annual: 상호명/대표자 사이
+      // Invoice · Annual 모두 대표자(R5) 의 (인) 위 오버레이
       var stampPos = isInvoice
-        ? { col:6.8, row:4, w:55, h:55 }   // Invoice: G열(단가) 끝 부근 · R5
-        : { col:5.3, row:3.7, w:65, h:65 };
+        ? { col:6.8, row:4, w:55, h:55 }    // Invoice: G열(단가) 끝 부근 · R5
+        : { col:6.15, row:3.55, w:65, h:65 }; // Annual: F5:I5 값 내 이름 뒤 (인) 위치
       ws.addImage(sid, { tl:{col:stampPos.col, row:stampPos.row}, ext:{width:stampPos.w, height:stampPos.h}, editAs:'oneCell' });
     }
     // 제목/로고 영역 (1~2행) thick outer 프레임
