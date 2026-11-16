@@ -19006,6 +19006,7 @@ window.__mq = (function(){
       : ['NO','품목','코드','규격','단위','QTY','단가','공급가액','부가가치세'];
     var headerFill = isInvoice ? {type:'pattern',pattern:'solid',fgColor:{argb:'FFD9D9D9'}} : FILL.header;
     var headerFontSize = isInvoice ? 13 : 10;
+    if (!isInvoice) ws.getRow(headerRow).height = 30; // Annual: 표 컬럼 머리글 행 높이 확대
     headers.forEach(function(h,i){
       set(ws, ws.getRow(headerRow).getCell(i+1).address, h, { font:F(headerFontSize,true), fill:headerFill });
     });
@@ -19120,7 +19121,8 @@ window.__mq = (function(){
         set(ws, col+totalRow, val, { font:F(12,true), fill:totalFill, align:A.center, numFmt:fmt });
       });
     } else {
-      // Annual TOTAL: A:E 병합 라벨 + F~J SUM formula
+      // Annual TOTAL: A:E 병합 라벨 + F~I SUM formula
+      ws.getRow(totalRow).height = 34; // TOTAL 행 높이 확대
       ws.mergeCells('A'+totalRow+':E'+totalRow);
       set(ws, 'A'+totalRow, 'TOTAL', { font:F(12,true), fill:FILL.header, align:A.center });
       var annualKeys = { F:'qty', G:'unitPrice', H:'supplyPrice', I:'vat' };
@@ -19161,7 +19163,7 @@ window.__mq = (function(){
       // Invoice · Annual 모두 대표자(R5) 의 (인) 위 오버레이
       var stampPos = isInvoice
         ? { col:6.8, row:4, w:55, h:55 }    // Invoice: G열(단가) 끝 부근 · R5
-        : { col:6.3, row:3.55, w:65, h:65 }; // Annual: F5:I5 값 내 이름 뒤 (인) 위치
+        : { col:6.45, row:3.55, w:65, h:65 }; // Annual: F5:I5 값 내 이름 뒤 (인) 위치
       ws.addImage(sid, { tl:{col:stampPos.col, row:stampPos.row}, ext:{width:stampPos.w, height:stampPos.h}, editAs:'oneCell' });
     }
     // 제목/로고 영역 (1~2행) thick outer 프레임
