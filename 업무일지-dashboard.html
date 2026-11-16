@@ -17155,7 +17155,7 @@ window.__mq = (function(){
       return;
     }
     var html = header + rows.map(function(r, idx){
-      var subLbl = r.doc_type==='needle' ? ({ott:'OTT',ad:'광고',movie:'영화'}[r.sub_type]||'') : '';
+      var subLbl = (r.doc_type==='needle' || r.doc_type==='annual') ? ({ott:'OTT',ad:'광고',movie:'영화'}[r.sub_type]||'') : '';
       return '<div class="mq-row" onclick="window.__mq._showDetail(\''+_esc(r.id)+'\')">'
         + '<div>'+(idx+1)+'</div>'
         + '<div><span class="mq-chip '+_typeClass(r)+'">'+(r.doc_type==='needle'?'Needle':r.doc_type==='annual'?'Annual':'거래명세서')+'</span>'+(subLbl?'<span class="mq-sub">'+_esc(subLbl)+'</span>':'')+'</div>'
@@ -17235,7 +17235,7 @@ window.__mq = (function(){
       var docTypeUpper = r.doc_type === 'needle' ? 'NEEDLE'
                         : r.doc_type === 'annual' ? 'ANNUAL'
                         : 'INVOICE';
-      var subLbl = r.doc_type === 'needle' ? ({ott:'OTT', ad:'AD', movie:'MOVIE'}[r.sub_type]||'') : '';
+      var subLbl = (r.doc_type === 'needle' || r.doc_type === 'annual') ? ({ott:'OTT', ad:'AD', movie:'MOVIE'}[r.sub_type]||'') : '';
       var st = r.status || '미결';
       var stColor = st === '완료' ? '#0d9488' : (st === '진행' ? '#2066ff' : '#dc2626');
       var stBg    = st === '완료' ? '#f0fdfa' : (st === '진행' ? '#eff6ff' : '#fef2f2');
@@ -18033,8 +18033,8 @@ window.__mq = (function(){
     var me = _me(), meDisplay = (me._display && (me._display.fullName||me._display.name)) || (typeof _currentUsername!=='undefined'?_currentUsername:'');
     _uploadPending().then(function(uploaded){
       var body = {
-        // Needle 만 sub_type 사용 (OTT/광고/영화) · Annual/Invoice 는 null 로 정규화
-        doc_type: f.doc_type, sub_type: (f.doc_type === 'needle') ? (f.sub_type||null) : null,
+        // Needle·Annual 은 sub_type(OTT/광고/영화) 저장 (관리·필터용) · Invoice 만 null (카테고리 없음)
+        doc_type: f.doc_type, sub_type: (f.doc_type === 'needle' || f.doc_type === 'annual') ? (f.sub_type||null) : null,
         // Needle 금액 컬럼 모드 (dw/amount/split) — DB: music_quotes.price_mode (ALTER 로 추가, 레거시 null 은 카테고리 기본값)
         price_mode: (f.doc_type === 'needle') ? _priceModeOf(f) : null,
         quote_no: f.quote_no||null, status: f.status||'미결',
