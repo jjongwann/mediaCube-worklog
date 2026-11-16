@@ -17541,7 +17541,7 @@ window.__mq = (function(){
         if (c.t === 'num') {
           // 숫자 입력: 화면엔 3자리 쉼표 표시 · 상태(_setItemField)엔 쉼표 제거값 저장 (DB/합산/export 는 쉼표 무관)
           var numDisp = dispVal === '' ? '' : _fmtN(_num(dispVal));
-          cellsHtmlArr.push('<td class="'+cls+'"><input type="text" value="'+_esc(numDisp)+'" oninput="this.value=this.value.replace(/[^0-9]/g,\'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g,\',\');window.__mq._setItemField('+idx+',\''+c.k+'\',this.value.replace(/,/g,\'\'))"'+(c.r?' style="text-align:right"':(c.c?' style="text-align:center"':''))+'></td>');
+          cellsHtmlArr.push('<td class="'+cls+'"><input type="text" data-k="'+c.k+'" value="'+_esc(numDisp)+'" oninput="this.value=this.value.replace(/[^0-9]/g,\'\').replace(/\\B(?=(\\d{3})+(?!\\d))/g,\',\');window.__mq._setItemField('+idx+',\''+c.k+'\',this.value.replace(/,/g,\'\'))"'+(c.r?' style="text-align:right"':(c.c?' style="text-align:center"':''))+'></td>');
           return;
         }
         // 텍스트 컬럼: textarea (자동 높이 · Enter 개행 차단) — 긴 값도 줄바꿈되어 전부 보임
@@ -17753,11 +17753,15 @@ window.__mq = (function(){
   function _setItemField(idx, k, v){
     if (!_state.form || !_state.form.items[idx]) return;
     _state.form.items[idx][k] = v;
-    // Annual/invoice 의 supplyPrice + vat 변경 시 totalWithVat 자동 계산 (전체 재렌더 → TOTAL 포함 갱신)
+    // Annual/invoice 의 supplyPrice + vat 변경 시 totalWithVat 자동 계산
+    // 재렌더 없이 해당 행 합계 셀 + TOTAL 행만 DOM 패치 — 입력 포커스·스크롤 유지 (전체 재렌더 시 키 입력마다 포커스 소실)
     if ((_state.form.doc_type==='annual' || _state.form.doc_type==='invoice') && (k==='supplyPrice' || k==='vat')) {
       var it = _state.form.items[idx];
       it.totalWithVat = _num(it.supplyPrice) + _num(it.vat);
-      _renderForm();
+      var host = document.getElementById('mq-form-view');
+      var cellInp = host && host.querySelector('tr[data-idx="'+idx+'"] input[data-k="totalWithVat"]');
+      if (cellInp) cellInp.value = it.totalWithVat ? _fmtN(it.totalWithVat) : '';
+      _updateTotalsDom();
       return;
     }
     // sum 컬럼 입력 시 TOTAL 행 실시간 갱신 (재렌더 없음 · 포커스 유지)
