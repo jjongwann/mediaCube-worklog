@@ -8107,7 +8107,8 @@
     });
     var fromSel = document.getElementById('cumul-from');
     var toSel   = document.getElementById('cumul-to');
-    var opts = keys.map(function(k){
+    // 옵션 나열: 최신(높은 연도) → 오래된 순. 내부 keys 는 오름차순 유지 (기본값 계산용)
+    var opts = keys.slice().reverse().map(function(k){
       var p=k.split('-');
       return '<option value="'+k+'">'+p[0]+'년 '+p[1]+'월</option>';
     }).join('');
@@ -8122,8 +8123,10 @@
         if (parseInt(keys[ki].split('-')[0]) === curYear) { janIdx = ki; break; }
       }
     }
-    fromSel.selectedIndex = janIdx >= 0 ? janIdx : 0;
-    toSel.selectedIndex = keys.length - 1;
+    if (keys.length) {
+      fromSel.value = keys[janIdx >= 0 ? janIdx : 0];
+      toSel.value   = keys[keys.length - 1];
+    }
 
     // 비교 연도 셀렉터 — 데이터에 존재하는 연도 + 현재±2 범위, 디폴트는 '직전 연도 (자동)'
     var cmpSel = document.getElementById('cumul-compare-year');
@@ -9490,7 +9493,8 @@
     var minYear = Math.min(2021, dbYears.length > 0 ? dbYears[0] : 2021, curYear);
     var maxYear = Math.max(curYear, dbYears.length > 0 ? dbYears[dbYears.length - 1] : curYear);
     var opts = [];
-    for (var y = minYear; y <= maxYear; y++) {
+    // 연도 나열: 최신(높은 연도) → 오래된 순
+    for (var y = maxYear; y >= minYear; y--) {
       opts.push('<option value="' + y + '">' + y + '년</option>');
     }
     fromYSel.innerHTML = opts.join('');
@@ -10405,7 +10409,8 @@
 
     var fromSel = document.getElementById('bmat-cumul-from');
     var toSel   = document.getElementById('bmat-cumul-to');
-    var opts = keys.map(function(k){ return '<option value="' + k + '">' + _bmatFmtMonthLabel(k) + '</option>'; }).join('');
+    // 옵션 나열: 최신(높은 연도) → 오래된 순. 내부 keys 는 오름차순 유지 (기본값 계산용)
+    var opts = keys.slice().reverse().map(function(k){ return '<option value="' + k + '">' + _bmatFmtMonthLabel(k) + '</option>'; }).join('');
     fromSel.innerHTML = opts;
     toSel.innerHTML   = opts;
     fromSel.value = defaultFromKey;
