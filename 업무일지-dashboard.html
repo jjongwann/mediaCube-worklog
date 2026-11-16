@@ -18404,7 +18404,8 @@ window.__mq = (function(){
         // Annual: thead/tfoot 는 브라우저 인쇄에서 페이지마다 반복됨 → 전부 tbody 에 넣어
         //         머리글·TOTAL·비고는 한 번만, 넘치는 데이터 행만 다음 페이지로 이어지게
         + (r.doc_type === 'annual'
-          ? '<table class="items annual"><tbody>'+sumBand+thHtml+tbHtml+totalRow+notesRow+'</tbody></table>'
+          // colgroup 필수: 첫 행이 합계금액 띠(2칸)라 fixed 레이아웃이 컬럼 폭을 균등 분배해 버림 → col 로 비율 고정
+          ? '<table class="items annual"><colgroup>'+pct.map(function(p){ return '<col style="width:'+p+'%">'; }).join('')+'</colgroup><tbody>'+sumBand+thHtml+tbHtml+totalRow+notesRow+'</tbody></table>'
           : '<table class="items"><thead>'+thHtml+'</thead><tbody>'+tbHtml+'</tbody><tfoot>'+totalRow+notesRow+'</tfoot></table>')
       + '</div>'
       + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});window.addEventListener("afterprint",function(){window.close();});<\/script>'
